@@ -141,7 +141,7 @@ final class TestTaskSchedulerHelpers {
       return mockRegResponse;
     }
   }
-  
+
   // Overrides start / stop. Will be controlled without the extra event handling thread.
   static class TaskSchedulerManagerForTest extends
       TaskSchedulerManager {
@@ -265,7 +265,7 @@ final class TestTaskSchedulerHelpers {
     private final TaskSchedulerContext real;
     private final CountingExecutorService countingExecutorService;
     final AtomicInteger count = new AtomicInteger(0);
-    
+
     public TaskSchedulerContextDrainable(TaskSchedulerContextImplWrapper real) {
       countingExecutorService = (CountingExecutorService) real.getExecutorService();
       this.real = real;
@@ -444,7 +444,7 @@ final class TestTaskSchedulerHelpers {
       return cs1;
     }
   }
-  
+
   static class PreemptionMatcher implements ContainerSignatureMatcher {
     @Override
     public boolean isSuperSet(Object cs1, Object cs2) {
@@ -469,7 +469,7 @@ final class TestTaskSchedulerHelpers {
       return cs1;
     }
   }
-  
+
 
   static void waitForDelayedDrainNotify(AtomicBoolean drainNotifier)
       throws InterruptedException {

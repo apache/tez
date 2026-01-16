@@ -32,7 +32,7 @@ import org.slf4j.LoggerFactory;
 
 /**
  * Provides an implementation of {@link Partitioner} that is compatible
- * with Map Reduce partitioners. 
+ * with Map Reduce partitioners.
  */
 @SuppressWarnings({ "rawtypes", "unchecked" })
 @Public

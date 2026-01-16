@@ -32,7 +32,7 @@ public class RootInputLeafOutput <T extends EntityDescriptor<T>, S extends Entit
     this.ioDescriptor = ioDescriptor;
     this.controllerDescriptor = controllerDescriptor;
   }
-  
+
   public String getName() {
     return this.name;
   }
@@ -40,7 +40,7 @@ public class RootInputLeafOutput <T extends EntityDescriptor<T>, S extends Entit
   public T getIODescriptor() {
     return this.ioDescriptor;
   }
-  
+
   public S getControllerDescriptor() {
     return this.controllerDescriptor;
   }

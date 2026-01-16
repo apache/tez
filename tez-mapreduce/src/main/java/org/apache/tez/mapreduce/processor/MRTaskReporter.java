@@ -55,7 +55,7 @@ public class MRTaskReporter
     this.reporter = new MRReporter(context.getCounters());
     this.isProcessorContext = false;
   }
-  
+
   public MRTaskReporter(InputContext context) {
     this.context= context;
     this.reporter = new MRReporter(context.getCounters());

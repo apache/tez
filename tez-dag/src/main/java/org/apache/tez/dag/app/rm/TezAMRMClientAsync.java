@@ -73,19 +73,19 @@ public class TezAMRMClientAsync<T extends ContainerRequest> extends AMRMClientAs
       AMRMClientAsync.CallbackHandler callbackHandler) {
     super(client, intervalMs, callbackHandler);
   }
-  
+
   public synchronized Priority getTopPriority() {
     if (knownRequestsByPriority.isEmpty()) {
       return null;
     }
     return knownRequestsByPriority.lastKey();
   }
-  
+
   // Remove after YARN-1723 is fixed
   public synchronized void addNodeToBlacklist(NodeId nodeId) {
     client.updateBlacklist(Collections.singletonList(nodeId.getHost()), null);
   }
-  
+
   //Remove after YARN-1723 is fixed
    public synchronized void removeNodeFromBlacklist(NodeId nodeId) {
      client.updateBlacklist(null, Collections.singletonList(nodeId.getHost()));

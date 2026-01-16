@@ -31,10 +31,10 @@ import org.apache.tez.mapreduce.protos.MRRuntimeProtos.MRSplitsProto;
 
 /**
  * Represents InputSplitInfo for splits generated to memory. </p>
- * 
+ *
  * Since splits are generated in memory, the getSplitsMetaInfoFile and
  * getSplitsFile are not supported.
- * 
+ *
  */
 public class InputSplitInfoMem implements InputSplitInfo {
 
@@ -44,7 +44,7 @@ public class InputSplitInfoMem implements InputSplitInfo {
   private final Credentials credentials;
   private final Configuration conf;
   private final List<TaskLocationHint> taskLocationHints;
-  
+
   private org.apache.hadoop.mapreduce.InputSplit[] newFormatSplits;
   private org.apache.hadoop.mapred.InputSplit[] oldFormatSplits;
 
@@ -127,7 +127,7 @@ public class InputSplitInfoMem implements InputSplitInfo {
 
   @Override
   public boolean holdsNewFormatSplits() {
-    return this.isNewSplit;  
+    return this.isNewSplit;
   }
 
   @Override

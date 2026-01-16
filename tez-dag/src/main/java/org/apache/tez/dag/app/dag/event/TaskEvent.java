@@ -39,7 +39,7 @@ public class TaskEvent extends TezAbstractEvent<TaskEventType> implements TaskID
   public TezTaskID getTaskID() {
     return taskId;
   }
-  
+
   @Override
   public int getSerializingHash() {
     return taskId.getSerializingHash();

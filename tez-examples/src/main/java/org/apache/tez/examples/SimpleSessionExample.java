@@ -28,12 +28,12 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 /**
- * Simple example that shows how Tez session mode can be used to run multiple DAGs in the same 
- * session for efficiency and performance. Tez session mode enables the execution environment to 
- * hold onto execution resources so that they can be reused to across multiple DAGs. Typical use 
+ * Simple example that shows how Tez session mode can be used to run multiple DAGs in the same
+ * session for efficiency and performance. Tez session mode enables the execution environment to
+ * hold onto execution resources so that they can be reused to across multiple DAGs. Typical use
  * cases for this would be drill-down queries from a user shell or maintaining a pool of resources
  * to provide low latency execution of DAGs for an application.
- * In this example we will be submitting multiple OrderedWordCount DAGs on different inputs to the 
+ * In this example we will be submitting multiple OrderedWordCount DAGs on different inputs to the
  * same session.
  */
 public class SimpleSessionExample extends TezExampleBase {
@@ -68,19 +68,19 @@ public class SimpleSessionExample extends TezExampleBase {
     int numPartitions = args.length == 3 ? Integer.parseInt(args[2]) : 1;
 
     // Session pre-warming allows the user to hide initial startup, resource acquisition latency etc.
-    // by pre-allocating execution resources in the Tez session. They can run initialization logic 
+    // by pre-allocating execution resources in the Tez session. They can run initialization logic
     // in these pre-allocated resources (containers) to pre-warm the containers.
     // In between DAG executions, the session can hold on to a minimum number of containers.
-    // Ideally, this would be enough to provide desired balance of efficiency for the application 
-    // and sharing of resources with other applications. Typically, the number of containers to be 
+    // Ideally, this would be enough to provide desired balance of efficiency for the application
+    // and sharing of resources with other applications. Typically, the number of containers to be
     // pre-warmed equals the number of containers to be held between DAGs.
     if (tezConf.getBoolean(enablePrewarmConfig, false)) {
       // the above parameter is not a Tez parameter. Its only for this example.
       // In this example we are pre-warming enough containers to run all the sum tasks in parallel.
       // This means pre-warming numPartitions number of containers.
-      // We are making the pre-warm and held containers to be the same and using the helper API to 
-      // set up pre-warming. They can be made different and also custom initialization logic can be 
-      // specified using other API's. We know that the OrderedWordCount dag uses default files and 
+      // We are making the pre-warm and held containers to be the same and using the helper API to
+      // set up pre-warming. They can be made different and also custom initialization logic can be
+      // specified using other API's. We know that the OrderedWordCount dag uses default files and
       // resources. Otherwise we would have to specify matching parameters in the preWarm API too.
       tezConf.setInt(TezConfiguration.TEZ_AM_SESSION_MIN_HELD_CONTAINERS, numPartitions);
       tezClient.preWarm(PreWarmVertex.createConfigBuilder(tezConf).build());

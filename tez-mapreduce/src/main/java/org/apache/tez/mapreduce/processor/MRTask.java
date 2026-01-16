@@ -100,7 +100,7 @@ public abstract class MRTask extends AbstractLogicalIOProcessor {
   protected TaskAttemptID taskAttemptId;
   protected Progress progress = new Progress();
   protected SecretKey jobTokenSecret;
-  
+
   LogicalInput input;
   LogicalOutput output;
 
@@ -536,13 +536,13 @@ public abstract class MRTask extends AbstractLogicalIOProcessor {
     jobConf.setInt(JobContext.TASK_PARTITION,
         taskAttemptId.getTaskID().getId());
     jobConf.set(JobContext.ID, taskAttemptId.getJobID().toString());
-    
+
     jobConf.setBoolean(MRJobConfig.TASK_ISMAP, isMap);
-    
+
     Path outputPath = FileOutputFormat.getOutputPath(jobConf);
     if (outputPath != null) {
       if ((committer instanceof FileOutputCommitter)) {
-        FileOutputFormat.setWorkOutputPath(jobConf, 
+        FileOutputFormat.setWorkOutputPath(jobConf,
           ((FileOutputCommitter)committer).getTaskAttemptPath(taskAttemptContext));
       } else {
         FileOutputFormat.setWorkOutputPath(jobConf, outputPath);

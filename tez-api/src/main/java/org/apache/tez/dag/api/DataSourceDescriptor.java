@@ -36,14 +36,14 @@ import org.apache.tez.runtime.api.events.InputDataInformationEvent;
 import com.google.common.collect.Sets;
 
 /**
- * Defines the input and input initializer for a data source 
+ * Defines the input and input initializer for a data source
  *
  */
 @Public
 public class DataSourceDescriptor {
   private final InputDescriptor inputDescriptor;
   private final InputInitializerDescriptor initializerDescriptor;
-  
+
   private final Credentials credentials;
   private final int numShards;
   private final VertexLocationHint locationHint;
@@ -126,13 +126,13 @@ public class DataSourceDescriptor {
   }
 
   /**
-   * Get the {@link InputDescriptor} for this {@link DataSourceDescriptor} 
+   * Get the {@link InputDescriptor} for this {@link DataSourceDescriptor}
    * @return {@link InputDescriptor}
    */
   public InputDescriptor getInputDescriptor() {
     return inputDescriptor;
   }
-  
+
   /**
    * Get the {@link InputInitializerDescriptor} for this {@link DataSourceDescriptor}
    * @return {@link InputInitializerDescriptor}
@@ -140,16 +140,16 @@ public class DataSourceDescriptor {
   public @Nullable InputInitializerDescriptor getInputInitializerDescriptor() {
     return initializerDescriptor;
   }
-  
-  /** 
+
+  /**
   * This method can be used to specify a list of URIs for which Credentials
   * need to be obtained so that the job can run. An incremental list of URIs
   * can be provided by making multiple calls to the method.
-  * 
+  *
   * Currently, @{link credentials} can only be fetched for HDFS and other
   * {@link org.apache.hadoop.fs.FileSystem} implementations that support
   * credentials.
-  * 
+  *
   * @param uris
   *          a list of {@link URI}s
   * @return this
@@ -159,7 +159,7 @@ public class DataSourceDescriptor {
     urisForCredentials.addAll(uris);
     return this;
   }
-  
+
   /**
    * Get the URIs for which credentials will be obtained
    * @return an unmodifiable list representing the URIs for which credentials
@@ -168,10 +168,10 @@ public class DataSourceDescriptor {
   public Collection<URI> getURIsForCredentials() {
     return Collections.unmodifiableCollection(urisForCredentials);
   }
-  
+
   /**
    * Number of shards for this data source. If a vertex has only one
-   * data source this the number of tasks in the vertex should be set to 
+   * data source this the number of tasks in the vertex should be set to
    * the number of shards
    * Returns -1 when this is determined at runtime in the AM.
    * @return number of tasks
@@ -180,7 +180,7 @@ public class DataSourceDescriptor {
   public int getNumberOfShards() {
     return numShards;
   }
-  
+
   /**
    * Returns any credentials needed to access this data source.
    * Is null when this calculation happens on the AppMaster (default)
@@ -190,7 +190,7 @@ public class DataSourceDescriptor {
   public @Nullable Credentials getCredentials() {
     return credentials;
   }
-  
+
   /**
    * Get the location hints for the tasks in the vertex for this data source.
    * Is null when shard calculation happens on the AppMaster (default)

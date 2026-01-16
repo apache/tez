@@ -43,7 +43,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 /**
- * A dispatcher that can schedule events concurrently. Uses a fixed size threadpool 
+ * A dispatcher that can schedule events concurrently. Uses a fixed size threadpool
  * to schedule events. Events that have the same serializing hash will get scheduled
  * on the same thread in the threadpool. This can be used to prevent concurrency issues
  * for events that may not be independently processed.
@@ -74,9 +74,9 @@ public class AsyncDispatcherConcurrent extends CompositeService implements Dispa
 
   private ExecutorService execService;
   private final int numThreads;
-  
+
   protected final Map<Class<? extends Enum>, EventHandler> eventHandlers = Maps.newHashMap();
-  protected final Map<Class<? extends Enum>, AsyncDispatcherConcurrent> eventDispatchers = 
+  protected final Map<Class<? extends Enum>, AsyncDispatcherConcurrent> eventDispatchers =
       Maps.newHashMap();
   private boolean exitOnDispatchException = false;
 
@@ -87,14 +87,14 @@ public class AsyncDispatcherConcurrent extends CompositeService implements Dispa
     this.eventQueues = Lists.newArrayListWithCapacity(numThreads);
     this.numThreads = numThreads;
   }
-  
+
   class DispatchRunner implements Runnable {
     final LinkedBlockingQueue<Event> queue;
-    
+
     public DispatchRunner(LinkedBlockingQueue<Event> queue) {
       this.queue = queue;
     }
-    
+
     @Override
     public void run() {
       while (!stopped && !Thread.currentThread().isInterrupted()) {
@@ -124,7 +124,7 @@ public class AsyncDispatcherConcurrent extends CompositeService implements Dispa
       }
     }
   };
-  
+
   @Override
   protected void serviceInit(Configuration conf) throws Exception {
     super.serviceInit(conf);
@@ -206,7 +206,7 @@ public class AsyncDispatcherConcurrent extends CompositeService implements Dispa
 
   private void checkForExistingHandler(Class<? extends Enum> eventType) {
     EventHandler<Event> registeredHandler = (EventHandler<Event>) eventHandlers.get(eventType);
-    Preconditions.checkState(registeredHandler == null, 
+    Preconditions.checkState(registeredHandler == null,
         "Cannot register same event on multiple dispatchers");
   }
 
@@ -249,15 +249,15 @@ public class AsyncDispatcherConcurrent extends CompositeService implements Dispa
       multiHandler.addHandler(handler);
     }
   }
-  
+
   /**
    * Add an EventHandler for events handled in their own dispatchers with given name and threads
    */
-  
+
   public AsyncDispatcherConcurrent registerAndCreateDispatcher(Class<? extends Enum> eventType,
       EventHandler handler, String dispatcherName, int numThreads) {
     Preconditions.checkState(getServiceState() == STATE.NOTINITED);
-    
+
     /* check to see if we have a listener registered */
     checkForExistingDispatchers(true, eventType);
     LOG.info(
@@ -268,11 +268,11 @@ public class AsyncDispatcherConcurrent extends CompositeService implements Dispa
     addIfService(dispatcher);
     return dispatcher;
   }
-  
+
   public void registerWithExistingDispatcher(Class<? extends Enum> eventType,
       EventHandler handler, AsyncDispatcherConcurrent dispatcher) {
     Preconditions.checkState(getServiceState() == STATE.NOTINITED);
-    
+
     /* check to see if we have a listener registered */
     checkForExistingDispatchers(true, eventType);
     LOG.info("Registering " + eventType + " wit existing concurrent dispatch using: "
@@ -300,7 +300,7 @@ public class AsyncDispatcherConcurrent extends CompositeService implements Dispa
         return;
       }
       drained = false;
-      
+
       // offload to specific dispatcher if one exists
       Class<? extends Enum> type = event.getType().getDeclaringClass();
       AsyncDispatcherConcurrent registeredDispatcher = eventDispatchers.get(type);
@@ -308,7 +308,7 @@ public class AsyncDispatcherConcurrent extends CompositeService implements Dispa
         registeredDispatcher.getEventHandler().handle(event);
         return;
       }
-      
+
       int index = numThreads > 1 ? event.getSerializingHash() % numThreads : 0;
 
      // no registered dispatcher. use internal dispatcher.

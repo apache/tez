@@ -31,7 +31,7 @@ public enum AMSchedulerEventType {
   S_NODE_HEALTHY,
   // The scheduler should have a way of knowing about unusable nodes. Acting on
   // this information to change requests etc is scheduler specific.
-  
+
   // Producer : AMContainer
   S_CONTAINER_DEALLOCATE
 }

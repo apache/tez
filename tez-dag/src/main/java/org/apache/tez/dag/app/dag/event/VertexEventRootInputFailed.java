@@ -22,7 +22,7 @@ import org.apache.tez.dag.app.dag.impl.AMUserCodeException;
 import org.apache.tez.dag.records.TezVertexID;
 
 public class VertexEventRootInputFailed extends VertexEvent {
-  
+
   private final String inputName;
   private final AMUserCodeException error;
 
@@ -31,11 +31,11 @@ public class VertexEventRootInputFailed extends VertexEvent {
     this.inputName = inputName;
     this.error = error;
   }
-  
+
   public AMUserCodeException getError() {
     return this.error;
   }
-  
+
   public String getInputName() {
     return this.inputName;
   }

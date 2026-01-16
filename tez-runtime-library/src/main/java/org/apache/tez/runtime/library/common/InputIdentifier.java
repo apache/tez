@@ -24,7 +24,7 @@ import org.apache.hadoop.classification.InterfaceAudience.Private;
 public class InputIdentifier {
 
   private final int inputIndex;
-  
+
   public InputIdentifier(int srcInputIndex) {
     this.inputIndex = srcInputIndex;
   }

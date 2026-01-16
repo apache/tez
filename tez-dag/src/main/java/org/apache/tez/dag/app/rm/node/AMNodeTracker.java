@@ -38,9 +38,9 @@ import org.slf4j.LoggerFactory;
 
 public class AMNodeTracker extends AbstractService implements
     EventHandler<AMNodeEvent> {
-  
+
   static final Logger LOG = LoggerFactory.getLogger(AMNodeTracker.class);
-  
+
   private final ConcurrentMap<Integer, PerSourceNodeTracker> perSourceNodeTrackers;
 
   @SuppressWarnings("rawtypes")
@@ -60,11 +60,11 @@ public class AMNodeTracker extends AbstractService implements
     this.eventHandler = eventHandler;
     this.appContext = appContext;
   }
-  
+
   @Override
   public synchronized void serviceInit(Configuration conf) {
     this.maxTaskFailuresPerNode = conf.getInt(
-        TezConfiguration.TEZ_AM_MAX_TASK_FAILURES_PER_NODE, 
+        TezConfiguration.TEZ_AM_MAX_TASK_FAILURES_PER_NODE,
         TezConfiguration.TEZ_AM_MAX_TASK_FAILURES_PER_NODE_DEFAULT);
     this.nodeBlacklistingEnabled = conf.getBoolean(
         TezConfiguration.TEZ_AM_NODE_BLACKLISTING_ENABLED,

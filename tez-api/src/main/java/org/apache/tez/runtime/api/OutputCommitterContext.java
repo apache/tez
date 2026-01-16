@@ -71,7 +71,7 @@ public interface OutputCommitterContext {
    * @return User Payload
    */
   public UserPayload getUserPayload();
-  
+
   /**
    * Get Vertex Index in the DAG
    * @return Vertex index

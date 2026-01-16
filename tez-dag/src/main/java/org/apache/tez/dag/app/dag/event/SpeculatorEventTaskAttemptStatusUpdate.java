@@ -26,12 +26,12 @@ public class SpeculatorEventTaskAttemptStatusUpdate extends SpeculatorEvent {
   final TaskAttemptState state;
   final long timestamp;
   final boolean justStarted;
-  
+
   public SpeculatorEventTaskAttemptStatusUpdate(TezTaskAttemptID taId, TaskAttemptState state,
       long timestamp) {
     this(taId, state, timestamp, false);
   }
-  
+
   public SpeculatorEventTaskAttemptStatusUpdate(TezTaskAttemptID taId, TaskAttemptState state,
       long timestamp, boolean justStarted) {
     super(SpeculatorEventType.S_TASK_ATTEMPT_STATUS_UPDATE, taId.getVertexID());
@@ -44,15 +44,15 @@ public class SpeculatorEventTaskAttemptStatusUpdate extends SpeculatorEvent {
   public long getTimestamp() {
     return timestamp;
   }
-  
+
   public TezTaskAttemptID getAttemptId() {
     return id;
   }
-  
+
   public boolean hasJustStarted() {
     return justStarted;
   }
-  
+
   public TaskAttemptState getTaskAttemptState() {
     return state;
   }

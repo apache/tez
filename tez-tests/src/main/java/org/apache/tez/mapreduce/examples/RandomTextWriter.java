@@ -69,47 +69,47 @@ import org.apache.hadoop.util.ToolRunner;
  *     <value>1099511627776</value>
  *   </property>
  * </configuration></xmp>
- * 
+ *
  * Equivalently, {@link RandomTextWriter} also supports all the above options
  * and ones supported by {@link Tool} via the command-line.
- * 
+ *
  * To run: bin/hadoop jar hadoop-${version}-examples.jar randomtextwriter
- *            [-outFormat <i>output format class</i>] <i>output</i> 
+ *            [-outFormat <i>output format class</i>] <i>output</i>
  */
 public class RandomTextWriter extends Configured implements Tool {
-  public static final String TOTAL_BYTES = 
+  public static final String TOTAL_BYTES =
     "mapreduce.randomtextwriter.totalbytes";
-  public static final String BYTES_PER_MAP = 
+  public static final String BYTES_PER_MAP =
     "mapreduce.randomtextwriter.bytespermap";
-  public static final String MAPS_PER_HOST = 
+  public static final String MAPS_PER_HOST =
     "mapreduce.randomtextwriter.mapsperhost";
   public static final String MAX_VALUE = "mapreduce.randomtextwriter.maxwordsvalue";
   public static final String MIN_VALUE = "mapreduce.randomtextwriter.minwordsvalue";
   public static final String MIN_KEY = "mapreduce.randomtextwriter.minwordskey";
   public static final String MAX_KEY = "mapreduce.randomtextwriter.maxwordskey";
-  
+
   static int printUsage() {
     System.out.println("randomtextwriter " +
-                       "[-outFormat <output format class>] " + 
+                       "[-outFormat <output format class>] " +
                        "<output>");
     ToolRunner.printGenericCommandUsage(System.out);
     return 2;
   }
-  
+
   /**
    * User counters
    */
   static enum Counters { RECORDS_WRITTEN, BYTES_WRITTEN }
 
   static class RandomTextMapper extends Mapper<Text, Text, Text, Text> {
-    
+
     private long numBytesToWrite;
     private int minWordsInKey;
     private int wordsInKeyRange;
     private int minWordsInValue;
     private int wordsInValueRange;
     private Random random = new Random();
-    
+
     /**
      * Save the configuration value that we need to write the data.
      */
@@ -122,7 +122,7 @@ public class RandomTextWriter extends Configured implements Tool {
       minWordsInValue = conf.getInt(MIN_VALUE, 10);
       wordsInValueRange = (conf.getInt(MAX_VALUE, 100) - minWordsInValue);
     }
-    
+
     /**
      * Given an output filename, write a bunch of random records to it.
      */
@@ -130,31 +130,31 @@ public class RandomTextWriter extends Configured implements Tool {
                     Context context) throws IOException,InterruptedException {
       int itemCount = 0;
       while (numBytesToWrite > 0) {
-        // Generate the key/value 
-        int noWordsKey = minWordsInKey + 
+        // Generate the key/value
+        int noWordsKey = minWordsInKey +
           (wordsInKeyRange != 0 ? random.nextInt(wordsInKeyRange) : 0);
-        int noWordsValue = minWordsInValue + 
+        int noWordsValue = minWordsInValue +
           (wordsInValueRange != 0 ? random.nextInt(wordsInValueRange) : 0);
         Text keyWords = generateSentence(noWordsKey);
         Text valueWords = generateSentence(noWordsValue);
-        
-        // Write the sentence 
+
+        // Write the sentence
         context.write(keyWords, valueWords);
-        
+
         numBytesToWrite -= (keyWords.getLength() + valueWords.getLength());
-        
+
         // Update counters, progress etc.
         context.getCounter(Counters.BYTES_WRITTEN).increment(
                   keyWords.getLength() + valueWords.getLength());
         context.getCounter(Counters.RECORDS_WRITTEN).increment(1);
         if (++itemCount % 200 == 0) {
-          context.setStatus("wrote record " + itemCount + ". " + 
+          context.setStatus("wrote record " + itemCount + ". " +
                              numBytesToWrite + " bytes left.");
         }
       }
       context.setStatus("done with " + itemCount + " records.");
     }
-    
+
     private Text generateSentence(int noWords) {
       StringBuffer sentence = new StringBuffer();
       String space = " ";
@@ -165,20 +165,20 @@ public class RandomTextWriter extends Configured implements Tool {
       return new Text(sentence.toString());
     }
   }
-  
+
   /**
    * This is the main routine for launching a distributed random write job.
    * It runs 10 maps/node and each node writes 1 gig of data to a DFS file.
    * The reduce doesn't do anything.
-   * 
-   * @throws IOException 
+   *
+   * @throws IOException
    */
   @SuppressWarnings("deprecation")
-  public int run(String[] args) throws Exception {    
+  public int run(String[] args) throws Exception {
     if (args.length == 0) {
-      return printUsage();    
+      return printUsage();
     }
-    
+
     Configuration conf = getConf();
     JobClient client = new JobClient(conf);
     ClusterStatus cluster = client.getClusterStatus();
@@ -189,7 +189,7 @@ public class RandomTextWriter extends Configured implements Tool {
       System.err.println("Cannot have " + BYTES_PER_MAP +" set to 0");
       return -2;
     }
-    long totalBytesToWrite = conf.getLong(TOTAL_BYTES, 
+    long totalBytesToWrite = conf.getLong(TOTAL_BYTES,
          numMapsPerHost*numBytesToWritePerMap*cluster.getTaskTrackers());
     int numMaps = (int) (totalBytesToWrite / numBytesToWritePerMap);
     if (numMaps == 0 && totalBytesToWrite > 0) {
@@ -197,25 +197,25 @@ public class RandomTextWriter extends Configured implements Tool {
       conf.setLong(BYTES_PER_MAP, totalBytesToWrite);
     }
     conf.setInt(MRJobConfig.NUM_MAPS, numMaps);
-    
+
     Job job = new Job(conf);
-    
+
     job.setJarByClass(RandomTextWriter.class);
     job.setJobName("random-text-writer");
-    
+
     job.setOutputKeyClass(Text.class);
     job.setOutputValueClass(Text.class);
-    
+
     job.setInputFormatClass(RandomWriter.RandomInputFormat.class);
-    job.setMapperClass(RandomTextMapper.class);        
-    
-    Class<? extends OutputFormat> outputFormatClass = 
+    job.setMapperClass(RandomTextMapper.class);
+
+    Class<? extends OutputFormat> outputFormatClass =
       SequenceFileOutputFormat.class;
     List<String> otherArgs = new ArrayList<String>();
     for(int i=0; i < args.length; ++i) {
       try {
         if ("-outFormat".equals(args[i])) {
-          outputFormatClass = 
+          outputFormatClass =
             Class.forName(args[++i]).asSubclass(OutputFormat.class);
         } else {
           otherArgs.add(args[i]);
@@ -229,24 +229,24 @@ public class RandomTextWriter extends Configured implements Tool {
 
     job.setOutputFormatClass(outputFormatClass);
     FileOutputFormat.setOutputPath(job, new Path(otherArgs.get(0)));
-    
+
     System.out.println("Running " + numMaps + " maps.");
-    
+
     // reducer NONE
     job.setNumReduceTasks(0);
-    
+
     Date startTime = new Date();
     System.out.println("Job started: " + startTime);
     int ret = job.waitForCompletion(true) ? 0 : 1;
     Date endTime = new Date();
     System.out.println("Job ended: " + endTime);
-    System.out.println("The job took " + 
-                       (endTime.getTime() - startTime.getTime()) /1000 + 
+    System.out.println("The job took " +
+                       (endTime.getTime() - startTime.getTime()) /1000 +
                        " seconds.");
-    
+
     return ret;
   }
-  
+
   public static void main(String[] args) throws Exception {
     int res = ToolRunner.run(getTezDecoratedConfiguration(), new RandomTextWriter(), args);
     System.exit(res);

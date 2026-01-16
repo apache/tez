@@ -38,14 +38,14 @@ public final class IDConverter {
         Long.toString(dagId.getApplicationId().getClusterTimestamp()),
         dagId.getApplicationId().getId());
   }
-  
+
   public static TaskID toMRTaskId(TezTaskID taskid) {
     return new TaskID(
         toMRJobId(taskid.getDAGID()),
         taskid.getVertexID().getId() == 0 ? TaskType.MAP : TaskType.REDUCE,
         taskid.getId());
   }
-  
+
   public static TaskID toMRTaskIdForOutput(TezTaskID taskid) {
     return org.apache.tez.mapreduce.hadoop.mapreduce.TaskAttemptContextImpl
         .createMockTaskAttemptIDFromTezTaskId(taskid, (taskid.getVertexID().getId() == 0));
@@ -57,7 +57,7 @@ public final class IDConverter {
         toMRTaskId(taskAttemptId.getTaskID()),
         taskAttemptId.getId());
   }
-  
+
   // FIXME hardcoded assumption that one app is one dag
   public static TezDAGID fromMRJobId(
       org.apache.hadoop.mapreduce.JobID jobId) {
@@ -81,5 +81,5 @@ public final class IDConverter {
         fromMRTaskId(taskAttemptId.getTaskID()),
         taskAttemptId.getId());
   }
-  
+
 }

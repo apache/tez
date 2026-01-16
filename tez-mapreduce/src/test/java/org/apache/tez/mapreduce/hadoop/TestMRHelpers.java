@@ -142,7 +142,7 @@ public class TestMRHelpers {
       Assert.assertTrue(env.get(Environment.PATH.name()).contains(";%TEZ_ADMIN_ENV%\\bin"));
     }
 
-//    TEZ-273 will reinstate this or similar. 
+//    TEZ-273 will reinstate this or similar.
 //    for (String val : YarnConfiguration.DEFAULT_YARN_APPLICATION_CLASSPATH) {
 //      Assert.assertTrue(env.get(Environment.CLASSPATH.name()).contains(val));
 //    }

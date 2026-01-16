@@ -210,7 +210,7 @@ public class TezChild {
     }
     TezCommonUtils.logCredentials(LOG, credentials, "tezChildInit");
   }
-  
+
   public ContainerExecutionResult run() throws IOException, InterruptedException, TezException {
 
     ContainerContext containerContext = new ContainerContext(containerIdString);
@@ -333,7 +333,7 @@ public class TezChild {
 
   /**
    * Setup
-   * 
+   *
    * @param containerTask
    *          the new task specification. Must be a valid task
    * @param childUGI
@@ -362,7 +362,7 @@ public class TezChild {
 
   /**
    * Handles any additional resources to be localized for the new task
-   * 
+   *
    * @param containerTask
    * @throws IOException
    * @throws TezException
@@ -399,7 +399,7 @@ public class TezChild {
 
   /**
    * Cleans entries from the object registry, and resets the startedInputsMap if required
-   * 
+   *
    * @param containerTask
    *          the new task specification. Must be a valid task
    */

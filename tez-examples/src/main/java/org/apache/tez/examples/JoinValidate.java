@@ -125,7 +125,7 @@ public class JoinValidate extends TezExampleBase {
         }
       }
     }
-  
+
   }
 
   @Override

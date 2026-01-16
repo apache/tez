@@ -81,7 +81,7 @@ public class TezRootInputInitializerContextImpl implements
   public UserPayload getInputUserPayload() {
     return this.input.getIODescriptor().getUserPayload();
   }
-  
+
   @Override
   public UserPayload getUserPayload() {
     return this.input.getControllerDescriptor().getUserPayload();
@@ -92,7 +92,7 @@ public class TezRootInputInitializerContextImpl implements
     return vertex.getConf();
   }
 
-  @Override 
+  @Override
   public int getNumTasks() {
     return vertex.getTotalTasks();
   }

@@ -31,8 +31,8 @@ import org.apache.tez.dag.api.client.rpc.DAGClientAMProtocolBlockingPB;
 @InterfaceAudience.Private
 @InterfaceStability.Unstable
 public class TezAMPolicyProvider extends PolicyProvider {
-  
-  private static final Service[] tezApplicationMasterServices = 
+
+  private static final Service[] tezApplicationMasterServices =
       new Service[] {
     new Service(
         TezConstants.TEZ_AM_SECURITY_SERVICE_AUTHORIZATION_TASK_UMBILICAL,

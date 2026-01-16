@@ -48,7 +48,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 public class TestStateChangeNotifier {
-  
+
   // uses the thread based notification code path but effectively blocks update
   // events till listeners have been notified
   public static class StateChangeNotifierForTest extends StateChangeNotifier {
@@ -64,7 +64,7 @@ public class TestStateChangeNotifier {
       count.set(0);
       totalCount.set(0);
     }
-    
+
     @Override
     protected void processedEventFromQueue() {
       // addedEventToQueue runs in dispatcher thread while
@@ -85,7 +85,7 @@ public class TestStateChangeNotifier {
         }
       }
     }
-    
+
     @Override
     protected void addedEventToQueue() {
       totalCount.incrementAndGet();

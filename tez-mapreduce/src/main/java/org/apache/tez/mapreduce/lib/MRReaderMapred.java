@@ -58,7 +58,7 @@ public class MRReaderMapred extends MRReader {
 
   private boolean setupComplete = false;
 
-  public MRReaderMapred(JobConf jobConf, TezCounters tezCounters, TezCounter inputRecordCounter, 
+  public MRReaderMapred(JobConf jobConf, TezCounters tezCounters, TezCounter inputRecordCounter,
       InputContext context)
       throws IOException {
     this(jobConf, null, tezCounters, inputRecordCounter, context);
@@ -143,7 +143,7 @@ public class MRReaderMapred extends MRReader {
    * {@link MRInput} sets some additional parameters like split location when using the new API.
    * This methods returns the list of additional updates, and should be used by Processors using the
    * old MapReduce API with {@link MRInput}.
-   * 
+   *
    * @return the additional fields set by {@link MRInput}
    */
   public Configuration getConfigUpdates() {

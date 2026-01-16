@@ -40,11 +40,11 @@ public class InputFailedEvent extends Event{
    * Version number to indicate what attempt generated this Event
    */
   private int version;
-  
+
   @Private // for Writable
   public InputFailedEvent() {
   }
-  
+
   @Private
   private InputFailedEvent(int targetIndex, int version) {
     this.targetIndex = targetIndex;
@@ -55,15 +55,15 @@ public class InputFailedEvent extends Event{
   public static InputFailedEvent create(int targetIndex, int version) {
     return new InputFailedEvent(targetIndex, version);
   }
-  
+
   /**
    * Create a copy of the {@link InputFailedEvent} by adding a target input
    * index The index of the physical input to which this event should be routed
-   * 
+   *
    * @param targetIndex
    *          The index of the physical input to which this
    *          {@link InputFailedEvent} should be routed
-   * 
+   *
    * @return copy of the {@link InputFailedEvent} with the target input index
    *         added
    */

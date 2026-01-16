@@ -58,13 +58,13 @@ public class PreWarmVertex extends Vertex {
                         Resource taskResource) {
     super(vertexName, processorDescriptor, parallelism, taskResource);
   }
-  
+
 
   private PreWarmVertex(String vertexName, int parallelism, Resource taskResource) {
     this(vertexName, ProcessorDescriptor.create(
         "org.apache.tez.runtime.library.processor.PreWarmProcessor"), parallelism, taskResource);
   }
-  
+
   /**
    * Create a config builder for the @link {@link PreWarmVertex}. This may be used to construct the
    * pre-warm vertex more flexibly.
@@ -128,31 +128,31 @@ public class PreWarmVertex extends Vertex {
     ProcessorDescriptor proc;
     Resource resource;
     Configuration conf;
-    
+
     PreWarmVertexConfigBuilder(Configuration conf) {
       this.conf = conf;
     }
-    
+
     public PreWarmVertexConfigBuilder setName(String name) {
       this.name = name;
       return this;
     }
-    
+
     public PreWarmVertexConfigBuilder setProcessorDescriptor(ProcessorDescriptor proc) {
       this.proc = proc;
       return this;
     }
-    
+
     public PreWarmVertexConfigBuilder setResource(Resource resource) {
       this.resource = resource;
       return this;
     }
-    
+
     public PreWarmVertexConfigBuilder setParallelism(int parallelism) {
       this.parallelism = parallelism;
       return this;
     }
-    
+
     public PreWarmVertex build() {
       if (name == null) {
         name = "_PreWarm_";
@@ -160,7 +160,7 @@ public class PreWarmVertex extends Vertex {
       if (parallelism == 0) {
         parallelism = conf.getInt(TezConfiguration.TEZ_AM_SESSION_MIN_HELD_CONTAINERS, -1);
         if (parallelism == -1) {
-          throw new TezUncheckedException("Prewarm parallelism must be set or specified in conf via " 
+          throw new TezUncheckedException("Prewarm parallelism must be set or specified in conf via "
               + TezConfiguration.TEZ_AM_SESSION_MIN_HELD_CONTAINERS);
         }
       }
@@ -168,7 +168,7 @@ public class PreWarmVertex extends Vertex {
         proc =
             ProcessorDescriptor.create("org.apache.tez.runtime.library.processor.PreWarmProcessor");
       }
-      
+
       return create(name, proc, parallelism, resource);
     }
   }

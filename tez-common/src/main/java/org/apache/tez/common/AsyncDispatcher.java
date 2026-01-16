@@ -72,9 +72,9 @@ public class AsyncDispatcher extends CompositeService implements Dispatcher {
   private Thread eventHandlingThread;
   protected final Map<Class<? extends Enum>, EventHandler> eventHandlers = Maps.newHashMap();
   protected final Map<Class<? extends Enum>, AsyncDispatcher> eventDispatchers = Maps.newHashMap();
-  protected final Map<Class<? extends Enum>, AsyncDispatcherConcurrent> concurrentEventDispatchers = 
+  protected final Map<Class<? extends Enum>, AsyncDispatcherConcurrent> concurrentEventDispatchers =
       Maps.newHashMap();
-  
+
   private boolean exitOnDispatchException = false;
 
   public AsyncDispatcher(String name) {
@@ -133,7 +133,7 @@ public class AsyncDispatcher extends CompositeService implements Dispatcher {
     eventHandlingThread = new Thread(createThread());
     eventHandlingThread.setName("Dispatcher thread {" + name + "}");
     eventHandlingThread.start();
-    
+
     //start all the components
     super.serviceStart();
   }
@@ -218,16 +218,16 @@ public class AsyncDispatcher extends CompositeService implements Dispatcher {
       }
     }
   }
-  
+
   private void checkForExistingHandler(Class<? extends Enum> eventType) {
     EventHandler<Event> registeredHandler = (EventHandler<Event>) eventHandlers.get(eventType);
-    Preconditions.checkState(registeredHandler == null, 
+    Preconditions.checkState(registeredHandler == null,
         "Cannot register same event on multiple dispatchers");
   }
 
   private void checkForExistingDispatcher(Class<? extends Enum> eventType) {
     AsyncDispatcher registeredDispatcher = eventDispatchers.get(eventType);
-    Preconditions.checkState(registeredDispatcher == null, 
+    Preconditions.checkState(registeredDispatcher == null,
         "Multiple dispatchers cannot be registered for: " + eventType.getName());
   }
 
@@ -236,7 +236,7 @@ public class AsyncDispatcher extends CompositeService implements Dispatcher {
     Preconditions.checkState(concurrentDispatcher == null,
         "Multiple concurrent dispatchers cannot be registered for: " + eventType.getName());
   }
-  
+
   @VisibleForTesting
   protected void checkForExistingDispatchers(boolean checkHandler, Class<? extends Enum> eventType) {
     if (checkHandler) {
@@ -277,14 +277,14 @@ public class AsyncDispatcher extends CompositeService implements Dispatcher {
       multiHandler.addHandler(handler);
     }
   }
-  
+
   /**
    * Add an EventHandler for events handled in their own dispatchers with given name
    */
   public void registerAndCreateDispatcher(Class<? extends Enum> eventType,
       EventHandler handler, String dispatcherName) {
     Preconditions.checkState(getServiceState() == STATE.NOTINITED);
-    
+
     /* check to see if we have a listener registered */
     checkForExistingDispatchers(true, eventType);
     LOG.info(
@@ -294,11 +294,11 @@ public class AsyncDispatcher extends CompositeService implements Dispatcher {
     eventDispatchers.put(eventType, dispatcher);
     addIfService(dispatcher);
   }
-  
+
   public AsyncDispatcherConcurrent registerAndCreateDispatcher(Class<? extends Enum> eventType,
       EventHandler handler, String dispatcherName, int numThreads) {
     Preconditions.checkState(getServiceState() == STATE.NOTINITED);
-    
+
     /* check to see if we have a listener registered */
     checkForExistingDispatchers(true, eventType);
     LOG.info(
@@ -312,11 +312,11 @@ public class AsyncDispatcher extends CompositeService implements Dispatcher {
     addIfService(dispatcher);
     return dispatcher;
   }
-  
+
   public void registerWithExistingDispatcher(Class<? extends Enum> eventType,
       EventHandler handler, AsyncDispatcherConcurrent dispatcher) {
     Preconditions.checkState(getServiceState() == STATE.NOTINITED);
-    
+
     /* check to see if we have a listener registered */
     checkForExistingDispatchers(true, eventType);
     LOG.info("Registering " + eventType + " with existing concurrent dispatch using: "
@@ -355,9 +355,9 @@ public class AsyncDispatcher extends CompositeService implements Dispatcher {
         concurrentDispatcher.getEventHandler().handle(event);
         return;
       }
-      
+
       // no registered dispatcher. use internal dispatcher.
-      
+
       /* all this method does is enqueue all the events onto the queue */
       int qSize = eventQueue.size();
       if (qSize !=0 && qSize %1000 == 0) {

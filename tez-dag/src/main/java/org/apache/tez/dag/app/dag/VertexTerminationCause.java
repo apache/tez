@@ -31,7 +31,7 @@ public enum VertexTerminationCause {
 
   /** Initialization failed for one of the root Inputs */
   ROOT_INPUT_INIT_FAILURE(VertexState.FAILED),
-  
+
   /** This vertex failed as its AM usercode (VertexManager/EdgeManager/InputInitializer)
    * throw Exception
    */
@@ -54,10 +54,10 @@ public enum VertexTerminationCause {
 
   /** This vertex failed during init. */
   INIT_FAILURE(VertexState.FAILED),
-  
+
   INTERNAL_ERROR(VertexState.ERROR),
-  
-  /** error when writing recovery log */ 
+
+  /** error when writing recovery log */
   RECOVERY_ERROR(VertexState.FAILED),
 
   /** This vertex failed due to counter limits exceeded. */

@@ -29,7 +29,7 @@ import org.apache.tez.runtime.library.common.InputAttemptIdentifier;
 
 /**
  * Represents a Host with respect to the MapReduce ShuffleHandler.
- * 
+ *
  */
 public class InputHost extends HostPort {
 
@@ -122,7 +122,7 @@ public class InputHost extends HostPort {
     return "HostPort=" + super.toString() + ", InputDetails=" +
         partitionToInputs;
   }
-  
+
   @Override
   public String toString() {
     return "HostPort=" + super.toString() + ", PartitionIds=" +

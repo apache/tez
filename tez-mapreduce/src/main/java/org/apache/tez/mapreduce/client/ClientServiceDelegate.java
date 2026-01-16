@@ -74,7 +74,7 @@ public class ClientServiceDelegate {
     // FIXME need support to query task diagnostics?
     return new String[0];
   }
-  
+
   public JobStatus getJobStatus(JobID oldJobID) throws IOException {
     // handled in YARNRunner
     throw new UnsupportedOperationException();
@@ -106,5 +106,5 @@ public class ClientServiceDelegate {
       throws YarnException, IOException {
     // FIXME logs for an attempt?
     throw new UnsupportedOperationException();
-  }  
+  }
 }

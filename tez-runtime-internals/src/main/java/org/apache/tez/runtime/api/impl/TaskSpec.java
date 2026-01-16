@@ -50,7 +50,7 @@ public class TaskSpec implements Writable, TaskAttemptIDAware {
 
   public TaskSpec() {
   }
-  
+
   public static TaskSpec createBaseTaskSpec(String dagName, String vertexName,
       int vertexParallelism, ProcessorDescriptor processorDescriptor,
       List<InputSpec> inputSpecList, List<OutputSpec> outputSpecList,
@@ -156,7 +156,7 @@ public class TaskSpec implements Writable, TaskAttemptIDAware {
   public List<OutputSpec> getOutputs() {
     return outputSpecList;
   }
-  
+
   public List<GroupInputSpec> getGroupInputs() {
     return groupInputSpecList;
   }

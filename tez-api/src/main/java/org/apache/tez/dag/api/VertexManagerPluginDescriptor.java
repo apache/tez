@@ -22,7 +22,7 @@ import org.apache.hadoop.classification.InterfaceAudience.Private;
 import org.apache.hadoop.classification.InterfaceAudience.Public;
 
 /**
- * Describes the {@link VertexManagerPlugin} 
+ * Describes the {@link VertexManagerPlugin}
  */
 @Public
 public class VertexManagerPluginDescriptor extends EntityDescriptor<VertexManagerPluginDescriptor> {
@@ -31,7 +31,7 @@ public class VertexManagerPluginDescriptor extends EntityDescriptor<VertexManage
   public VertexManagerPluginDescriptor() {
     super();
   }
-  
+
   private VertexManagerPluginDescriptor(String className) {
     super(className);
   }

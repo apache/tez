@@ -50,11 +50,11 @@ public class AMContainerTask {
   public Map<String, LocalResource> getAdditionalResources() {
     return this.additionalResources;
   }
-  
+
   public Credentials getCredentials() {
     return this.credentials;
   }
-  
+
   public boolean haveCredentialsChanged() {
     return this.credentialsChanged;
   }

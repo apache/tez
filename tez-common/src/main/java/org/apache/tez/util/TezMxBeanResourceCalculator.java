@@ -98,7 +98,7 @@ public class TezMxBeanResourceCalculator extends ResourceCalculatorProcessTree {
     //Returning -1 to indicate, this feature is not yet supported.
     return -1;
   }
-  
+
   private static Method getMxBeanMethod(String methodName) {
 	// New Method to support IBM and Oracle/OpenJDK JDK with OperatingSystemMXBean
     final String JAVA_VENDOR_NAME = System.getProperty("java.vendor");

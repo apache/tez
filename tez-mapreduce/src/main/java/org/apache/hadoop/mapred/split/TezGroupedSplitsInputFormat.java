@@ -53,9 +53,9 @@ import org.slf4j.LoggerFactory;
  */
 @Public
 @Evolving
-public class TezGroupedSplitsInputFormat<K, V> 
+public class TezGroupedSplitsInputFormat<K, V>
   implements InputFormat<K, V>, Configurable{
-  
+
   private static final Logger LOG = LoggerFactory.getLogger(TezGroupedSplitsInputFormat.class);
 
   InputFormat<K, V> wrappedInputFormat;
@@ -64,11 +64,11 @@ public class TezGroupedSplitsInputFormat<K, V>
 
   SplitSizeEstimator estimator;
   SplitLocationProvider locationProvider;
-  
+
   public TezGroupedSplitsInputFormat() {
-    
+
   }
-  
+
   public void setInputFormat(InputFormat<K, V> wrappedInputFormat) {
     this.wrappedInputFormat = wrappedInputFormat;
     if (LOG.isDebugEnabled()) {
@@ -85,13 +85,13 @@ public class TezGroupedSplitsInputFormat<K, V>
     this.locationProvider = Objects.requireNonNull(locationProvider);
     LOG.debug("Split size location provider: {}", locationProvider);
   }
-  
+
   public void setDesiredNumberOfSplits(int num) {
     Preconditions.checkArgument(num >= 0);
     this.desiredNumSplits = num;
     LOG.debug("desiredNumSplits: {}", desiredNumSplits);
   }
-  
+
   @Override
   public InputSplit[] getSplits(JobConf job, int numSplits) throws IOException {
     InputSplit[] originalSplits = wrappedInputFormat.getSplits(job, numSplits);
@@ -101,7 +101,7 @@ public class TezGroupedSplitsInputFormat<K, V>
         .getGroupedSplits(conf, originalSplits, desiredNumSplits, wrappedInputFormatName, estimator,
             locationProvider);
   }
-  
+
   @Override
   public RecordReader<K, V> getRecordReader(InputSplit split, JobConf job,
       Reporter reporter) throws IOException {
@@ -113,11 +113,11 @@ public class TezGroupedSplitsInputFormat<K, V>
     }
     return new TezGroupedSplitsRecordReader(groupedSplit, job, reporter);
   }
-  
+
   @SuppressWarnings({ "unchecked", "rawtypes" })
   void initInputFormatFromSplit(TezGroupedSplit split) throws TezException {
     if (wrappedInputFormat == null) {
-      Class<? extends InputFormat> clazz = (Class<? extends InputFormat>) 
+      Class<? extends InputFormat> clazz = (Class<? extends InputFormat>)
           getClassFromName(split.wrappedInputFormatName);
       try {
         wrappedInputFormat = org.apache.hadoop.util.ReflectionUtils.newInstance(clazz, conf);
@@ -202,7 +202,7 @@ public class TezGroupedSplitsInputFormat<K, V>
     public RecordReader<K, V> getCurReader() {
       return curReader;
     }
-    
+
     @Override
     public boolean next(K key, V value) throws IOException {
 
@@ -218,17 +218,17 @@ public class TezGroupedSplitsInputFormat<K, V>
     public K createKey() {
       return curReader.createKey();
     }
-    
+
     @Override
     public V createValue() {
       return curReader.createValue();
     }
-    
+
     @Override
     public float getProgress() throws IOException {
       return Math.min(1.0f,  getPos()/(float)(groupedSplit.getLength()));
     }
-    
+
     @Override
     public void close() throws IOException {
       if (curReader != null) {

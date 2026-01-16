@@ -5,9 +5,9 @@
  * licenses this file to you under the Apache License, Version 2.0 (the
  * "License"); you may not use this file except in compliance with the License.
  * You may obtain a copy of the License at
- * 
+ *
  * http://www.apache.org/licenses/LICENSE-2.0
- * 
+ *
  * Unless required by applicable law or agreed to in writing, software
  * distributed under the License is distributed on an "AS IS" BASIS, WITHOUT
  * WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the
@@ -76,18 +76,18 @@ public class TestAsyncDispatcher {
       handle();
     }
   }
-  
+
   @SuppressWarnings("unchecked")
   @Test (timeout=5000)
   public void testBasic() throws Exception {
     CountDownLatch latch = new CountDownLatch(4);
     CountDownEventHandler.latch = latch;
-    
+
     AsyncDispatcher central = new AsyncDispatcher("Type1");
     central.register(TestEventType1.class, new TestEventHandler1());
     central.registerAndCreateDispatcher(TestEventType2.class, new TestEventHandler2(), "Type2");
     central.registerAndCreateDispatcher(TestEventType3.class, new TestEventHandler3(), "Type3");
-    
+
     central.init(new Configuration());
     central.start();
     central.getEventHandler().handle(new TestEvent1(TestEventType1.TYPE1));
@@ -97,7 +97,7 @@ public class TestAsyncDispatcher {
     latch.await();
     central.close();
   }
-  
+
   @Test (timeout=5000)
   public void testMultipleRegisterFail() throws Exception {
     AsyncDispatcher central = new AsyncDispatcher("Type1");
@@ -110,7 +110,7 @@ public class TestAsyncDispatcher {
     } finally {
       central.close();
     }
-    
+
     central = new AsyncDispatcher("Type1");
     try {
       central.registerAndCreateDispatcher(TestEventType1.class, new TestEventHandler2(), "Type2");

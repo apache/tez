@@ -481,7 +481,7 @@ public class AMNodeImpl implements AMNode {
       this.readLock.unlock();
     }
   }
-  
+
   @Override
   public boolean isUsable() {
     return !(isUnhealthy() || isBlacklisted());

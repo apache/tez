@@ -86,7 +86,7 @@ public class OutputCommitterContextImpl implements OutputCommitterContext {
   public UserPayload getOutputUserPayload() {
     return output.getIODescriptor().getUserPayload();
   }
-  
+
   @Override
   public UserPayload getUserPayload() {
     return output.getControllerDescriptor().getUserPayload();

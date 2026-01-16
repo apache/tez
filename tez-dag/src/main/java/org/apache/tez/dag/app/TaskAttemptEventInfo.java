@@ -25,17 +25,17 @@ public class TaskAttemptEventInfo {
   private final int nextFromEventId;
   private final int nextPreRoutedFromEventId;
   private final List<TezEvent> events;
-  
+
   public TaskAttemptEventInfo(int nextFromEventId, List<TezEvent> events, int nextPreRoutedEventId) {
     this.nextFromEventId = nextFromEventId;
     this.nextPreRoutedFromEventId = nextPreRoutedEventId;
     this.events = events;
   }
-  
+
   public int getNextFromEventId() {
     return nextFromEventId;
   }
-  
+
   public int getNextPreRoutedFromEventId() {
     return nextPreRoutedFromEventId;
   }

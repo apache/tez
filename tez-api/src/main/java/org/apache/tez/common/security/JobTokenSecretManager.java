@@ -129,7 +129,7 @@ public class JobTokenSecretManager extends SecretManager<JobTokenIdentifier> {
       currentJobTokens.remove(jobId);
     }
   }
-  
+
   /**
    * Look up the token password/secret for the given jobId.
    * @param jobId the jobId to look up
@@ -146,7 +146,7 @@ public class JobTokenSecretManager extends SecretManager<JobTokenIdentifier> {
     }
     return tokenSecret;
   }
-  
+
   /**
    * Look up the token password/secret for the given job token identifier.
    * @param identifier the job token identifier to look up

@@ -35,10 +35,10 @@ import org.apache.tez.runtime.library.common.sort.impl.TezRawKeyValueIterator;
 
 /**
  * Iterates values while keys match in sorted input.
- * 
+ *
  * This class is not thread safe. Accessing methods from multiple threads will
  * lead to corrupt data.
- * 
+ *
  */
 
 @Private
@@ -56,15 +56,15 @@ public class ValuesIterator<KEY,VALUE> {
   private DataInputBuffer valueIn = new DataInputBuffer();
   private TezCounter inputKeyCounter;
   private TezCounter inputValueCounter;
-  
+
   private int keyCtr = 0;
   private boolean hasMoreValues; // For the current key.
   private boolean isFirstRecord = true;
 
   private boolean completedProcessing;
-  
-  public ValuesIterator (TezRawKeyValueIterator in, 
-                         RawComparator<KEY> comparator, 
+
+  public ValuesIterator (TezRawKeyValueIterator in,
+                         RawComparator<KEY> comparator,
                          Class<KEY> keyClass,
                          Class<VALUE> valClass, Configuration conf,
                          TezCounter inputKeyCounter,
@@ -86,7 +86,7 @@ public class ValuesIterator<KEY,VALUE> {
   /**
    * Move to the next K-Vs pair
    * @return true if another pair exists, otherwise false.
-   * @throws IOException 
+   * @throws IOException
    */
   public boolean moveToNext() throws IOException {
     if (isFirstRecord) {
@@ -105,22 +105,22 @@ public class ValuesIterator<KEY,VALUE> {
   }
 
   /** The current key. */
-  public KEY getKey() { 
-    return key; 
+  public KEY getKey() {
+    return key;
   }
-  
+
   // TODO NEWTEZ Maybe add another method which returns an iterator instead of iterable
-  
+
   public Iterable<VALUE> getValues() {
     return new Iterable<VALUE>() {
 
       @Override
       public Iterator<VALUE> iterator() {
-        
+
         return new Iterator<VALUE>() {
 
           private final int keyNumber = keyCtr;
-          
+
           @Override
           public boolean hasNext() {
             return hasMoreValues;
@@ -135,7 +135,7 @@ public class ValuesIterator<KEY,VALUE> {
                 .checkState(
                     keyNumber == keyCtr,
                     "Cannot use values iterator on the previous K-V pair after moveToNext has been invoked to move to the next K-V pair");
-            
+
             try {
               readNextValue();
               readNextKey();
@@ -154,13 +154,13 @@ public class ValuesIterator<KEY,VALUE> {
       }
     };
   }
-  
-  
+
+
 
   /** Start processing next unique key. */
   private void nextKey() throws IOException {
     // read until we find a new key
-    while (hasMoreValues) { 
+    while (hasMoreValues) {
       readNextKey();
     }
 
@@ -171,12 +171,12 @@ public class ValuesIterator<KEY,VALUE> {
     hasMoreValues = more;
   }
 
-  /** 
+  /**
    * read the next key - which may be the same as the current key.
    */
   private void readNextKey() throws IOException {
     more = in.next();
-    if (more) {      
+    if (more) {
       DataInputBuffer nextKeyBytes = in.getKey();
       if (!in.isSameKey()) {
         keyIn.reset(nextKeyBytes.getData(), nextKeyBytes.getPosition(),

@@ -23,9 +23,9 @@ import org.apache.hadoop.classification.InterfaceAudience.Public;
 /**
  * Edge defines the connection between a producer and consumer vertex in the DAG.
  * @link {@link EdgeProperty} defines the relationship between them. The producer
- * vertex provides input to the edge and the consumer vertex reads output from the 
+ * vertex provides input to the edge and the consumer vertex reads output from the
  * edge.
- * 
+ *
  */
 @Public
 public class Edge {
@@ -70,7 +70,7 @@ public class Edge {
 
   /**
    * The @link {@link Vertex} that reads output from the edge
-   * @return {@link Vertex} 
+   * @return {@link Vertex}
    */
   public Vertex getOutputVertex() {
     return outputVertex;
@@ -83,7 +83,7 @@ public class Edge {
   public EdgeProperty getEdgeProperty() {
     return edgeProperty;
   }
-  
+
   /*
    * Used to identify the edge in the configuration
    */
@@ -92,7 +92,7 @@ public class Edge {
     // ensure it is unique.
     return String.valueOf(System.identityHashCode(this));
   }
- 
+
   @Override
   public String toString() {
     return inputVertex + " -> " + outputVertex + " (" + edgeProperty + ")";

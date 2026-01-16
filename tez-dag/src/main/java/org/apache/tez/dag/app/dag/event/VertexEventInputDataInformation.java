@@ -27,12 +27,12 @@ import org.apache.tez.runtime.api.impl.TezEvent;
 public class VertexEventInputDataInformation extends VertexEvent {
 
   private final List<TezEvent> events;
-  
+
   public VertexEventInputDataInformation(TezVertexID vertexId, List<TezEvent> events) {
     super(vertexId, VertexEventType.V_INPUT_DATA_INFORMATION);
     this.events = events;
   }
-  
+
   public List<TezEvent> getEvents() {
     return events;
   }
