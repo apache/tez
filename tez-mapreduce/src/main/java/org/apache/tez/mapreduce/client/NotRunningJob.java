@@ -23,7 +23,7 @@ import java.net.InetSocketAddress;
 import java.util.ArrayList;
 import java.util.HashMap;
 
-import org.apache.commons.lang.NotImplementedException;
+import org.apache.commons.lang3.NotImplementedException;
 import org.apache.hadoop.mapreduce.v2.api.MRClientProtocol;
 import org.apache.hadoop.mapreduce.v2.api.protocolrecords.CancelDelegationTokenRequest;
 import org.apache.hadoop.mapreduce.v2.api.protocolrecords.CancelDelegationTokenResponse;
