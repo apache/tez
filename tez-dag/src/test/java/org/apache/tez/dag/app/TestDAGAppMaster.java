@@ -14,18 +14,38 @@
 
 package org.apache.tez.dag.app;
 
-import com.google.common.collect.BiMap;
-import com.google.common.collect.HashBiMap;
-import com.google.common.collect.Lists;
-import com.google.protobuf.ByteString;
+import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertNotNull;
+import static org.junit.Assert.assertNull;
+import static org.junit.Assert.assertTrue;
+import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.spy;
+import static org.mockito.Mockito.times;
+import static org.mockito.Mockito.verify;
+import static org.mockito.Mockito.when;
+
+import java.io.ByteArrayInputStream;
+import java.io.DataInput;
+import java.io.DataInputStream;
+import java.io.DataOutput;
+import java.io.File;
+import java.io.FileOutputStream;
+import java.io.IOException;
+import java.lang.reflect.Field;
+import java.nio.ByteBuffer;
+import java.time.Instant;
+import java.util.Date;
+import java.util.HashMap;
+import java.util.LinkedList;
+import java.util.List;
+import java.util.Map;
+
 import org.apache.hadoop.conf.Configuration;
-import org.apache.hadoop.fs.FSDataInputStream;
 import org.apache.hadoop.fs.FSDataOutputStream;
-import org.apache.hadoop.fs.FileStatus;
 import org.apache.hadoop.fs.FileSystem;
 import org.apache.hadoop.fs.FileUtil;
 import org.apache.hadoop.fs.Path;
-import org.apache.hadoop.fs.permission.FsPermission;
 import org.apache.hadoop.io.Text;
 import org.apache.hadoop.security.Credentials;
 import org.apache.hadoop.security.UserGroupInformation;
@@ -64,39 +84,17 @@ import org.apache.tez.dag.app.dag.impl.DAGImpl;
 import org.apache.tez.dag.app.rm.TaskSchedulerManager;
 import org.apache.tez.dag.records.TezDAGID;
 import org.apache.tez.dag.records.TezVertexID;
+
+import com.google.common.collect.BiMap;
+import com.google.common.collect.HashBiMap;
+import com.google.protobuf.ByteString;
+
 import org.junit.After;
 import org.junit.Assert;
 import org.junit.Before;
 import org.junit.Test;
 import org.mockito.ArgumentCaptor;
 import org.mockito.Mockito;
-
-import java.io.ByteArrayInputStream;
-import java.io.DataInput;
-import java.io.DataInputStream;
-import java.io.DataOutput;
-import java.io.File;
-import java.io.FileOutputStream;
-import java.io.IOException;
-import java.lang.reflect.Field;
-import java.nio.ByteBuffer;
-import java.time.Instant;
-import java.util.Date;
-import java.util.HashMap;
-import java.util.LinkedList;
-import java.util.List;
-import java.util.Map;
-
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertNotNull;
-import static org.junit.Assert.assertNull;
-import static org.junit.Assert.assertTrue;
-import static org.mockito.ArgumentMatchers.any;
-import static org.mockito.Mockito.mock;
-import static org.mockito.Mockito.spy;
-import static org.mockito.Mockito.times;
-import static org.mockito.Mockito.verify;
-import static org.mockito.Mockito.when;
 
 public class TestDAGAppMaster {
 
@@ -159,7 +157,7 @@ public class TestDAGAppMaster {
     // Test empty descriptor list, yarn enabled
     pluginMap.clear();
     entities = new LinkedList<>();
-    DAGAppMaster.parsePlugin(entities, pluginMap, null, true, false, defaultPayload);
+    PluginManager.parsePlugin(entities, pluginMap, null, true, false, defaultPayload);
     assertEquals(1, pluginMap.size());
     assertEquals(1, entities.size());
     assertTrue(pluginMap.containsKey(TezConstants.getTezYarnServicePluginName()));
@@ -170,7 +168,7 @@ public class TestDAGAppMaster {
     // Test empty descriptor list, uber enabled
     pluginMap.clear();
     entities = new LinkedList<>();
-    DAGAppMaster.parsePlugin(entities, pluginMap, null, false, true, defaultPayload);
+    PluginManager.parsePlugin(entities, pluginMap, null, false, true, defaultPayload);
     assertEquals(1, pluginMap.size());
     assertEquals(1, entities.size());
     assertTrue(pluginMap.containsKey(TezConstants.getTezUberServicePluginName()));
@@ -181,7 +179,7 @@ public class TestDAGAppMaster {
     // Test empty descriptor list, yarn enabled, uber enabled
     pluginMap.clear();
     entities = new LinkedList<>();
-    DAGAppMaster.parsePlugin(entities, pluginMap, null, true, true, defaultPayload);
+    PluginManager.parsePlugin(entities, pluginMap, null, true, true, defaultPayload);
     assertEquals(2, pluginMap.size());
     assertEquals(2, entities.size());
     assertTrue(pluginMap.containsKey(TezConstants.getTezYarnServicePluginName()));
@@ -204,7 +202,7 @@ public class TestDAGAppMaster {
     // Test descriptor, no yarn, no uber
     pluginMap.clear();
     entities = new LinkedList<>();
-    DAGAppMaster.parsePlugin(entities, pluginMap, entityDescriptors, false, false, defaultPayload);
+    PluginManager.parsePlugin(entities, pluginMap, entityDescriptors, false, false, defaultPayload);
     assertEquals(1, pluginMap.size());
     assertEquals(1, entities.size());
     assertTrue(pluginMap.containsKey(pluginName));
@@ -213,7 +211,7 @@ public class TestDAGAppMaster {
     // Test descriptor, yarn and uber
     pluginMap.clear();
     entities = new LinkedList<>();
-    DAGAppMaster.parsePlugin(entities, pluginMap, entityDescriptors, true, true, defaultPayload);
+    PluginManager.parsePlugin(entities, pluginMap, entityDescriptors, true, true, defaultPayload);
     assertEquals(3, pluginMap.size());
     assertEquals(3, entities.size());
     assertTrue(pluginMap.containsKey(TezConstants.getTezYarnServicePluginName()));
@@ -228,79 +226,37 @@ public class TestDAGAppMaster {
 
   @Test(timeout = 5000)
   public void testParseAllPluginsNoneSpecified() throws IOException {
+    PluginManager pluginManager = new PluginManager();
     Configuration conf = new Configuration(false);
     conf.set(TEST_KEY, TEST_VAL);
     UserPayload defaultPayload = TezUtils.createUserPayloadFromConf(conf);
-
-    List<NamedEntityDescriptor> tsDescriptors;
-    BiMap<String, Integer> tsMap;
-    List<NamedEntityDescriptor> clDescriptors;
-    BiMap<String, Integer> clMap;
-    List<NamedEntityDescriptor> tcDescriptors;
-    BiMap<String, Integer> tcMap;
-
 
     // No plugins. Non local
-    tsDescriptors = Lists.newLinkedList();
-    tsMap = HashBiMap.create();
-    clDescriptors = Lists.newLinkedList();
-    clMap = HashBiMap.create();
-    tcDescriptors = Lists.newLinkedList();
-    tcMap = HashBiMap.create();
-    DAGAppMaster.parseAllPlugins(tsDescriptors, tsMap, clDescriptors, clMap, tcDescriptors, tcMap,
-        null, false, defaultPayload);
-    verifyDescAndMap(tsDescriptors, tsMap, 1, true, TezConstants.getTezYarnServicePluginName());
-    verifyDescAndMap(clDescriptors, clMap, 1, true, TezConstants.getTezYarnServicePluginName());
-    verifyDescAndMap(tcDescriptors, tcMap, 1, true, TezConstants.getTezYarnServicePluginName());
+    PluginManager.PluginDescriptors pluginDescriptorsNonLocal = pluginManager.parseAllPlugins(false, defaultPayload);
+
+    verifyDescAndMap(pluginDescriptorsNonLocal.getTaskSchedulerDescriptors(),
+        pluginManager.getTaskSchedulers(), 1, true,
+        TezConstants.getTezYarnServicePluginName());
+    verifyDescAndMap(pluginDescriptorsNonLocal.getContainerLauncherDescriptors(),
+        pluginManager.getContainerLaunchers(), 1, true,
+        TezConstants.getTezYarnServicePluginName());
+    verifyDescAndMap(pluginDescriptorsNonLocal.getTaskCommunicatorDescriptors(),
+        pluginManager.getTaskCommunicators(), 1, true,
+        TezConstants.getTezYarnServicePluginName());
 
     // No plugins. Local
-    tsDescriptors = Lists.newLinkedList();
-    tsMap = HashBiMap.create();
-    clDescriptors = Lists.newLinkedList();
-    clMap = HashBiMap.create();
-    tcDescriptors = Lists.newLinkedList();
-    tcMap = HashBiMap.create();
-    DAGAppMaster.parseAllPlugins(tsDescriptors, tsMap, clDescriptors, clMap, tcDescriptors, tcMap,
-        null, true, defaultPayload);
-    verifyDescAndMap(tsDescriptors, tsMap, 1, true, TezConstants.getTezUberServicePluginName());
-    verifyDescAndMap(clDescriptors, clMap, 1, true, TezConstants.getTezUberServicePluginName());
-    verifyDescAndMap(tcDescriptors, tcMap, 1, true, TezConstants.getTezUberServicePluginName());
-  }
+    pluginManager = new PluginManager();
 
-  @Test(timeout = 5000)
-  public void testParseAllPluginsOnlyCustomSpecified() throws IOException {
-    Configuration conf = new Configuration(false);
-    conf.set(TEST_KEY, TEST_VAL);
-    UserPayload defaultPayload = TezUtils.createUserPayloadFromConf(conf);
-    TezUserPayloadProto payloadProto = TezUserPayloadProto.newBuilder()
-        .setUserPayload(ByteString.copyFrom(defaultPayload.getPayload())).build();
-
-    AMPluginDescriptorProto proto = createAmPluginDescriptor(false, false, true, payloadProto);
-
-    List<NamedEntityDescriptor> tsDescriptors;
-    BiMap<String, Integer> tsMap;
-    List<NamedEntityDescriptor> clDescriptors;
-    BiMap<String, Integer> clMap;
-    List<NamedEntityDescriptor> tcDescriptors;
-    BiMap<String, Integer> tcMap;
-
-
-    // Only plugin, Yarn.
-    tsDescriptors = Lists.newLinkedList();
-    tsMap = HashBiMap.create();
-    clDescriptors = Lists.newLinkedList();
-    clMap = HashBiMap.create();
-    tcDescriptors = Lists.newLinkedList();
-    tcMap = HashBiMap.create();
-    DAGAppMaster.parseAllPlugins(tsDescriptors, tsMap, clDescriptors, clMap, tcDescriptors, tcMap,
-        proto, false, defaultPayload);
-    verifyDescAndMap(tsDescriptors, tsMap, 2, true, TS_NAME,
-        TezConstants.getTezYarnServicePluginName());
-    verifyDescAndMap(clDescriptors, clMap, 1, true, CL_NAME);
-    verifyDescAndMap(tcDescriptors, tcMap, 1, true, TC_NAME);
-    assertEquals(TS_NAME + CLASS_SUFFIX, tsDescriptors.get(0).getClassName());
-    assertEquals(CL_NAME + CLASS_SUFFIX, clDescriptors.get(0).getClassName());
-    assertEquals(TC_NAME + CLASS_SUFFIX, tcDescriptors.get(0).getClassName());
+    PluginManager.PluginDescriptors pluginDescriptorsLocal = pluginManager.parseAllPlugins(true, defaultPayload);
+    verifyDescAndMap(pluginDescriptorsLocal.getTaskSchedulerDescriptors(),
+        pluginManager.getTaskSchedulers(), 1, true,
+        TezConstants.getTezUberServicePluginName());
+    verifyDescAndMap(pluginDescriptorsLocal.getContainerLauncherDescriptors(),
+        pluginManager.getContainerLaunchers(), 1, true,
+        TezConstants.getTezUberServicePluginName());
+    verifyDescAndMap(pluginDescriptorsLocal.getTaskCommunicatorDescriptors(),
+        pluginManager.getTaskCommunicators(), 1, true,
+        TezConstants.getTezUberServicePluginName());
   }
 
   @Test(timeout = 5000)
@@ -313,35 +269,24 @@ public class TestDAGAppMaster {
 
     AMPluginDescriptorProto proto = createAmPluginDescriptor(true, false, true, payloadProto);
 
-    List<NamedEntityDescriptor> tsDescriptors;
-    BiMap<String, Integer> tsMap;
-    List<NamedEntityDescriptor> clDescriptors;
-    BiMap<String, Integer> clMap;
-    List<NamedEntityDescriptor> tcDescriptors;
-    BiMap<String, Integer> tcMap;
-
-
     // Only plugin, Yarn.
-    tsDescriptors = Lists.newLinkedList();
-    tsMap = HashBiMap.create();
-    clDescriptors = Lists.newLinkedList();
-    clMap = HashBiMap.create();
-    tcDescriptors = Lists.newLinkedList();
-    tcMap = HashBiMap.create();
-    DAGAppMaster.parseAllPlugins(tsDescriptors, tsMap, clDescriptors, clMap, tcDescriptors, tcMap,
-        proto, false, defaultPayload);
-    verifyDescAndMap(tsDescriptors, tsMap, 2, true, TezConstants.getTezYarnServicePluginName(),
-        TS_NAME);
-    verifyDescAndMap(clDescriptors, clMap, 2, true, TezConstants.getTezYarnServicePluginName(),
-        CL_NAME);
-    verifyDescAndMap(tcDescriptors, tcMap, 2, true, TezConstants.getTezYarnServicePluginName(),
-        TC_NAME);
-    assertNull(tsDescriptors.get(0).getClassName());
-    assertNull(clDescriptors.get(0).getClassName());
-    assertNull(tcDescriptors.get(0).getClassName());
-    assertEquals(TS_NAME + CLASS_SUFFIX, tsDescriptors.get(1).getClassName());
-    assertEquals(CL_NAME + CLASS_SUFFIX, clDescriptors.get(1).getClassName());
-    assertEquals(TC_NAME + CLASS_SUFFIX, tcDescriptors.get(1).getClassName());
+    PluginManager pluginManager = new PluginManager(proto);
+    PluginManager.PluginDescriptors pluginDescriptors = pluginManager.parseAllPlugins(false, defaultPayload);
+
+    verifyDescAndMap(pluginDescriptors.getTaskSchedulerDescriptors(), pluginManager.getTaskSchedulers(),
+        2, true, TezConstants.getTezYarnServicePluginName(), TS_NAME);
+    verifyDescAndMap(pluginDescriptors.getContainerLauncherDescriptors(), pluginManager.getContainerLaunchers(),
+        2, true, TezConstants.getTezYarnServicePluginName(), CL_NAME);
+    verifyDescAndMap(pluginDescriptors.getTaskCommunicatorDescriptors(), pluginManager.getTaskCommunicators(),
+        2, true, TezConstants.getTezYarnServicePluginName(), TC_NAME);
+
+    assertNull(pluginDescriptors.getTaskSchedulerDescriptors().get(0).getClassName());
+    assertNull(pluginDescriptors.getContainerLauncherDescriptors().get(0).getClassName());
+    assertNull(pluginDescriptors.getTaskCommunicatorDescriptors().get(0).getClassName());
+
+    assertEquals(TS_NAME + CLASS_SUFFIX, pluginDescriptors.getTaskSchedulerDescriptors().get(1).getClassName());
+    assertEquals(CL_NAME + CLASS_SUFFIX, pluginDescriptors.getContainerLauncherDescriptors().get(1).getClassName());
+    assertEquals(TC_NAME + CLASS_SUFFIX, pluginDescriptors.getTaskCommunicatorDescriptors().get(1).getClassName());
   }
 
   @Test(timeout = 60000)

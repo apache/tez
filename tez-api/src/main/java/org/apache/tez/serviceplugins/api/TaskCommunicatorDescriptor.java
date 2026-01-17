@@ -22,6 +22,11 @@ import org.apache.tez.dag.api.NamedEntityDescriptor;
 @InterfaceStability.Unstable
 public class TaskCommunicatorDescriptor extends NamedEntityDescriptor<TaskCommunicatorDescriptor> {
 
+  /**
+   * Public constructor to allow this descriptor to be instantiated by Jackson.
+   */
+  @InterfaceAudience.Private
+  public TaskCommunicatorDescriptor() {}
 
   private TaskCommunicatorDescriptor(String taskCommName, String taskCommClassname) {
     super(taskCommName, taskCommClassname);

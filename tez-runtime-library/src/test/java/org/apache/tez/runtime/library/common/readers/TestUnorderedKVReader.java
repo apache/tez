@@ -18,6 +18,16 @@
 
 package org.apache.tez.runtime.library.common.readers;
 
+import static junit.framework.TestCase.fail;
+import static org.mockito.Mockito.doAnswer;
+import static org.mockito.Mockito.doNothing;
+import static org.mockito.Mockito.doThrow;
+import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.spy;
+
+import java.io.IOException;
+import java.util.LinkedList;
+
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.fs.FSDataOutputStream;
 import org.apache.hadoop.fs.FileSystem;
@@ -36,6 +46,7 @@ import org.apache.tez.runtime.library.common.shuffle.FetchedInputCallback;
 import org.apache.tez.runtime.library.common.shuffle.LocalDiskFetchedInput;
 import org.apache.tez.runtime.library.common.shuffle.impl.ShuffleManager;
 import org.apache.tez.runtime.library.common.sort.impl.IFile;
+
 import org.junit.After;
 import org.junit.Assert;
 import org.junit.Before;
@@ -44,16 +55,6 @@ import org.mockito.invocation.InvocationOnMock;
 import org.mockito.stubbing.Answer;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-
-import java.io.IOException;
-import java.util.LinkedList;
-
-import static junit.framework.TestCase.fail;
-import static org.mockito.Mockito.doAnswer;
-import static org.mockito.Mockito.doNothing;
-import static org.mockito.Mockito.doThrow;
-import static org.mockito.Mockito.mock;
-import static org.mockito.Mockito.spy;
 
 public class TestUnorderedKVReader {
 

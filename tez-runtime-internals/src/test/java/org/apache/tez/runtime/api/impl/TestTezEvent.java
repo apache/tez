@@ -36,11 +36,12 @@ import org.apache.tez.runtime.api.events.DataMovementEvent;
 import org.apache.tez.runtime.api.events.TaskAttemptCompletedEvent;
 import org.apache.tez.runtime.api.events.TaskStatusUpdateEvent;
 import org.apache.tez.runtime.api.impl.EventMetaData.EventProducerConsumerType;
-import org.junit.Assert;
-import org.junit.Test;
 
 import com.google.common.io.ByteArrayDataOutput;
 import com.google.common.io.ByteStreams;
+
+import org.junit.Assert;
+import org.junit.Test;
 
 public class TestTezEvent {
 

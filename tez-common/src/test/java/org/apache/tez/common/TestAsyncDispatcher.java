@@ -22,6 +22,7 @@ import java.util.concurrent.CountDownLatch;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.yarn.event.AbstractEvent;
 import org.apache.hadoop.yarn.event.EventHandler;
+
 import org.junit.Assert;
 import org.junit.Test;
 

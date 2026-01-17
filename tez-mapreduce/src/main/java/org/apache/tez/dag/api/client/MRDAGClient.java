@@ -20,10 +20,10 @@
 
 package org.apache.tez.dag.api.client;
 
-import javax.annotation.Nullable;
-
 import java.io.IOException;
 import java.util.Set;
+
+import javax.annotation.Nullable;
 
 import org.apache.hadoop.classification.InterfaceAudience;
 import org.apache.hadoop.yarn.api.records.ApplicationReport;

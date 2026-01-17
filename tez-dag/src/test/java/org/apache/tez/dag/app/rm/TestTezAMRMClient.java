@@ -18,6 +18,11 @@
 
 package org.apache.tez.dag.app.rm;
 
+import static org.mockito.Mockito.mock;
+
+import java.util.Collection;
+import java.util.List;
+
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.yarn.api.records.Priority;
 import org.apache.hadoop.yarn.api.records.Resource;
@@ -26,16 +31,12 @@ import org.apache.hadoop.yarn.client.api.async.AMRMClientAsync;
 import org.apache.hadoop.yarn.client.api.impl.AMRMClientImpl;
 import org.apache.hadoop.yarn.util.RackResolver;
 import org.apache.tez.common.MockDNSToSwitchMapping;
+
 import org.junit.After;
 import org.junit.Assert;
 import org.junit.Before;
 import org.junit.BeforeClass;
 import org.junit.Test;
-
-import java.util.Collection;
-import java.util.List;
-
-import static org.mockito.Mockito.mock;
 
 public class TestTezAMRMClient {
 

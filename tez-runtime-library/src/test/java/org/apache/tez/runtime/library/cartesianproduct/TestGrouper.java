@@ -17,12 +17,13 @@
  */
 package org.apache.tez.runtime.library.cartesianproduct;
 
-import org.apache.tez.runtime.library.utils.Grouper;
-import org.junit.Test;
-
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertTrue;
+
+import org.apache.tez.runtime.library.utils.Grouper;
+
+import org.junit.Test;
 
 public class TestGrouper {
   private Grouper grouper = new Grouper();

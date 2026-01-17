@@ -24,10 +24,9 @@ import java.util.Map.Entry;
 import java.util.Objects;
 
 import org.apache.hadoop.yarn.api.records.LocalResource;
-import org.apache.tez.dag.app.ContainerContext;
-
-import org.apache.tez.common.Preconditions;
 import org.apache.tez.common.ContainerSignatureMatcher;
+import org.apache.tez.common.Preconditions;
+import org.apache.tez.dag.app.ContainerContext;
 
 public class ContainerContextMatcher implements ContainerSignatureMatcher {
 

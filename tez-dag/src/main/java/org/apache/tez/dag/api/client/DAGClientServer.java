@@ -22,11 +22,9 @@ import java.io.IOException;
 import java.net.InetSocketAddress;
 import java.nio.ByteBuffer;
 
-import org.apache.hadoop.fs.FileSystem;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.fs.CommonConfigurationKeysPublic;
+import org.apache.hadoop.fs.FileSystem;
 import org.apache.hadoop.ipc.ProtobufRpcEngine;
 import org.apache.hadoop.ipc.RPC;
 import org.apache.hadoop.ipc.RPC.Server;
@@ -43,6 +41,9 @@ import org.apache.tez.dag.api.client.rpc.DAGClientAMProtocolRPC.DAGClientAMProto
 import org.apache.tez.dag.app.security.authorize.TezAMPolicyProvider;
 
 import com.google.protobuf.BlockingService;
+
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 public class DAGClientServer extends AbstractService {
   static final Logger LOG = LoggerFactory.getLogger(DAGClientServer.class);
@@ -65,7 +66,8 @@ public class DAGClientServer extends AbstractService {
   public void serviceStart() {
     try {
       Configuration conf = getConfig();
-      InetSocketAddress addr = new InetSocketAddress(0);
+      int rpcPort = conf.getInt(TezConfiguration.TEZ_AM_RPC_PORT, TezConfiguration.TEZ_AM_RPC_PORT_DEFAULT);
+      InetSocketAddress addr = new InetSocketAddress(rpcPort);
 
       DAGClientAMProtocolBlockingPBServerImpl service =
           new DAGClientAMProtocolBlockingPBServerImpl(realInstance, stagingFs);
@@ -81,7 +83,7 @@ public class DAGClientServer extends AbstractService {
 
       server = createServer(DAGClientAMProtocolBlockingPB.class, addr, conf,
                             numHandlers, blockingService, TezConfiguration.TEZ_AM_CLIENT_AM_PORT_RANGE);
-      
+
       // Enable service authorization?
       if (conf.getBoolean(
           CommonConfigurationKeysPublic.HADOOP_SECURITY_AUTHORIZATION,
@@ -115,7 +117,7 @@ public class DAGClientServer extends AbstractService {
   public InetSocketAddress getBindAddress() {
     return bindAddress;
   }
-  
+
   public void setClientAMSecretKey(ByteBuffer key) {
     if (key != null && key.hasRemaining()) {
       // non-empty key. must be useful

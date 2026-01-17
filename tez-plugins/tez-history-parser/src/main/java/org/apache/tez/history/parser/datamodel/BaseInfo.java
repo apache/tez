@@ -18,21 +18,23 @@
 
 package org.apache.tez.history.parser.datamodel;
 
-import com.google.common.collect.Lists;
-import com.google.common.collect.Maps;
-import org.apache.tez.common.counters.CounterGroup;
-import org.apache.tez.common.counters.TezCounter;
-import org.apache.tez.common.counters.TezCounters;
-import org.apache.tez.history.parser.utils.Utils;
-import org.codehaus.jettison.json.JSONException;
-import org.codehaus.jettison.json.JSONObject;
+import static org.apache.hadoop.classification.InterfaceAudience.Public;
+import static org.apache.hadoop.classification.InterfaceStability.Evolving;
 
 import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 
-import static org.apache.hadoop.classification.InterfaceAudience.Public;
-import static org.apache.hadoop.classification.InterfaceStability.Evolving;
+import org.apache.tez.common.counters.CounterGroup;
+import org.apache.tez.common.counters.TezCounter;
+import org.apache.tez.common.counters.TezCounters;
+import org.apache.tez.history.parser.utils.Utils;
+
+import com.google.common.collect.Lists;
+import com.google.common.collect.Maps;
+
+import org.codehaus.jettison.json.JSONException;
+import org.codehaus.jettison.json.JSONObject;
 
 @Public
 @Evolving

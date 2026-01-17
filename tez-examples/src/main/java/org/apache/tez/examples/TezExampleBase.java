@@ -18,24 +18,13 @@
 
 package org.apache.tez.examples;
 
-import javax.annotation.Nullable;
-
 import java.io.IOException;
 import java.io.PrintStream;
 import java.util.Set;
 
-import com.google.common.annotations.VisibleForTesting;
-import com.google.common.collect.Sets;
+import javax.annotation.Nullable;
 
 import org.apache.commons.cli.Options;
-import org.apache.hadoop.yarn.api.records.ApplicationId;
-import org.apache.tez.client.CallerContext;
-import org.apache.tez.common.TezUtilsInternal;
-import org.apache.tez.hadoop.shim.DefaultHadoopShim;
-import org.apache.tez.hadoop.shim.HadoopShim;
-import org.apache.tez.hadoop.shim.HadoopShimsLoader;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 import org.apache.hadoop.classification.InterfaceAudience;
 import org.apache.hadoop.classification.InterfaceAudience.Private;
 import org.apache.hadoop.conf.Configuration;
@@ -44,14 +33,25 @@ import org.apache.hadoop.security.UserGroupInformation;
 import org.apache.hadoop.util.GenericOptionsParser;
 import org.apache.hadoop.util.Tool;
 import org.apache.hadoop.util.ToolRunner;
+import org.apache.hadoop.yarn.api.records.ApplicationId;
+import org.apache.tez.client.CallerContext;
 import org.apache.tez.client.TezClient;
+import org.apache.tez.common.TezUtilsInternal;
 import org.apache.tez.dag.api.DAG;
 import org.apache.tez.dag.api.TezConfiguration;
 import org.apache.tez.dag.api.TezException;
 import org.apache.tez.dag.api.client.DAGClient;
 import org.apache.tez.dag.api.client.DAGStatus;
 import org.apache.tez.dag.api.client.StatusGetOpts;
+import org.apache.tez.hadoop.shim.HadoopShim;
+import org.apache.tez.hadoop.shim.HadoopShimsLoader;
 import org.apache.tez.runtime.library.api.TezRuntimeConfiguration;
+
+import com.google.common.annotations.VisibleForTesting;
+import com.google.common.collect.Sets;
+
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 @InterfaceAudience.Private
 public abstract class TezExampleBase extends Configured implements Tool {
@@ -123,7 +123,7 @@ public abstract class TezExampleBase extends Configured implements Tool {
     }
     hadoopShim = new HadoopShimsLoader(conf).getHadoopShim();
 
-    return _execute(otherArgs, null, null);
+    return execute(otherArgs, null, null);
   }
 
   /**
@@ -160,7 +160,7 @@ public abstract class TezExampleBase extends Configured implements Tool {
       generateSplitInClient = true;
     }
     String[] otherArgs = optionParser.getRemainingArgs();
-    return _execute(otherArgs, conf, tezClient);
+    return execute(otherArgs, conf, tezClient);
   }
 
   /**
@@ -215,8 +215,7 @@ public abstract class TezExampleBase extends Configured implements Tool {
     return 0;
   }
 
-  private int _execute(String[] otherArgs, TezConfiguration tezConf, TezClient tezClient) throws
-      Exception {
+  protected int execute(String[] otherArgs, TezConfiguration tezConf, TezClient tezClient) throws Exception {
 
     int result = _validateArgs(otherArgs);
     if (result != 0) {
@@ -250,7 +249,7 @@ public abstract class TezExampleBase extends Configured implements Tool {
     }
   }
 
-  private TezClient createTezClient(TezConfiguration tezConf) throws IOException, TezException {
+  protected TezClient createTezClient(TezConfiguration tezConf) throws IOException, TezException {
     TezClient tezClient = TezClient.create("TezExampleApplication", tezConf);
     if(reconnectAppId != null) {
       ApplicationId appId = TezClient.appIdfromString(reconnectAppId);

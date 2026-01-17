@@ -24,14 +24,14 @@ import java.util.Random;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.fs.FileSystem;
 import org.apache.hadoop.fs.Path;
+import org.apache.hadoop.util.GenericOptionsParser;
 import org.apache.hadoop.yarn.api.records.Resource;
-import org.apache.tez.client.TezClientUtils;
 import org.apache.tez.client.TezClient;
+import org.apache.tez.client.TezClientUtils;
 import org.apache.tez.dag.api.DAG;
 import org.apache.tez.dag.api.TezConfiguration;
 import org.apache.tez.dag.api.client.DAGClient;
 import org.apache.tez.dag.api.client.DAGStatus;
-import org.apache.hadoop.util.GenericOptionsParser;
 /**
  * Run a DAG on a cluster with the given configuration. Starts a TezSession
  * using default cluster configuration from installation. Then uses reflection

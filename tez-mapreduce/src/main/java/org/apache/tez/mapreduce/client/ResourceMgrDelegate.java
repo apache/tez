@@ -23,8 +23,6 @@ import java.net.InetSocketAddress;
 import java.util.HashSet;
 import java.util.Set;
 
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 import org.apache.hadoop.fs.FileSystem;
 import org.apache.hadoop.fs.Path;
 import org.apache.hadoop.io.Text;
@@ -48,6 +46,9 @@ import org.apache.hadoop.yarn.exceptions.YarnException;
 import org.apache.hadoop.yarn.util.ConverterUtils;
 import org.apache.tez.dag.api.TezConstants;
 import org.apache.tez.mapreduce.hadoop.MRJobConfig;
+
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 public class ResourceMgrDelegate {
   private static final Logger LOG = LoggerFactory.getLogger(ResourceMgrDelegate.class);

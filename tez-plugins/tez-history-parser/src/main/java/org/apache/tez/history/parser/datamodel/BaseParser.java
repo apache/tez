@@ -18,16 +18,17 @@
 
 package org.apache.tez.history.parser.datamodel;
 
-import org.apache.tez.common.Preconditions;
-import com.google.common.base.Predicate;
-import com.google.common.collect.Iterables;
-import com.google.common.collect.Lists;
-import org.apache.tez.dag.records.TezTaskAttemptID;
-import org.apache.tez.dag.records.TezTaskID;
-
 import java.io.File;
 import java.util.List;
 import java.util.Map;
+
+import org.apache.tez.common.Preconditions;
+import org.apache.tez.dag.records.TezTaskAttemptID;
+import org.apache.tez.dag.records.TezTaskID;
+
+import com.google.common.base.Predicate;
+import com.google.common.collect.Iterables;
+import com.google.common.collect.Lists;
 
 public abstract class BaseParser {
 

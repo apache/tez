@@ -23,7 +23,6 @@ import java.util.Map;
 
 import org.apache.hadoop.yarn.state.InvalidStateTransitonException;
 import org.apache.hadoop.yarn.state.StateMachine;
-import org.apache.tez.dag.records.TezID;
 
 public class StateMachineTez<STATE extends Enum<STATE>, EVENTTYPE extends Enum<EVENTTYPE>, EVENT, OPERAND>
     implements StateMachine<STATE, EVENTTYPE, EVENT> {

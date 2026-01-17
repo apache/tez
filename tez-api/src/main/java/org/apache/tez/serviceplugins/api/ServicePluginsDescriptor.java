@@ -16,9 +16,9 @@ package org.apache.tez.serviceplugins.api;
 
 import java.util.Arrays;
 
-import org.apache.tez.common.Preconditions;
 import org.apache.hadoop.classification.InterfaceAudience;
 import org.apache.hadoop.classification.InterfaceStability;
+import org.apache.tez.common.Preconditions;
 import org.apache.tez.dag.api.TezConfiguration;
 
 /**
@@ -29,12 +29,15 @@ import org.apache.tez.dag.api.TezConfiguration;
 @InterfaceStability.Unstable
 public class ServicePluginsDescriptor {
 
-  private final boolean enableContainers;
-  private final boolean enableUber;
+  private boolean enableContainers;
+  private boolean enableUber;
 
   private TaskSchedulerDescriptor[] taskSchedulerDescriptors;
   private ContainerLauncherDescriptor[] containerLauncherDescriptors;
   private TaskCommunicatorDescriptor[] taskCommunicatorDescriptors;
+
+  @InterfaceAudience.Private
+  public ServicePluginsDescriptor() {}
 
   private ServicePluginsDescriptor(boolean enableContainers, boolean enableUber,
                                    TaskSchedulerDescriptor[] taskSchedulerDescriptors,

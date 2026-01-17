@@ -17,7 +17,6 @@
 
 package org.apache.tez.dag.app;
 
-import java.util.EnumSet;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.Map.Entry;
@@ -25,14 +24,15 @@ import java.util.Objects;
 
 import javax.annotation.Nullable;
 
+import org.apache.hadoop.security.Credentials;
 import org.apache.hadoop.security.token.Token;
 import org.apache.hadoop.security.token.TokenIdentifier;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-import org.apache.hadoop.security.Credentials;
 import org.apache.hadoop.yarn.api.records.LocalResource;
 import org.apache.hadoop.yarn.api.records.LocalResourceType;
 import org.apache.tez.dag.app.dag.Vertex;
+
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 public class ContainerContext {
 

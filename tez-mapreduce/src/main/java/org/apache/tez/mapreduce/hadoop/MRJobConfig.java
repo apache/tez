@@ -18,8 +18,8 @@
 package org.apache.tez.mapreduce.hadoop;
 
 import org.apache.hadoop.classification.InterfaceAudience;
-import org.apache.hadoop.classification.InterfaceStability;
 import org.apache.hadoop.classification.InterfaceAudience.Private;
+import org.apache.hadoop.classification.InterfaceStability;
 
 @InterfaceAudience.Private
 @InterfaceStability.Evolving

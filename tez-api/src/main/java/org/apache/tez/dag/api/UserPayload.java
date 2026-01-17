@@ -18,22 +18,29 @@
 
 package org.apache.tez.dag.api;
 
-import com.google.common.annotations.VisibleForTesting;
 import java.nio.ByteBuffer;
+
 import javax.annotation.Nullable;
 
-import org.apache.hadoop.classification.InterfaceAudience.Public;
+import org.apache.hadoop.classification.InterfaceAudience;
 import org.apache.hadoop.classification.InterfaceStability;
+
+import com.google.common.annotations.VisibleForTesting;
 
 /**
  * Wrapper class to hold user payloads
  * Provides a version to help in evolving the payloads
  */
-@Public
+@InterfaceAudience.Public
 public final class UserPayload {
-  private final ByteBuffer payload;
-  private final int version;
+  private ByteBuffer payload;
+  private int version;
   private static final ByteBuffer EMPTY_BYTE = ByteBuffer.wrap(new byte[0]);
+
+  /**
+   * Public constructor to allow this descriptor to be instantiated by Jackson.
+   */
+  public UserPayload() {}
 
   private UserPayload(@Nullable ByteBuffer payload) {
     this(payload, 0);

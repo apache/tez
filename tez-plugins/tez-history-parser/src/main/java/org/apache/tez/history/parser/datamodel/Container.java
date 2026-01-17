@@ -18,10 +18,10 @@
 
 package org.apache.tez.history.parser.datamodel;
 
-import com.google.common.base.Objects;
-
 import static org.apache.hadoop.classification.InterfaceAudience.Public;
 import static org.apache.hadoop.classification.InterfaceStability.Evolving;
+
+import com.google.common.base.Objects;
 
 @Public
 @Evolving

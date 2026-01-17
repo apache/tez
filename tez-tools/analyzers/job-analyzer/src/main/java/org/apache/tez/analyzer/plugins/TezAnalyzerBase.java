@@ -27,9 +27,8 @@ import java.util.List;
 import java.util.stream.Collectors;
 
 import org.apache.commons.cli.CommandLine;
-import org.apache.commons.cli.GnuParser;
+import org.apache.commons.cli.DefaultParser;
 import org.apache.commons.cli.Option;
-import org.apache.commons.cli.OptionBuilder;
 import org.apache.commons.cli.Options;
 import org.apache.commons.cli.ParseException;
 import org.apache.commons.io.FileUtils;
@@ -40,6 +39,7 @@ import org.apache.hadoop.util.Tool;
 import org.apache.tez.analyzer.Analyzer;
 import org.apache.tez.analyzer.CSVResult;
 import org.apache.tez.analyzer.Result;
+import org.apache.tez.common.Preconditions;
 import org.apache.tez.dag.api.TezException;
 import org.apache.tez.history.ATSImportTool;
 import org.apache.tez.history.parser.ATSFileParser;
@@ -47,7 +47,6 @@ import org.apache.tez.history.parser.ProtoHistoryParser;
 import org.apache.tez.history.parser.SimpleHistoryParser;
 import org.apache.tez.history.parser.datamodel.DagInfo;
 
-import org.apache.tez.common.Preconditions;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -75,35 +74,35 @@ public abstract class TezAnalyzerBase extends Configured implements Tool, Analyz
 
   @SuppressWarnings("static-access")
   private static Options buildOptions() {
-    Option dagIdOption = OptionBuilder.withArgName(DAG_ID).withLongOpt(DAG_ID)
-        .withDescription("DagId that needs to be analyzed").hasArg().isRequired(true).create();
+    Option dagIdOption = Option.builder().argName(DAG_ID).longOpt(DAG_ID)
+        .desc("DagId that needs to be analyzed").hasArg().required(true).build();
 
-    Option outputDirOption = OptionBuilder.withArgName(OUTPUT_DIR).withLongOpt(OUTPUT_DIR)
-        .withDescription("Directory to write outputs to.").hasArg().isRequired(false).create();
+    Option outputDirOption = Option.builder().argName(OUTPUT_DIR).longOpt(OUTPUT_DIR)
+        .desc("Directory to write outputs to.").hasArg().required(false).build();
 
-    Option saveResults = OptionBuilder.withArgName(SAVE_RESULTS).withLongOpt(SAVE_RESULTS)
-        .withDescription("Saves results to output directory (optional)")
-        .hasArg(false).isRequired(false).create();
+    Option saveResults = Option.builder().argName(SAVE_RESULTS).longOpt(SAVE_RESULTS)
+        .desc("Saves results to output directory (optional)")
+        .hasArg(false).required(false).build();
 
-    Option eventFileNameOption = OptionBuilder.withArgName(EVENT_FILE_NAME).withLongOpt
+    Option eventFileNameOption = Option.builder().argName(EVENT_FILE_NAME).longOpt
         (EVENT_FILE_NAME)
-        .withDescription("File with event data for the DAG").hasArg()
-        .isRequired(false).create();
+        .desc("File with event data for the DAG").hasArg()
+        .required(false).build();
     
-    Option fromSimpleHistoryOption = OptionBuilder.withArgName(FROM_SIMPLE_HISTORY).withLongOpt
+    Option fromSimpleHistoryOption = Option.builder().argName(FROM_SIMPLE_HISTORY).longOpt
         (FROM_SIMPLE_HISTORY)
-        .withDescription("Event data from Simple History logging. Must also specify event file")
-        .isRequired(false).create();
+        .desc("Event data from Simple History logging. Must also specify event file")
+        .required(false).build();
 
     Option fromProtoHistoryOption =
-        OptionBuilder.withArgName(FROM_PROTO_HISTORY).withLongOpt(FROM_PROTO_HISTORY)
-            .withDescription("Event data from Proto History logging. Must also specify event file")
-            .isRequired(false).create();
+        Option.builder().argName(FROM_PROTO_HISTORY).longOpt(FROM_PROTO_HISTORY)
+            .desc("Event data from Proto History logging. Must also specify event file")
+            .required(false).build();
 
-    Option help = OptionBuilder.withArgName(HELP).withLongOpt
+    Option help = Option.builder().argName(HELP).longOpt
         (HELP)
-        .withDescription("print help")
-        .isRequired(false).create();
+        .desc("print help")
+        .required(false).build();
 
     Options opts = new Options();
     opts.addOption(dagIdOption);
@@ -123,8 +122,7 @@ public abstract class TezAnalyzerBase extends Configured implements Tool, Analyz
   private void printUsage() {
     System.err.println("Analyzer base options are");
     Options options = buildOptions();
-    for (Object obj : options.getOptions()) {
-      Option option = (Option) obj;
+    for (Option option : options.getOptions()) {
       System.err.println(option.getArgName() + " : " + option.getDescription());
     }
   }
@@ -134,7 +132,7 @@ public abstract class TezAnalyzerBase extends Configured implements Tool, Analyz
     //Parse downloaded contents
     CommandLine cmdLine = null;
     try {
-      cmdLine = new GnuParser().parse(buildOptions(), args);
+      cmdLine = new DefaultParser().parse(buildOptions(), args);
     } catch (ParseException e) {
       System.err.println("Invalid options on command line");
       printUsage();

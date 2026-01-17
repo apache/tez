@@ -19,13 +19,12 @@
 package org.apache.tez.dag.api;
 
 import java.util.Collections;
-import java.util.Set;
 import java.util.Objects;
+import java.util.Set;
 
 import org.apache.hadoop.classification.InterfaceAudience.Public;
 import org.apache.hadoop.classification.InterfaceStability.Evolving;
 import org.apache.hadoop.classification.InterfaceStability.Unstable;
-
 import org.apache.tez.common.Preconditions;
 
 /**

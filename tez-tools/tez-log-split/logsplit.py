@@ -23,6 +23,7 @@ import re
 from gzip import GzipFile as GZFile
 from getopt import getopt
 
+
 def usage():
     sys.stderr.write("""
 usage: logsplit.py <log-file>
@@ -30,10 +31,12 @@ usage: logsplit.py <log-file>
 Input files for this tool can be prepared by "yarn logs -applicationId <application_...>".
 """)
 
+
 def open_file(f):
     if f.endswith(".gz"):
         return GZFile(f)
     return open(f)
+
 
 class AggregatedLog(object):
     def __init__(self):
@@ -41,9 +44,11 @@ class AggregatedLog(object):
         self.in_logfile = False
         self.current_container_header = None
         self.current_container_name = None
-        self.current_host_name = None # as read from log line: "hello.my.host.com_8041"
+        self.current_host_name = None  # as read from log line: "hello.my.host.com_8041"
         self.current_file = None
-        self.HEADER_CONTAINER_RE = re.compile("Container: (container_[a-z0-9_]+) on (.*)")
+        self.HEADER_CONTAINER_RE = re.compile(
+            "Container: (container_[a-z0-9_]+) on (.*)"
+        )
         self.HEADER_LAST_ROW_RE = re.compile("^LogContents:$")
         self.HEADER_LOG_TYPE_RE = re.compile("^LogType:(.*)")
         self.LAST_LOG_LINE_RE = re.compile("^End of LogType:.*")
@@ -72,7 +77,9 @@ class AggregatedLog(object):
                     self.create_file_in_current_container(file_name)
                 elif self.HEADER_LAST_ROW_RE.match(line):
                     self.in_logfile = True
-                    self.write_to_current_file(self.current_container_header) #for host reference
+                    self.write_to_current_file(
+                        self.current_container_header
+                    )  # for host reference
         else:
             m = self.HEADER_CONTAINER_RE.match(line)
             self.current_container_header = line
@@ -83,12 +90,16 @@ class AggregatedLog(object):
                 self.start_container_folder()
 
     def start_container_folder(self):
-        container_dir = os.path.join(self.output_folder, self.get_current_container_dir_name())
+        container_dir = os.path.join(
+            self.output_folder, self.get_current_container_dir_name()
+        )
         if not os.path.exists(container_dir):
             os.makedirs(container_dir)
 
     def create_file_in_current_container(self, file_name):
-        file_to_be_created = os.path.join(self.output_folder, self.get_current_container_dir_name(), file_name)
+        file_to_be_created = os.path.join(
+            self.output_folder, self.get_current_container_dir_name(), file_name
+        )
         file = open(file_to_be_created, "w+")
         self.current_file = file
 
@@ -98,14 +109,18 @@ class AggregatedLog(object):
     def get_current_container_dir_name(self):
         return os.path.join(self.current_host_name, self.current_container_name)
 
+
 def main(argv):
     (opts, args) = getopt(argv, "")
     input_file = args[0]
     fp = open_file(input_file)
     aggregated_log = AggregatedLog()
     aggregated_log.process(fp)
-    print ("Split application logs was written into folder " + aggregated_log.output_folder)
+    print(
+        "Split application logs was written into folder " + aggregated_log.output_folder
+    )
     fp.close()
+
 
 if __name__ == "__main__":
     sys.exit(main(sys.argv[1:]))

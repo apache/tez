@@ -34,7 +34,6 @@ import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
-import javax.annotation.Nullable;
 import java.io.IOException;
 import java.lang.reflect.Method;
 import java.net.InetSocketAddress;
@@ -49,10 +48,8 @@ import java.util.concurrent.TimeoutException;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicInteger;
 
-import com.google.common.base.Preconditions;
-import com.google.common.base.Supplier;
-import com.google.common.collect.BiMap;
-import com.google.common.collect.HashBiMap;
+import javax.annotation.Nullable;
+
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.security.Credentials;
 import org.apache.hadoop.util.Time;
@@ -83,8 +80,8 @@ import org.apache.tez.dag.app.AppContext;
 import org.apache.tez.dag.app.ClusterInfo;
 import org.apache.tez.dag.app.ContainerContext;
 import org.apache.tez.dag.app.ContainerHeartbeatHandler;
-import org.apache.tez.dag.app.DAGAppMaster;
 import org.apache.tez.dag.app.DAGAppMasterState;
+import org.apache.tez.dag.app.PluginManager;
 import org.apache.tez.dag.app.ServicePluginLifecycleAbstractService;
 import org.apache.tez.dag.app.TaskCommunicatorManagerInterface;
 import org.apache.tez.dag.app.dag.DAG;
@@ -120,11 +117,16 @@ import org.apache.tez.serviceplugins.api.TaskAttemptEndReason;
 import org.apache.tez.serviceplugins.api.TaskScheduler;
 import org.apache.tez.serviceplugins.api.TaskSchedulerContext;
 import org.apache.tez.serviceplugins.api.TaskSchedulerDescriptor;
+
+import com.google.common.base.Preconditions;
+import com.google.common.base.Supplier;
+import com.google.common.collect.BiMap;
+import com.google.common.collect.HashBiMap;
+import com.google.common.collect.Lists;
+
 import org.junit.Assert;
 import org.junit.Before;
 import org.junit.Test;
-
-import com.google.common.collect.Lists;
 import org.mockito.ArgumentCaptor;
 import org.mockito.invocation.InvocationOnMock;
 import org.mockito.stubbing.Answer;
@@ -863,14 +865,16 @@ public class TestTaskSchedulerManager {
     UserPayload defaultPayload = TezUtils.createUserPayloadFromConf(tezConf);
 
     // Parse plugins
-    List<NamedEntityDescriptor> tsDescriptors = Lists.newLinkedList();
+    PluginManager pluginManager = new PluginManager();
+    PluginManager.PluginDescriptors pluginDescriptors = pluginManager.parseAllPlugins(false, defaultPayload);
+    List<NamedEntityDescriptor> tsDescriptors = pluginDescriptors.getTaskSchedulerDescriptors();
     BiMap<String, Integer> tsMap = HashBiMap.create();
-    DAGAppMaster.parseAllPlugins(tsDescriptors, tsMap, Lists.newLinkedList(), HashBiMap.create(), Lists.newLinkedList(),
-        HashBiMap.create(), null, false, defaultPayload);
 
     // Only TezYarn found.
     Assert.assertEquals(1, tsDescriptors.size());
     Assert.assertEquals(TezConstants.getTezYarnServicePluginName(), tsDescriptors.get(0).getEntityName());
+    Assert.assertEquals(1, pluginManager.getTaskSchedulers().size());
+    Assert.assertTrue(pluginManager.getTaskSchedulers().containsKey(TezConstants.getTezYarnServicePluginName()));
 
     // Construct eventHandler
     TestTaskSchedulerHelpers.CapturingEventHandler eventHandler = new TestTaskSchedulerHelpers.CapturingEventHandler();

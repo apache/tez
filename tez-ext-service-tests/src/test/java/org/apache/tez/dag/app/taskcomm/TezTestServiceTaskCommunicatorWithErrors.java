@@ -14,24 +14,24 @@
 
 package org.apache.tez.dag.app.taskcomm;
 
-import javax.annotation.Nullable;
 import java.io.IOException;
 import java.net.InetSocketAddress;
 import java.util.Map;
+
+import javax.annotation.Nullable;
 
 import org.apache.hadoop.net.NetUtils;
 import org.apache.hadoop.security.Credentials;
 import org.apache.hadoop.yarn.api.records.ContainerId;
 import org.apache.hadoop.yarn.api.records.LocalResource;
-import org.apache.tez.dag.app.ErrorPluginConfiguration;
-import org.apache.tez.serviceplugins.api.ServicePluginErrorDefaults;
-import org.apache.tez.serviceplugins.api.TaskCommunicator;
-import org.apache.tez.serviceplugins.api.TaskCommunicatorContext;
 import org.apache.tez.dag.api.event.VertexStateUpdate;
+import org.apache.tez.dag.app.ErrorPluginConfiguration;
 import org.apache.tez.dag.records.TezTaskAttemptID;
 import org.apache.tez.runtime.api.impl.TaskSpec;
 import org.apache.tez.serviceplugins.api.ContainerEndReason;
 import org.apache.tez.serviceplugins.api.TaskAttemptEndReason;
+import org.apache.tez.serviceplugins.api.TaskCommunicator;
+import org.apache.tez.serviceplugins.api.TaskCommunicatorContext;
 
 public class TezTestServiceTaskCommunicatorWithErrors extends TaskCommunicator {
 

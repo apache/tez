@@ -18,8 +18,6 @@
 
 package org.apache.tez.mapreduce.input;
 
-import javax.annotation.Nullable;
-
 import java.io.IOException;
 import java.util.Collection;
 import java.util.Collections;
@@ -30,18 +28,14 @@ import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.locks.Condition;
 import java.util.concurrent.locks.ReentrantLock;
 
-import com.google.common.base.Function;
-import org.apache.tez.common.Preconditions;
-import com.google.common.collect.Lists;
-import com.google.protobuf.ByteString;
+import javax.annotation.Nullable;
 
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 import org.apache.hadoop.classification.InterfaceAudience.Public;
 import org.apache.hadoop.classification.InterfaceStability.Evolving;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.mapred.JobConf;
 import org.apache.hadoop.mapreduce.InputSplit;
+import org.apache.tez.common.Preconditions;
 import org.apache.tez.common.counters.TaskCounter;
 import org.apache.tez.mapreduce.input.base.MRInputBase;
 import org.apache.tez.mapreduce.lib.MRInputUtils;
@@ -50,10 +44,17 @@ import org.apache.tez.mapreduce.lib.MRReaderMapReduce;
 import org.apache.tez.mapreduce.lib.MRReaderMapred;
 import org.apache.tez.mapreduce.protos.MRRuntimeProtos.MRSplitProto;
 import org.apache.tez.runtime.api.Event;
-import org.apache.tez.runtime.api.Reader;
 import org.apache.tez.runtime.api.InputContext;
+import org.apache.tez.runtime.api.Reader;
 import org.apache.tez.runtime.api.events.InputDataInformationEvent;
 import org.apache.tez.runtime.library.api.KeyValueReader;
+
+import com.google.common.base.Function;
+import com.google.common.collect.Lists;
+import com.google.protobuf.ByteString;
+
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 @Public
 @Evolving

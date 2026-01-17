@@ -19,8 +19,8 @@
 package org.apache.tez.test;
 
 import static org.apache.tez.dag.api.TezConfiguration.TEZ_AM_HOOKS;
-import static org.apache.tez.dag.api.TezConfiguration.TEZ_THREAD_DUMP_INTERVAL;
 import static org.apache.tez.dag.api.TezConfiguration.TEZ_TASK_ATTEMPT_HOOKS;
+import static org.apache.tez.dag.api.TezConfiguration.TEZ_THREAD_DUMP_INTERVAL;
 import static org.apache.tez.dag.api.TezConstants.TEZ_CONTAINER_LOGGER_NAME;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNotNull;
@@ -44,46 +44,33 @@ import java.util.Set;
 import java.util.concurrent.locks.Condition;
 import java.util.concurrent.locks.ReentrantLock;
 
-import org.apache.hadoop.fs.LocatedFileStatus;
-import org.apache.hadoop.fs.RemoteIterator;
-import org.apache.tez.common.Preconditions;
-import com.google.common.collect.Lists;
-
-import org.apache.hadoop.io.IntWritable;
-import org.apache.hadoop.io.Text;
-import org.apache.hadoop.yarn.api.records.ApplicationId;
-import org.apache.hadoop.yarn.api.records.YarnApplicationState;
-import org.apache.tez.common.TezContainerLogAppender;
-import org.apache.tez.common.counters.CounterGroup;
-import org.apache.tez.common.counters.TaskCounter;
-import org.apache.tez.common.counters.TezCounter;
-import org.apache.tez.common.counters.TezCounters;
-import org.apache.tez.dag.api.Edge;
-import org.apache.tez.dag.api.client.StatusGetOpts;
-import org.apache.tez.dag.api.client.VertexStatus;
-import org.apache.tez.dag.app.ThreadDumpDAGHook;
-import org.apache.tez.mapreduce.examples.CartesianProduct;
-import org.apache.tez.runtime.library.api.TezRuntimeConfiguration;
-import org.apache.tez.runtime.library.cartesianproduct.CartesianProductVertexManager;
-import org.apache.tez.runtime.library.conf.OrderedPartitionedKVEdgeConfig;
-import org.apache.tez.runtime.library.partitioner.HashPartitioner;
-import org.apache.tez.runtime.task.ThreadDumpTaskAttemptHook;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.fs.FSDataInputStream;
 import org.apache.hadoop.fs.FSDataOutputStream;
 import org.apache.hadoop.fs.FileStatus;
 import org.apache.hadoop.fs.FileSystem;
+import org.apache.hadoop.fs.LocatedFileStatus;
 import org.apache.hadoop.fs.Path;
 import org.apache.hadoop.fs.PathFilter;
+import org.apache.hadoop.fs.RemoteIterator;
 import org.apache.hadoop.hdfs.MiniDFSCluster;
+import org.apache.hadoop.io.IntWritable;
+import org.apache.hadoop.io.Text;
 import org.apache.hadoop.util.StringUtils;
+import org.apache.hadoop.yarn.api.records.ApplicationId;
 import org.apache.hadoop.yarn.api.records.ApplicationReport;
+import org.apache.hadoop.yarn.api.records.YarnApplicationState;
 import org.apache.hadoop.yarn.client.api.YarnClient;
 import org.apache.tez.client.TezClient;
+import org.apache.tez.common.Preconditions;
+import org.apache.tez.common.TezContainerLogAppender;
+import org.apache.tez.common.counters.CounterGroup;
+import org.apache.tez.common.counters.TaskCounter;
+import org.apache.tez.common.counters.TezCounter;
+import org.apache.tez.common.counters.TezCounters;
 import org.apache.tez.dag.api.DAG;
 import org.apache.tez.dag.api.DataSourceDescriptor;
+import org.apache.tez.dag.api.Edge;
 import org.apache.tez.dag.api.InputDescriptor;
 import org.apache.tez.dag.api.InputInitializerDescriptor;
 import org.apache.tez.dag.api.ProcessorDescriptor;
@@ -93,27 +80,41 @@ import org.apache.tez.dag.api.TezException;
 import org.apache.tez.dag.api.Vertex;
 import org.apache.tez.dag.api.client.DAGClient;
 import org.apache.tez.dag.api.client.DAGStatus;
+import org.apache.tez.dag.api.client.StatusGetOpts;
+import org.apache.tez.dag.api.client.VertexStatus;
 import org.apache.tez.dag.api.event.VertexState;
 import org.apache.tez.dag.api.event.VertexStateUpdate;
+import org.apache.tez.dag.app.ThreadDumpDAGHook;
+import org.apache.tez.examples.HashJoinExample;
+import org.apache.tez.examples.JoinDataGen;
+import org.apache.tez.examples.JoinValidate;
 import org.apache.tez.examples.OrderedWordCount;
 import org.apache.tez.examples.SimpleSessionExample;
-import org.apache.tez.examples.JoinDataGen;
-import org.apache.tez.examples.HashJoinExample;
-import org.apache.tez.examples.JoinValidate;
 import org.apache.tez.examples.SortMergeJoinExample;
+import org.apache.tez.mapreduce.examples.CartesianProduct;
 import org.apache.tez.mapreduce.examples.MultipleCommitsExample;
 import org.apache.tez.runtime.api.Event;
 import org.apache.tez.runtime.api.InputInitializer;
 import org.apache.tez.runtime.api.InputInitializerContext;
 import org.apache.tez.runtime.api.ProcessorContext;
 import org.apache.tez.runtime.api.events.InputInitializerEvent;
+import org.apache.tez.runtime.library.api.TezRuntimeConfiguration;
+import org.apache.tez.runtime.library.cartesianproduct.CartesianProductVertexManager;
+import org.apache.tez.runtime.library.conf.OrderedPartitionedKVEdgeConfig;
+import org.apache.tez.runtime.library.partitioner.HashPartitioner;
 import org.apache.tez.runtime.library.processor.SimpleProcessor;
 import org.apache.tez.runtime.library.processor.SleepProcessor;
+import org.apache.tez.runtime.task.ThreadDumpTaskAttemptHook;
 import org.apache.tez.test.dag.MultiAttemptDAG;
+
+import com.google.common.collect.Lists;
+
 import org.junit.AfterClass;
 import org.junit.Assert;
 import org.junit.BeforeClass;
 import org.junit.Test;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 
 /**
@@ -627,18 +628,24 @@ public class TestTezJobs {
     RemoteIterator<LocatedFileStatus> files = localFs.listFiles(jstackPath, true);
     boolean appMasterDumpFound = false;
     boolean tezChildDumpFound = false;
+    int numAppMasterDumps = 0;
+    int numTezChildDumps = 0;
     while (files.hasNext()) {
       LocatedFileStatus file = files.next();
       if (file.getPath().getName().endsWith(".jstack")) {
         if (file.getPath().getName().contains("attempt")) {
           tezChildDumpFound = true;
+          numTezChildDumps++;
         } else {
           appMasterDumpFound = true;
+          numAppMasterDumps++;
         }
       }
     }
     assertTrue(tezChildDumpFound);
     assertTrue(appMasterDumpFound);
+    assertTrue(numAppMasterDumps >= 2);
+    assertTrue(numTezChildDumps >= 2);
   }
 
   /**

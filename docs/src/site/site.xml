@@ -40,14 +40,12 @@
   <bannerLeft>
     <name>Apache Tez</name>
     <src>./images/ApacheTezLogo_lowres.png</src>
-    <width>25%</width>
-    <height>25%</height>
     <href>https://tez.apache.org/</href>
   </bannerLeft>
 
   <bannerRight>
     <name>Apache Software Foundation</name>
-    <src>https://apache.org/foundation/press/kit/asf_logo_wide.png</src>
+    <src>https://apache.org/foundation/press/kit/asf_logo_wide.svg</src>
     <href>https://www.apache.org/</href>
   </bannerRight>
 
@@ -89,6 +87,19 @@
            .nav-list .active a:hover {
              background-color: #a0a0a0;
            }
+           #banner .pull-left, #banner .pull-right {
+             height: 82px;
+           }
+           #banner .pull-left img {
+             height: 100%;
+             width: auto;
+           }
+           #banner .pull-right img {
+             height: 100%;
+             width: auto;
+             padding: 4px;
+             box-sizing: border-box;
+           }
       </style>]]>
     </head>
 
@@ -122,8 +133,7 @@
     <menu name="Download Apache TEZ&#174; Releases">
       <item name="0.8.5" href="./releases/apache-tez-0-8-5.html"/>
       <item name="0.9.2" href="./releases/apache-tez-0-9-2.html"/>
-      <item name="0.10.3" href="./releases/apache-tez-0-10-3.html"/>
-      <item name="0.10.4" href="./releases/apache-tez-0-10-4.html"/>
+      <item name="0.10.5" href="./releases/apache-tez-0-10-5.html"/>
       <item name="All Releases" href="./releases/index.html"/>
     </menu>
 

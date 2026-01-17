@@ -17,12 +17,6 @@
  */
 package org.apache.tez.runtime.library.cartesianproduct;
 
-import org.apache.tez.dag.api.EdgeManagerPluginContext;
-import org.apache.tez.dag.api.EdgeManagerPluginOnDemand.EventRouteMetadata;
-import org.apache.tez.dag.api.EdgeManagerPluginOnDemand.CompositeEventRouteMetadata;
-import org.junit.Before;
-import org.junit.Test;
-
 import static org.apache.tez.runtime.library.cartesianproduct.CartesianProductUserPayload.*;
 import static org.junit.Assert.assertArrayEquals;
 import static org.junit.Assert.assertEquals;
@@ -30,6 +24,13 @@ import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertNull;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
+
+import org.apache.tez.dag.api.EdgeManagerPluginContext;
+import org.apache.tez.dag.api.EdgeManagerPluginOnDemand.CompositeEventRouteMetadata;
+import org.apache.tez.dag.api.EdgeManagerPluginOnDemand.EventRouteMetadata;
+
+import org.junit.Before;
+import org.junit.Test;
 
 public class TestFairCartesianProductEdgeManager {
   private EdgeManagerPluginContext mockContext;

@@ -22,6 +22,7 @@ import org.apache.hadoop.conf.Configuration;
 import org.apache.tez.common.counters.TaskCounter;
 import org.apache.tez.common.counters.TezCounter;
 import org.apache.tez.common.counters.TezCounters;
+
 import org.junit.Assert;
 import org.junit.Test;
 import org.slf4j.Logger;

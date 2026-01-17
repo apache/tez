@@ -28,10 +28,12 @@ import static org.junit.Assert.fail;
 import java.util.HashMap;
 import java.util.Map;
 
-import com.google.common.collect.Maps;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.fs.CommonConfigurationKeys;
 import org.apache.tez.runtime.library.api.TezRuntimeConfiguration;
+
+import com.google.common.collect.Maps;
+
 import org.junit.Test;
 
 public class TestUnorderedPartitionedKVOutputConfig {

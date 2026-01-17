@@ -73,6 +73,10 @@ import org.apache.tez.dag.app.rm.YarnTaskSchedulerService.CookieContainerRequest
 import org.apache.tez.dag.app.rm.YarnTaskSchedulerService.HeldContainer;
 import org.apache.tez.serviceplugins.api.TaskSchedulerContext;
 import org.apache.tez.serviceplugins.api.TaskSchedulerContext.AppFinalStatus;
+
+import com.google.common.collect.Sets;
+import com.google.common.util.concurrent.ThreadFactoryBuilder;
+
 import org.junit.After;
 import org.junit.Assert;
 import org.junit.Before;
@@ -81,9 +85,6 @@ import org.junit.Test;
 import org.mockito.ArgumentCaptor;
 import org.mockito.invocation.InvocationOnMock;
 import org.mockito.stubbing.Answer;
-
-import com.google.common.collect.Sets;
-import com.google.common.util.concurrent.ThreadFactoryBuilder;
 
 @SuppressWarnings("deprecation")
 public class TestTaskScheduler {

@@ -75,6 +75,7 @@ import org.apache.tez.dag.api.Vertex;
 import org.apache.tez.dag.api.records.DAGProtos.ConfigurationProto;
 import org.apache.tez.dag.api.records.DAGProtos.PlanKeyValuePair;
 import org.apache.tez.serviceplugins.api.ServicePluginsDescriptor;
+
 import org.junit.Assert;
 import org.junit.Test;
 /**
@@ -534,7 +535,8 @@ public class TestTezClientUtils {
         TezClientUtils.constructAMLaunchOpts(tezConf, Resource.newInstance(1024, 1));
     assertEquals(tmpOpts + " "
         + TezConfiguration.TEZ_AM_LAUNCH_CLUSTER_DEFAULT_CMD_OPTS_DEFAULT + " "
-        + amCommandOpts,
+        + amCommandOpts
+        + TezConfiguration.TEZ_AM_LAUNCH_CLUSTER_JDK17_CMD_OPTS_DEFAULT,
         amOptsConstructed);
 
     // Test2: Setup cluster-default command opts explicitly
@@ -543,7 +545,8 @@ public class TestTezClientUtils {
     tezConf.set(TezConfiguration.TEZ_AM_LAUNCH_CLUSTER_DEFAULT_CMD_OPTS, clusterDefaultCommandOpts);
     amOptsConstructed =
         TezClientUtils.constructAMLaunchOpts(tezConf, Resource.newInstance(1024, 1));
-    assertEquals(tmpOpts + " " + clusterDefaultCommandOpts + " " + amCommandOpts, amOptsConstructed);
+    assertEquals(tmpOpts + " " + clusterDefaultCommandOpts + " " + amCommandOpts
+        + TezConfiguration.TEZ_AM_LAUNCH_CLUSTER_JDK17_CMD_OPTS_DEFAULT, amOptsConstructed);
 
 
     // Test3: Don't setup Xmx explicitly
@@ -555,7 +558,7 @@ public class TestTezClientUtils {
     // It's OK for the Xmx value to show up before cluster default options, since Xmx will not be replaced if it already exists.
     assertEquals(
         " -Xmx" + ((int) (1024 * factor)) + "m" + " " + tmpOpts + " " + clusterDefaultCommandOpts + " " +
-            amCommandOpts,
+            amCommandOpts + TezConfiguration.TEZ_AM_LAUNCH_CLUSTER_JDK17_CMD_OPTS_DEFAULT,
         amOptsConstructed);
 
     // Test4: Ensure admin options with Xmx does not cause them to be overridden. This should almost never be done though.
@@ -564,7 +567,8 @@ public class TestTezClientUtils {
     tezConf.set(TezConfiguration.TEZ_AM_LAUNCH_CLUSTER_DEFAULT_CMD_OPTS, clusterDefaultCommandOpts);
     amOptsConstructed =
         TezClientUtils.constructAMLaunchOpts(tezConf, Resource.newInstance(1024, 1));
-    assertEquals(tmpOpts + " " + clusterDefaultCommandOpts + " " + amCommandOpts, amOptsConstructed);
+    assertEquals(tmpOpts + " " + clusterDefaultCommandOpts + " " + amCommandOpts
+        + TezConfiguration.TEZ_AM_LAUNCH_CLUSTER_JDK17_CMD_OPTS_DEFAULT, amOptsConstructed);
   }
 
   @Test(timeout = 5000)
@@ -691,6 +695,28 @@ public class TestTezClientUtils {
     Assert.assertTrue(javaOpts.contains(TezConstants.TEZ_CONTAINER_LOG4J_PROPERTIES_FILE)
         && javaOpts.contains("-Dlog4j.configuratorClass=org.apache.tez.common.TezLog4jConfigurator"));
     Assert.assertTrue(javaOpts.contains("-DtestProperty=value"));
+  }
+
+  @Test (timeout = 5000)
+  public void testConfYarnZkWorkaround() {
+    Configuration conf = new Configuration(false);
+    String val = "localhost:2181";
+    conf.set("yarn.resourcemanager.zk-address", val);
+
+    Map<String, String> expected = new HashMap<>();
+    expected.put("yarn.resourcemanager.zk-address", val);
+
+    ConfigurationProto confProto = TezClientUtils.createFinalConfProtoForApp(conf, null);
+
+    for (PlanKeyValuePair kvPair : confProto.getConfKeyValuesList()) {
+      if (expected.containsKey(kvPair.getKey())) { // fix for polluting keys
+        String v = expected.remove(kvPair.getKey());
+        // this way the test still validates that the original
+        // key/value pairs can be found in the proto's conf
+        assertEquals("Unexpected value for key: " + kvPair.getKey(), v, kvPair.getValue());
+      }
+    }
+    assertTrue("Expected keys not found in conf: " + expected.keySet(), expected.isEmpty());
   }
 
   @Test (timeout = 5000)

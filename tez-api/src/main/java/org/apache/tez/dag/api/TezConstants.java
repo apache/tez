@@ -29,26 +29,23 @@ public final class TezConstants {
 
   public static final String TEZ_APPLICATION_MASTER_CLASS =
       "org.apache.tez.dag.app.DAGAppMaster";
-  
+
   /**
    * Command-line argument to be set when running the Tez AM in session mode.
    */
   public static final String TEZ_SESSION_MODE_CLI_OPTION = "session";
 
   public static final String TEZ_TAR_LR_NAME = "tezlib";
-  
+
   /*
    * Tez AM Service Authorization
    * These are the same as MR which allows Tez to run in secure
    * mode without configuring service ACLs
    */
-  public static final String   
-  TEZ_AM_SECURITY_SERVICE_AUTHORIZATION_TASK_UMBILICAL =
-      "security.job.task.protocol.acl";
-  public static final String   
-  TEZ_AM_SECURITY_SERVICE_AUTHORIZATION_CLIENT =
-      "security.job.client.protocol.acl";
+  public static final String TEZ_AM_SECURITY_SERVICE_AUTHORIZATION_TASK_UMBILICAL = "security.job.task.protocol.acl";
+  public static final String TEZ_AM_SECURITY_SERVICE_AUTHORIZATION_CLIENT = "security.job.client.protocol.acl";
 
+  public static final String SERVICE_PLUGINS_DESCRIPTOR_JSON = "service_plugins_descriptor.json";
   public static final String TEZ_PB_BINARY_CONF_NAME = "tez-conf.pb";
   public static final String TEZ_PB_PLAN_BINARY_NAME = "tez-dag.pb";
   public static final String TEZ_PB_PLAN_TEXT_NAME = "tez-dag.pb.txt";
@@ -66,8 +63,8 @@ public final class TezConstants {
   public static final String TEZ_CONTAINER_LOG_PARAMS_SEPARATOR = ";";
 
   public static final String TEZ_AM_LOCAL_RESOURCES_PB_FILE_NAME =
-    TezConfiguration.TEZ_SESSION_PREFIX + "local-resources.pb";
-  
+      TezConfiguration.TEZ_SESSION_PREFIX + "local-resources.pb";
+
   public static final String TEZ_APPLICATION_TYPE = "TEZ";
   /**
    * The service id for the NodeManager plugin used to share intermediate data
@@ -83,7 +80,7 @@ public final class TezConstants {
 
 
   // Configuration keys used internally and not set by the users
-  
+
   // These are session specific DAG ACL's. Currently here because these can only be specified
   // via code in the API.
   /**
@@ -101,8 +98,13 @@ public final class TezConstants {
   /// Version-related Environment variables
   public static final String TEZ_CLIENT_VERSION_ENV = "TEZ_CLIENT_VERSION";
 
+  //Arbitrary opaque ID to identify AM instances from AMRegistryClient
+  public static final String TEZ_AM_UUID = "TEZ_AM_UUID";
+
   private static final String TEZ_AM_SERVICE_PLUGIN_NAME_YARN_CONTAINERS = "TezYarn";
   private static final String TEZ_AM_SERVICE_PLUGIN_NAME_IN_AM = "TezUber";
+  public static final String TEZ_AM_EXTERNAL_ID = "TEZ_AM_EXTERNAL_ID";
+  public static final String TEZ_FRAMEWORK_MODE = "TEZ_FRAMEWORK_MODE";
 
   public static String getTezYarnServicePluginName() {
     return TEZ_AM_SERVICE_PLUGIN_NAME_YARN_CONTAINERS;

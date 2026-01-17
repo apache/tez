@@ -17,18 +17,20 @@
  */
 package org.apache.tez.runtime.library.cartesianproduct;
 
-import com.google.common.primitives.Ints;
-import org.apache.tez.dag.api.EdgeManagerPluginContext;
-import org.apache.tez.dag.api.UserPayload;
-import org.junit.Test;
-
-import java.nio.ByteBuffer;
-import java.util.Arrays;
-
 import static org.apache.tez.runtime.library.cartesianproduct.CartesianProductUserPayload.*;
 import static org.junit.Assert.assertTrue;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
+
+import java.nio.ByteBuffer;
+import java.util.Arrays;
+
+import org.apache.tez.dag.api.EdgeManagerPluginContext;
+import org.apache.tez.dag.api.UserPayload;
+
+import com.google.common.primitives.Ints;
+
+import org.junit.Test;
 
 public class TestCartesianProductEdgeManager {
   @Test(timeout = 5000)

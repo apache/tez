@@ -17,14 +17,15 @@
  */
 package org.apache.tez.mapreduce.output;
 
+import static org.junit.Assert.*;
+
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.mapreduce.lib.db.DBOutputFormat;
 import org.apache.hadoop.mapreduce.lib.output.TextOutputFormat;
 import org.apache.tez.dag.api.TezUncheckedException;
 import org.apache.tez.mapreduce.hadoop.MRJobConfig;
-import org.junit.Test;
 
-import static org.junit.Assert.*;
+import org.junit.Test;
 
 
 public class TestMROutputConfigBuilder {

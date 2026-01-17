@@ -23,20 +23,21 @@ import java.io.IOException;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+
+import org.apache.hadoop.classification.InterfaceAudience.Public;
+import org.apache.hadoop.conf.Configuration;
+import org.apache.hadoop.fs.FileSystem;
 import org.apache.hadoop.mapreduce.OutputFormat;
 import org.apache.hadoop.mapreduce.RecordWriter;
+import org.apache.hadoop.mapreduce.TaskAttemptContext;
 import org.apache.hadoop.util.ReflectionUtils;
 import org.apache.tez.mapreduce.hadoop.MRJobConfig;
+import org.apache.tez.mapreduce.hadoop.mapred.MRReporter;
 import org.apache.tez.runtime.api.Event;
 import org.apache.tez.runtime.api.Output;
 import org.apache.tez.runtime.api.OutputContext;
 import org.apache.tez.runtime.library.api.IOInterruptedException;
 import org.apache.tez.runtime.library.api.KeyValueWriterWithBasePath;
-import org.apache.hadoop.classification.InterfaceAudience.Public;
-import org.apache.hadoop.conf.Configuration;
-import org.apache.hadoop.fs.FileSystem;
-import org.apache.hadoop.mapreduce.TaskAttemptContext;
-import org.apache.tez.mapreduce.hadoop.mapred.MRReporter;
 
 /**
  * {@link MultiMROutput} is an {@link Output} which allows key/values pairs

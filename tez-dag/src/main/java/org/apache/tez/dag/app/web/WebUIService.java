@@ -26,26 +26,27 @@ import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
 
-import org.apache.tez.common.Preconditions;
-import org.apache.tez.common.web.ProfileServlet;
-import org.apache.tez.common.web.ServletToControllerAdapters.ConfServletController;
-import org.apache.tez.common.web.ServletToControllerAdapters.JMXJsonServletController;
-import org.apache.tez.common.web.ServletToControllerAdapters.StackServletController;
-import org.apache.tez.common.web.ServletToControllerAdapters.ProfileServletController;
-import org.apache.tez.common.web.ServletToControllerAdapters.ProfileOutputServletController;
-
-import com.google.inject.name.Names;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.net.NetUtils;
 import org.apache.hadoop.service.AbstractService;
 import org.apache.hadoop.yarn.webapp.WebApp;
 import org.apache.hadoop.yarn.webapp.WebApps;
 import org.apache.hadoop.yarn.webapp.YarnWebParams;
+import org.apache.tez.common.Preconditions;
+import org.apache.tez.common.web.ProfileServlet;
+import org.apache.tez.common.web.ServletToControllerAdapters.ConfServletController;
+import org.apache.tez.common.web.ServletToControllerAdapters.JMXJsonServletController;
+import org.apache.tez.common.web.ServletToControllerAdapters.ProfileOutputServletController;
+import org.apache.tez.common.web.ServletToControllerAdapters.ProfileServletController;
+import org.apache.tez.common.web.ServletToControllerAdapters.StackServletController;
 import org.apache.tez.dag.api.TezConfiguration;
 import org.apache.tez.dag.api.TezUncheckedException;
 import org.apache.tez.dag.app.AppContext;
+
+import com.google.inject.name.Names;
+
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 public class WebUIService extends AbstractService {
   private static final String WS_PREFIX = "/ui/ws/v1/tez/";

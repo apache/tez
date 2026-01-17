@@ -34,4 +34,3 @@ public class DAGEventVertexReRunning extends DAGEvent {
   }
 
 }
-

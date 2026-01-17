@@ -60,15 +60,16 @@ import org.apache.tez.test.TestProcessor;
 import org.apache.tez.test.dag.SimpleReverseVTestDAG;
 import org.apache.tez.test.dag.SimpleVTestDAG;
 import org.apache.tez.tests.MiniTezClusterWithTimeline;
+
+import com.google.common.base.Joiner;
+import com.google.common.collect.Lists;
+
 import org.junit.AfterClass;
 import org.junit.Assert;
 import org.junit.BeforeClass;
 import org.junit.Test;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-
-import com.google.common.base.Joiner;
-import com.google.common.collect.Lists;
 
 public class TestAnalyzer {
   private static final Logger LOG = LoggerFactory.getLogger(TestAnalyzer.class);
@@ -681,7 +682,7 @@ public class TestAnalyzer {
         createStep("v2 : 00000[01]_1", CriticalPathDependency.OUTPUT_RECREATE_DEPENDENCY),
         createStep("v1 : 000000_1", CriticalPathDependency.OUTPUT_RECREATE_DEPENDENCY,
             null, Collections.singletonList("preemption of v3")),
-        createStep("v2 : 00000[01]_1", CriticalPathDependency.DATA_DEPENDENCY),
+        createStep("v2 : 00000[01]_[12]", CriticalPathDependency.DATA_DEPENDENCY),
         createStep("v3 : 000000_1", CriticalPathDependency.DATA_DEPENDENCY)
     };
     

@@ -21,7 +21,6 @@ import java.nio.ByteBuffer;
 import java.util.BitSet;
 import java.util.List;
 
-import com.google.protobuf.ByteString;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.fs.Path;
 import org.apache.tez.common.TezCommonUtils;
@@ -30,6 +29,9 @@ import org.apache.tez.runtime.api.Event;
 import org.apache.tez.runtime.api.OutputContext;
 import org.apache.tez.runtime.api.events.CompositeDataMovementEvent;
 import org.apache.tez.runtime.library.shuffle.impl.ShuffleUserPayloads;
+
+import com.google.protobuf.ByteString;
+
 import org.junit.Test;
 
 // Tests which don't require parameterization

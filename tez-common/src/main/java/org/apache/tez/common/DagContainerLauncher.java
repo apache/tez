@@ -18,6 +18,8 @@
 
 package org.apache.tez.common;
 
+import java.util.Set;
+
 import org.apache.hadoop.classification.InterfaceAudience.Public;
 import org.apache.hadoop.classification.InterfaceStability.Unstable;
 import org.apache.hadoop.yarn.api.records.NodeId;
@@ -27,8 +29,6 @@ import org.apache.tez.dag.records.TezTaskAttemptID;
 import org.apache.tez.dag.records.TezVertexID;
 import org.apache.tez.serviceplugins.api.ContainerLauncher;
 import org.apache.tez.serviceplugins.api.ContainerLauncherContext;
-
-import java.util.Set;
 
 /**
  * Plugin to allow custom container launchers to be written to launch containers that want to

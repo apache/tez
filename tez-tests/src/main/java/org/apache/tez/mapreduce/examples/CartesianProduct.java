@@ -17,12 +17,19 @@
  */
 package org.apache.tez.mapreduce.examples;
 
-import org.apache.tez.common.Preconditions;
+import java.io.IOException;
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.HashSet;
+import java.util.List;
+import java.util.Set;
+
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.io.IntWritable;
 import org.apache.hadoop.io.Text;
 import org.apache.hadoop.util.ToolRunner;
 import org.apache.tez.client.TezClient;
+import org.apache.tez.common.Preconditions;
 import org.apache.tez.dag.api.DAG;
 import org.apache.tez.dag.api.DataSinkDescriptor;
 import org.apache.tez.dag.api.DataSourceDescriptor;
@@ -64,15 +71,9 @@ import org.apache.tez.runtime.library.cartesianproduct.CartesianProductVertexMan
 import org.apache.tez.runtime.library.conf.UnorderedPartitionedKVEdgeConfig;
 import org.apache.tez.runtime.library.partitioner.RoundRobinPartitioner;
 import org.apache.tez.runtime.library.processor.SimpleProcessor;
+
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-
-import java.io.IOException;
-import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.HashSet;
-import java.util.List;
-import java.util.Set;
 
 /**
  * This job has three vertices: two Tokenizers and one JoinProcessor. Each Tokenizer handles one
@@ -381,5 +382,3 @@ public class CartesianProduct extends TezExampleBase {
     System.exit(res);
   }
 }
-
-

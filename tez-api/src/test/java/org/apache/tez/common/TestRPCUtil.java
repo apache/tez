@@ -21,14 +21,14 @@ package org.apache.tez.common;
 import java.io.FileNotFoundException;
 import java.io.IOException;
 
+import org.apache.hadoop.ipc.RemoteException;
 import org.apache.tez.dag.api.SessionNotRunning;
 import org.apache.tez.dag.api.TezException;
-import org.junit.Assert;
-
-import org.apache.hadoop.ipc.RemoteException;
-import org.junit.Test;
 
 import com.google.protobuf.ServiceException;
+
+import org.junit.Assert;
+import org.junit.Test;
 
 public class TestRPCUtil {
 

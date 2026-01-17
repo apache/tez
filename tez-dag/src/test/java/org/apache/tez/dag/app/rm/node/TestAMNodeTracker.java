@@ -29,9 +29,6 @@ import static org.mockito.Mockito.mock;
 
 import java.util.List;
 
-import org.apache.tez.dag.app.dag.DAG;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.yarn.api.records.ContainerId;
 import org.apache.hadoop.yarn.api.records.NodeId;
@@ -43,6 +40,7 @@ import org.apache.hadoop.yarn.event.EventHandler;
 import org.apache.tez.common.DrainDispatcher;
 import org.apache.tez.dag.api.TezConfiguration;
 import org.apache.tez.dag.app.AppContext;
+import org.apache.tez.dag.app.dag.DAG;
 import org.apache.tez.dag.app.rm.AMSchedulerEventNodeBlacklistUpdate;
 import org.apache.tez.dag.app.rm.AMSchedulerEventType;
 import org.apache.tez.dag.app.rm.TaskSchedulerManager;
@@ -50,11 +48,14 @@ import org.apache.tez.dag.app.rm.container.AMContainerEventNodeFailed;
 import org.apache.tez.dag.app.rm.container.AMContainerEventType;
 import org.apache.tez.dag.app.rm.container.AMContainerMap;
 import org.apache.tez.dag.records.TezTaskAttemptID;
+
+import com.google.common.collect.Lists;
+
 import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
-
-import com.google.common.collect.Lists;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 @SuppressWarnings({ "resource", "rawtypes" })
 public class TestAMNodeTracker {

@@ -18,13 +18,13 @@
 
 package org.apache.tez.util;
 
-import org.apache.hadoop.yarn.util.ResourceCalculatorProcessTree;
-
 import java.lang.management.ManagementFactory;
-import java.util.concurrent.TimeUnit;
 import java.lang.management.OperatingSystemMXBean;
 import java.lang.reflect.InvocationTargetException;
 import java.lang.reflect.Method;
+import java.util.concurrent.TimeUnit;
+
+import org.apache.hadoop.yarn.util.ResourceCalculatorProcessTree;
 
 /**
  * Uses Sun/Oracle or IBM MBeans to return process information.

@@ -20,7 +20,6 @@ package org.apache.tez.dag.app;
 
 import java.util.Map;
 import java.util.Set;
-import java.util.concurrent.ExecutorService;
 
 import org.apache.hadoop.classification.InterfaceAudience;
 import org.apache.hadoop.conf.Configuration;
@@ -31,14 +30,15 @@ import org.apache.hadoop.yarn.api.records.ApplicationAttemptId;
 import org.apache.hadoop.yarn.api.records.ApplicationId;
 import org.apache.hadoop.yarn.event.EventHandler;
 import org.apache.hadoop.yarn.util.Clock;
+import org.apache.tez.common.security.ACLManager;
 import org.apache.tez.dag.app.RecoveryParser.DAGRecoveryData;
 import org.apache.tez.dag.app.dag.DAG;
 import org.apache.tez.dag.app.rm.TaskSchedulerManager;
 import org.apache.tez.dag.app.rm.container.AMContainerMap;
 import org.apache.tez.dag.app.rm.node.AMNodeTracker;
-import org.apache.tez.common.security.ACLManager;
 import org.apache.tez.dag.history.HistoryEventHandler;
 import org.apache.tez.dag.records.TezDAGID;
+import org.apache.tez.frameworkplugins.AMExtensions;
 import org.apache.tez.hadoop.shim.HadoopShim;
 
 import com.google.common.util.concurrent.ListeningExecutorService;
@@ -141,4 +141,6 @@ public interface AppContext {
   public HadoopShim getHadoopShim();
 
   public DAGRecoveryData getDAGRecoveryData();
+
+  AMExtensions getAmExtensions();
 }

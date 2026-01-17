@@ -19,10 +19,10 @@ package org.apache.tez.runtime.api.events;
 
 import java.nio.ByteBuffer;
 
+import com.google.common.base.Charsets;
+
 import org.junit.Assert;
 import org.junit.Test;
-
-import com.google.common.base.Charsets;
 
 public class TestInputDataInformationEvent {
 

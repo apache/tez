@@ -26,12 +26,12 @@ import java.util.concurrent.atomic.AtomicReference;
 
 import javax.annotation.Nullable;
 
+import org.apache.tez.common.Preconditions;
 import org.apache.tez.dag.api.EdgeManagerPluginContext;
 import org.apache.tez.dag.api.EdgeManagerPluginOnDemand;
 import org.apache.tez.runtime.api.events.DataMovementEvent;
 import org.apache.tez.runtime.api.events.InputReadErrorEvent;
 
-import org.apache.tez.common.Preconditions;
 import com.google.common.collect.Lists;
 
 public class ScatterGatherEdgeManager extends EdgeManagerPluginOnDemand {

@@ -39,6 +39,7 @@ import org.apache.hadoop.security.Credentials;
 import org.apache.hadoop.security.token.Token;
 import org.apache.hadoop.security.token.TokenIdentifier;
 import org.apache.hadoop.yarn.conf.YarnConfiguration;
+
 import org.junit.Assert;
 import org.junit.BeforeClass;
 import org.junit.Test;

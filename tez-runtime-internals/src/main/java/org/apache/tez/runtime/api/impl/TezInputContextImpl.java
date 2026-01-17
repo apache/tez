@@ -37,15 +37,16 @@ import org.apache.tez.dag.api.UserPayload;
 import org.apache.tez.dag.records.TezTaskAttemptID;
 import org.apache.tez.runtime.InputReadyTracker;
 import org.apache.tez.runtime.LogicalIOProcessorRuntimeTask;
-import org.apache.tez.runtime.api.TaskFailureType;
-import org.apache.tez.runtime.api.ExecutionContext;
 import org.apache.tez.runtime.api.Event;
+import org.apache.tez.runtime.api.ExecutionContext;
+import org.apache.tez.runtime.api.InputContext;
 import org.apache.tez.runtime.api.InputStatisticsReporter;
 import org.apache.tez.runtime.api.LogicalInput;
-import org.apache.tez.runtime.api.InputContext;
 import org.apache.tez.runtime.api.ObjectRegistry;
+import org.apache.tez.runtime.api.TaskFailureType;
 import org.apache.tez.runtime.api.impl.EventMetaData.EventProducerConsumerType;
 import org.apache.tez.runtime.common.resources.MemoryDistributor;
+
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 

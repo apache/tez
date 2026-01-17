@@ -20,8 +20,8 @@ package org.apache.tez.dag.app.dag.impl;
 
 
 
-import java.util.Set;
 import java.util.Objects;
+import java.util.Set;
 
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.yarn.api.records.ApplicationId;

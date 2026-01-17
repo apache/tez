@@ -17,6 +17,8 @@
  */
 package org.apache.tez.mapreduce;
 
+import java.util.Set;
+
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.yarn.api.records.ApplicationId;
 import org.apache.hadoop.yarn.api.records.Resource;
@@ -28,8 +30,6 @@ import org.apache.tez.dag.records.TezTaskAttemptID;
 import org.apache.tez.dag.records.TezTaskID;
 import org.apache.tez.dag.records.TezVertexID;
 import org.apache.tez.runtime.api.InputInitializerContext;
-
-import java.util.Set;
 
 public final class TezTestUtils {
 

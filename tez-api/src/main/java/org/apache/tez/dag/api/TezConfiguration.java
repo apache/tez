@@ -25,8 +25,8 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
-
 import java.util.concurrent.TimeUnit;
+
 import org.apache.hadoop.classification.InterfaceAudience.Private;
 import org.apache.hadoop.classification.InterfaceAudience.Public;
 import org.apache.hadoop.classification.InterfaceStability.Unstable;
@@ -37,10 +37,11 @@ import org.apache.tez.common.TezCommonUtils;
 import org.apache.tez.common.annotation.ConfigurationClass;
 import org.apache.tez.common.annotation.ConfigurationProperty;
 import org.apache.tez.dag.api.EdgeProperty.ConcurrentEdgeTriggerType;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 
 import com.google.common.annotations.VisibleForTesting;
+
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 
 /**
@@ -399,6 +400,8 @@ public class TezConfiguration extends Configuration {
   public static final String TEZ_AM_LAUNCH_CLUSTER_DEFAULT_CMD_OPTS_DEFAULT =
       "-server -Djava.net.preferIPv4Stack=true -Dhadoop.metrics.log.level=WARN";
 
+  public static final String TEZ_AM_LAUNCH_CLUSTER_JDK17_CMD_OPTS_DEFAULT =
+      " --add-opens java.base/java.lang=ALL-UNNAMED";
   /**
    * String value. Command line options provided during the launch of the Tez
    * AppMaster process. Its recommended to not set any Xmx or Xms in these launch opts so that
@@ -862,6 +865,12 @@ public class TezConfiguration extends Configuration {
       TEZ_AM_PREFIX + "node-unhealthy-reschedule-tasks";
   public static final boolean
     TEZ_AM_NODE_UNHEALTHY_RESCHEDULE_TASKS_DEFAULT = false;
+
+  /** Int value. Port used for AM RPC*/
+  @ConfigurationScope(Scope.AM)
+  @ConfigurationProperty(type="integer")
+  public static final String TEZ_AM_RPC_PORT = TEZ_AM_PREFIX + "rpc.port";
+  public static final int TEZ_AM_RPC_PORT_DEFAULT = 0;
 
   /** Int value. Number of threads to handle client RPC requests. Expert level setting.*/
   @ConfigurationScope(Scope.AM)
@@ -2307,6 +2316,16 @@ public class TezConfiguration extends Configuration {
   public static final String TEZ_THREAD_DUMP_INTERVAL_DEFAULT = "100ms";
 
   /**
+   * Time after which the first thread dump should be captured. Supports TimeUnits. This is effective only
+   * when org.apache.tez.dag.app.ThreadDumpDAGHook is configured to tez.am.hooks or
+   * org.apache.tez.runtime.task.ThreadDumpTaskAttemptHook is configured to tez.task.attempt.hooks.
+   */
+  @ConfigurationScope(Scope.DAG)
+  @ConfigurationProperty
+  public static final String TEZ_THREAD_DUMP_INITIAL_DELAY = "tez.thread.dump.initial.delay";
+  public static final String TEZ_THREAD_DUMP_INITIAL_DELAY_DEFAULT = "0ms";
+
+  /**
    * Limits the amount of data that can be written to LocalFileSystem by a Task.
    */
   @ConfigurationScope(Scope.DAG)
@@ -2329,4 +2348,76 @@ public class TezConfiguration extends Configuration {
   @ConfigurationScope(Scope.DAG)
   @ConfigurationProperty
   public static final String TEZ_TASK_ATTEMPT_HOOKS = TEZ_TASK_PREFIX + "attempt.hooks";
+
+  /**
+   * String value. ZooKeeper quorum connection string used when creating a CuratorFramework for the ZooKeeper registry.
+   */
+  @ConfigurationScope(Scope.AM)
+  @ConfigurationProperty
+  public static final String TEZ_AM_ZOOKEEPER_QUORUM = TEZ_AM_PREFIX + "zookeeper.quorum";
+
+  /**
+   * String value. Namespace in ZooKeeper registry for the Application Master.
+   */
+  @ConfigurationScope(Scope.AM)
+  @ConfigurationProperty
+  public static final String TEZ_AM_REGISTRY_NAMESPACE = TEZ_AM_PREFIX + "registry.namespace";
+  public static final String TEZ_AM_REGISTRY_NAMESPACE_DEFAULT = "/tez_am/server";
+
+  /**
+   * Boolean value. Whether to enable compute groups, see further details in ZkConfig.
+   */
+  @ConfigurationScope(Scope.AM)
+  @ConfigurationProperty
+  public static final String TEZ_AM_REGISTRY_ENABLE_COMPUTE_GROUPS = TEZ_AM_PREFIX + "registry.enable.compute.groups";
+  public static final boolean TEZ_AM_REGISTRY_ENABLE_COMPUTE_GROUPS_DEFAULT = false;
+
+
+  /**
+   * Initial backoff sleep duration for Curator retries. Supports TimeUnits.
+   * Default unit is milliseconds. It's used when creating a CuratorFramework for the ZooKeeper registry.
+   */
+  @ConfigurationScope(Scope.AM)
+  @ConfigurationProperty
+  public static final String TEZ_AM_CURATOR_BACKOFF_SLEEP = TEZ_AM_PREFIX + "curator.backoff.sleep";
+  public static final String TEZ_AM_CURATOR_BACKOFF_SLEEP_DEFAULT = "1000ms";
+
+  /**
+   * Integer value. Maximum number of retries for Curator operations.
+   * It's used when creating a CuratorFramework for the ZooKeeper registry.
+   */
+  @ConfigurationScope(Scope.AM)
+  @ConfigurationProperty
+  public static final String TEZ_AM_CURATOR_MAX_RETRIES = TEZ_AM_PREFIX + "curator.max.retries";
+  public static final int TEZ_AM_CURATOR_MAX_RETRIES_DEFAULT = 3;
+
+  /**
+   * Session timeout for Curator framework. Supports TimeUnits.
+   * Default unit is milliseconds. It's used when creating a CuratorFramework for the ZooKeeper registry.
+   */
+  @ConfigurationScope(Scope.AM)
+  @ConfigurationProperty
+  public static final String TEZ_AM_CURATOR_SESSION_TIMEOUT = TEZ_AM_PREFIX + "curator.session.timeout";
+  public static final String TEZ_AM_CURATOR_SESSION_TIMEOUT_DEFAULT = "150000ms";
+
+  /**
+   * Connection timeout for Curator framework. Supports TimeUnits.
+   * Default unit is milliseconds. It's used when creating a CuratorFramework for the ZooKeeper registry.
+   */
+  @ConfigurationScope(Scope.AM)
+  @ConfigurationProperty
+  public static final String TEZ_AM_CURATOR_CONNECTION_TIMEOUT = TEZ_AM_PREFIX + "curator.connection.timeout";
+  public static final String TEZ_AM_CURATOR_CONNECTION_TIMEOUT_DEFAULT = "15000ms";
+
+
+  @ConfigurationScope(Scope.AM)
+  @ConfigurationProperty
+  public static final String TEZ_FRAMEWORK_MODE = TEZ_PREFIX + ".framework.mode";
+
+  /**
+   * List of additional hadoop config files to load from CLASSPATH in ZOOKEEPER_STANDALONE framework mode.
+   */
+  @ConfigurationScope(Scope.AM)
+  @ConfigurationProperty
+  public static final String TEZ_AM_STANDALONE_CONFS = TEZ_AM_PREFIX + "standalone.confs";
 }

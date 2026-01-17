@@ -28,8 +28,6 @@ import java.util.Iterator;
 import java.util.List;
 import java.util.Set;
 
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.fs.CommonConfigurationKeys;
 import org.apache.hadoop.fs.FileContext;
@@ -58,6 +56,9 @@ import org.apache.tez.mapreduce.hadoop.MRJobConfig;
 
 import com.google.common.base.Predicate;
 import com.google.common.collect.Collections2;
+
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 /**
  * Configures and starts the Tez-specific components in the YARN cluster.

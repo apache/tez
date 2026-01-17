@@ -20,12 +20,10 @@ package org.apache.tez.mapreduce.examples.helpers;
 
 import org.apache.commons.cli.CommandLine;
 import org.apache.commons.cli.CommandLineParser;
-import org.apache.commons.cli.GnuParser;
+import org.apache.commons.cli.DefaultParser;
 import org.apache.commons.cli.Option;
-import org.apache.commons.cli.OptionBuilder;
 import org.apache.commons.cli.Options;
 import org.apache.commons.cli.ParseException;
-
 import org.apache.tez.common.Preconditions;
 
 public class SplitsInClientOptionParser {
@@ -50,15 +48,15 @@ public class SplitsInClientOptionParser {
     Preconditions.checkState(parsed == false,
         "Create a new instance for different option sets");
     parsed = true;
-    Options opts = new Options();
-    Option opt = OptionBuilder
-        .withArgName("splits_in_client")
+    Option opt = Option.builder()
+        .option("generateSplitsInClient")
+        .argName("splits_in_client")
         .hasArg()
-        .withDescription(
+        .desc(
             "specify whether splits should be generated in the client")
-        .create("generateSplitsInClient");
-    opts.addOption(opt);
-    CommandLineParser parser = new GnuParser();
+        .build();
+    Options opts = new Options().addOption(opt);
+    CommandLineParser parser = new DefaultParser();
 
     cmdLine = parser.parse(opts, args, false);
     if (cmdLine.hasOption("generateSplitsInClient")) {

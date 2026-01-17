@@ -20,32 +20,19 @@ package org.apache.tez.dag.app.rm.container;
 
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertTrue;
-import static org.mockito.Mockito.doReturn;
 import static org.mockito.Mockito.mock;
-
-import java.net.InetSocketAddress;
-import java.util.Map;
+import static org.mockito.Mockito.when;
 
 import org.apache.hadoop.conf.Configuration;
-import org.apache.hadoop.yarn.api.records.ApplicationAttemptId;
-import org.apache.hadoop.yarn.api.records.ApplicationId;
 import org.apache.hadoop.yarn.api.records.Container;
-import org.apache.hadoop.yarn.api.records.ContainerId;
-import org.apache.hadoop.yarn.api.records.NodeId;
-import org.apache.hadoop.yarn.api.records.Priority;
-import org.apache.hadoop.yarn.api.records.Resource;
-import org.apache.hadoop.yarn.api.records.Token;
 import org.apache.tez.common.ContainerSignatureMatcher;
-import org.apache.tez.dag.app.TaskCommunicatorWrapper;
-import org.apache.tez.dag.app.dag.DAG;
-import org.apache.tez.dag.app.rm.container.TestAMContainer.WrappedContainer;
-import org.apache.tez.serviceplugins.api.TaskCommunicator;
 import org.apache.tez.dag.app.AppContext;
 import org.apache.tez.dag.app.ContainerHeartbeatHandler;
 import org.apache.tez.dag.app.TaskCommunicatorManagerInterface;
-import org.apache.tez.serviceplugins.api.ServicePluginException;
+import org.apache.tez.dag.app.dag.DAG;
+import org.apache.tez.dag.app.rm.container.TestAMContainer.WrappedContainer;
+
 import org.junit.Test;
-import static org.mockito.Mockito.when;
 
 public class TestAMContainerMap {
 

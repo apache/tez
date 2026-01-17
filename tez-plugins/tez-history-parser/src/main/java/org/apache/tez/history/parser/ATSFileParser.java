@@ -18,23 +18,8 @@
 
 package org.apache.tez.history.parser;
 
-import org.apache.tez.common.Preconditions;
-import com.google.common.collect.Maps;
-import org.apache.commons.io.IOUtils;
-import org.apache.tez.dag.api.TezException;
-import org.apache.tez.common.io.NonSyncByteArrayOutputStream;
-import org.apache.tez.history.parser.datamodel.BaseParser;
-import org.apache.tez.history.parser.datamodel.Constants;
-import org.apache.tez.history.parser.datamodel.DagInfo;
-import org.apache.tez.history.parser.datamodel.TaskAttemptInfo;
-import org.apache.tez.history.parser.datamodel.TaskInfo;
-import org.apache.tez.history.parser.datamodel.VersionInfo;
-import org.apache.tez.history.parser.datamodel.VertexInfo;
-import org.codehaus.jettison.json.JSONArray;
-import org.codehaus.jettison.json.JSONException;
-import org.codehaus.jettison.json.JSONObject;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
+import static org.apache.hadoop.classification.InterfaceAudience.Public;
+import static org.apache.hadoop.classification.InterfaceStability.Evolving;
 
 import java.io.File;
 import java.io.IOException;
@@ -46,8 +31,25 @@ import java.util.Objects;
 import java.util.zip.ZipEntry;
 import java.util.zip.ZipFile;
 
-import static org.apache.hadoop.classification.InterfaceAudience.Public;
-import static org.apache.hadoop.classification.InterfaceStability.Evolving;
+import org.apache.commons.io.IOUtils;
+import org.apache.tez.common.Preconditions;
+import org.apache.tez.common.io.NonSyncByteArrayOutputStream;
+import org.apache.tez.dag.api.TezException;
+import org.apache.tez.history.parser.datamodel.BaseParser;
+import org.apache.tez.history.parser.datamodel.Constants;
+import org.apache.tez.history.parser.datamodel.DagInfo;
+import org.apache.tez.history.parser.datamodel.TaskAttemptInfo;
+import org.apache.tez.history.parser.datamodel.TaskInfo;
+import org.apache.tez.history.parser.datamodel.VersionInfo;
+import org.apache.tez.history.parser.datamodel.VertexInfo;
+
+import com.google.common.collect.Maps;
+
+import org.codehaus.jettison.json.JSONArray;
+import org.codehaus.jettison.json.JSONException;
+import org.codehaus.jettison.json.JSONObject;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 /**
  * Simple class to parse ATS zip file of a DAG and generate the relevant in-memory structure

@@ -18,22 +18,23 @@
 
 package org.apache.tez.test;
 
-import org.apache.tez.common.Preconditions;
-import com.google.protobuf.ByteString;
+import java.io.IOException;
+import java.util.EnumSet;
+import java.util.Objects;
 
 import org.apache.hadoop.conf.Configuration;
+import org.apache.tez.common.Preconditions;
 import org.apache.tez.common.TezUtils;
 import org.apache.tez.dag.api.TezUncheckedException;
 import org.apache.tez.dag.api.VertexManagerPluginContext;
 import org.apache.tez.dag.api.event.VertexState;
 import org.apache.tez.dag.api.event.VertexStateUpdate;
 import org.apache.tez.dag.library.vertexmanager.ShuffleVertexManager;
+
+import com.google.protobuf.ByteString;
+
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-
-import java.io.IOException;
-import java.util.EnumSet;
-import java.util.Objects;
 
 /**
  * A shuffle vertex manager that will set the vertex's parallelism upon

@@ -26,20 +26,21 @@ import java.util.Map;
 import java.util.Map.Entry;
 import java.util.Objects;
 
-import com.google.protobuf.ByteString;
-
-import com.google.protobuf.CodedInputStream;
-import org.apache.tez.runtime.api.TaskContext;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 import org.apache.hadoop.classification.InterfaceAudience;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.tez.client.TezClientUtils;
 import org.apache.tez.dag.api.TezUncheckedException;
 import org.apache.tez.dag.api.UserPayload;
 import org.apache.tez.dag.api.records.DAGProtos;
+import org.apache.tez.runtime.api.TaskContext;
+
+import com.google.protobuf.ByteString;
+import com.google.protobuf.CodedInputStream;
+
 import org.codehaus.jettison.json.JSONException;
 import org.codehaus.jettison.json.JSONObject;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.xerial.snappy.SnappyInputStream;
 import org.xerial.snappy.SnappyOutputStream;
 

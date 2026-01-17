@@ -23,8 +23,6 @@ import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentMap;
 import java.util.concurrent.atomic.AtomicInteger;
 
-import org.apache.tez.common.Preconditions;
-import com.google.common.primitives.Ints;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.yarn.api.records.ApplicationAttemptId;
 import org.apache.hadoop.yarn.api.records.ApplicationId;
@@ -33,12 +31,16 @@ import org.apache.hadoop.yarn.api.records.ContainerId;
 import org.apache.hadoop.yarn.api.records.NodeId;
 import org.apache.hadoop.yarn.api.records.Priority;
 import org.apache.hadoop.yarn.api.records.Resource;
+import org.apache.tez.common.Preconditions;
 import org.apache.tez.common.TezUtils;
 import org.apache.tez.dag.api.TezUncheckedException;
-import org.apache.tez.serviceplugins.api.TaskAttemptEndReason;
 import org.apache.tez.service.TezTestServiceConfConstants;
+import org.apache.tez.serviceplugins.api.TaskAttemptEndReason;
 import org.apache.tez.serviceplugins.api.TaskScheduler;
 import org.apache.tez.serviceplugins.api.TaskSchedulerContext;
+
+import com.google.common.primitives.Ints;
+
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -60,7 +62,7 @@ public class TezTestServiceTaskSchedulerService extends TaskScheduler {
   // AppIdIdentifier to avoid conflicts with other containers in the system.
 
   // Per instance
-  private final int memoryPerInstance;
+  private final long memoryPerInstance;
   private final int coresPerInstance;
   private final int executorsPerInstance;
 
@@ -84,7 +86,7 @@ public class TezTestServiceTaskSchedulerService extends TaskScheduler {
       throw new TezUncheckedException(e);
     }
     this.memoryPerInstance = conf
-        .getInt(TezTestServiceConfConstants.TEZ_TEST_SERVICE_MEMORY_PER_INSTANCE_MB, -1);
+        .getLong(TezTestServiceConfConstants.TEZ_TEST_SERVICE_MEMORY_PER_INSTANCE_MB, -1);
     Preconditions.checkArgument(memoryPerInstance > 0,
         TezTestServiceConfConstants.TEZ_TEST_SERVICE_MEMORY_PER_INSTANCE_MB +
             " must be configured");
@@ -145,7 +147,7 @@ public class TezTestServiceTaskSchedulerService extends TaskScheduler {
   @Override
   public Resource getTotalResources() {
     return Resource
-        .newInstance(Ints.checkedCast(serviceHosts.size() * memoryPerInstance),
+        .newInstance(serviceHosts.size() * memoryPerInstance,
             serviceHosts.size() * coresPerInstance);
   }
 

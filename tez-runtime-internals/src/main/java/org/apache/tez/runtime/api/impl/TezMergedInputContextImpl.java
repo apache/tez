@@ -20,17 +20,17 @@ package org.apache.tez.runtime.api.impl;
 
 
 
-import javax.annotation.Nullable;
-
 import java.util.Arrays;
 import java.util.Map;
 import java.util.Objects;
 
+import javax.annotation.Nullable;
+
 import org.apache.tez.dag.api.UserPayload;
 import org.apache.tez.runtime.InputReadyTracker;
 import org.apache.tez.runtime.LogicalIOProcessorRuntimeTask;
-import org.apache.tez.runtime.api.MergedLogicalInput;
 import org.apache.tez.runtime.api.MergedInputContext;
+import org.apache.tez.runtime.api.MergedLogicalInput;
 
 
 public class TezMergedInputContextImpl implements MergedInputContext {

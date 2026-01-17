@@ -21,6 +21,7 @@ import java.io.File;
 import java.io.FileInputStream;
 import java.io.FileNotFoundException;
 import java.io.IOException;
+import java.io.InputStream;
 import java.lang.management.ManagementFactory;
 import java.lang.reflect.InvocationTargetException;
 import java.lang.reflect.Method;
@@ -37,9 +38,6 @@ import java.util.zip.DataFormatException;
 import java.util.zip.Deflater;
 import java.util.zip.Inflater;
 
-import com.google.protobuf.ByteString;
-import com.google.protobuf.Descriptors;
-import com.google.protobuf.TextFormat;
 import org.apache.hadoop.classification.InterfaceAudience.Private;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.security.Credentials;
@@ -48,23 +46,30 @@ import org.apache.hadoop.util.StringUtils;
 import org.apache.hadoop.yarn.api.records.ApplicationId;
 import org.apache.log4j.Appender;
 import org.apache.log4j.PatternLayout;
+import org.apache.tez.client.TezClientUtils;
 import org.apache.tez.common.io.NonSyncByteArrayOutputStream;
 import org.apache.tez.dag.api.DagTypeConverters;
-import org.apache.tez.dag.records.TezDAGID;
-import org.apache.tez.dag.records.TezTaskAttemptID;
-import org.apache.tez.dag.records.TezVertexID;
-import org.apache.tez.hadoop.shim.HadoopShim;
-import org.apache.tez.serviceplugins.api.TaskAttemptEndReason;
+import org.apache.tez.dag.api.TezConfiguration;
 import org.apache.tez.dag.api.TezConstants;
 import org.apache.tez.dag.api.TezUncheckedException;
 import org.apache.tez.dag.api.records.DAGProtos;
 import org.apache.tez.dag.api.records.DAGProtos.ConfigurationProto;
 import org.apache.tez.dag.api.records.DAGProtos.PlanKeyValuePair;
+import org.apache.tez.dag.records.TaskAttemptTerminationCause;
+import org.apache.tez.dag.records.TezDAGID;
+import org.apache.tez.dag.records.TezTaskAttemptID;
+import org.apache.tez.dag.records.TezVertexID;
+import org.apache.tez.hadoop.shim.HadoopShim;
+import org.apache.tez.serviceplugins.api.ServicePluginsDescriptor;
+import org.apache.tez.serviceplugins.api.TaskAttemptEndReason;
 import org.apache.tez.util.StopWatch;
+
+import com.google.protobuf.ByteString;
+import com.google.protobuf.Descriptors;
+import com.google.protobuf.TextFormat;
+
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-
-import org.apache.tez.dag.records.TaskAttemptTerminationCause;
 
 @Private
 public final class TezUtilsInternal {
@@ -73,11 +78,33 @@ public final class TezUtilsInternal {
 
   private TezUtilsInternal() {}
 
-  public static ConfigurationProto readUserSpecifiedTezConfiguration(String baseDir) throws
-      IOException {
+  public static ConfigurationProto readUserSpecifiedTezConfiguration(String baseDir) throws IOException {
     File confPBFile = new File(baseDir, TezConstants.TEZ_PB_BINARY_CONF_NAME);
     try (FileInputStream fis = new FileInputStream(confPBFile)) {
       return ConfigurationProto.parseFrom(fis);
+    }
+  }
+
+  public static Configuration readTezConfigurationXml(InputStream is) {
+    Configuration configuration = new Configuration();
+    if (is != null) {
+      configuration.addResource(is);
+    }
+    return configuration;
+  }
+
+  public static ConfigurationProto loadConfProtoFromText() throws IOException {
+    try (InputStream cis = ClassLoader.getSystemResourceAsStream(TezConfiguration.TEZ_SITE_XML);
+         InputStream sis = ClassLoader.getSystemResourceAsStream(TezConstants.SERVICE_PLUGINS_DESCRIPTOR_JSON)) {
+      Configuration confFromXml = TezUtilsInternal.readTezConfigurationXml(cis);
+      for (String confFile : confFromXml.getTrimmedStringCollection(TezConfiguration.TEZ_AM_STANDALONE_CONFS)) {
+        try (InputStream additionalInput = ClassLoader.getSystemResourceAsStream(confFile)) {
+          Configuration additionalConfFromXml = TezUtilsInternal.readTezConfigurationXml(additionalInput);
+          confFromXml.addResource(additionalConfFromXml);
+        }
+      }
+      ServicePluginsDescriptor pluginsDescriptor = TezClientUtils.createPluginsDescriptorFromJSON(sis);
+      return TezClientUtils.createFinalConfProtoForApp(confFromXml, pluginsDescriptor);
     }
   }
 

@@ -18,6 +18,23 @@
 
 package org.apache.tez.client;
 
+import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertFalse;
+import static org.junit.Assert.assertNotNull;
+import static org.junit.Assert.assertNull;
+import static org.junit.Assert.assertTrue;
+import static org.junit.Assert.fail;
+import static org.mockito.Mockito.RETURNS_DEEP_STUBS;
+import static org.mockito.Mockito.any;
+import static org.mockito.Mockito.atLeast;
+import static org.mockito.Mockito.doCallRealMethod;
+import static org.mockito.Mockito.isNull;
+import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.spy;
+import static org.mockito.Mockito.times;
+import static org.mockito.Mockito.verify;
+import static org.mockito.Mockito.when;
+
 import java.io.File;
 import java.io.IOException;
 import java.net.InetAddress;
@@ -31,25 +48,6 @@ import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicReference;
 
 import javax.annotation.Nullable;
-
-import static org.junit.Assert.fail;
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertFalse;
-import static org.junit.Assert.assertNotNull;
-import static org.junit.Assert.assertNull;
-import static org.junit.Assert.assertTrue;
-import static org.mockito.Mockito.RETURNS_DEEP_STUBS;
-import static org.mockito.Mockito.any;
-import static org.mockito.Mockito.atLeast;
-import static org.mockito.Mockito.doCallRealMethod;
-import static org.mockito.Mockito.isNull;
-import static org.mockito.Mockito.mock;
-import static org.mockito.Mockito.spy;
-import static org.mockito.Mockito.times;
-import static org.mockito.Mockito.verify;
-import static org.mockito.Mockito.when;
-
-import com.google.protobuf.ServiceException;
 
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.fs.CommonConfigurationKeys;
@@ -96,13 +94,15 @@ import org.apache.tez.dag.api.records.DAGProtos.DAGStatusProto;
 import org.apache.tez.dag.api.records.DAGProtos.DAGStatusStateProto;
 import org.apache.tez.dag.api.records.DAGProtos.ProgressProto;
 import org.apache.tez.serviceplugins.api.ServicePluginsDescriptor;
+
+import com.google.common.collect.Maps;
+import com.google.protobuf.RpcController;
+import com.google.protobuf.ServiceException;
+
 import org.hamcrest.CoreMatchers;
 import org.junit.Assert;
 import org.junit.Test;
 import org.mockito.ArgumentCaptor;
-
-import com.google.common.collect.Maps;
-import com.google.protobuf.RpcController;
 
 public class TestTezClient {
   static final long HARD_KILL_TIMEOUT = 1500L;
@@ -219,6 +219,16 @@ public class TestTezClient {
   @Test (timeout = 5000)
   public void testTezClientSession() throws Exception {
     testTezClient(true, true, "testTezClientSession");
+  }
+
+  @Test (timeout = 5000)
+  public void testTezClientReconnect() throws Exception {
+    testTezClientReconnect(true);
+  }
+
+  @Test (timeout = 5000, expected = IllegalStateException.class)
+  public void testTezClientReconnectNoSession() throws Exception {
+    testTezClientReconnect(false);
   }
 
   @Test (timeout = 5000)
@@ -387,18 +397,18 @@ public class TestTezClient {
       assertTrue(context.getAMContainerSpec().getLocalResources().containsKey(
           lrName1));
     }
-    
+
     // add resources
     String lrName2 = "LR2";
     lrs.clear();
     lrs.put(lrName2, LocalResource.newInstance(URL.newInstance("file", "localhost", 0, "/test2"),
         LocalResourceType.FILE, LocalResourceVisibility.PUBLIC, 1, 1));
     client.addAppMasterLocalFiles(lrs);
-    
+
     ApplicationId appId2 = ApplicationId.newInstance(0, 2);
     when(client.mockYarnClient.createApplication().getNewApplicationResponse().getApplicationId())
         .thenReturn(appId2);
-    
+
     when(client.mockYarnClient.getApplicationReport(appId2).getYarnApplicationState())
     .thenReturn(YarnApplicationState.RUNNING);
     dag = DAG.create("DAG-2-" + dagName).addVertex(
@@ -445,6 +455,99 @@ public class TestTezClient {
       verify(client.mockYarnClient, times(1)).stop();
     }
     return client;
+  }
+
+  public void testTezClientReconnect(boolean isSession) throws Exception {
+    //Setup 1
+    Map<String, LocalResource> lrs = Maps.newHashMap();
+    String lrName1 = "LR1";
+    lrs.put(lrName1, LocalResource.newInstance(URL.newInstance("file", "localhost", 0, "/test"),
+            LocalResourceType.FILE, LocalResourceVisibility.PUBLIC, 1, 1));
+
+    //Client 1
+    TezClientForTest client = configureAndCreateTezClient(lrs, isSession, null);
+
+    //Submission Context 1
+    ArgumentCaptor<ApplicationSubmissionContext> captor = ArgumentCaptor.forClass(ApplicationSubmissionContext.class);
+    when(client.mockYarnClient.getApplicationReport(client.mockAppId).getYarnApplicationState())
+            .thenReturn(YarnApplicationState.RUNNING);
+
+    //Client 1 start
+    client.start();
+
+    //Client 1 verify
+    verify(client.mockYarnClient, times(1)).init((Configuration)any());
+    verify(client.mockYarnClient, times(1)).start();
+
+    if (isSession) {
+      verify(client.mockYarnClient, times(1)).submitApplication(captor.capture());
+      ApplicationSubmissionContext context = captor.getValue();
+      Assert.assertEquals(3, context.getAMContainerSpec().getLocalResources().size());
+      assertTrue(context.getAMContainerSpec().getLocalResources().containsKey(
+              TezConstants.TEZ_AM_LOCAL_RESOURCES_PB_FILE_NAME));
+      assertTrue(context.getAMContainerSpec().getLocalResources().containsKey(
+              TezConstants.TEZ_PB_BINARY_CONF_NAME));
+      assertTrue(context.getAMContainerSpec().getLocalResources().containsKey(
+              lrName1));
+    } else {
+      verify(client.mockYarnClient, times(0)).submitApplication(captor.capture());
+    }
+
+    //DAG 1 resources
+    Map<String, LocalResource> lrDAG = Collections.singletonMap(lrName1, LocalResource
+            .newInstance(URL.newInstance("file", "localhost", 0, "/test1"), LocalResourceType.FILE,
+                    LocalResourceVisibility.PUBLIC, 1, 1));
+
+    //DAG 1 setup
+    Vertex vertex = Vertex.create("Vertex", ProcessorDescriptor.create("P"), 1,
+            Resource.newInstance(1, 1));
+    DAG dag = DAG.create("DAG").addVertex(vertex).addTaskLocalFiles(lrDAG);
+
+    //DAG 1 submit
+    DAGClient dagClient = client.submitDAG(dag);
+
+    //DAG 1 assertions
+    assertTrue(dagClient.getExecutionContext().contains(client.mockAppId.toString()));
+    assertEquals(dagClient.getSessionIdentifierString(), client.mockAppId.toString());
+
+    //Client 2 reuse appId
+    ApplicationId appId = client.getAppMasterApplicationId();
+
+    //Client 2 reuse lrs
+    TezClientForTest client2 = configureAndCreateTezClient(lrs, isSession, null);
+
+    //Submission Context 2
+    ArgumentCaptor<ApplicationSubmissionContext> captorClient2 =
+            ArgumentCaptor.forClass(ApplicationSubmissionContext.class);
+    when(client2.mockYarnClient.getApplicationReport(client2.mockAppId).getYarnApplicationState())
+            .thenReturn(YarnApplicationState.RUNNING);
+
+    //Client 2 reconnect
+    client2.getClient(appId);
+    assertEquals(client2.mockAppId, appId);
+
+    //Client 2 verify
+    verify(client2.mockYarnClient, times(1)).init((Configuration)any());
+    verify(client2.mockYarnClient, times(1)).start();
+    //New AM should not be submitted
+    verify(client2.mockYarnClient, times(0)).submitApplication(captorClient2.capture());
+
+    //DAG 2 setup
+    Vertex vertex2 = Vertex.create("Vertex2", ProcessorDescriptor.create("P"), 1,
+            Resource.newInstance(1, 1));
+    dag = DAG.create("DAG2").addVertex(vertex2).addTaskLocalFiles(lrDAG);
+
+    dagClient.close();
+    //DAG 2 submit
+    dagClient = client2.submitDAG(dag);
+
+    //DAG 2 assertions
+    assertTrue(dagClient.getExecutionContext().contains(appId.toString()));
+    assertEquals(dagClient.getSessionIdentifierString(), appId.toString());
+
+    dagClient.close();
+    client.stop();
+    client2.stop();
   }
 
   @Test (timeout=5000)

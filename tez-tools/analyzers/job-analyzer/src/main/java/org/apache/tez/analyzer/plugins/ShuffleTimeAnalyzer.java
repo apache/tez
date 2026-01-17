@@ -18,8 +18,8 @@
 
 package org.apache.tez.analyzer.plugins;
 
-import com.google.common.base.Strings;
-import com.google.common.collect.Lists;
+import java.util.List;
+import java.util.Map;
 
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.util.ToolRunner;
@@ -32,8 +32,8 @@ import org.apache.tez.history.parser.datamodel.DagInfo;
 import org.apache.tez.history.parser.datamodel.TaskAttemptInfo;
 import org.apache.tez.history.parser.datamodel.VertexInfo;
 
-import java.util.List;
-import java.util.Map;
+import com.google.common.base.Strings;
+import com.google.common.collect.Lists;
 
 
 /**

@@ -18,6 +18,9 @@
 
 package org.apache.tez.analyzer.plugins;
 
+import java.util.HashMap;
+import java.util.Map;
+
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.util.ToolRunner;
 import org.apache.tez.analyzer.Analyzer;
@@ -27,9 +30,6 @@ import org.apache.tez.dag.api.TezException;
 import org.apache.tez.history.parser.datamodel.DagInfo;
 import org.apache.tez.history.parser.datamodel.TaskAttemptInfo;
 import org.apache.tez.history.parser.datamodel.VertexInfo;
-
-import java.util.HashMap;
-import java.util.Map;
 
 /**
  * Get the Task assignments on different nodes of the cluster.

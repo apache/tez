@@ -36,10 +36,11 @@ import org.apache.tez.dag.records.TezDAGID;
 import org.apache.tez.dag.records.TezTaskAttemptID;
 import org.apache.tez.dag.records.TezTaskID;
 import org.apache.tez.dag.records.TezVertexID;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 
 import com.google.common.collect.Sets;
+
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 public class TimelineCachePluginImpl extends TimelineEntityGroupPlugin implements Configurable {
   private static final Logger LOG = LoggerFactory.getLogger(TimelineCachePluginImpl.class);

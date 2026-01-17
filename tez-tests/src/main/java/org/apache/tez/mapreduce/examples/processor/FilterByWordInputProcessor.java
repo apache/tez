@@ -21,13 +21,10 @@ package org.apache.tez.mapreduce.examples.processor;
 import java.util.List;
 import java.util.Map;
 
-import org.apache.tez.common.ProgressHelper;
-import org.apache.tez.runtime.api.TaskFailureType;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.io.LongWritable;
 import org.apache.hadoop.io.Text;
+import org.apache.tez.common.ProgressHelper;
 import org.apache.tez.common.TezUtils;
 import org.apache.tez.mapreduce.examples.FilterLinesByWord;
 import org.apache.tez.mapreduce.examples.FilterLinesByWord.TextLongPair;
@@ -39,9 +36,13 @@ import org.apache.tez.runtime.api.Event;
 import org.apache.tez.runtime.api.LogicalInput;
 import org.apache.tez.runtime.api.LogicalOutput;
 import org.apache.tez.runtime.api.ProcessorContext;
+import org.apache.tez.runtime.api.TaskFailureType;
 import org.apache.tez.runtime.library.api.KeyValueReader;
 import org.apache.tez.runtime.library.api.KeyValueWriter;
 import org.apache.tez.runtime.library.output.UnorderedKVOutput;
+
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 public class FilterByWordInputProcessor extends AbstractLogicalIOProcessor {
 

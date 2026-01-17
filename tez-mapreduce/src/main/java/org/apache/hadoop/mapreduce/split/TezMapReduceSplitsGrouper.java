@@ -24,19 +24,21 @@ import java.util.Objects;
 
 import javax.annotation.Nullable;
 
-import com.google.common.base.Function;
-import com.google.common.collect.Lists;
+import org.apache.hadoop.classification.InterfaceAudience.Public;
+import org.apache.hadoop.classification.InterfaceStability.Evolving;
+import org.apache.hadoop.conf.Configuration;
+import org.apache.hadoop.mapreduce.InputSplit;
 import org.apache.tez.mapreduce.grouper.GroupedSplitContainer;
 import org.apache.tez.mapreduce.grouper.MapReduceSplitContainer;
 import org.apache.tez.mapreduce.grouper.SplitContainer;
 import org.apache.tez.mapreduce.grouper.SplitSizeEstimatorWrapperMapReduce;
 import org.apache.tez.mapreduce.grouper.TezSplitGrouper;
+
+import com.google.common.base.Function;
+import com.google.common.collect.Lists;
+
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import org.apache.hadoop.classification.InterfaceAudience.Public;
-import org.apache.hadoop.classification.InterfaceStability.Evolving;
-import org.apache.hadoop.conf.Configuration;
-import org.apache.hadoop.mapreduce.InputSplit;
 
 /**
  * Helper that provides a grouping of input splits based 

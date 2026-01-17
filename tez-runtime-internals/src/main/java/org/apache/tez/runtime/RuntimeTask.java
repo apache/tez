@@ -18,6 +18,9 @@
 
 package org.apache.tez.runtime;
 
+import static org.apache.tez.dag.api.TezConfiguration.TEZ_TASK_LOCAL_FS_WRITE_LIMIT_BYTES;
+import static org.apache.tez.dag.api.TezConfiguration.TEZ_TASK_LOCAL_FS_WRITE_LIMIT_BYTES_DEFAULT;
+
 import java.io.IOException;
 import java.util.Collection;
 import java.util.EnumSet;
@@ -38,11 +41,9 @@ import org.apache.tez.runtime.api.impl.TezUmbilical;
 import org.apache.tez.runtime.metrics.TaskCounterUpdater;
 
 import com.google.common.collect.Maps;
+
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-
-import static org.apache.tez.dag.api.TezConfiguration.TEZ_TASK_LOCAL_FS_WRITE_LIMIT_BYTES;
-import static org.apache.tez.dag.api.TezConfiguration.TEZ_TASK_LOCAL_FS_WRITE_LIMIT_BYTES_DEFAULT;
 
 public abstract class RuntimeTask {
 

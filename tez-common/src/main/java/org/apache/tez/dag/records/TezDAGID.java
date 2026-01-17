@@ -24,7 +24,6 @@ import java.io.IOException;
 import java.util.Objects;
 
 import org.apache.hadoop.yarn.api.records.ApplicationId;
-
 import org.apache.tez.util.FastNumberFormat;
 
 import com.google.common.collect.Interner;

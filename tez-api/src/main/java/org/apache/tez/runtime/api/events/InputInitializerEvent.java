@@ -26,8 +26,8 @@ import java.util.Objects;
 import org.apache.hadoop.classification.InterfaceAudience;
 import org.apache.hadoop.classification.InterfaceAudience.Public;
 import org.apache.hadoop.classification.InterfaceStability.Unstable;
-import org.apache.tez.runtime.api.InputInitializer;
 import org.apache.tez.runtime.api.Event;
+import org.apache.tez.runtime.api.InputInitializer;
 
 /**
  * An event that is routed to the specified {@link InputInitializer}.

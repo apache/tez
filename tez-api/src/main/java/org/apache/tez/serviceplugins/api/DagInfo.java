@@ -14,10 +14,10 @@
 
 package org.apache.tez.serviceplugins.api;
 
+import java.util.BitSet;
+
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.security.Credentials;
-
-import java.util.BitSet;
 
 public interface DagInfo {
 
