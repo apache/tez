@@ -88,7 +88,8 @@ public class Join extends Configured implements Tool {
     }
   }
 
-  private int run (JobClient client, Configuration conf, String[] args) throws IOException, ClassNotFoundException, InterruptedException {
+  private int run(JobClient client, Configuration conf, String[] args)
+          throws IOException, ClassNotFoundException, InterruptedException {
     ClusterStatus cluster = client.getClusterStatus();
     int num_reduces = (int) (cluster.getMaxReduceTasks() * 0.9);
     String join_reduces = conf.get(REDUCES_PER_HOST);

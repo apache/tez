@@ -185,7 +185,8 @@ public class RandomTextWriter extends Configured implements Tool {
     }
   }
 
-  private int run (JobClient client, Configuration conf, String[] args) throws IOException, ClassNotFoundException, InterruptedException {
+  private int run(JobClient client, Configuration conf, String[] args)
+          throws IOException, ClassNotFoundException, InterruptedException {
     ClusterStatus cluster = client.getClusterStatus();
     int numMapsPerHost = conf.getInt(MAPS_PER_HOST, 10);
     long numBytesToWritePerMap = conf.getLong(BYTES_PER_MAP, 1 * 1024 * 1024 * 1024);
