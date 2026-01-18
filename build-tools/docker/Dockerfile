@@ -56,6 +56,7 @@ RUN apt-get -q update && apt-get -q install --no-install-recommends -y \
     rsync \
     software-properties-common \
     ssh-client \
+    unzip \
     xz-utils \
     && apt-get clean \
     && rm -rf /var/lib/apt/lists/*
@@ -96,20 +97,16 @@ RUN add-apt-repository -y ppa:longsleep/golang-backports \
 #############
 
 ######
-# Install Google Protobuf 3.21.1
+# Install Google Protobuf 3.25.5
 ######
 FROM tezbase AS protobuf
 SHELL ["/bin/bash", "-o", "pipefail", "-c"]
-RUN mkdir -p /opt/protobuf-src \
+RUN mkdir -p /opt/protobuf \
     && curl -L -s -S \
-      https://github.com/protocolbuffers/protobuf/releases/download/v21.1/protobuf-java-3.21.1.tar.gz \
-      -o /opt/protobuf.tar.gz \
-    && tar xzf /opt/protobuf.tar.gz --strip-components 1 -C /opt/protobuf-src
-WORKDIR /opt/protobuf-src
-RUN  ./configure --prefix=/opt/protobuf \
-    && make install
-WORKDIR /root
-RUN rm -rf /opt/protobuf-src
+       https://github.com/protocolbuffers/protobuf/releases/download/v25.5/protoc-25.5-linux-x86_64.zip \
+       -o /opt/protoc.zip \
+    && unzip -q /opt/protoc.zip -d /opt/protobuf \
+    && rm /opt/protoc.zip
 
 ####
 # Install shellcheck (shell script lint)
@@ -165,7 +162,7 @@ SHELL ["/bin/bash", "-o", "pipefail", "-c"]
 ####
 
 ####
-# OpenJDK 17
+# OpenJDK 21
 # hadolint ignore=DL3008
 RUN apt-get -q update \
     && DEBIAN_FRONTEND=noninteractive apt-get install --no-install-recommends -y openjdk-21-jdk \
@@ -197,7 +194,7 @@ RUN apt-get -q update && apt-get -q install --no-install-recommends -y maven \
     && rm -rf /var/lib/apt/lists/*
 
 ######
-# Install python3 and pylint3
+# Install python3 and pylint4
 # astroid and pylint go hand-in-hand.  Upgrade both at the same time.
 ######
 # hadolint ignore=DL3008,DL3013
@@ -226,13 +223,13 @@ RUN apt-get -q update && apt-get -q install --no-install-recommends -y \
     && python3 /tmp/get-pip.py --break-system-packages \
     && rm /usr/local/bin/pip /tmp/get-pip.py \
     && pip3 install --break-system-packages -v \
-        astroid==2.4.2 \
-        codespell==2.0 \
-        pylint==2.5.3 \
-        yamllint==1.24.2 \
+        astroid==4.0.3 \
+        codespell==2.4.1 \
+        pylint==4.0.4 \
+        yamllint==1.38.0 \
     && rm -rf /root/.cache \
-    && mv /usr/local/bin/pylint /usr/local/bin/pylint3
-RUN ln -s /usr/local/bin/pylint3 /usr/local/bin/pylint
+    && mv /usr/local/bin/pylint /usr/local/bin/pylint4
+RUN ln -s /usr/local/bin/pylint4 /usr/local/bin/pylint
 RUN ln -s /usr/local/bin/pip3 /usr/local/bin/pip
 
 ###
@@ -241,8 +238,8 @@ RUN ln -s /usr/local/bin/pip3 /usr/local/bin/pip
 # hadolint ignore=DL3008
 RUN apt-get update && apt-get install --no-install-recommends -y nodejs npm \
     && npm install -g \
-        jshint@2.12.0 \
-        markdownlint-cli@0.23.2 \
+        jshint@2.13.6 \
+        markdownlint-cli@0.46.0 \
     && apt-get clean \
     && rm -rf /var/lib/apt/lists/* /root/.npm
 
