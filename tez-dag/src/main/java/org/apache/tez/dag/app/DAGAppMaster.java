@@ -2429,7 +2429,7 @@ public class DAGAppMaster extends AbstractService {
       Objects.requireNonNull(appSubmitTimeStr,
           ApplicationConstants.APP_SUBMIT_TIME_ENV + " is null");
 
-      Configuration conf = new Configuration();
+      Configuration conf = new TezConfiguration();
 
       AMExtensions amExtensions = getFrameworkService(conf).getAMExtensions();
       DAGProtos.ConfigurationProto confProto = amExtensions.loadConfigurationProto();
