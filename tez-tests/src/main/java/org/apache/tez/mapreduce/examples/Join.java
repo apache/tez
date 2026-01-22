@@ -20,6 +20,7 @@ package org.apache.tez.mapreduce.examples;
 
 import static org.apache.tez.mapreduce.examples.ExampleDriver.getTezDecoratedConfiguration;
 
+import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Date;
 import java.util.List;
@@ -82,45 +83,52 @@ public class Join extends Configured implements Tool {
   @SuppressWarnings("deprecation")
   public int run(String[] args) throws Exception {
     Configuration conf = getConf();
-    JobClient client = new JobClient(conf);
+    try (JobClient client = new JobClient(conf)) {
+      return run(client, conf, args);
+    }
+  }
+
+  private int run(JobClient client, Configuration conf, String[] args)
+          throws IOException, ClassNotFoundException, InterruptedException {
     ClusterStatus cluster = client.getClusterStatus();
     int num_reduces = (int) (cluster.getMaxReduceTasks() * 0.9);
     String join_reduces = conf.get(REDUCES_PER_HOST);
     if (join_reduces != null) {
-       num_reduces = cluster.getTaskTrackers() * 
-                       Integer.parseInt(join_reduces);
+      num_reduces = cluster.getTaskTrackers() *
+              Integer.parseInt(join_reduces);
     }
+
     Job job = new Job(conf);
     job.setJobName("join");
     job.setJarByClass(Sort.class);
 
-    job.setMapperClass(Mapper.class);        
+    job.setMapperClass(Mapper.class);
     job.setReducerClass(Reducer.class);
 
-    Class<? extends InputFormat> inputFormatClass = 
-      SequenceFileInputFormat.class;
-    Class<? extends OutputFormat> outputFormatClass = 
-      SequenceFileOutputFormat.class;
+    Class<? extends InputFormat> inputFormatClass =
+            SequenceFileInputFormat.class;
+    Class<? extends OutputFormat> outputFormatClass =
+            SequenceFileOutputFormat.class;
     Class<? extends WritableComparable> outputKeyClass = BytesWritable.class;
     Class<? extends Writable> outputValueClass = TupleWritable.class;
     String op = "inner";
     List<String> otherArgs = new ArrayList<String>();
-    for(int i=0; i < args.length; ++i) {
+    for (int i = 0; i < args.length; ++i) {
       try {
         if ("-r".equals(args[i])) {
           num_reduces = Integer.parseInt(args[++i]);
         } else if ("-inFormat".equals(args[i])) {
-          inputFormatClass = 
-            Class.forName(args[++i]).asSubclass(InputFormat.class);
+          inputFormatClass =
+                  Class.forName(args[++i]).asSubclass(InputFormat.class);
         } else if ("-outFormat".equals(args[i])) {
-          outputFormatClass = 
-            Class.forName(args[++i]).asSubclass(OutputFormat.class);
+          outputFormatClass =
+                  Class.forName(args[++i]).asSubclass(OutputFormat.class);
         } else if ("-outKey".equals(args[i])) {
-          outputKeyClass = 
-            Class.forName(args[++i]).asSubclass(WritableComparable.class);
+          outputKeyClass =
+                  Class.forName(args[++i]).asSubclass(WritableComparable.class);
         } else if ("-outValue".equals(args[i])) {
-          outputValueClass = 
-            Class.forName(args[++i]).asSubclass(Writable.class);
+          outputValueClass =
+                  Class.forName(args[++i]).asSubclass(Writable.class);
         } else if ("-joinOp".equals(args[i])) {
           op = args[++i];
         } else {
@@ -131,7 +139,7 @@ public class Join extends Configured implements Tool {
         return printUsage();
       } catch (ArrayIndexOutOfBoundsException except) {
         System.out.println("ERROR: Required parameter missing from " +
-            args[i-1]);
+                args[i - 1]);
         return printUsage(); // exits
       }
     }
@@ -144,17 +152,17 @@ public class Join extends Configured implements Tool {
       return printUsage();
     }
 
-    FileOutputFormat.setOutputPath(job, 
-      new Path(otherArgs.remove(otherArgs.size() - 1)));
+    FileOutputFormat.setOutputPath(job,
+            new Path(otherArgs.remove(otherArgs.size() - 1)));
     List<Path> plist = new ArrayList<Path>(otherArgs.size());
     for (String s : otherArgs) {
       plist.add(new Path(s));
     }
 
     job.setInputFormatClass(CompositeInputFormat.class);
-    job.getConfiguration().set(CompositeInputFormat.JOIN_EXPR, 
-      CompositeInputFormat.compose(op, inputFormatClass,
-      plist.toArray(new Path[0])));
+    job.getConfiguration().set(CompositeInputFormat.JOIN_EXPR,
+            CompositeInputFormat.compose(op, inputFormatClass,
+                    plist.toArray(new Path[0])));
     job.setOutputFormatClass(outputFormatClass);
 
     job.setOutputKeyClass(outputKeyClass);
@@ -162,11 +170,11 @@ public class Join extends Configured implements Tool {
 
     Date startTime = new Date();
     System.out.println("Job started: " + startTime);
-    int ret = job.waitForCompletion(true) ? 0 : 1 ;
+    int ret = job.waitForCompletion(true) ? 0 : 1;
     Date end_time = new Date();
     System.out.println("Job ended: " + end_time);
-    System.out.println("The job took " + 
-        (end_time.getTime() - startTime.getTime()) /1000 + " seconds.");
+    System.out.println("The job took " +
+            (end_time.getTime() - startTime.getTime()) / 1000 + " seconds.");
     return ret;
   }
 
