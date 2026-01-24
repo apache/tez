@@ -2412,7 +2412,7 @@ public class TezConfiguration extends Configuration {
 
   @ConfigurationScope(Scope.AM)
   @ConfigurationProperty
-  public static final String TEZ_FRAMEWORK_MODE = TEZ_PREFIX + ".framework.mode";
+  public static final String TEZ_FRAMEWORK_MODE = TEZ_PREFIX + "framework.mode";
 
   /**
    * List of additional hadoop config files to load from CLASSPATH in ZOOKEEPER_STANDALONE framework mode.
