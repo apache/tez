@@ -72,9 +72,9 @@ import org.slf4j.LoggerFactory;
 
 @SuppressWarnings({"unchecked", "rawtypes"})
 public class PipelinedSorter extends ExternalSorter {
-  
+
   private static final Logger LOG = LoggerFactory.getLogger(PipelinedSorter.class);
-  
+
   /**
    * The size of each record in the index file for the map-outputs.
    */
@@ -83,7 +83,7 @@ public class PipelinedSorter extends ExternalSorter {
   private final static int APPROX_HEADER_LENGTH = 150;
 
   private final int partitionBits;
-  
+
   private static final int PARTITION = 0;        // partition offset in acct
   private static final int KEYSTART = 1;         // key offset in acct
   private static final int VALSTART = 2;         // val offset in acct
@@ -93,7 +93,7 @@ public class PipelinedSorter extends ExternalSorter {
 
   private final int minSpillsForCombine;
   private final ProxyComparator hasher;
-  // SortSpans  
+  // SortSpans
   private SortSpan span;
 
   //total memory capacity allocated to sorter
@@ -103,7 +103,7 @@ public class PipelinedSorter extends ExternalSorter {
   private int bufferOverflowRecursion;
 
   // Merger
-  private final SpanMerger merger; 
+  private final SpanMerger merger;
   private final ExecutorService sortmaster;
 
   private final ArrayList<TezSpillRecord> indexCacheList =
@@ -228,7 +228,7 @@ public class PipelinedSorter extends ExternalSorter {
 
     span = new SortSpan(buffers.get(bufferIndex), 1024 * 1024, 16, this.comparator);
     merger = new SpanMerger(); // SpanIterators are comparable
-    final int sortThreads = 
+    final int sortThreads =
             this.conf.getInt(
                 TezRuntimeConfiguration.TEZ_RUNTIME_PIPELINED_SORTER_SORT_THREADS,
                 TezRuntimeConfiguration.TEZ_RUNTIME_PIPELINED_SORTER_SORT_THREADS_DEFAULT);
@@ -321,7 +321,7 @@ public class PipelinedSorter extends ExternalSorter {
     }
     return bit;
   }
-  
+
   public void sort() throws IOException {
     SortSpan newSpan = span.next();
 
@@ -424,7 +424,7 @@ public class PipelinedSorter extends ExternalSorter {
     int valend = -1;
     try {
       keySerializer.serialize(key);
-      valstart = span.kvbuffer.position();      
+      valstart = span.kvbuffer.position();
       valSerializer.serialize(value);
       valend = span.kvbuffer.position();
     } catch(BufferOverflowException overflow) {
@@ -602,7 +602,7 @@ public class PipelinedSorter extends ExternalSorter {
           while (kvIter.next()) {
             writer.append(kvIter.getKey(), kvIter.getValue());
           }
-        } else {          
+        } else {
           if (hasNext) {
             runCombineProcessor(kvIter, writer);
           }
@@ -880,7 +880,7 @@ public class PipelinedSorter extends ExternalSorter {
     public BufferStreamWrapper(ByteBuffer out) {
       this.out = out;
     }
-    
+
     @Override
     public void write(int b) throws IOException { out.put((byte)b); }
     @Override
@@ -890,7 +890,7 @@ public class PipelinedSorter extends ExternalSorter {
   }
 
   private static final class InputByteBuffer extends DataInputBuffer {
-    private byte[] buffer = new byte[256]; 
+    private byte[] buffer = new byte[256];
     private ByteBuffer wrapped = ByteBuffer.wrap(buffer);
     private void resize(int length) {
       if(length > buffer.length || (buffer.length > 10 * (1+length))) {
@@ -1015,7 +1015,7 @@ public class PipelinedSorter extends ExternalSorter {
       final int kvj = offsetFor(mj);
       final int kvip = kvmeta.get(kvi + PARTITION);
       final int kvjp = kvmeta.get(kvj + PARTITION);
-      // sort by partition      
+      // sort by partition
       if (kvip != kvjp) {
         return kvip - kvjp;
       }
@@ -1102,11 +1102,11 @@ public class PipelinedSorter extends ExternalSorter {
       }
       return cmp;
     }
-    
+
     public long getEq() {
       return eq;
     }
-    
+
     @Override
     public String toString() {
         return String.format("Span[%d,%d]", NMETA*kvmeta.capacity(), kvbuffer.limit());
@@ -1151,7 +1151,7 @@ public class PipelinedSorter extends ExternalSorter {
     }
 
     public boolean next() {
-      // caveat: since we use this as a comparable in the merger 
+      // caveat: since we use this as a comparable in the merger
       if(kvindex == maxindex) return false;
       kvindex += 1;
       if(kvindex % 100 == 0) {
@@ -1168,7 +1168,7 @@ public class PipelinedSorter extends ExternalSorter {
     public void close() {
     }
 
-    public Progress getProgress() { 
+    public Progress getProgress() {
       return progress;
     }
 
@@ -1208,7 +1208,7 @@ public class PipelinedSorter extends ExternalSorter {
      * bisect returns the next insertion point for a given raw key, skipping keys
      * which are <= needle using a binary search instead of a linear comparison.
      * This is massively efficient when long strings of identical keys occur.
-     * @param needle 
+     * @param needle
      * @param needlePart
      * @return
      */
@@ -1225,8 +1225,8 @@ public class PipelinedSorter extends ExternalSorter {
       if(span.compareInternal(needle, needlePart, start) > 0) {
         return kvindex;
       }
-      
-      // bail out early if we haven't got a min run 
+
+      // bail out early if we haven't got a min run
       if(span.compareInternal(needle, needlePart, start+minrun) > 0) {
         return 0;
       }
@@ -1234,9 +1234,9 @@ public class PipelinedSorter extends ExternalSorter {
       if(span.compareInternal(needle, needlePart, end) < 0) {
         return end - kvindex;
       }
-      
+
       boolean found = false;
-      
+
       // we sort 100k items, the max it can do is 20 loops, but break early
       for(int i = 0; start < end && i < 16; i++) {
         mid = start + (end - start)/2;
@@ -1245,7 +1245,7 @@ public class PipelinedSorter extends ExternalSorter {
           start = mid;
           found = true;
         } else if(cmp < 0) {
-          start = mid; 
+          start = mid;
           found = true;
         }
         if(cmp > 0) {
@@ -1295,7 +1295,7 @@ public class PipelinedSorter extends ExternalSorter {
     }
 
     public boolean next() throws IOException {
-      if(dirty || iter.next()) { 
+      if(dirty || iter.next()) {
         int prefix = iter.getPartition();
 
         if((prefix >>> (32 - partitionBits)) == partition) {
@@ -1342,7 +1342,7 @@ public class PipelinedSorter extends ExternalSorter {
       super(256);
     }
     /**
-     * {@link PriorityQueue}.poll() by a different name 
+     * {@link PriorityQueue}.poll() by a different name
      * @return
      */
     public SpanIterator pop() {
@@ -1370,7 +1370,7 @@ public class PipelinedSorter extends ExternalSorter {
     private SpanIterator horse;
     private long total = 0;
     private long eq = 0;
-    
+
     public SpanMerger() {
       // SpanIterators are comparable
       partIter = new PartitionFilter(this);
@@ -1432,7 +1432,7 @@ public class PipelinedSorter extends ExternalSorter {
       horse = current;
       return current;
     }
-    
+
     public boolean needsRLE() {
       return (eq > 0.1 * total);
     }

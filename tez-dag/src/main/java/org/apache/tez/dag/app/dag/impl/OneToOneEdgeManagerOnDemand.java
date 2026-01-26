@@ -35,8 +35,8 @@ public class OneToOneEdgeManagerOnDemand extends EdgeManagerPluginOnDemand {
 
   final List<Integer> destinationInputIndices = Collections.singletonList(0);
   final AtomicBoolean stateChecked = new AtomicBoolean(false);
- 
-  final EventRouteMetadata commonRouteMeta = 
+
+  final EventRouteMetadata commonRouteMeta =
       EventRouteMetadata.create(1, new int[]{0}, new int[]{0});
 
   final CompositeEventRouteMetadata compositeCommonRouteMeta =
@@ -55,25 +55,25 @@ public class OneToOneEdgeManagerOnDemand extends EdgeManagerPluginOnDemand {
   public int getNumDestinationTaskPhysicalInputs(int destinationTaskIndex) {
     return 1;
   }
-  
+
   @Override
   public int getNumSourceTaskPhysicalOutputs(int sourceTaskIndex) {
     return 1;
   }
-  
+
   @Override
   public void routeDataMovementEventToDestination(DataMovementEvent event,
-      int sourceTaskIndex, int sourceOutputIndex, 
+      int sourceTaskIndex, int sourceOutputIndex,
       Map<Integer, List<Integer>> destinationTaskAndInputIndices) {
     checkState();
     destinationTaskAndInputIndices.put(sourceTaskIndex, destinationInputIndices);
   }
-  
+
   @Override
   public void prepareForRouting() throws Exception {
     checkState();
   }
-  
+
   @Override
   public EventRouteMetadata routeDataMovementEventToDestination(
       int sourceTaskIndex, int sourceOutputIndex, int destinationTaskIndex)
@@ -83,7 +83,7 @@ public class OneToOneEdgeManagerOnDemand extends EdgeManagerPluginOnDemand {
     }
     return null;
   }
-  
+
   @Override
   public @Nullable CompositeEventRouteMetadata routeCompositeDataMovementEventToDestination(
       int sourceTaskIndex, int destinationTaskIndex)
@@ -111,7 +111,7 @@ public class OneToOneEdgeManagerOnDemand extends EdgeManagerPluginOnDemand {
       int destinationTaskIndex, int destinationFailedInputIndex) {
     return destinationTaskIndex;
   }
-  
+
   @Override
   public int routeInputErrorEventToSource(int destinationTaskIndex, int destinationFailedInputIndex) {
     return destinationTaskIndex;
@@ -121,7 +121,7 @@ public class OneToOneEdgeManagerOnDemand extends EdgeManagerPluginOnDemand {
   public int getNumDestinationConsumerTasks(int sourceTaskIndex) {
     return 1;
   }
-  
+
   private void checkState() {
     if (stateChecked.get()) {
       return;

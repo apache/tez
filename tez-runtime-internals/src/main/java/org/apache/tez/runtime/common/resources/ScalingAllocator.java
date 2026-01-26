@@ -85,7 +85,7 @@ public class ScalingAllocator implements InitialMemoryAllocator {
       } else {
         long allocated = (long) ((requestedSize / (double) totalRequested) * availableForAllocation);
         allocations.add(allocated);
-        LOG.debug("Scaling requested: {} to allocated: {}", requestedSize, allocated);  
+        LOG.debug("Scaling requested: {} to allocated: {}", requestedSize, allocated);
       }
     }
     return allocations;

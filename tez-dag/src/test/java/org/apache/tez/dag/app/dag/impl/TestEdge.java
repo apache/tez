@@ -99,7 +99,7 @@ public class TestEdge {
     } catch (IllegalStateException e) {
       Assert.assertTrue(e.getMessage().contains("1-1 source and destination task counts must match"));
     }
-    
+
     // now make it consistent
     when(mockContext.getDestinationVertexNumTasks()).thenReturn(3);
     manager.routeDataMovementEventToDestination(event, 1, 1, destinationTaskAndInputIndices);
@@ -169,25 +169,25 @@ public class TestEdge {
         DataSourceType.PERSISTED, SchedulingType.SEQUENTIAL, mock(OutputDescriptor.class),
         mock(InputDescriptor.class));
     Edge edge = new Edge(edgeProp, eventHandler, new TezConfiguration());
-    
+
     TezVertexID srcVertexID = createVertexID(1);
     TezVertexID destVertexID = createVertexID(2);
     LinkedHashMap<TezTaskID, Task> srcTasks = mockTasks(srcVertexID, 1);
     LinkedHashMap<TezTaskID, Task> destTasks = mockTasks(destVertexID, 5);
-    
+
     TezTaskID srcTaskID = srcTasks.keySet().iterator().next();
-    
+
     Vertex srcVertex = mockVertex("src", srcVertexID, srcTasks);
     Vertex destVertex = mockVertex("dest", destVertexID, destTasks);
-    
+
     edge.setSourceVertex(srcVertex);
     edge.setDestinationVertex(destVertex);
     edge.initialize();
-    
+
     TezTaskAttemptID srcTAID = createTAIDForTest(srcTaskID, 2); // Task0, Attempt 0
-    
+
     EventMetaData srcMeta = new EventMetaData(EventProducerConsumerType.OUTPUT, "consumerVertex", "producerVertex", srcTAID);
-    
+
     // Verification via a CompositeEvent
     CompositeDataMovementEvent cdmEvent = CompositeDataMovementEvent.create(0, destTasks.size(),
         ByteBuffer.wrap("bytes".getBytes()));
@@ -248,7 +248,7 @@ public class TestEdge {
     }
     return tasks;
   }
-  
+
   private Vertex mockVertex(String name, TezVertexID vertexID, LinkedHashMap<TezTaskID, Task> tasks) {
     Vertex vertex = mock(Vertex.class);
     doReturn(vertexID).when(vertex).getVertexId();
@@ -261,13 +261,13 @@ public class TestEdge {
     }
     return vertex;
   }
-  
+
   private TezVertexID createVertexID(int id) {
     TezDAGID dagID = TezDAGID.getInstance("1000", 1, 1);
     TezVertexID vertexID = TezVertexID.getInstance(dagID, id);
     return vertexID;
   }
-  
+
   private TezTaskAttemptID createTAIDForTest(TezTaskID taskID, int taId) {
     TezTaskAttemptID taskAttemptID = TezTaskAttemptID.getInstance(taskID, taId);
     return taskAttemptID;

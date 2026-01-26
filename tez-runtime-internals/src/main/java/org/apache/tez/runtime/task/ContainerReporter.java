@@ -31,7 +31,7 @@ import org.slf4j.LoggerFactory;
 /**
  * Responsible for communication between a running Container and the ApplicationMaster. The main
  * functionality is to poll for new tasks.
- * 
+ *
  */
 public class ContainerReporter extends CallableWithNdc<ContainerTask> {
 

@@ -46,7 +46,7 @@ public final class TezTestUtils {
                     taskId)
         , taskAttemptId);
   }
-  
+
   public static TezTaskID getMockTaskId(int jobId,
       int vertexId, int taskId) {
     return TezTaskID.getInstance(

@@ -28,21 +28,21 @@ public class DAGEventSchedulerUpdate extends DAGEvent implements TaskAttemptIDAw
     TA_SCHEDULE,
     TA_COMPLETED
   }
-  
+
   private final TaskAttempt attempt;
   private final UpdateType updateType;
-  
+
   public DAGEventSchedulerUpdate(UpdateType updateType, TaskAttempt attempt) {
     super(attempt.getDAGID(),
           DAGEventType.DAG_SCHEDULER_UPDATE);
     this.attempt = attempt;
     this.updateType = updateType;
   }
-  
+
   public UpdateType getUpdateType() {
     return updateType;
   }
-  
+
   public TaskAttempt getAttempt() {
     return attempt;
   }

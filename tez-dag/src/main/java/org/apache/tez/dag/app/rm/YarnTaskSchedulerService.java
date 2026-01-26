@@ -110,7 +110,7 @@ public class YarnTaskSchedulerService extends TaskScheduler
   Map<ContainerId, Object> containerAssignments =
                   new HashMap<ContainerId, Object>();
   // Remove inUse depending on resolution of TEZ-1129
-  Set<ContainerId> inUseContainers = Sets.newHashSet(); 
+  Set<ContainerId> inUseContainers = Sets.newHashSet();
   HashMap<ContainerId, Object> releasedContainers =
                   new HashMap<ContainerId, Object>();
   /**
@@ -118,18 +118,18 @@ public class YarnTaskSchedulerService extends TaskScheduler
    */
   Map<ContainerId, HeldContainer> heldContainers =
       new HashMap<ContainerId, HeldContainer>();
-  
+
   Set<Priority> priorityHasAffinity = Sets.newHashSet();
 
   Set<NodeId> blacklistedNodes = Collections
       .newSetFromMap(new ConcurrentHashMap<NodeId, Boolean>());
-  
+
   Resource totalResources = Resource.newInstance(0, 0);
   Resource allocatedResources = Resource.newInstance(0, 0);
   long numHeartbeats = 0;
   long heartbeatAtLastPreemption = 0;
   int numHeartbeatsBetweenPreemptions = 0;
-  
+
   final String appHostName;
   final int appHostPort;
   final String appTrackingUrl;
@@ -148,12 +148,12 @@ public class YarnTaskSchedulerService extends TaskScheduler
   int sessionNumMinHeldContainers = 0;
   int preemptionPercentage = 0;
   long preemptionMaxWaitTime = 0;
-  
+
   long highestWaitingRequestWaitStartTime = 0;
   Priority highestWaitingRequestPriority = null;
-  
+
   Set<ContainerId> sessionMinHeldContainers = Sets.newHashSet();
-  
+
   private final Configuration conf;
 
   @VisibleForTesting
@@ -164,7 +164,7 @@ public class YarnTaskSchedulerService extends TaskScheduler
     private Object task;
     private Object appCookie;
     private Object containerSignature;
-    
+
     CRCookie(Object task, Object appCookie, Object containerSignature) {
       this.task = task;
       this.appCookie = appCookie;
@@ -178,7 +178,7 @@ public class YarnTaskSchedulerService extends TaskScheduler
     Object getAppCookie() {
       return appCookie;
     }
-    
+
     Object getContainerSignature() {
       return containerSignature;
     }
@@ -212,7 +212,7 @@ public class YarnTaskSchedulerService extends TaskScheduler
     CRCookie getCookie() {
       return cookie;
     }
-    
+
     ContainerId getAffinitizedContainer() {
       return affinitizedContainerId;
     }
@@ -312,32 +312,32 @@ public class YarnTaskSchedulerService extends TaskScheduler
         TezConfiguration.TEZ_AM_CONTAINER_IDLE_RELEASE_TIMEOUT_MIN_MILLIS_DEFAULT);
     Preconditions.checkArgument(idleContainerTimeoutMin >= 0 || idleContainerTimeoutMin == -1,
       "Idle container release min timeout should be either -1 or >=0");
-    
+
     idleContainerTimeoutMax = conf.getLong(
         TezConfiguration.TEZ_AM_CONTAINER_IDLE_RELEASE_TIMEOUT_MAX_MILLIS,
         TezConfiguration.TEZ_AM_CONTAINER_IDLE_RELEASE_TIMEOUT_MAX_MILLIS_DEFAULT);
     Preconditions.checkArgument(
         idleContainerTimeoutMax >= 0 && idleContainerTimeoutMax >= idleContainerTimeoutMin,
-        "Idle container release max timeout should be >=0 and >= " + 
+        "Idle container release max timeout should be >=0 and >= " +
         TezConfiguration.TEZ_AM_CONTAINER_IDLE_RELEASE_TIMEOUT_MIN_MILLIS);
-    
-    sessionNumMinHeldContainers = conf.getInt(TezConfiguration.TEZ_AM_SESSION_MIN_HELD_CONTAINERS, 
+
+    sessionNumMinHeldContainers = conf.getInt(TezConfiguration.TEZ_AM_SESSION_MIN_HELD_CONTAINERS,
         TezConfiguration.TEZ_AM_SESSION_MIN_HELD_CONTAINERS_DEFAULT);
-    Preconditions.checkArgument(sessionNumMinHeldContainers >= 0, 
+    Preconditions.checkArgument(sessionNumMinHeldContainers >= 0,
         "Session minimum held containers should be >=0");
-    
-    preemptionPercentage = conf.getInt(TezConfiguration.TEZ_AM_PREEMPTION_PERCENTAGE, 
+
+    preemptionPercentage = conf.getInt(TezConfiguration.TEZ_AM_PREEMPTION_PERCENTAGE,
         TezConfiguration.TEZ_AM_PREEMPTION_PERCENTAGE_DEFAULT);
     Preconditions.checkArgument(preemptionPercentage >= 0 && preemptionPercentage <= 100,
         "Preemption percentage should be between 0-100");
-    
+
     numHeartbeatsBetweenPreemptions = conf.getInt(
         TezConfiguration.TEZ_AM_PREEMPTION_HEARTBEATS_BETWEEN_PREEMPTIONS,
         TezConfiguration.TEZ_AM_PREEMPTION_HEARTBEATS_BETWEEN_PREEMPTIONS_DEFAULT);
-    Preconditions.checkArgument(numHeartbeatsBetweenPreemptions >= 1, 
+    Preconditions.checkArgument(numHeartbeatsBetweenPreemptions >= 1,
         "Heartbeats between preemptions should be >=1");
-    
-    preemptionMaxWaitTime = conf.getInt(TezConfiguration.TEZ_AM_PREEMPTION_MAX_WAIT_TIME_MS, 
+
+    preemptionMaxWaitTime = conf.getInt(TezConfiguration.TEZ_AM_PREEMPTION_MAX_WAIT_TIME_MS,
         TezConfiguration.TEZ_AM_PREEMPTION_MAX_WAIT_TIME_MS_DEFAULT);
     Preconditions.checkArgument(preemptionMaxWaitTime >=0, "Preemption max wait time must be >=0");
 
@@ -349,7 +349,7 @@ public class YarnTaskSchedulerService extends TaskScheduler
             "maxRMHeartbeatInterval: " + heartbeatIntervalMax +
             ", containerReuseEnabled: " + shouldReuseContainers +
             ", reuseRackLocal: " + reuseRackLocal +
-            ", reuseNonLocal: " + reuseNonLocal + 
+            ", reuseNonLocal: " + reuseNonLocal +
             ", localitySchedulingDelay: " + localitySchedulingDelay +
             ", preemptionPercentage: " + preemptionPercentage +
             ", preemptionMaxWaitTime: " + preemptionMaxWaitTime +
@@ -495,7 +495,7 @@ public class YarnTaskSchedulerService extends TaskScheduler
     super.onContainersAllocated(containers);
 
     if (isStopStarted.get()) {
-      LOG.info("Ignoring container allocations because application is shutting down. Num " + 
+      LOG.info("Ignoring container allocations because application is shutting down. Num " +
           containers.size());
       if (LOG.isDebugEnabled()) {
         for (Container container : containers) {
@@ -587,7 +587,7 @@ public class YarnTaskSchedulerService extends TaskScheduler
 
     return assignedContainers;
   }
-  
+
   @VisibleForTesting
   long getHeldContainerExpireTime(long startTime) {
     // expire time is at least extended by min time.
@@ -598,7 +598,7 @@ public class YarnTaskSchedulerService extends TaskScheduler
       long expireTimeMax = startTime + idleContainerTimeoutMax;
       expireTime = ThreadLocalRandom.current().nextLong(expireTime, expireTimeMax);
     }
-    
+
     return expireTime;
   }
 
@@ -638,28 +638,28 @@ public class YarnTaskSchedulerService extends TaskScheduler
         // session mode and need to hold onto containers and not done so already
         determineMinHeldContainers();
       }
-      
+
       heldContainer.resetLocalityMatchLevel();
       long currentTime = System.currentTimeMillis();
       boolean releaseContainer = false;
 
       if (isNew || (heldContainer.getContainerExpiryTime() - currentTime <= 0
           && idleContainerTimeoutMin != -1)) {
-        // container idle timeout has expired or is a new unused container. 
+        // container idle timeout has expired or is a new unused container.
         // new container is possibly a spurious race condition allocation.
         if (getContext().isSession()
             && sessionMinHeldContainers.contains(heldContainer.getContainer().getId())) {
           // There are no outstanding requests. So its safe to hold new containers.
           // We may have received more containers than necessary and some are unused
           // In session mode and container in set of chosen min held containers
-          // increase the idle container expire time to maintain sanity with 
+          // increase the idle container expire time to maintain sanity with
           // the rest of the code.
           heldContainer.setContainerExpiryTime(getHeldContainerExpireTime(currentTime));
         } else {
-          releaseContainer = true;          
+          releaseContainer = true;
         }
       }
-      
+
       if (releaseContainer) {
         LOG.info("No taskRequests. Container's idle timeout delay expired or is new. " +
             "Releasing container"
@@ -672,7 +672,7 @@ public class YarnTaskSchedulerService extends TaskScheduler
             + ", delayedContainers=" + delayedContainerManager.delayedContainers.size()
             + ", isNew=" + isNew);
           releaseUnassignedContainers(
-              Collections.singletonList((heldContainer.getContainer())));        
+              Collections.singletonList((heldContainer.getContainer())));
       } else {
         // no outstanding work and container idle timeout not expired
         if (LOG.isDebugEnabled()) {
@@ -692,7 +692,7 @@ public class YarnTaskSchedulerService extends TaskScheduler
       // clear min held containers since we need to allocate to tasks
       if (!sessionMinHeldContainers.isEmpty()) {
         // update the expire time of min held containers so that they are
-        // not released immediately, when new requests come in, if they come in 
+        // not released immediately, when new requests come in, if they come in
         // just before these containers are about to expire (race condition)
         long currentTime = System.currentTimeMillis();
         for (ContainerId minHeldCId : sessionMinHeldContainers) {
@@ -770,11 +770,11 @@ public class YarnTaskSchedulerService extends TaskScheduler
         // Release container if final expiry time is reached
         // Dont release a new container. The RM may not give us new ones
         // The assumption is that the expire time is larger than the sum of all
-        // locality delays. So if we hit the expire time then we have already 
+        // locality delays. So if we hit the expire time then we have already
         // tried to assign at all locality levels.
-        // We run the risk of not being able to retain min held containers but 
-        // if we are not being able to assign containers to pending tasks then 
-        // we cannot avoid releasing containers. Or else we may not be able to 
+        // We run the risk of not being able to retain min held containers but
+        // if we are not being able to assign containers to pending tasks then
+        // we cannot avoid releasing containers. Or else we may not be able to
         // get new containers from YARN to match the pending request
         if (!isNew && heldContainer.getContainerExpiryTime() - currentTime <= 0
           && idleContainerTimeoutMin != -1) {
@@ -810,7 +810,7 @@ public class YarnTaskSchedulerService extends TaskScheduler
               hitFinalMatchLevel = false;
             }
           }
-          
+
           if (hitFinalMatchLevel) {
             boolean safeToRelease = true;
             Priority topPendingPriority = amRmClient.getTopPriority();
@@ -818,15 +818,15 @@ public class YarnTaskSchedulerService extends TaskScheduler
             if (isNew && topPendingPriority != null &&
                 containerPriority.compareTo(topPendingPriority) < 0) {
               // this container is of lower priority and given to us by the RM for
-              // a task that will be matched after the current top priority. Keep 
+              // a task that will be matched after the current top priority. Keep
               // this container for those pending tasks since the RM is not going
               // to give this container to us again
               safeToRelease = false;
             }
-            
+
             // Are there any pending requests at any priority?
             // release if there are tasks or this is not a session
-            if (safeToRelease && 
+            if (safeToRelease &&
                 (!taskRequests.isEmpty() || !getContext().isSession())) {
               LOG.info("Releasing held container as either there are pending but "
                   + " unmatched requests or this is not a session"
@@ -944,7 +944,7 @@ public class YarnTaskSchedulerService extends TaskScheduler
     amRmClient.addNodeToBlacklist(nodeId);
     blacklistedNodes.add(nodeId);
   }
-  
+
   @Override
   public synchronized void unblacklistNode(NodeId nodeId) {
     if (blacklistedNodes.remove(nodeId)) {
@@ -952,7 +952,7 @@ public class YarnTaskSchedulerService extends TaskScheduler
       amRmClient.removeNodeFromBlacklist(nodeId);
     }
   }
-  
+
   @Override
   public synchronized void allocateTask(
       Object task,
@@ -972,7 +972,7 @@ public class YarnTaskSchedulerService extends TaskScheduler
 
     addRequestAndTrigger(task, request, hosts, racks);
   }
-  
+
   @Override
   public synchronized void allocateTask(
       Object task,
@@ -994,20 +994,20 @@ public class YarnTaskSchedulerService extends TaskScheduler
         priorityHasAffinity.add(priority);
       } else {
         LOG.warn("Matching requested to container: " + containerId +
-            " but requested capability: " + capability + 
+            " but requested capability: " + capability +
             " does not fit in container resource: "  + container.getResource());
       }
     } else {
       LOG.warn("Matching requested to unknown container: " + containerId);
     }
-    
+
     CRCookie cookie = new CRCookie(task, clientCookie, containerSignature);
     CookieContainerRequest request = new CookieContainerRequest(
       capability, containerId, hosts, racks, priority, cookie);
 
     addRequestAndTrigger(task, request, hosts, racks);
   }
-  
+
   private void addRequestAndTrigger(Object task, CookieContainerRequest request,
       String[] hosts, String[] racks) {
     addTaskRequest(task, request);
@@ -1086,7 +1086,7 @@ public class YarnTaskSchedulerService extends TaskScheduler
     }
     return true;
   }
-  
+
   @Override
   public synchronized Object deallocateContainer(ContainerId containerId) {
     Object task = unAssignContainer(containerId, true);
@@ -1134,34 +1134,34 @@ public class YarnTaskSchedulerService extends TaskScheduler
     int mem1 = arg1.getMemory();
     int cpu0 = arg0.getVirtualCores();
     int cpu1 = arg1.getVirtualCores();
-    
-    if(mem0 <= mem1 && cpu0 <= cpu1) { 
+
+    if(mem0 <= mem1 && cpu0 <= cpu1) {
       return true;
     }
-    return false; 
+    return false;
   }
 
   static int scaleDownByPreemptionPercentage(int original, int percent) {
     return (int) Math.ceil((original * percent)/100.f);
   }
-  
+
   private String constructPreemptionPeriodicLog(Resource freeResource) {
     return "Allocated: " + allocatedResources +
       " Free: " + freeResource +
       " pendingRequests: " + taskRequests.size() +
       " delayedContainers: " + delayedContainerManager.delayedContainers.size() +
-      " heartbeats: " + numHeartbeats + 
+      " heartbeats: " + numHeartbeats +
       " lastPreemptionHeartbeat: " + heartbeatAtLastPreemption +
-      ((highestWaitingRequestPriority != null) ? 
+      ((highestWaitingRequestPriority != null) ?
       (" highestWaitingRequestWaitStartTime: " + highestWaitingRequestWaitStartTime +
       " highestWaitingRequestPriority: " + highestWaitingRequestPriority.toString()) : "");
   }
-  
+
   private void resetHighestWaitingPriority(Priority newPri) {
     highestWaitingRequestPriority = newPri;
     highestWaitingRequestWaitStartTime = 0;
   }
-  
+
   boolean preemptIfNeeded() {
     if (preemptionPercentage == 0) {
       // turned off
@@ -1179,7 +1179,7 @@ public class YarnTaskSchedulerService extends TaskScheduler
         }
       }
       assert freeResources.getMemory() >= 0;
-  
+
       CookieContainerRequest highestPriRequest = null;
       int numHighestPriRequests = 0;
       for(CookieContainerRequest request : taskRequests.values()) {
@@ -1194,28 +1194,28 @@ public class YarnTaskSchedulerService extends TaskScheduler
           numHighestPriRequests++;
         }
       }
-      
+
       if (highestPriRequest == null) {
         // nothing pending
         resetHighestWaitingPriority(null);
         return true;
       }
-      
+
       // reset the wait time when waiting priority changes to prevent carry over of the value
       if (highestWaitingRequestPriority == null ||
           !highestPriRequest.getPriority().equals(highestWaitingRequestPriority)) {
         resetHighestWaitingPriority(highestPriRequest.getPriority());
       }
-      
+
       long currTime = System.currentTimeMillis();
       if (highestWaitingRequestWaitStartTime == 0) {
         highestWaitingRequestWaitStartTime = currTime;
       }
 
-      boolean preemptionWaitDeadlineCrossed = 
+      boolean preemptionWaitDeadlineCrossed =
           (currTime - highestWaitingRequestWaitStartTime) > preemptionMaxWaitTime ? true : false;
 
-      if(!preemptionWaitDeadlineCrossed && 
+      if(!preemptionWaitDeadlineCrossed &&
           fitsIn(highestPriRequest.getCapability(), freeResources)) {
         LOG.debug("{} fits in free resources", highestPriRequest);
         if (numHeartbeats % 50 == 1) {
@@ -1223,7 +1223,7 @@ public class YarnTaskSchedulerService extends TaskScheduler
         }
         return true;
       }
-      
+
       if (preemptionWaitDeadlineCrossed) {
         // check if anything lower priority is running - priority inversion
         // this check could have been done earlier but in the common case
@@ -1258,11 +1258,11 @@ public class YarnTaskSchedulerService extends TaskScheduler
             + " numRequests: " + numHighestPriRequests + ". "
             + constructPreemptionPeriodicLog(freeResources));
       }
-      
+
       // highest priority request will not fit in existing free resources
       // free up some more
       // TODO this is subject to error wrt RM resource normalization
-      
+
       numPendingRequestsToService = scaleDownByPreemptionPercentage(numHighestPriRequests,
           preemptionPercentage);
 
@@ -1278,10 +1278,10 @@ public class YarnTaskSchedulerService extends TaskScheduler
       }
       int newContainersReleased = 0;
       for (int i=0; i<numPendingRequestsToService; ++i) {
-        // This request must have been considered for matching with all existing 
+        // This request must have been considered for matching with all existing
         // containers when request was made.
         Container lowestPriNewContainer = null;
-        // could not find anything to preempt. Check if we can release unused 
+        // could not find anything to preempt. Check if we can release unused
         // containers
         for (HeldContainer heldContainer : delayedContainerManager.delayedContainers) {
           if (!heldContainer.isNew()) {
@@ -1306,15 +1306,15 @@ public class YarnTaskSchedulerService extends TaskScheduler
             lowestPriNewContainer = container;
           }
         }
-        
+
         if (lowestPriNewContainer != null) {
           LOG.info("Preempting new container: " + lowestPriNewContainer.getId() +
-              " with priority: " + lowestPriNewContainer.getPriority() + 
+              " with priority: " + lowestPriNewContainer.getPriority() +
               " to free resource for request: " + highestPriRequest +
               " . Current free resources: " + freeResources);
           newContainersReleased++;
           releaseUnassignedContainers(Collections.singletonList(lowestPriNewContainer));
-          // We are returning an unused resource back the RM. The RM thinks it 
+          // We are returning an unused resource back the RM. The RM thinks it
           // has serviced our initial request and will not re-allocate this back
           // to us anymore. So we need to ask for this again. If there is no
           // outstanding request at that priority then its fine to not ask again.
@@ -1331,14 +1331,14 @@ public class YarnTaskSchedulerService extends TaskScheduler
       }
 
       // there are no reused or new containers to release. try to preempt running containers
-      // this assert will be a no-op in production but can help identify 
+      // this assert will be a no-op in production but can help identify
       // invalid assumptions during testing
       assert delayedContainerManager.delayedContainers.isEmpty();
       if (!delayedContainerManager.delayedContainers.isEmpty()) {
         LOG.warn("Expected delayed containers to be empty. "
             + constructPreemptionPeriodicLog(freeResources));
       }
-      
+
       Priority preemptedTaskPriority = null;
       int numEntriesAtPreemptedPriority = 0;
       for(Map.Entry<Object, Container> entry : taskAllocations.entrySet()) {
@@ -1403,7 +1403,7 @@ public class YarnTaskSchedulerService extends TaskScheduler
         // and we get its completed container status
       }
     }
-    
+
     // upcall outside locks
     if (preemptedContainers != null) {
       for(int i=0; i<numPendingRequestsToService; ++i) {
@@ -1472,7 +1472,7 @@ public class YarnTaskSchedulerService extends TaskScheduler
     Resource capability = container.getResource();
     List<? extends Collection<CookieContainerRequest>> pRequestsList =
       amRmClient.getMatchingRequestsForTopPriority(location, capability);
-    if (considerContainerAffinity && 
+    if (considerContainerAffinity &&
         !priorityHasAffinity.contains(amRmClient.getTopPriority())) {
       considerContainerAffinity = false;
     }
@@ -1482,9 +1482,9 @@ public class YarnTaskSchedulerService extends TaskScheduler
     CookieContainerRequest firstMatch = null;
     for (Collection<CookieContainerRequest> requests : pRequestsList) {
       for (CookieContainerRequest cookieContainerRequest : requests) {
-        if (firstMatch == null || // we dont have a match. So look for one 
+        if (firstMatch == null || // we dont have a match. So look for one
             // we have a match but are looking for a better container level match.
-            // skip the expensive canAssignTaskToContainer() if the request is 
+            // skip the expensive canAssignTaskToContainer() if the request is
             // not affinitized to the container
             container.getId().equals(cookieContainerRequest.getAffinitizedContainer())
             ) {
@@ -1495,7 +1495,7 @@ public class YarnTaskSchedulerService extends TaskScheduler
             }
             ContainerId affCId = cookieContainerRequest.getAffinitizedContainer();
             boolean canMatchTaskWithAffinity = true;
-            if (affCId == null || 
+            if (affCId == null ||
                 !heldContainers.containsKey(affCId) ||
                 inUseContainers.contains(affCId)) {
               // affinity not specified
@@ -1523,7 +1523,7 @@ public class YarnTaskSchedulerService extends TaskScheduler
         }
       }
     }
-    
+
     return firstMatch;
   }
 
@@ -1599,7 +1599,7 @@ public class YarnTaskSchedulerService extends TaskScheduler
     assert result == null;
     inUseContainers.add(container.getId());
     containerAssignments.put(container.getId(), task);
-    HeldContainer heldContainer = heldContainers.get(container.getId()); 
+    HeldContainer heldContainer = heldContainers.get(container.getId());
     if (!shouldReuseContainers && heldContainer == null) {
       heldContainers.put(container.getId(), new HeldContainer(container,
         -1, -1, assigned, this.containerSignatureMatcher));
@@ -1619,7 +1619,7 @@ public class YarnTaskSchedulerService extends TaskScheduler
       heldContainer.setLastTaskInfo(assigned);
     }
   }
-  
+
   private void pushNewContainerToDelayed(List<Container> containers){
     long expireTime = getHeldContainerExpireTime(System.currentTimeMillis());
 
@@ -1639,7 +1639,7 @@ public class YarnTaskSchedulerService extends TaskScheduler
           nextScheduleTime + 1);
       }
     }
-    delayedContainerManager.triggerScheduling(false);      
+    delayedContainerManager.triggerScheduling(false);
   }
 
   private CookieContainerRequest removeTaskRequest(Object task) {
@@ -1736,28 +1736,28 @@ public class YarnTaskSchedulerService extends TaskScheduler
       // nothing left to assign
       return false;
     }
-    
-    if (topPendingTaskPriority.compareTo(containerPriority) > 0 && 
+
+    if (topPendingTaskPriority.compareTo(containerPriority) > 0 &&
         heldContainers.get(container.getId()).isNew()) {
-      // if the next task to assign is higher priority than the container then 
+      // if the next task to assign is higher priority than the container then
       // dont assign this container to that task.
       // if task and container are equal priority - then its first use or reuse
       // within the same priority - safe to use
       // if task is lower priority than container then if we use a container that
-      // is no longer needed by higher priority tasks All those higher pri tasks 
+      // is no longer needed by higher priority tasks All those higher pri tasks
       // has been assigned resources - safe to use (first use or reuse)
-      // if task is higher priority than container then we may end up using a 
-      // container that was assigned by the RM for a lower priority pending task 
+      // if task is higher priority than container then we may end up using a
+      // container that was assigned by the RM for a lower priority pending task
       // that will be assigned after this higher priority task is assigned. If we
-      // use that task's container now then we may not be able to match this 
-      // container to that task later on. However the RM has already assigned us 
-      // all containers and is not going to give us new containers. We will get 
+      // use that task's container now then we may not be able to match this
+      // container to that task later on. However the RM has already assigned us
+      // all containers and is not going to give us new containers. We will get
       // stuck for resources.
-      // the above applies for new containers. If a container has already been 
+      // the above applies for new containers. If a container has already been
       // re-used then this is not relevant
       return false;
     }
-    
+
     CookieContainerRequest assigned =
       assigner.assignReUsedContainer(container, honorLocality);
     if (assigned != null) {
@@ -1795,21 +1795,21 @@ public class YarnTaskSchedulerService extends TaskScheduler
       if (blacklistedNodes.contains(container.getNodeId())) {
         CookieContainerRequest request = entry.getKey();
         Object task = getTask(request);
-        LOG.info("Container: " + container.getId() + 
-            " allocated on blacklisted node: " + container.getNodeId() + 
+        LOG.info("Container: " + container.getId() +
+            " allocated on blacklisted node: " + container.getNodeId() +
             " for task: " + task);
         Object deAllocTask = deallocateContainer(container.getId());
         assert deAllocTask.equals(task);
         // its ok to submit the same request again because the RM will not give us
         // the bad/unhealthy nodes again. The nodes may become healthy/unblacklisted
         // and so its better to give the RM the full information.
-        allocateTask(task, request.getCapability(), 
-            (request.getNodes() == null ? null : 
-            request.getNodes().toArray(new String[request.getNodes().size()])), 
-            (request.getRacks() == null ? null : 
-              request.getRacks().toArray(new String[request.getRacks().size()])), 
-            request.getPriority(), 
-            request.getCookie().getContainerSignature(), 
+        allocateTask(task, request.getCapability(),
+            (request.getNodes() == null ? null :
+            request.getNodes().toArray(new String[request.getNodes().size()])),
+            (request.getRacks() == null ? null :
+              request.getRacks().toArray(new String[request.getRacks().size()])),
+            request.getPriority(),
+            request.getCookie().getContainerSignature(),
             request.getCookie().getAppCookie());
       } else {
         informAppAboutAssignment(entry.getKey(), container);
@@ -1855,7 +1855,7 @@ public class YarnTaskSchedulerService extends TaskScheduler
       assignContainer(task, container, assigned);
     }
   }
-  
+
   private class NodeLocalContainerAssigner extends ContainerAssigner {
 
     NodeLocalContainerAssigner() {
@@ -1946,8 +1946,8 @@ public class YarnTaskSchedulerService extends TaskScheduler
     }
 
   }
-  
-  
+
+
   @VisibleForTesting
   class DelayedContainerManager extends Thread {
 
@@ -1967,7 +1967,7 @@ public class YarnTaskSchedulerService extends TaskScheduler
     private volatile boolean tryAssigningAll = false;
     private volatile boolean running = true;
     private long maxScheduleTimeSeen = -1;
-    
+
     // used for testing only
     @VisibleForTesting
     volatile AtomicBoolean drainedDelayedContainersForTest = null;
@@ -1975,7 +1975,7 @@ public class YarnTaskSchedulerService extends TaskScheduler
     DelayedContainerManager() {
       super.setName("DelayedContainerManager");
     }
-    
+
     @Override
     public void run() {
       try {
@@ -2071,7 +2071,7 @@ public class YarnTaskSchedulerService extends TaskScheduler
       }
       releasePendingContainers();
     }
-    
+
     private void doAssignAll() {
       // The allocatedContainers queue should not be modified in the middle of an iteration over it.
       // Synchronizing here on TaskScheduler.this to prevent this from happening.
@@ -2108,10 +2108,10 @@ public class YarnTaskSchedulerService extends TaskScheduler
       // Inform app
       informAppAboutAssignments(assignedContainers);
     }
-    
+
     /**
      * Indicate that an attempt should be made to allocate all available containers.
-     * Intended to be used in cases where new Container requests come in 
+     * Intended to be used in cases where new Container requests come in
      */
     public void triggerScheduling(boolean scheduleAll) {
       synchronized(this) {
@@ -2124,7 +2124,7 @@ public class YarnTaskSchedulerService extends TaskScheduler
       this.running = false;
       this.interrupt();
     }
-    
+
     private void releasePendingContainers() {
       List<HeldContainer> pendingContainers = Lists.newArrayListWithCapacity(
         delayedContainers.size());
@@ -2175,17 +2175,17 @@ public class YarnTaskSchedulerService extends TaskScheduler
       }
     }
   }
-  
+
   synchronized void determineMinHeldContainers() {
     sessionMinHeldContainers.clear();
     if (sessionNumMinHeldContainers <= 0) {
       return;
     }
-    
+
     if (heldContainers.size() <= sessionNumMinHeldContainers) {
       sessionMinHeldContainers.addAll(heldContainers.keySet());
     }
-    
+
     Map<String, AtomicInteger> rackHeldNumber = Maps.newHashMap();
     Map<String, List<HeldContainer>> nodeHeldContainers = Maps.newHashMap();
     for(HeldContainer heldContainer : heldContainers.values()) {
@@ -2206,7 +2206,7 @@ public class YarnTaskSchedulerService extends TaskScheduler
     for (String rack : rackHeldNumber.keySet()) {
       rackToHoldNumber.put(rack, new AtomicInteger(0));
     }
-    
+
     // distribute evenly across nodes
     // the loop assigns 1 container per rack over all racks
     int containerCount = 0;
@@ -2222,7 +2222,7 @@ public class YarnTaskSchedulerService extends TaskScheduler
         }
       }
     }
-    
+
     // distribute containers evenly across nodes while not exceeding rack limit
     // the loop assigns 1 container per node over all nodes
     containerCount = 0;
@@ -2246,7 +2246,7 @@ public class YarnTaskSchedulerService extends TaskScheduler
         }
       }
     }
-    
+
     LOG.info("Holding on to " + sessionMinHeldContainers.size() + " containers"
         + " out of total held containers: " + heldContainers.size());
   }
@@ -2303,7 +2303,7 @@ public class YarnTaskSchedulerService extends TaskScheduler
     private int numAssignmentAttempts = 0;
     private Object lastAssignedContainerSignature;
     final ContainerSignatureMatcher signatureMatcher;
-    
+
     HeldContainer(Container container,
         long nextScheduleTime,
         long containerExpiryTime,
@@ -2321,35 +2321,35 @@ public class YarnTaskSchedulerService extends TaskScheduler
           .getNetworkLocation();
       this.signatureMatcher = signatureMatcher;
     }
-    
+
     boolean isNew() {
       return lastTaskInfo == null;
     }
-    
+
     String getRack() {
       return this.rack;
     }
-    
+
     String getNode() {
       return this.container.getNodeId().getHost();
     }
-    
+
     int geNumAssignmentAttempts() {
       return numAssignmentAttempts;
     }
-    
+
     void incrementAssignmentAttempts() {
       numAssignmentAttempts++;
     }
-    
+
     public Container getContainer() {
       return this.container;
     }
-    
+
     public long getNextScheduleTime() {
       return this.nextScheduleTime;
     }
-    
+
     public void setNextScheduleTime(long nextScheduleTime) {
       this.nextScheduleTime = nextScheduleTime;
     }
@@ -2369,7 +2369,7 @@ public class YarnTaskSchedulerService extends TaskScheduler
     public CookieContainerRequest getLastTaskInfo() {
       return this.lastTaskInfo;
     }
-    
+
     public void setLastTaskInfo(CookieContainerRequest taskInfo) {
       // Merge the container signatures to account for any changes to the container
       // footprint. For example, re-localization of additional resources will

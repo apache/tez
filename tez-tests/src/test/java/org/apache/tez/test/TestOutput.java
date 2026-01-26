@@ -52,15 +52,15 @@ public class TestOutput extends AbstractLogicalOutput {
     }
     return desc;
   }
-  
+
   int output;
-  
+
   @Override
   public List<Event> initialize() throws Exception {
     getContext().requestInitialMemory(0l, null); //Mandatory call
     return Collections.emptyList();
   }
-  
+
   void write(int value) {
     this.output = value;
   }

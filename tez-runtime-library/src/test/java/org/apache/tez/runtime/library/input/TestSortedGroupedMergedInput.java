@@ -45,7 +45,7 @@ public class TestSortedGroupedMergedInput {
   MergedInputContext createMergedInputContext() {
     return mock(MergedInputContext.class);
   }
-  
+
   @Test(timeout = 5000)
   public void testSimple() throws Exception {
     SortedTestKeyValuesReader kvsReader1 = new SortedTestKeyValuesReader(new int[] { 1, 2, 3 },
@@ -297,7 +297,7 @@ public class TestSortedGroupedMergedInput {
     }
     getNextFromFinishedReader(kvsReader);
   }
-  
+
   // Reads all values for a key, but doesn't trigger the last hasNext() call.
   @Test(timeout = 5000)
   public void testSkippedKey3() throws Exception {

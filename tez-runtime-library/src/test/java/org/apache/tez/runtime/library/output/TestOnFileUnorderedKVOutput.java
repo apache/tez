@@ -242,7 +242,7 @@ public class TestOnFileUnorderedKVOutput {
     TezTaskID taskID = TezTaskID.getInstance(vertexID, 1);
     TezTaskAttemptID taskAttemptID = TezTaskAttemptID.getInstance(taskID, 1);
     UserPayload userPayload = TezUtils.createUserPayloadFromConf(payloadConf);
-    
+
     TaskSpec mockSpec = mock(TaskSpec.class);
     when(mockSpec.getInputs()).thenReturn(Collections.singletonList(mock(InputSpec.class)));
     when(mockSpec.getOutputs()).thenReturn(Collections.singletonList(mock(OutputSpec.class)));
@@ -251,7 +251,7 @@ public class TestOnFileUnorderedKVOutput {
         new DefaultHadoopShim(), sharedExecutor);
 
     LogicalIOProcessorRuntimeTask runtimeTask = spy(task);
-    
+
     Map<String, String> auxEnv = new HashMap<String, String>();
     ByteBuffer bb = ByteBuffer.allocate(4);
     bb.putInt(shufflePort);

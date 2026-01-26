@@ -38,21 +38,21 @@ public interface InputContext extends TaskContext {
    * @return the convenient string
    */
   String getInputOutputVertexNames();
-  
+
   /**
-   * Get the index of the input in the set of all inputs for the task. The 
+   * Get the index of the input in the set of all inputs for the task. The
    * index will be consistent and valid only among the tasks of this vertex.
    * @return index
    */
   public int getInputIndex();
-  
+
   /**
    * Inform the framework that the specific Input is ready for consumption.
-   * 
+   *
    * This method can be invoked multiple times.
    */
   public void inputIsReady();
-  
+
   /**
    * Get an {@link InputStatisticsReporter} for this {@link Input} that can
    * be used to report statistics like data size

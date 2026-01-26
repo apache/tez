@@ -45,7 +45,7 @@ public interface TaskAttempt extends TaskAttemptIDAware {
     public TaskAttemptState state;
     public float progress;
     public TezCounters counters;
-    
+
     public TaskAttemptStatus(TezTaskAttemptID id) {
       this.id = id;
     }
@@ -82,10 +82,10 @@ public interface TaskAttempt extends TaskAttemptIDAware {
   float getProgress();
   TaskAttemptState getState();
   TaskAttemptState getStateNoLock();
-  
+
   void setLastEventSent(TezEvent lastEventSent);
 
-  /** 
+  /**
    * Has attempt reached the final state or not.
    * @return true if it has finished, else false
    */
@@ -95,7 +95,7 @@ public interface TaskAttempt extends TaskAttemptIDAware {
    * @return the container ID if a container is assigned, otherwise null.
    */
   ContainerId getAssignedContainerID();
-  
+
   /**
    * @return the container if assigned, otherwise null
    */
@@ -105,23 +105,23 @@ public interface TaskAttempt extends TaskAttemptIDAware {
    * @return container mgr address if a container is assigned, otherwise null.
    */
   String getAssignedContainerMgrAddress();
-  
+
   /**
    * @return node's id if a container is assigned, otherwise null.
    */
   NodeId getNodeId();
-  
+
   /**
    * @return node's http address if a container is assigned, otherwise null.
    */
   String getNodeHttpAddress();
-  
+
   /**
    * @return node's rack name if a container is assigned, otherwise null.
    */
   String getNodeRackName();
 
-  /** 
+  /**
    * @return time at which container is launched. If container is not launched
    * yet, returns 0.
    */
@@ -133,7 +133,7 @@ public interface TaskAttempt extends TaskAttemptIDAware {
    */
   long getScheduleTime();
 
-  /** 
+  /**
    * @return attempt's finish time. If attempt is not finished
    *  yet, returns 0.
    */

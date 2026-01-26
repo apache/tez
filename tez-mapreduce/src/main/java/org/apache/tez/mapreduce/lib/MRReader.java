@@ -26,24 +26,24 @@ import org.apache.tez.runtime.library.api.KeyValueReader;
 
 @Private
 public abstract class MRReader extends KeyValueReader {
-  
+
   private final InputContext context;
-  
+
   public abstract void setSplit(Object split) throws IOException;
   public abstract boolean isSetup();
   public abstract float getProgress() throws IOException, InterruptedException;
   public abstract void close() throws IOException;
   public abstract Object getSplit();
   public abstract Object getRecordReader();
-  
+
   public MRReader(InputContext context) {
     this.context = context;
   }
-  
+
   protected final void notifyProgress() {
     context.notifyProgress();
   }
-  
+
   protected final void notifyDone() {
     context.notifyProgress();
   }

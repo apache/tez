@@ -296,7 +296,7 @@ public class TestMROutput {
     when(outputContext.getContainerConfiguration()).thenReturn(baseConf);
     return outputContext;
   }
-  
+
   public static LogicalIOProcessorRuntimeTask createLogicalTask(
       Configuration conf,
       TezUmbilical umbilical, String dagName,
@@ -306,7 +306,7 @@ public class TestMROutput {
     List<OutputSpec> outputSpecs = Lists.newLinkedList();
     outputSpecs.add(new OutputSpec("Null",
         MROutput.createConfigBuilder(conf, TestOutputFormat.class).build().getOutputDescriptor(), 1));
-    
+
     TaskSpec taskSpec = new TaskSpec(
         TezTestUtils.getMockTaskAttemptId(0, 0, 0, 0),
         dagName, vertexName, -1,
@@ -353,9 +353,9 @@ public class TestMROutput {
     @Override
     public void abortTask(TaskAttemptContext taskContext) throws IOException {
     }
-    
+
   }
-  
+
   public static class TestOutputFormat extends OutputFormat<String, String> {
     public static class TestRecordWriter extends RecordWriter<String, String> {
       Writer writer;
@@ -368,7 +368,7 @@ public class TestMROutput {
           writer = new BufferedWriter(new FileWriter(f));
         }
       }
-      
+
       @Override
       public void write(String key, String value) throws IOException, InterruptedException {
         if (doWrite) {
@@ -381,9 +381,9 @@ public class TestMROutput {
       public void close(TaskAttemptContext context) throws IOException, InterruptedException {
         writer.close();
       }
-      
+
     }
-    
+
     @Override
     public RecordWriter<String, String> getRecordWriter(TaskAttemptContext context)
         throws IOException, InterruptedException {

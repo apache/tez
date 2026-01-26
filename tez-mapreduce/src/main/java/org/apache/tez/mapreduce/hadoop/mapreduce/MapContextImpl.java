@@ -42,8 +42,8 @@ import org.apache.tez.runtime.api.TaskContext;
  */
 @InterfaceAudience.Private
 @InterfaceStability.Unstable
-public class MapContextImpl<KEYIN,VALUEIN,KEYOUT,VALUEOUT> 
-    extends TaskInputOutputContextImpl<KEYIN,VALUEIN,KEYOUT,VALUEOUT> 
+public class MapContextImpl<KEYIN,VALUEIN,KEYOUT,VALUEOUT>
+    extends TaskInputOutputContextImpl<KEYIN,VALUEIN,KEYOUT,VALUEOUT>
     implements MapContext<KEYIN, VALUEIN, KEYOUT, VALUEOUT> {
   private RecordReader<KEYIN,VALUEIN> reader;
   private InputSplit split;

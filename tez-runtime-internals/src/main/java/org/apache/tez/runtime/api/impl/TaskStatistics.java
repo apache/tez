@@ -37,12 +37,12 @@ public class TaskStatistics implements Writable {
   public void addIO(String edgeName) {
     addIO(edgeName, new IOStatistics());
   }
-  
+
   public void addIO(String edgeName, IOStatistics stats) {
     Objects.requireNonNull(stats, edgeName);
     ioStatistics.put(StringInterner.intern(edgeName), stats);
   }
-  
+
   public Map<String, IOStatistics> getIOStatistics() {
     return ioStatistics;
   }

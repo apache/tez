@@ -32,7 +32,7 @@ public class OutputDescriptor extends EntityDescriptor<OutputDescriptor> {
   public OutputDescriptor() {
     super();
   }
-  
+
   private OutputDescriptor(String outputClassName) {
     super(outputClassName);
   }

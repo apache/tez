@@ -54,7 +54,7 @@ import org.slf4j.LoggerFactory;
  * The example extends WordCount by sorting the words by their count.
  */
 public class OrderedWordCount extends TezExampleBase {
-  
+
   private static String INPUT = WordCount.INPUT;
   private static String OUTPUT = WordCount.OUTPUT;
   private static String TOKENIZER = WordCount.TOKENIZER;
@@ -63,8 +63,8 @@ public class OrderedWordCount extends TezExampleBase {
   private static final Logger LOG = LoggerFactory.getLogger(OrderedWordCount.class);
 
   /*
-   * SumProcessor similar to WordCount except that it writes the count as key and the 
-   * word as value. This is because we can and ordered partitioned key value edge to group the 
+   * SumProcessor similar to WordCount except that it writes the count as key and the
+   * word as value. This is because we can and ordered partitioned key value edge to group the
    * words with the same count (as key) and order the counts.
    */
   public static class SumProcessor extends SimpleProcessor {
@@ -94,9 +94,9 @@ public class OrderedWordCount extends TezExampleBase {
       }
     }
   }
-  
+
   /**
-   * No-op sorter processor. It does not need to apply any logic since the ordered partitioned edge 
+   * No-op sorter processor. It does not need to apply any logic since the ordered partitioned edge
    * ensures that we get the data sorted and grouped by the the sum key.
    */
   public static class NoOpSorter extends SimpleMRProcessor {
@@ -120,7 +120,7 @@ public class OrderedWordCount extends TezExampleBase {
       // deriving from SimpleMRProcessor takes care of committing the output
     }
   }
-  
+
   public static DAG createDAG(TezConfiguration tezConf, String inputPath, String outputPath,
       int numPartitions, boolean disableSplitGrouping, boolean isGenerateSplitInClient, String dagName) throws IOException {
 
@@ -148,8 +148,8 @@ public class OrderedWordCount extends TezExampleBase {
     // via an output edge.
     Vertex summationVertex = Vertex.create(SUMMATION, ProcessorDescriptor.create(
         SumProcessor.class.getName()), numPartitions);
-    
-    // Use IntWritable key and Text value to bring all words with the same count in the same 
+
+    // Use IntWritable key and Text value to bring all words with the same count in the same
     // partition. The data will be ordered by count and words grouped by count. The
     // setFromConfiguration call is optional and allows overriding the config options with
     // command line parameters.
@@ -166,7 +166,7 @@ public class OrderedWordCount extends TezExampleBase {
     sorterVertex.addDataSink(OUTPUT, dataSink);
 
     // No need to add jar containing this class as assumed to be part of the tez jars.
-    
+
     DAG dag = DAG.create(dagName);
     dag.addVertex(tokenizerVertex)
         .addVertex(summationVertex)
@@ -176,7 +176,7 @@ public class OrderedWordCount extends TezExampleBase {
                 summationEdgeConf.createDefaultEdgeProperty()))
         .addEdge(
             Edge.create(summationVertex, sorterVertex, sorterEdgeConf.createDefaultEdgeProperty()));
-    return dag;  
+    return dag;
   }
 
   @Override

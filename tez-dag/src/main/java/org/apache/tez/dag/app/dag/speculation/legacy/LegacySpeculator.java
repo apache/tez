@@ -51,17 +51,17 @@ import org.slf4j.LoggerFactory;
 
 /**
  * Maintains runtime estimation statistics. Makes periodic updates
- * estimates based on progress and decides on when to trigger a 
- * speculative attempt. Speculation attempts are triggered when the 
+ * estimates based on progress and decides on when to trigger a
+ * speculative attempt. Speculation attempts are triggered when the
  * estimated runtime is more than a threshold beyond the mean runtime
- * and the original task still has enough estimated runtime left that 
- * the speculative version is expected to finish sooner than that. If 
+ * and the original task still has enough estimated runtime left that
+ * the speculative version is expected to finish sooner than that. If
  * the original is close to completion then we dont start a speculation
  * because it may be likely a wasted attempt. There is a delay between
  * successive speculations.
  */
 public class LegacySpeculator extends AbstractService {
-  
+
   private static final long ON_SCHEDULE = Long.MIN_VALUE;
   private static final long ALREADY_SPECULATING = Long.MIN_VALUE + 1;
   private static final long TOO_NEW = Long.MIN_VALUE + 2;
@@ -123,7 +123,7 @@ public class LegacySpeculator extends AbstractService {
   public LegacySpeculator(Configuration conf, Clock clock, Vertex vertex) {
     this(conf, getEstimator(conf, vertex), clock, vertex);
   }
-  
+
   static private TaskRuntimeEstimator getEstimator
       (Configuration conf, Vertex vertex) {
     TaskRuntimeEstimator estimator;
@@ -261,7 +261,7 @@ public class LegacySpeculator extends AbstractService {
 /*   *************************************************************    */
 
   public void notifyAttemptStarted(TezTaskAttemptID taId, long timestamp) {
-    estimator.enrollAttempt(taId, timestamp);    
+    estimator.enrollAttempt(taId, timestamp);
   }
 
   public void notifyAttemptStatusUpdate(TezTaskAttemptID taId,
@@ -299,7 +299,7 @@ public class LegacySpeculator extends AbstractService {
       }
     }
   }
-  
+
   public void handle(SpeculatorEvent event) {
     SpeculatorEventTaskAttemptStatusUpdate updateEvent = ((SpeculatorEventTaskAttemptStatusUpdate) event);
     if (updateEvent.hasJustStarted()) {

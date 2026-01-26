@@ -19,8 +19,8 @@
 package org.apache.tez.runtime.api;
 
 public interface TaskIdentifier {
-  
+
   public int getIdentifier();
-  
+
   public VertexIdentifier getVertexIdentifier();
 }

@@ -52,13 +52,13 @@ public interface TaskAttemptReport {
   public abstract void setNodeManagerPort(int nmPort);
   public abstract void setNodeManagerHttpPort(int nmHttpPort);
   public abstract void setContainerId(ContainerId containerId);
-  
-  /** 
+
+  /**
    * Set the shuffle finish time. Applicable only for reduce attempts
    * @param time the time the shuffle finished.
    */
   public abstract void setShuffleFinishTime(long time);
-  /** 
+  /**
    * Set the sort/merge finish time. Applicable only for reduce attempts
    * @param time the time the shuffle finished.
    */

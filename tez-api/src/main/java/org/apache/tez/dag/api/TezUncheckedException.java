@@ -27,7 +27,7 @@ import org.apache.hadoop.classification.InterfaceAudience.Public;
 public class TezUncheckedException extends RuntimeException {
 
   private static final long serialVersionUID = -4956339297375386184L;
-  
+
   public TezUncheckedException(Throwable cause) { super(cause); }
   public TezUncheckedException(String message) { super(message); }
   public TezUncheckedException(String message, Throwable cause) {

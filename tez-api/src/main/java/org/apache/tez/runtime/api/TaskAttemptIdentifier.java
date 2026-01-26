@@ -19,8 +19,8 @@
 package org.apache.tez.runtime.api;
 
 public interface TaskAttemptIdentifier {
-  
+
   public int getIdentifier();
-  
+
   public TaskIdentifier getTaskIdentifier();
 }

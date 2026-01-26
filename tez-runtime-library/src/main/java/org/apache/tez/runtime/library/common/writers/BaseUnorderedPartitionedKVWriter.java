@@ -48,7 +48,7 @@ import org.slf4j.LoggerFactory;
 public abstract class BaseUnorderedPartitionedKVWriter extends KeyValuesWriter {
 
   private static final Logger LOG = LoggerFactory.getLogger(BaseUnorderedPartitionedKVWriter.class);
-  
+
   protected final OutputContext outputContext;
   protected final Configuration conf;
   protected final RawLocalFileSystem localFs;
@@ -63,7 +63,7 @@ public abstract class BaseUnorderedPartitionedKVWriter extends KeyValuesWriter {
   protected final int numPartitions;
   protected final CompressionCodec codec;
   protected final TezTaskOutput outputFileHandler;
-  
+
   protected final boolean ifileReadAhead;
   protected final int ifileReadAheadLength;
   protected final int ifileBufferSize;
@@ -83,7 +83,7 @@ public abstract class BaseUnorderedPartitionedKVWriter extends KeyValuesWriter {
    * meta-information.
    */
   protected final TezCounter outputBytesWithOverheadCounter;
-  
+
   /**
    * Represents the final output size, with file format overheads and compression factored in.
    * Does not consider spills.
@@ -122,7 +122,7 @@ public abstract class BaseUnorderedPartitionedKVWriter extends KeyValuesWriter {
       throw new RuntimeException(e);
     }
     this.numPartitions = numOutputs;
-    
+
     // k/v serialization
     keyClass = ConfigUtils.getIntermediateOutputKeyClass(this.conf);
     valClass = ConfigUtils.getIntermediateOutputValueClass(this.conf);
@@ -131,7 +131,7 @@ public abstract class BaseUnorderedPartitionedKVWriter extends KeyValuesWriter {
     valSerialization = serializationFactory.getSerialization(valClass);
     keySerializer = keySerialization.getSerializer(keyClass);
     valSerializer = valSerialization.getSerializer(valClass);
-    
+
     outputRecordBytesCounter = outputContext.getCounters().findCounter(TaskCounter.OUTPUT_BYTES);
     outputRecordsCounter = outputContext.getCounters().findCounter(TaskCounter.OUTPUT_RECORDS);
     outputBytesWithOverheadCounter = outputContext.getCounters().findCounter(TaskCounter.OUTPUT_BYTES_WITH_OVERHEAD);
@@ -161,7 +161,7 @@ public abstract class BaseUnorderedPartitionedKVWriter extends KeyValuesWriter {
     }
     this.ifileBufferSize = conf.getInt("io.file.buffer.size",
         TezRuntimeConfiguration.TEZ_RUNTIME_IFILE_BUFFER_SIZE_DEFAULT);
-    
+
     LOG.info("Instantiating Partitioner: [" + conf.get(TezRuntimeConfiguration.TEZ_RUNTIME_PARTITIONER_CLASS) + "]");
     try {
       this.partitioner = TezRuntimeUtils.instantiatePartitioner(this.conf);

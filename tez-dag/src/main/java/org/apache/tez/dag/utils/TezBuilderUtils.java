@@ -38,13 +38,13 @@ public final class TezBuilderUtils {
   public static TezTaskAttemptID newTaskAttemptId(TezTaskID taskId, int id) {
     return TezTaskAttemptID.getInstance(taskId, id);
   }
-  
+
   public static DAGReport newDAGReport() {
     return null;
   }
 
-  public static AMInfo newAMInfo(ApplicationAttemptId appAttemptID, 
-      long startTime, ContainerId containerID, String nmHost, 
+  public static AMInfo newAMInfo(ApplicationAttemptId appAttemptID,
+      long startTime, ContainerId containerID, String nmHost,
       int nmPort, int nmHttpPort) {
     return null;
   }

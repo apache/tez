@@ -57,7 +57,7 @@ import org.slf4j.LoggerFactory;
 
 public class RootInputVertexManager extends VertexManagerPlugin {
 
-  private static final Logger LOG = 
+  private static final Logger LOG =
       LoggerFactory.getLogger(RootInputVertexManager.class);
 
   /**
@@ -88,7 +88,7 @@ public class RootInputVertexManager extends VertexManagerPlugin {
       "tez.root-input-vertex-manager.max-src-fraction";
   public static final float
       TEZ_ROOT_INPUT_VERTEX_MANAGER_MAX_SRC_FRACTION_DEFAULT = 0.75f;
-  
+
   private String configuredInputName;
 
   int totalNumSourceTasks = 0;
@@ -319,7 +319,7 @@ public class RootInputVertexManager extends VertexManagerPlugin {
                 + ", VertexName:" + getContext().getVertexName() + ", ConfiguredInput: "
                 + configuredInputName + ", CurrentInput: " + inputName);
         configuredInputName = inputName;
-        
+
         InputDataInformationEvent rEvent = (InputDataInformationEvent)event;
         rEvent.setTargetIndex(rEvent.getSourceIndex()); // 1:1 routing
         riEvents.add(rEvent);

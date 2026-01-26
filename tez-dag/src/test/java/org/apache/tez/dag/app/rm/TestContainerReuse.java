@@ -298,7 +298,7 @@ public class TestContainerReuse {
           .getSpyTaskScheduler();
     TaskSchedulerContextDrainable drainableAppCallback =
       taskScheduler.getDrainableAppCallback();
-    
+
     AtomicBoolean drainNotifier = new AtomicBoolean(false);
     taskScheduler.delayedContainerManager.drainedDelayedContainersForTest = drainNotifier;
 
@@ -940,7 +940,7 @@ public class TestContainerReuse {
     taskScheduler.shutdown();
     taskSchedulerManager.close();
   }
-  
+
   @Test(timeout = 30000l)
   public void testReuseLocalResourcesChanged() throws IOException, InterruptedException, ExecutionException {
     LOG.info("Test testReuseLocalResourcesChanged");
@@ -971,7 +971,7 @@ public class TestContainerReuse {
     doReturn(true).when(appContext).isSession();
     doAnswer(dagIDAnswer).when(appContext).getCurrentDAGID();
     doReturn(mock(ClusterInfo.class)).when(appContext).getClusterInfo();
-    
+
     TaskSchedulerManager
         taskSchedulerManagerReal = new TaskSchedulerManagerForTest(appContext, eventHandler, rmClient, new AlwaysMatchesContainerMatcher(), TezUtils.createUserPayloadFromConf(tezConf));
     TaskSchedulerManager taskSchedulerManager = spy(taskSchedulerManagerReal);
@@ -998,12 +998,12 @@ public class TestContainerReuse {
     LocalResource lr3 = mock(LocalResource.class);
 
     AMContainerEventAssignTA assignEvent = null;
-    
+
     Map<String, LocalResource> dag1LRs = Maps.newHashMap();
     dag1LRs.put(rsrc1, lr1);
 
     TezVertexID vertexID11 = TezVertexID.getInstance(dagID1, 1);
-    
+
     //Vertex 1, Task 1, Attempt 1, host1, lr1
     TezTaskAttemptID taID111 = TezTaskAttemptID.getInstance(TezTaskID.getInstance(vertexID11, 1), 1);
     TaskAttempt ta111 = mock(TaskAttempt.class);
@@ -1026,7 +1026,7 @@ public class TestContainerReuse {
     verify(taskSchedulerManager).taskAllocated(eq(0), eq(ta111), any(), eq(container1));
     assignEvent = (AMContainerEventAssignTA) eventHandler.verifyInvocation(AMContainerEventAssignTA.class);
     assertEquals(1, assignEvent.getRemoteTaskLocalResources().size());
-    
+
     // Task assigned to container completed successfully. Container should be re-used.
     taskSchedulerManager.handleEvent(
         new AMSchedulerEventTAEnded(ta111, container1.getId(), TaskAttemptState.SUCCEEDED, null,
@@ -1054,13 +1054,13 @@ public class TestContainerReuse {
     // Setup DAG2 with additional resources. Make sure the container, even without all resources, is reused.
     TezDAGID dagID2 = TezDAGID.getInstance("0", 2, 0);
     dagIDAnswer.setDAGID(dagID2);
-    
+
     Map<String, LocalResource> dag2LRs = Maps.newHashMap();
     dag2LRs.put(rsrc2, lr2);
     dag2LRs.put(rsrc3, lr3);
 
     TezVertexID vertexID21 = TezVertexID.getInstance(dagID2, 1);
-    
+
     //Vertex 2, Task 1, Attempt 1, host1, lr2
     TezTaskAttemptID taID211 = TezTaskAttemptID.getInstance(TezTaskID.getInstance(vertexID21, 1), 1);
     TaskAttempt ta211 = mock(TaskAttempt.class);

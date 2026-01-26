@@ -68,11 +68,11 @@ import org.slf4j.LoggerFactory;
 
 @SuppressWarnings({"unchecked", "rawtypes"})
 public final class DefaultSorter extends ExternalSorter implements IndexedSortable {
-  
+
   private static final Logger LOG = LoggerFactory.getLogger(DefaultSorter.class);
 
   // TODO NEWTEZ Progress reporting to Tez framework. (making progress vs %complete)
-  
+
   /**
    * The size of each record in the index file for the map-outputs.
    */
@@ -440,7 +440,7 @@ public final class DefaultSorter extends ExternalSorter implements IndexedSortab
    */
   int offsetFor(int metapos) {
     return (metapos % maxRec) * NMETA;
-    
+
   }
 
   /**

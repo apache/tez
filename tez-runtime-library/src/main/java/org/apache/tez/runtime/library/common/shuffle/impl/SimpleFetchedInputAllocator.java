@@ -51,7 +51,7 @@ public class SimpleFetchedInputAllocator implements FetchedInputAllocator,
     FetchedInputCallback {
 
   private static final Logger LOG = LoggerFactory.getLogger(SimpleFetchedInputAllocator.class);
-  
+
   private final Configuration conf;
 
   private final TezTaskOutputFiles fileNameAllocator;
@@ -66,7 +66,7 @@ public class SimpleFetchedInputAllocator implements FetchedInputAllocator,
   private final long initialMemoryAvailable;
 
   private final String srcNameTrimmed;
-  
+
   private volatile long usedMemory = 0;
 
   public SimpleFetchedInputAllocator(String srcNameTrimmed,
@@ -75,14 +75,14 @@ public class SimpleFetchedInputAllocator implements FetchedInputAllocator,
                                      long maxTaskAvailableMemory,
                                      long memoryAvailable) {
     this.srcNameTrimmed = srcNameTrimmed;
-    this.conf = conf;    
+    this.conf = conf;
     this.maxAvailableTaskMemory = maxTaskAvailableMemory;
     this.initialMemoryAvailable = memoryAvailable;
-    
+
     this.fileNameAllocator = new TezTaskOutputFiles(conf,
         uniqueIdentifier, dagID);
     this.localDirAllocator = new LocalDirAllocator(TezRuntimeFrameworkConfigs.LOCAL_DIRS);
-    
+
     // Setup configuration
     final float maxInMemCopyUse = conf.getFloat(
         TezRuntimeConfiguration.TEZ_RUNTIME_SHUFFLE_FETCH_BUFFER_PERCENT,
@@ -92,10 +92,10 @@ public class SimpleFetchedInputAllocator implements FetchedInputAllocator,
           + TezRuntimeConfiguration.TEZ_RUNTIME_SHUFFLE_FETCH_BUFFER_PERCENT + ": "
           + maxInMemCopyUse);
     }
-    
+
     long memReq = (long) (conf.getLong(Constants.TEZ_RUNTIME_TASK_MEMORY,
         Math.min(maxAvailableTaskMemory, Integer.MAX_VALUE)) * maxInMemCopyUse);
-    
+
     if (memReq <= this.initialMemoryAvailable) {
       this.memoryLimit = memReq;
     } else {

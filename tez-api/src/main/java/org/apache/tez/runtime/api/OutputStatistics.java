@@ -31,18 +31,18 @@ import org.apache.tez.dag.api.Vertex;
 @Public
 @Evolving
 public interface OutputStatistics {
-  
+
   /**
    * Returns the data size associated with this logical output
    * <br>It is the size of the data written to this output by the vertex.
    * @return Data size in bytes
    */
  public long getDataSize();
- 
+
  /**
    * Get the numbers of items processed. These could be key-value pairs, table
    * records etc.
-   * 
+   *
    * @return Number of items processed
   */
  public long getItemsProcessed();

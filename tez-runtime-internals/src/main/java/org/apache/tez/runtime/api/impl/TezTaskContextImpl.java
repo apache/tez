@@ -74,7 +74,7 @@ public abstract class TezTaskContextImpl implements TaskContext, Closeable {
 
   @Private
   public TezTaskContextImpl(Configuration conf, String[] workDirs, int appAttemptNumber,
-      String dagName, String taskVertexName, int vertexParallelism, 
+      String dagName, String taskVertexName, int vertexParallelism,
       TezTaskAttemptID taskAttemptID, TezCounters counters, LogicalIOProcessorRuntimeTask runtimeTask,
       TezUmbilical tezUmbilical, Map<String, ByteBuffer> serviceConsumerMetadata,
       Map<String, String> auxServiceEnv, MemoryDistributor memDist,
@@ -179,7 +179,7 @@ public abstract class TezTaskContextImpl implements TaskContext, Closeable {
   public String getUniqueIdentifier() {
     return uniqueIdentifier;
   }
-  
+
   @Override
   public ObjectRegistry getObjectRegistry() {
     return objectRegistry;
@@ -189,7 +189,7 @@ public abstract class TezTaskContextImpl implements TaskContext, Closeable {
   public final void notifyProgress() {
     runtimeTask.notifyProgressInvocation();
   }
-  
+
   @Override
   public ByteBuffer getServiceConsumerMetaData(String serviceName) {
     return (ByteBuffer) serviceConsumerMetadata.get(serviceName)
@@ -213,7 +213,7 @@ public abstract class TezTaskContextImpl implements TaskContext, Closeable {
       callbackHandler = new MemoryUpdateCallback() {
         @Override
         public void memoryAssigned(long assignedSize) {
-          
+
         }
       };
     }
@@ -224,7 +224,7 @@ public abstract class TezTaskContextImpl implements TaskContext, Closeable {
   public long getTotalMemoryAvailableToTask() {
     return memAvailable;
   }
-  
+
   protected void signalFatalError(Throwable t, String message, EventMetaData sourceInfo) {
     signalFailure(TaskFailureType.NON_FATAL, t, message, sourceInfo);
   }

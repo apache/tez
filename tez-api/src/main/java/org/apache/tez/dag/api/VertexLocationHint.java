@@ -25,7 +25,7 @@ import org.apache.hadoop.classification.InterfaceAudience.Public;
 
 /**
  * Describes the placements hints for tasks in a vertex.
- * The system will make a best-effort attempt to run the tasks 
+ * The system will make a best-effort attempt to run the tasks
  * close to the specified locations.
  */
 @Public
@@ -33,7 +33,7 @@ public class VertexLocationHint  {
 
   private final List<TaskLocationHint> taskLocationHints;
 
-  
+
   private VertexLocationHint(List<TaskLocationHint> taskLocationHints) {
     if (taskLocationHints != null) {
       this.taskLocationHints = Collections.unmodifiableList(taskLocationHints);

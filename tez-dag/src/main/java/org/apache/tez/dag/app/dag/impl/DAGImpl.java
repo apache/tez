@@ -224,7 +224,7 @@ public class DAGImpl implements org.apache.tez.dag.app.dag.DAG,
   private final AtomicBoolean internalErrorTriggered = new AtomicBoolean(false);
 
   Map<String, LocalResource> localResources;
-  
+
   long startDAGCpuTime = 0;
   long startDAGGCTime = 0;
 
@@ -336,7 +336,7 @@ public class DAGImpl implements org.apache.tez.dag.app.dag.DAG,
               EnumSet.of(DAGState.COMMITTING, DAGState.TERMINATING, DAGState.FAILED, DAGState.SUCCEEDED),
               DAGEventType.DAG_COMMIT_COMPLETED,
               COMMIT_COMPLETED_TRANSITION)
-          .addTransition(DAGState.COMMITTING, DAGState.TERMINATING, 
+          .addTransition(DAGState.COMMITTING, DAGState.TERMINATING,
               DAGEventType.DAG_TERMINATE,
               new DAGKilledWhileCommittingTransition())
           .addTransition(
@@ -572,7 +572,7 @@ public class DAGImpl implements org.apache.tez.dag.app.dag.DAG,
     } else {
       defaultExecutionContext = null;
     }
-    
+
     this.taskSpecificLaunchCmdOption = new TaskSpecificLaunchCmdOption(dagConf);
     // This "this leak" is okay because the retained pointer is in an
     //  instance variable.
@@ -630,7 +630,7 @@ public class DAGImpl implements org.apache.tez.dag.app.dag.DAG,
   public TezDAGID getID() {
     return dagId;
   }
-  
+
   @Override
   public Map<String, LocalResource> getLocalResources() {
     return localResources;
@@ -1040,7 +1040,7 @@ public class DAGImpl implements org.apache.tez.dag.app.dag.DAG,
     }
     return vertex.getVertexStatus(statusOptions);
   }
-  
+
   public TaskAttemptImpl getTaskAttempt(TezTaskAttemptID taId) {
     return (TaskAttemptImpl) getVertex(taId.getVertexID()).getTask(taId.getTaskID())
         .getAttempt(taId);
@@ -1162,7 +1162,7 @@ public class DAGImpl implements org.apache.tez.dag.app.dag.DAG,
         appContext.getHadoopShim().clearHadoopCallerContext();
       }
     }
-    
+
     if (!commitEvents.isEmpty()) {
       try {
         LOG.info("Start writing dag commit event, " + getID());
@@ -1345,7 +1345,7 @@ public class DAGImpl implements org.apache.tez.dag.app.dag.DAG,
         + ", numFailedVertices=" + dag.numFailedVertices
         + ", numKilledVertices=" + dag.numKilledVertices
         + ", numVertices=" + dag.numVertices
-        + ", commitInProgress=" + dag.commitFutures.size() 
+        + ", commitInProgress=" + dag.commitFutures.size()
         + ", terminationCause=" + dag.terminationCause);
 
     // log in case of accounting error.
@@ -1397,7 +1397,7 @@ public class DAGImpl implements org.apache.tez.dag.app.dag.DAG,
         + ", numFailedVertices=" + dag.numFailedVertices
         + ", numKilledVertices=" + dag.numKilledVertices
         + ", numVertices=" + dag.numVertices
-        + ", commitInProgress=" + dag.commitFutures.size() 
+        + ", commitInProgress=" + dag.commitFutures.size()
         + ", terminationCause=" + dag.terminationCause);
 
     // continue the commits if DAG#isCommittable return true, otherwise go to TERMINATING or finish dag.
@@ -1441,7 +1441,7 @@ public class DAGImpl implements org.apache.tez.dag.app.dag.DAG,
     dagCounters.findCounter(DAGCounter.AM_CPU_MILLISECONDS).setValue(totalDAGCpuTime);
     dagCounters.findCounter(DAGCounter.AM_GC_TIME_MILLIS).setValue(totalDAGGCTime);
   }
-  
+
   @Override
   public void incrementDagCounter(DAGCounter counter, int incrValue) {
     dagCounters.findCounter(counter).increment(incrValue);
@@ -2331,7 +2331,7 @@ public class DAGImpl implements org.apache.tez.dag.app.dag.DAG,
         return DAGState.TERMINATING;
       }
     }
-    
+
   }
 
   private static class CommitCompletedTransition implements

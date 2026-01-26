@@ -38,20 +38,20 @@ public class BroadcastEdgeManager extends EdgeManagerPluginOnDemand {
   @Override
   public void initialize() {
   }
-  
+
   @Override
   public int getNumDestinationTaskPhysicalInputs(int destinationTaskIndex) {
     return getContext().getSourceVertexNumTasks();
   }
-  
+
   @Override
   public int getNumSourceTaskPhysicalOutputs(int sourceTaskIndex) {
     return 1;
   }
-  
+
   @Override
   public void routeDataMovementEventToDestination(DataMovementEvent event,
-      int sourceTaskIndex, int sourceOutputIndex, 
+      int sourceTaskIndex, int sourceOutputIndex,
       Map<Integer, List<Integer>> destinationTaskAndInputIndices) {
     List<Integer> inputIndices = Collections.singletonList(sourceTaskIndex);
     // for each task make the i-th source task as the i-th physical input
@@ -59,7 +59,7 @@ public class BroadcastEdgeManager extends EdgeManagerPluginOnDemand {
       destinationTaskAndInputIndices.put(i, inputIndices);
     }
   }
-  
+
   @Override
   public void prepareForRouting() throws Exception {
     int numSourceTasks = getContext().getSourceVertexNumTasks();
@@ -68,14 +68,14 @@ public class BroadcastEdgeManager extends EdgeManagerPluginOnDemand {
       commonRouteMeta[i] = EventRouteMetadata.create(1, new int[]{i}, new int[]{0});
     }
   }
-  
+
   @Override
   public EventRouteMetadata routeDataMovementEventToDestination(
       int sourceTaskIndex, int sourceOutputIndex, int destinationTaskIndex)
       throws Exception {
     return commonRouteMeta[sourceTaskIndex];
   }
-  
+
   @Override
   public CompositeEventRouteMetadata routeCompositeDataMovementEventToDestination(
       int sourceTaskIndex, int destinationTaskIndex)
@@ -110,7 +110,7 @@ public class BroadcastEdgeManager extends EdgeManagerPluginOnDemand {
       int destinationTaskIndex, int destinationFailedInputIndex) {
     return destinationFailedInputIndex;
   }
-  
+
   @Override
   public int getNumDestinationConsumerTasks(int sourceTaskIndex) {
     return getContext().getDestinationVertexNumTasks();

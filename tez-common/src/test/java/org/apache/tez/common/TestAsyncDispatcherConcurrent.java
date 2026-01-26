@@ -5,9 +5,9 @@
  * licenses this file to you under the Apache License, Version 2.0 (the
  * "License"); you may not use this file except in compliance with the License.
  * You may obtain a copy of the License at
- * 
+ *
  * http://www.apache.org/licenses/LICENSE-2.0
- * 
+ *
  * Unless required by applicable law or agreed to in writing, software
  * distributed under the License is distributed on an "AS IS" BASIS, WITHOUT
  * WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the
@@ -38,7 +38,7 @@ public class TestAsyncDispatcherConcurrent {
       latch.countDown();
       latch.await();
     }
-    
+
     public void handle() {
       latch.countDown();
       try {
@@ -56,7 +56,7 @@ public class TestAsyncDispatcherConcurrent {
       super(type);
       this.hash = hash;
     }
-    
+
     @Override
     public int getSerializingHash() {
       return hash;
@@ -97,12 +97,12 @@ public class TestAsyncDispatcherConcurrent {
   public void testBasic() throws Exception {
     CountDownLatch latch = new CountDownLatch(4);
     CountDownEventHandler.init(latch);
-    
+
     AsyncDispatcher central = new AsyncDispatcher("Type1");
     central.register(TestEventType1.class, new TestEventHandler1());
     central.registerAndCreateDispatcher(TestEventType2.class, new TestEventHandler2(), "Type2", 1);
     central.registerAndCreateDispatcher(TestEventType3.class, new TestEventHandler3(), "Type3", 1);
-    
+
     central.init(new Configuration());
     central.start();
     // 3 threads in different dispatchers will handle 3 events
@@ -113,15 +113,15 @@ public class TestAsyncDispatcherConcurrent {
     CountDownEventHandler.checkParallelCountersDoneAndFinish();
     central.close();
   }
-  
+
   @Test (timeout=5000)
   public void testMultiThreads() throws Exception {
     CountDownLatch latch = new CountDownLatch(4);
     CountDownEventHandler.init(latch);
-    
+
     AsyncDispatcherConcurrent central = new AsyncDispatcherConcurrent("Type1", 1);
     central.registerAndCreateDispatcher(TestEventType1.class, new TestEventHandler1(), "Type1", 3);
-    
+
     central.init(new Configuration());
     central.start();
     // 3 threads in the same dispatcher will handle 3 events
@@ -132,7 +132,7 @@ public class TestAsyncDispatcherConcurrent {
     CountDownEventHandler.checkParallelCountersDoneAndFinish();
     central.close();
   }
-  
+
   @Test (timeout=5000)
   public void testMultipleRegisterFail() throws Exception {
     AsyncDispatcher central = new AsyncDispatcher("Type1");
@@ -145,7 +145,7 @@ public class TestAsyncDispatcherConcurrent {
     } finally {
       central.close();
     }
-    
+
     central = new AsyncDispatcher("Type1");
     try {
       central.registerAndCreateDispatcher(TestEventType1.class, new TestEventHandler2(), "Type2", 1);
@@ -156,7 +156,7 @@ public class TestAsyncDispatcherConcurrent {
     } finally {
       central.close();
     }
-    
+
     central = new AsyncDispatcher("Type1");
     try {
       central.registerAndCreateDispatcher(TestEventType1.class, new TestEventHandler2(), "Type2", 1);
@@ -167,7 +167,7 @@ public class TestAsyncDispatcherConcurrent {
     } finally {
       central.close();
     }
-    
+
     central = new AsyncDispatcher("Type1");
     try {
       central.registerAndCreateDispatcher(TestEventType1.class, new TestEventHandler2(), "Type2");
@@ -178,7 +178,7 @@ public class TestAsyncDispatcherConcurrent {
     } finally {
       central.close();
     }
-    
+
     central = new AsyncDispatcher("Type1");
     try {
       AsyncDispatcherConcurrent concDispatcher = central.registerAndCreateDispatcher(

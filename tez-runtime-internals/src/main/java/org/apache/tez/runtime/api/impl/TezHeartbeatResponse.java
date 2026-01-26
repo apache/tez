@@ -53,7 +53,7 @@ public class TezHeartbeatResponse implements Writable {
   public long getLastRequestId() {
     return lastRequestId;
   }
-  
+
   public int getNextFromEventId() {
     return nextFromEventId;
   }
@@ -73,7 +73,7 @@ public class TezHeartbeatResponse implements Writable {
   public void setShouldDie() {
     this.shouldDie = true;
   }
-  
+
   public void setNextFromEventId(int nextFromEventId) {
     this.nextFromEventId = nextFromEventId;
   }

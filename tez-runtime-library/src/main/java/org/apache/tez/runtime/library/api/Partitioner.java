@@ -24,25 +24,25 @@ import org.apache.hadoop.conf.Configuration;
 /**
  * {@link Partitioner} is used by the TEZ framework to partition output
  * key/value pairs.
- * 
+ *
  * <b>Partitioner Initialization</b></p> The Partitioner class is picked up
  * using the TEZ_RUNTIME_PARTITIONER_CLASS attribute in {@link TezRuntimeConfiguration}
- * 
+ *
  * TODO NEWTEZ Change construction to first check for a Constructor with a bytep[] payload
- * 
+ *
  * Partitioners need to provide a single argument ({@link Configuration})
  * constructor or a 0 argument constructor. If both exist, preference is given
  * to the single argument constructor. This is primarily for MR support.
- * 
+ *
  * If using the configuration constructor, TEZ_RUNTIME_NUM_EXPECTED_PARTITIONS
  * will be set in the configuration, to indicate the max number of expected
  * partitions.
- * 
+ *
  */
 @Public
 @Evolving
 public interface Partitioner {
-  
+
   /**
    * Get partition for given key/value.
    * @param key key
@@ -51,5 +51,5 @@ public interface Partitioner {
    * @return partition for the given key/value
    */
   int getPartition(Object key, Object value, int numPartitions);
-  
+
 }

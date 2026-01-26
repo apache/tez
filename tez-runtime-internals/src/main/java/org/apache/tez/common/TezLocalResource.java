@@ -33,7 +33,7 @@ public class TezLocalResource implements Writable {
 
   public TezLocalResource() {
   }
-  
+
   public TezLocalResource(URI uri, long size, long timestamp) {
     this.uri = uri;
     this.size = size;

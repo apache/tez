@@ -32,7 +32,7 @@ public class AggregateTezCounterDelegate<T extends TezCounter> extends AbstractC
   public AggregateTezCounterDelegate(T child) {
     this.child = child;
   }
-  
+
   @Override
   public String getName() {
     return child.getName(); // this is a pass-through
@@ -57,7 +57,7 @@ public class AggregateTezCounterDelegate<T extends TezCounter> extends AbstractC
   public void increment(long incr) {
     throw new UnsupportedOperationException("Cannot increment an aggregate counter");
   }
-  
+
   /* (non-Javadoc)
    * @see org.apache.tez.common.counters.AggregateTezCounter#aggregate(org.apache.tez.common.counters.TezCounter)
    */
