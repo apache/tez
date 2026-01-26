@@ -26,32 +26,32 @@ import org.apache.hadoop.util.Progress;
 
 /**
  * <code>TezRawKeyValueIterator</code> is an iterator used to iterate over
- * the raw keys and values during sort/merge of intermediate data. 
+ * the raw keys and values during sort/merge of intermediate data.
  */
 @InterfaceAudience.Private
 @InterfaceStability.Unstable
 public interface TezRawKeyValueIterator {
-  /** 
+  /**
    * Gets the current raw key.
-   * 
+   *
    * @return Gets the current raw key as a DataInputBuffer
    * @throws IOException
    */
   DataInputBuffer getKey() throws IOException;
-  
-  /** 
+
+  /**
    * Gets the current raw value.
-   * 
-   * @return Gets the current raw value as a DataInputBuffer 
+   *
+   * @return Gets the current raw value as a DataInputBuffer
    * @throws IOException
    */
   DataInputBuffer getValue() throws IOException;
-  
-  /** 
+
+  /**
    * Sets up the current key and value (for getKey and getValue).
-   * 
-   * @return <code>true</code> if there exists a key/value, 
-   *         <code>false</code> otherwise. 
+   *
+   * @return <code>true</code> if there exists a key/value,
+   *         <code>false</code> otherwise.
    * @throws IOException
    */
   boolean next() throws IOException;
@@ -65,14 +65,14 @@ public interface TezRawKeyValueIterator {
    */
   boolean hasNext() throws IOException;
 
-  /** 
+  /**
    * Closes the iterator so that the underlying streams can be closed.
-   * 
+   *
    * @throws IOException
    */
   void close() throws IOException;
-  
-  /** Gets the Progress object; this has a float (0.0 - 1.0) 
+
+  /** Gets the Progress object; this has a float (0.0 - 1.0)
    * indicating the bytes processed by the iterator so far
    */
   Progress getProgress();

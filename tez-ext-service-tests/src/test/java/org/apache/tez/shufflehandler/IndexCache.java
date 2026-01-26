@@ -147,9 +147,9 @@ class IndexCache {
 
   /**
    * This method removes the map from the cache if index information for this
-   * map is loaded(size>0), index information entry in cache will not be 
-   * removed if it is in the loading phrase(size=0), this prevents corruption  
-   * of totalMemoryUsed. It should be called when a map output on this tracker 
+   * map is loaded(size>0), index information entry in cache will not be
+   * removed if it is in the loading phrase(size=0), this prevents corruption
+   * of totalMemoryUsed. It should be called when a map output on this tracker
    * is discarded.
    * @param mapId The taskID of this map.
    */

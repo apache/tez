@@ -52,7 +52,7 @@ import org.slf4j.LoggerFactory;
 public class StateChangeNotifier {
 
   private static final Logger LOG = LoggerFactory.getLogger(StateChangeNotifier.class);
-  
+
   private final DAG dag;
   private final SetMultimap<TezVertexID, ListenerContainer> vertexListeners;
   private final ListMultimap<TezVertexID, VertexStateUpdate> lastKnowStatesMap;
@@ -62,20 +62,20 @@ public class StateChangeNotifier {
   BlockingQueue<NotificationEvent> eventQueue = new LinkedBlockingQueue<NotificationEvent>();
   private Thread eventHandlingThread;
   private volatile boolean stopEventHandling = false;
-  
+
   private static class NotificationEvent {
     final VertexStateUpdate update;
     final VertexStateUpdateListener listener;
-    
+
     public NotificationEvent(VertexStateUpdate update, VertexStateUpdateListener listener) {
       this.update = update;
       this.listener = listener;
     }
-    
+
     void sendUpdate() {
       listener.onStateUpdated(update);
     }
-    
+
     @Override
     public String toString() {
       return "[ VertexState:(" + update + ") Listener:" + listener + " ]";
@@ -89,7 +89,7 @@ public class StateChangeNotifier {
     this.lastKnowStatesMap = LinkedListMultimap.create();
     startThread();
   }
-  
+
   private void startThread() {
     this.eventHandlingThread = new Thread("State Change Notifier DAG: " + dag.getID()) {
       @SuppressWarnings("unchecked")
@@ -123,15 +123,15 @@ public class StateChangeNotifier {
     this.eventHandlingThread.setDaemon(true); // dont block exit on this
     this.eventHandlingThread.start();
   }
-  
+
   @VisibleForTesting
   protected void processedEventFromQueue() {
   }
-  
+
   @VisibleForTesting
   protected void addedEventToQueue() {
   }
-  
+
   public void stop() {
     this.stopEventHandling = true;
     if (eventHandlingThread != null)
@@ -207,7 +207,7 @@ public class StateChangeNotifier {
       LOG.error("Failed to put event", e);
     }
   }
-  
+
   private final class ListenerContainer {
     final VertexStateUpdateListener listener;
     final Set<org.apache.tez.dag.api.event.VertexState> states;

@@ -24,7 +24,7 @@ public class VertexEventSourceVertexStarted extends VertexEvent {
 
   final int sourceDistanceFromRoot;
   final TezVertexID sourceVertexId;
-  
+
   public VertexEventSourceVertexStarted(TezVertexID vertexId,
                                          TezVertexID sourceVertexId,
                                          int distanceFromRoot) {
@@ -32,11 +32,11 @@ public class VertexEventSourceVertexStarted extends VertexEvent {
     this.sourceDistanceFromRoot = distanceFromRoot;
     this.sourceVertexId = sourceVertexId;
   }
-  
+
   public int getSourceDistanceFromRoot() {
     return sourceDistanceFromRoot;
   }
-  
+
   public TezVertexID getSourceVertexId() {
     return sourceVertexId;
   }

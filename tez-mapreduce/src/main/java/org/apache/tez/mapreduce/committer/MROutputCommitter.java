@@ -49,7 +49,7 @@ import org.slf4j.LoggerFactory;
 
 /**
  * Implements the {@link OutputCommitter} and provide Map Reduce compatible
- * output commit operations for Map Reduce compatible data sinks. 
+ * output commit operations for Map Reduce compatible data sinks.
  */
 @Public
 public class MROutputCommitter extends OutputCommitter {
@@ -75,7 +75,7 @@ public class MROutputCommitter extends OutputCommitter {
       jobConf = new JobConf(
           TezUtils.createConfFromUserPayload(userPayload));
     }
-    
+
     // Read all credentials into the credentials instance stored in JobConf.
     jobConf.getCredentials().mergeAll(UserGroupInformation.getCurrentUser().getCredentials());
     jobConf.setInt(MRJobConfig.APPLICATION_ATTEMPT_ID,

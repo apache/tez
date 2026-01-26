@@ -113,15 +113,15 @@ public interface Vertex extends Comparable<Vertex> {
       Map<String, EdgeManagerPluginDescriptor> sourceEdgeManagers,
       Map<String, InputSpecUpdate> rootInputSpecUpdate, boolean fromVertexManager)
       throws AMUserCodeException;
-  
+
   public void reconfigureVertex(int parallelism,
       @Nullable VertexLocationHint locationHint,
       @Nullable Map<String, EdgeProperty> sourceEdgeProperties) throws AMUserCodeException;
-  
+
   public void reconfigureVertex(@Nullable Map<String, InputSpecUpdate> rootInputSpecUpdate,
       int parallelism,
       @Nullable VertexLocationHint locationHint) throws AMUserCodeException;
-  
+
   public void reconfigureVertex(int parallelism,
       @Nullable VertexLocationHint locationHint,
       @Nullable Map<String, EdgeProperty> sourceEdgeProperties,
@@ -136,25 +136,25 @@ public interface Vertex extends Comparable<Vertex> {
   void setOutputVertices(Map<Vertex, Edge> outVertices);
 
   VertexStatistics getStatistics();
-  
+
   Map<Vertex, Edge> getInputVertices();
   Map<Vertex, Edge> getOutputVertices();
-  
+
   Map<String, OutputCommitter> getOutputCommitters();
 
   void setAdditionalInputs(List<RootInputLeafOutputProto> inputs);
   void setAdditionalOutputs(List<RootInputLeafOutputProto> outputs);
 
   @Nullable
-  public Map<String, RootInputLeafOutput<InputDescriptor, InputInitializerDescriptor>> 
+  public Map<String, RootInputLeafOutput<InputDescriptor, InputInitializerDescriptor>>
     getAdditionalInputs();
   @Nullable
-  public Map<String, RootInputLeafOutput<OutputDescriptor, OutputCommitterDescriptor>> 
+  public Map<String, RootInputLeafOutput<OutputDescriptor, OutputCommitterDescriptor>>
     getAdditionalOutputs();
 
   List<InputSpec> getInputSpecList(int taskIndex) throws AMUserCodeException;
   List<OutputSpec> getOutputSpecList(int taskIndex) throws AMUserCodeException;
-  
+
   List<GroupInputSpec> getGroupInputSpecList();
   void addSharedOutputs(Set<String> outputs);
   Set<String> getSharedOutputs();
@@ -164,10 +164,10 @@ public interface Vertex extends Comparable<Vertex> {
   void scheduleTasks(List<ScheduleTaskRequest> tasks);
   void scheduleSpeculativeTask(TezTaskID taskId);
   Resource getTaskResource();
-  
+
   public TaskAttemptEventInfo getTaskAttemptTezEvents(TezTaskAttemptID attemptID,
       int fromEventId, int nextPreRoutedFromEventId, int maxEvents);
-  
+
   void handleSpeculatorEvent(SpeculatorEvent event);
   AbstractService getSpeculator();
   void initServices();

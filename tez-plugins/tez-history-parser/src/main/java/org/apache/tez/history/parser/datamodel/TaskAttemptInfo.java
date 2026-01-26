@@ -75,7 +75,7 @@ public class TaskAttemptInfo extends BaseInfo {
   private TaskInfo taskInfo;
 
   private Container container;
-  
+
   public static class DataDependencyEvent {
     String taId;
     long timestamp;
@@ -159,7 +159,7 @@ public class TaskAttemptInfo extends BaseInfo {
         .intern(otherInfoNode.optString(ATSConstants.TASK_ATTEMPT_ERROR_ENUM));
     executionTimeInterval = (endTime > startTime) ? (endTime - startTime) : 0;
   }
-  
+
   public static Ordering<TaskAttemptInfo> orderingOnAllocationTime() {
     return Ordering.from(new Comparator<TaskAttemptInfo>() {
       @Override
@@ -184,19 +184,19 @@ public class TaskAttemptInfo extends BaseInfo {
   public final long getFinishTimeInterval() {
     return endTime - (getTaskInfo().getVertexInfo().getDagInfo().getStartTime());
   }
-  
+
   public final boolean isSucceeded() {
     return status.equals(SUCCEEDED);
   }
-  
+
   public final List<DataDependencyEvent> getLastDataEvents() {
     return lastDataEvents;
   }
-  
+
   public final long getExecutionTimeInterval() {
     return executionTimeInterval;
   }
-  
+
   public final long getPostDataExecutionTimeInterval() {
     if (getStartTime() > 0 && getFinishTime() > 0) {
       // start time defaults to the actual start time
@@ -214,11 +214,11 @@ public class TaskAttemptInfo extends BaseInfo {
   public final long getAllocationToEndTimeInterval() {
     return (endTime - allocationTime);
   }
-  
+
   public final long getAllocationToStartTimeInterval() {
     return (startTime - allocationTime);
   }
-  
+
   public final long getCreationToAllocationTimeInterval() {
     return (allocationTime - creationTime);
   }
@@ -234,7 +234,7 @@ public class TaskAttemptInfo extends BaseInfo {
   public final long getCreationTime() {
     return creationTime;
   }
-  
+
   public final DataDependencyEvent getLastDataEventInfo(long timeThreshold) {
     for (int i=lastDataEvents.size()-1; i>=0; i--) {
       // walk back in time until we get first event that happened before the threshold
@@ -245,7 +245,7 @@ public class TaskAttemptInfo extends BaseInfo {
     }
     return null;
   }
-  
+
   public final long getTimeTaken() {
     return getFinishTimeInterval() - getStartTimeInterval();
   }
@@ -253,7 +253,7 @@ public class TaskAttemptInfo extends BaseInfo {
   public final long getCreationTimeInterval() {
     return creationTime - (getTaskInfo().getVertexInfo().getDagInfo().getStartTime());
   }
-  
+
   public final String getCreationCausalTA() {
     return creationCausalTA;
   }
@@ -261,9 +261,9 @@ public class TaskAttemptInfo extends BaseInfo {
   public final long getAllocationTime() {
     return allocationTime;
   }
-  
+
   public final String getShortName() {
-    return getTaskInfo().getVertexInfo().getVertexName() + " : " + 
+    return getTaskInfo().getVertexInfo().getVertexName() + " : " +
     taskAttemptId.substring(taskAttemptId.lastIndexOf('_', taskAttemptId.lastIndexOf('_') - 1) + 1);
   }
 
@@ -271,7 +271,7 @@ public class TaskAttemptInfo extends BaseInfo {
   public final String getDiagnostics() {
     return diagnostics;
   }
-  
+
   public final String getTerminationCause() {
     return terminationCause;
   }
@@ -294,7 +294,7 @@ public class TaskAttemptInfo extends BaseInfo {
     }
     return false;
   }
-  
+
   public final String getDetailedStatus() {
     if (!Strings.isNullOrEmpty(getTerminationCause())) {
       return getStatus() + ":" + getTerminationCause();

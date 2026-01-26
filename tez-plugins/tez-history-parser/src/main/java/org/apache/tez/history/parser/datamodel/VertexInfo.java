@@ -61,7 +61,7 @@ public class VertexInfo extends BaseInfo {
   private final long initRequestedTime;
   private final long startTime;
   private final long startRequestedTime;
-  
+
   private final String diagnostics;
   private final String processorClass;
 
@@ -82,7 +82,7 @@ public class VertexInfo extends BaseInfo {
 
   private final List<AdditionalInputOutputDetails> additionalInputInfoList;
   private final List<AdditionalInputOutputDetails> additionalOutputInfoList;
-  
+
   private long avgPostDataExecutionTimeInterval = -1;
 
   private DagInfo dagInfo;
@@ -186,7 +186,7 @@ public class VertexInfo extends BaseInfo {
     this.additionalInputInfoList.clear();
     this.additionalInputInfoList.addAll(additionalInputInfoList);
   }
-  
+
   void setAdditionalOutputInfoList(List<AdditionalInputOutputDetails> additionalOutputInfoList) {
     this.additionalOutputInfoList.clear();
     this.additionalOutputInfoList.addAll(additionalOutputInfoList);
@@ -234,7 +234,7 @@ public class VertexInfo extends BaseInfo {
     }
     return getLastTaskToFinish().getFinishTimeInterval();
   }
-  
+
   public final long getAvgPostDataExecutionTimeInterval() {
     if (avgPostDataExecutionTimeInterval == -1) {
       long totalExecutionTime = 0;
@@ -268,7 +268,7 @@ public class VertexInfo extends BaseInfo {
   public final long getInitTime() {
     return initTime;
   }
-  
+
   public final long getInitRequestedTime() {
     return initRequestedTime;
   }
@@ -276,7 +276,7 @@ public class VertexInfo extends BaseInfo {
   public final long getStartRequestedTime() {
     return startRequestedTime;
   }
-  
+
   @Override
   public final long getFinishTimeInterval() {
     long vertexEndTime = finishTime - (dagInfo.getStartTime());
@@ -298,7 +298,7 @@ public class VertexInfo extends BaseInfo {
   public final String getVertexName() {
     return vertexName;
   }
-  
+
   public final String getVertexId() {
     return vertexId;
   }

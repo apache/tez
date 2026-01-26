@@ -26,7 +26,7 @@ public class VertexIdentifierImpl implements VertexIdentifier {
   private final DagIdentifier dagIdentifier;
   private final TezVertexID vertexId;
   private final String vertexName;
-  
+
   public VertexIdentifierImpl(String dagName, String vertexName, TezVertexID vertexId) {
     this.vertexId = vertexId;
     this.vertexName = vertexName;
@@ -42,12 +42,12 @@ public class VertexIdentifierImpl implements VertexIdentifier {
   public int getIdentifier() {
     return vertexId.getId();
   }
-  
+
   @Override
   public DagIdentifier getDagIdentifier() {
     return dagIdentifier;
   }
-  
+
   @Override
   public boolean equals(Object o) {
     if (this == o) {
@@ -64,12 +64,12 @@ public class VertexIdentifierImpl implements VertexIdentifier {
       return false;
     }
   }
-  
+
   @Override
   public String toString() {
     return dagIdentifier.toString() + " Vertex: " + vertexName + ":[" + getIdentifier() + "]";
   }
-  
+
   @Override
   public int hashCode() {
     return vertexId.hashCode();

@@ -42,7 +42,7 @@ import org.slf4j.LoggerFactory;
  * A {@link MergedLogicalInput} which merges multiple
  * {@link OrderedGroupedKVInput}s and returns a single view of these by merging
  * values which belong to the same key.
- * 
+ *
  * Combiners and Secondary Sort are not implemented, so there is no guarantee on
  * the order of values.
  */
@@ -85,7 +85,7 @@ public class OrderedGroupedMergedKVInput extends MergedLogicalInput {
     private Object currentKey;
     private final MergedInputContext context;
 
-    public OrderedGroupedMergedKeyValuesReader(List<Input> inputs, MergedInputContext context) 
+    public OrderedGroupedMergedKeyValuesReader(List<Input> inputs, MergedInputContext context)
         throws Exception {
       keyComparator = ((OrderedGroupedKVInput) inputs.get(0))
           .getInputKeyComparator();

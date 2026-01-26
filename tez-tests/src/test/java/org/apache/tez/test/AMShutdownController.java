@@ -27,10 +27,10 @@ import org.apache.tez.dag.history.recovery.RecoveryService;
 public abstract class AMShutdownController {
 
   private List<DAGHistoryEvent> historyEvents = new ArrayList<DAGHistoryEvent>();
-  
+
   protected AppContext appContext;
   protected RecoveryService recoveryService;
-  
+
   public AMShutdownController(AppContext appContext, RecoveryService recoveryService) {
     this.appContext = appContext;
     this.recoveryService = recoveryService;

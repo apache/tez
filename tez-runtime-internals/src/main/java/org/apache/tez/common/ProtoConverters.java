@@ -112,7 +112,7 @@ public final class ProtoConverters {
         proto.getCount(),
         proto.hasUserPayload() ? proto.getUserPayload().asReadOnlyByteBuffer() : null);
   }
-  
+
   public static EventProtos.VertexManagerEventProto convertVertexManagerEventToProto(
       VertexManagerEvent event) {
     EventProtos.VertexManagerEventProto.Builder vmBuilder = VertexManagerEventProto.newBuilder();
@@ -122,7 +122,7 @@ public final class ProtoConverters {
     }
     return vmBuilder.build();
   }
-  
+
   public static VertexManagerEvent convertVertexManagerEventFromProto(
       EventProtos.VertexManagerEventProto vmProto) {
     return VertexManagerEvent.create(vmProto.getTargetVertexName(),

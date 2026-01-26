@@ -28,14 +28,14 @@ import org.apache.hadoop.io.Writable;
 import org.apache.hadoop.io.WritableUtils;
 
 /**
- * Shuffle Header information that is sent by the TaskTracker and 
+ * Shuffle Header information that is sent by the TaskTracker and
  * deciphered by the Fetcher thread of Reduce task
  *
  */
 @InterfaceAudience.Private
 @InterfaceStability.Stable
 public class ShuffleHeader implements Writable {
-  
+
   /** Header info of the shuffle http request/response */
   public static final String HTTP_HEADER_NAME = "name";
   public static final String DEFAULT_HTTP_HEADER_NAME = "mapreduce";
@@ -51,9 +51,9 @@ public class ShuffleHeader implements Writable {
   long uncompressedLength;
   long compressedLength;
   int forReduce;
-  
+
   public ShuffleHeader() { }
-  
+
   public ShuffleHeader(String mapId, long compressedLength,
       long uncompressedLength, int forReduce) {
     this.mapId = mapId;
@@ -61,15 +61,15 @@ public class ShuffleHeader implements Writable {
     this.uncompressedLength = uncompressedLength;
     this.forReduce = forReduce;
   }
-  
+
   public String getMapId() {
     return this.mapId;
   }
-  
+
   public int getPartition() {
     return this.forReduce;
   }
-  
+
   public long getUncompressedLength() {
     return uncompressedLength;
   }

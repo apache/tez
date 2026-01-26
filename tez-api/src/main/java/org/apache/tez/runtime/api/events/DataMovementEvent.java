@@ -82,7 +82,7 @@ public final class DataMovementEvent extends Event {
                                          ByteBuffer userPayload) {
     return new DataMovementEvent(sourceIndex, -1, -1, userPayload);
   }
-  
+
   @Private
   /**
    * Constructor for Processor-generated User Events
@@ -99,11 +99,11 @@ public final class DataMovementEvent extends Event {
                                          ByteBuffer userPayload) {
     return new DataMovementEvent(sourceIndex, targetIndex, version, userPayload);
   }
-  
+
   /**
    * Make a routable copy of the {@link DataMovementEvent} by adding a target
    * input index
-   * 
+   *
    * @param targetIndex
    *          The index of the physical input to which this
    *          {@link DataMovementEvent} should be routed

@@ -29,7 +29,7 @@ import org.apache.tez.dag.records.TezTaskAttemptID;
 
 /**
  * Runtime estimator that uses a simple scheme of estimating task attempt
- * runtime based on current elapsed runtime and reported progress. 
+ * runtime based on current elapsed runtime and reported progress.
  */
 public class LegacyTaskRuntimeEstimator extends StartEndTimesBase {
 
@@ -41,7 +41,7 @@ public class LegacyTaskRuntimeEstimator extends StartEndTimesBase {
   @Override
   public void updateAttempt(TezTaskAttemptID attemptID, TaskAttemptState state, long timestamp) {
     super.updateAttempt(attemptID, state, timestamp);
-    
+
 
     Task task = vertex.getTask(attemptID.getTaskID());
 
@@ -54,7 +54,7 @@ public class LegacyTaskRuntimeEstimator extends StartEndTimesBase {
     if (taskAttempt == null) {
       return;
     }
-    
+
     float progress = taskAttempt.getProgress();
 
     Long boxedStart = startTimes.get(attemptID);

@@ -26,23 +26,23 @@ import org.apache.hadoop.io.Writable;
 public class IOStatistics implements Writable {
   private volatile long dataSize = 0;
   private volatile long numItems = 0;
-  
+
   public void setDataSize(long size) {
     this.dataSize = size;
   }
-  
+
   public long getDataSize() {
     return dataSize;
   }
-  
+
   public void setItemsProcessed(long items) {
     this.numItems = items;
   }
-  
+
   public long getItemsProcessed() {
     return numItems;
   }
-  
+
   public void mergeFrom(org.apache.tez.runtime.api.impl.IOStatistics other) {
     this.setDataSize(this.getDataSize() + other.getDataSize());
     this.setItemsProcessed(this.getItemsProcessed() + other.getItemsProcessed());

@@ -26,7 +26,7 @@ import org.apache.tez.runtime.api.Reader;
 
 /**
  * A key/value(s) pair based {@link Reader}.
- * 
+ *
  * Example usage
  * <code>
  * while (kvReader.next()) {
@@ -45,7 +45,7 @@ public abstract class KeyValueReader extends Reader {
 
   /**
    * Moves to the next key/values(s) pair
-   * 
+   *
    * @return true if another key/value(s) pair exists, false if there are no more.
    * @throws IOException
    *           if an error occurs
@@ -53,14 +53,14 @@ public abstract class KeyValueReader extends Reader {
    */
   public abstract boolean next() throws IOException;
 
-  
+
   /**
    * Returns the current key
    * @return the current key
    */
   public abstract Object getCurrentKey() throws IOException;
-  
-  
+
+
   /**
    * Returns the current value
    * @return the current value

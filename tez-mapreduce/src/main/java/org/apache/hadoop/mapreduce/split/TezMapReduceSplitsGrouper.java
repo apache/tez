@@ -41,7 +41,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 /**
- * Helper that provides a grouping of input splits based 
+ * Helper that provides a grouping of input splits based
  * on multiple parameters. It creates {@link TezGroupedSplit}
  * to wrap the each group of real InputSplits
  */
@@ -115,7 +115,7 @@ public class TezMapReduceSplitsGrouper extends TezSplitGrouper {
    * @deprecated See equivalent in {@link TezSplitGrouper}
    */
   @Deprecated
-  public static final String TEZ_GROUPING_RACK_SPLIT_SIZE_REDUCTION = 
+  public static final String TEZ_GROUPING_RACK_SPLIT_SIZE_REDUCTION =
                                               TezSplitGrouper.TEZ_GROUPING_RACK_SPLIT_SIZE_REDUCTION;
   /**
    * @deprecated See equivalent in {@link TezSplitGrouper}

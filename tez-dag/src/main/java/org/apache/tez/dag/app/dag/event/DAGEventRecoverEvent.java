@@ -32,15 +32,15 @@ public class DAGEventRecoverEvent extends DAGEvent {
     this.desiredState = desiredState;
     this.recoveredDagData = recoveredDagData;
   }
-  
+
   public DAGEventRecoverEvent(TezDAGID dagId, DAGRecoveryData recoveredDagData) {
     this(dagId, null, recoveredDagData);
   }
-  
+
   public DAGState getDesiredState() {
     return desiredState;
   }
-  
+
   public boolean hasDesiredState() {
     return this.desiredState != null;
   }

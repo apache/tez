@@ -28,9 +28,9 @@ import org.apache.hadoop.io.WritableComparable;
 
 /**
  * A general identifier, which internally stores the id
- * as an integer. This is the super class of {@link TezDAGID}, 
+ * as an integer. This is the super class of {@link TezDAGID},
  * {@link TezVertexID}, {@link TezTaskID}, and {@link TezTaskAttemptID}.
- * 
+ *
  * @see TezTaskID
  * @see TezTaskAttemptID
  */
@@ -86,7 +86,7 @@ public abstract class TezID implements WritableComparable<TezID> {
   public void readFields(DataInput in) throws IOException {
     this.id = in.readInt();
   }
-  
+
   public static int readID(DataInput in) throws IOException {
     return in.readInt();
   }
@@ -95,5 +95,5 @@ public abstract class TezID implements WritableComparable<TezID> {
   public void write(DataOutput out) throws IOException {
     out.writeInt(id);
   }
-  
+
 }

@@ -30,14 +30,14 @@ import org.apache.tez.dag.api.TezConfiguration;
 
 public class MockTezClient extends TezClient {
   MockLocalClient client;
-  
+
   MockTezClient(String name, TezConfiguration tezConf, boolean isSession,
       Map<String, LocalResource> localResources, Credentials credentials,
       Clock clock, AtomicBoolean mockAppLauncherGoFlag) {
     super(name, tezConf, isSession, localResources, credentials);
     this.client = new MockLocalClient(mockAppLauncherGoFlag, clock);
   }
-  
+
   MockTezClient(String name, TezConfiguration tezConf, boolean isSession,
       Map<String, LocalResource> localResources, Credentials credentials,
       Clock clock, AtomicBoolean mockAppLauncherGoFlag,
@@ -45,20 +45,20 @@ public class MockTezClient extends TezClient {
     this(name, tezConf, isSession, localResources, credentials, clock, mockAppLauncherGoFlag,
         initFailFlag, startFailFlag, 1, 1);
   }
-  
+
   MockTezClient(String name, TezConfiguration tezConf, boolean isSession,
       Map<String, LocalResource> localResources, Credentials credentials,
       Clock clock, AtomicBoolean mockAppLauncherGoFlag,
       boolean initFailFlag, boolean startFailFlag, int concurrency, int containers) {
     super(name, tezConf, isSession, localResources, credentials);
-    this.client = new MockLocalClient(mockAppLauncherGoFlag, clock, initFailFlag, startFailFlag, 
+    this.client = new MockLocalClient(mockAppLauncherGoFlag, clock, initFailFlag, startFailFlag,
         concurrency, containers);
   }
 
   protected FrameworkClient createFrameworkClient() {
     return client;
   }
-  
+
   public MockLocalClient getLocalClient() {
     return client;
   }

@@ -21,7 +21,7 @@ package org.apache.tez.common;
 
 /**
  * Event that allows running in parallel for different instances
- * 
+ *
  * @param <TYPE>
  *          Event type
  */
@@ -35,7 +35,7 @@ public abstract class TezAbstractEvent<TYPE extends Enum<TYPE>> extends
   /**
    * Returning a number that is identical for event instances that need to be
    * serialized while processing.
-   * 
+   *
    * @return Serializing identifier. Not overriding this causes serialization
    *         for all events instances
    */

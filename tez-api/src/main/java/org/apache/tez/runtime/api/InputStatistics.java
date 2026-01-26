@@ -30,20 +30,20 @@ import org.apache.tez.dag.api.Vertex;
 @Public
 @Evolving
 public interface InputStatistics {
-  
+
   /**
    * Returns the data size associated with this logical input
    * <br>It is the size of the data read from this input by the vertex.
    * @return Data size in bytes
    */
  public long getDataSize();
- 
+
   /**
    * Get the numbers of items processed. These could be key-value pairs, table
    * records etc.
-   * 
+   *
    * @return Number of items processed
    */
  public long getItemsProcessed();
- 
+
 }

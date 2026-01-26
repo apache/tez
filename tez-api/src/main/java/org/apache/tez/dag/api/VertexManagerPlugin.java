@@ -31,7 +31,7 @@ import org.apache.tez.runtime.api.TaskAttemptIdentifier;
 import org.apache.tez.runtime.api.events.VertexManagerEvent;
 
 /**
- * Interface to plugin user logic into the VertexManager to implement runtime 
+ * Interface to plugin user logic into the VertexManager to implement runtime
  * scheduling optimizations and graph reconfiguration.
  * The plugin will be notified of interesting events in the vertex execution life
  * cycle and can respond to them by via the context object
@@ -46,7 +46,7 @@ public abstract class VertexManagerPlugin {
    * Crete an instance of the VertexManagerPlugin. Classes extending this to
    * create a VertexManagerPlugin, must provide the same constructor so that Tez
    * can create an instance of the class at runtime.
-   * 
+   *
    * @param context
    *          vertex manager plugin context which can be used to access the
    *          payload, vertex properties, etc
@@ -56,7 +56,7 @@ public abstract class VertexManagerPlugin {
   }
 
   /**
-   * Initialize the plugin. Called when the vertex is initializing. This happens 
+   * Initialize the plugin. Called when the vertex is initializing. This happens
    * after all source vertices and inputs have initialized
    * @throws Exception
    */
@@ -91,10 +91,10 @@ public abstract class VertexManagerPlugin {
     }
     onVertexStarted(completionsMap);
   }
-  
+
   @Deprecated
   /**
-   * This has been replaced by 
+   * This has been replaced by
    * {@link VertexManagerPlugin#onSourceTaskCompleted(TaskAttemptIdentifier)}
    * Notification of a source vertex completion.
    * @param srcVertexName
@@ -111,7 +111,7 @@ public abstract class VertexManagerPlugin {
    * @throws Exception
    */
   public void onSourceTaskCompleted(TaskAttemptIdentifier attempt) throws Exception {
-    onSourceTaskCompleted(attempt.getTaskIdentifier().getVertexIdentifier().getName(), 
+    onSourceTaskCompleted(attempt.getTaskIdentifier().getVertexIdentifier().getName(),
         attempt.getTaskIdentifier().getIdentifier());
   }
 
@@ -141,7 +141,7 @@ public abstract class VertexManagerPlugin {
   public final VertexManagerPluginContext getContext() {
     return this.context;
   }
-  
+
   /**
    * Receive notifications on vertex state changes.
    * <p/>
@@ -150,9 +150,9 @@ public abstract class VertexManagerPlugin {
    * . Notifications will be received for all registered state changes, and not
    * just for the latest state update. They will be in order in which the state
    * change occurred.
-   * </p><br>This method may be invoked concurrently with {@link #onVertexStarted(Map)} etc. and 
+   * </p><br>This method may be invoked concurrently with {@link #onVertexStarted(Map)} etc. and
    * multi-threading/concurrency implications must be considered.
-   *  
+   *
    * @param stateUpdate
    *          an event indicating the name of the vertex, and it's updated
    *          state. Additional information may be available for specific
@@ -160,5 +160,5 @@ public abstract class VertexManagerPlugin {
    *          {@link org.apache.tez.dag.api.event.VertexStateUpdate}
    */
   public void onVertexStateUpdated(VertexStateUpdate stateUpdate) throws Exception {
-  }  
+  }
  }

@@ -32,7 +32,7 @@ import org.apache.tez.runtime.api.TaskFailureType;
  * This class keeps track of tasks that have already been launched. It
  * determines if a task is alive and running or marks a task as dead if it does
  * not hear from it for a long time.
- * 
+ *
  */
 @SuppressWarnings({"unchecked"})
 public class TaskHeartbeatHandler extends HeartbeatHandlerBase<TezTaskAttemptID> {

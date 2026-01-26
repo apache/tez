@@ -38,7 +38,7 @@ import com.google.common.collect.Lists;
 public final class RelocalizationUtils {
 
   private RelocalizationUtils() {}
-  
+
   public static List<URL> processAdditionalResources(Map<String, URI> additionalResources,
       Configuration conf, String destDir) throws IOException {
     if (additionalResources == null || additionalResources.isEmpty()) {

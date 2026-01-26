@@ -221,7 +221,7 @@ public final class HistoryEventJsonConversion {
     JSONObject otherInfo = new JSONObject();
     otherInfo.put(ATSConstants.APP_SUBMIT_TIME, event.getAppSubmitTime());
     jsonObject.put(ATSConstants.OTHER_INFO, otherInfo);
-    
+
     return jsonObject;
   }
 
@@ -564,7 +564,7 @@ public final class HistoryEventJsonConversion {
     otherInfo.put(ATSConstants.COUNTERS,
         DAGUtils.convertCountersToJSON(event.getCounters()));
     if (event.getDataEvents() != null && !event.getDataEvents().isEmpty()) {
-      otherInfo.put(ATSConstants.LAST_DATA_EVENTS, 
+      otherInfo.put(ATSConstants.LAST_DATA_EVENTS,
           DAGUtils.convertDataEventDependencyInfoToJSON(event.getDataEvents()));
     }
     if (event.getNodeId() != null) {

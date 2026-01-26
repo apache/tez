@@ -256,9 +256,9 @@ public class TestValuesIterator {
 
   /**
    * Tests whether data in valuesIterator matches with sorted input data set.
-   * 
+   *
    * Returns a list of value counts for each key.
-   * 
+   *
    * @param valuesIterator
    * @return List
    * @throws IOException

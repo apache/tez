@@ -442,7 +442,7 @@ public class TestOrderedWordCount extends Configured implements Tool {
     TestOrderedWordCount instance = new TestOrderedWordCount();
 
     String stagingDirStr =  conf.get(TezConfiguration.TEZ_AM_STAGING_DIR,
-            TezConfiguration.TEZ_AM_STAGING_DIR_DEFAULT) + Path.SEPARATOR + 
+            TezConfiguration.TEZ_AM_STAGING_DIR_DEFAULT) + Path.SEPARATOR +
             Long.toString(System.currentTimeMillis());
     Path stagingDir = new Path(stagingDirStr);
     FileSystem pathFs = stagingDir.getFileSystem(tezConf);
@@ -450,7 +450,7 @@ public class TestOrderedWordCount extends Configured implements Tool {
 
     tezConf.set(TezConfiguration.TEZ_AM_STAGING_DIR, stagingDirStr);
     stagingDir = pathFs.makeQualified(new Path(stagingDirStr));
-    
+
     TokenCache.obtainTokensForNamenodes(instance.credentials, new Path[] {stagingDir}, conf);
     TezClientUtils.ensureStagingDirExists(tezConf, stagingDir);
 
@@ -459,7 +459,7 @@ public class TestOrderedWordCount extends Configured implements Tool {
 
     // TEZ-674 Obtain tokens based on the Input / Output paths. For now assuming staging dir
     // is the same filesystem as the one used for Input/Output.
-    
+
     if (useTezSession) {
       LOG.info("Creating Tez Session");
       tezConf.setBoolean(TezConfiguration.TEZ_AM_SESSION_MODE, true);
@@ -510,7 +510,7 @@ public class TestOrderedWordCount extends Configured implements Tool {
 
         Map<String, LocalResource> localResources =
           new TreeMap<String, LocalResource>();
-        
+
         DAG dag = instance.createDAG(fs, tezConf, localResources,
             stagingDir, dagIndex, inputPath, outputPath,
             generateSplitsInClient, useMRSettings, intermediateNumReduceTasks,
@@ -538,7 +538,7 @@ public class TestOrderedWordCount extends Configured implements Tool {
           preWarmVertex.addTaskLocalFiles(dag.getVertex("initialmap").getTaskLocalFiles());
           preWarmVertex.setTaskEnvironment(dag.getVertex("initialmap").getTaskEnvironment());
           preWarmVertex.setTaskLaunchCmdOpts(dag.getVertex("initialmap").getTaskLaunchCmdOpts());
-          
+
           tezSession.preWarm(preWarmVertex);
         }
 

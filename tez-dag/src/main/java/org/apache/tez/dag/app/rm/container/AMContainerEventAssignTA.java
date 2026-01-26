@@ -48,7 +48,7 @@ public class AMContainerEventAssignTA extends AMContainerEvent {
   public TaskSpec getRemoteTaskSpec() {
     return this.remoteTaskSpec;
   }
-  
+
   public Map<String, LocalResource> getRemoteTaskLocalResources() {
     return this.taskLocalResources;
   }
@@ -56,7 +56,7 @@ public class AMContainerEventAssignTA extends AMContainerEvent {
   public TezTaskAttemptID getTaskAttemptId() {
     return this.attemptId;
   }
-  
+
   public Credentials getCredentials() {
     return this.credentials;
   }

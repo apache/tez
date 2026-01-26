@@ -37,7 +37,7 @@ import org.apache.hadoop.security.token.TokenIdentifier;
 public class JobTokenIdentifier extends TokenIdentifier {
   private Text jobid;
   public final static Text KIND_NAME = new Text("tez.job");
-  
+
   /**
    * Default constructor
    */
@@ -58,7 +58,7 @@ public class JobTokenIdentifier extends TokenIdentifier {
   public Text getKind() {
     return KIND_NAME;
   }
-  
+
   /** {@inheritDoc} */
   @Override
   public UserGroupInformation getUser() {
@@ -67,7 +67,7 @@ public class JobTokenIdentifier extends TokenIdentifier {
     }
     return UserGroupInformation.createRemoteUser(jobid.toString());
   }
-  
+
   /**
    * Get the jobid
    * @return the jobid

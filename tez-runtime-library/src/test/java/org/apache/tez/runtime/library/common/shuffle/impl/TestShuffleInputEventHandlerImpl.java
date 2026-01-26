@@ -173,7 +173,7 @@ public class TestShuffleInputEventHandlerImpl {
     Event dme1 = createDataMovementEvent(0, taskIndex1, createEmptyPartitionByteString(0));
     int taskIndex2 = 2;
     Event dme2 = createDataMovementEvent(0, taskIndex2, null);
-    
+
     List<Event> eventList = new LinkedList<Event>();
     eventList.add(dme1);
     eventList.add(dme2);
@@ -427,7 +427,7 @@ public class TestShuffleInputEventHandlerImpl {
     ByteBuffer payload = payloadBuilder.build().toByteString().asReadOnlyByteBuffer();
     return  DataMovementEvent.create(srcIdx, targetIdx, attemptNum, payload);
   }
-  
+
   private Event createDataMovementEvent(int srcIndex, int targetIndex,
       ByteString emptyPartitionByteString) {
     DataMovementEventPayloadProto.Builder builder = DataMovementEventPayloadProto.newBuilder();

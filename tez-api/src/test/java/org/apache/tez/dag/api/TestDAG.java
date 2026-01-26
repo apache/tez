@@ -107,7 +107,7 @@ public class TestDAG {
       e.printStackTrace();
       Assert.assertEquals("VertexGroup group_1 already defined!", e.getMessage());
     }
-    // it is possible to create vertex group with same member but different group name 
+    // it is possible to create vertex group with same member but different group name
     dag.createVertexGroup("group_2", v1, v2);
 
   }

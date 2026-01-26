@@ -19,9 +19,9 @@
 package org.apache.tez.dag.api.oldrecords;
 
 public enum TaskAttemptState {
-  NEW, 
-  STARTING, 
-  RUNNING, 
+  NEW,
+  STARTING,
+  RUNNING,
   SUCCEEDED,
   FAILED,
   KILLED

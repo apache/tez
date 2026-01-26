@@ -243,7 +243,7 @@ public class TestDAGPlan {
     VertexPlan v3Proto = dagProto.getVertex(2);
     EdgePlan edgeProto = dagProto.getEdge(0);
 
-    // either v1 or v2 will be on top based on topological order 
+    // either v1 or v2 will be on top based on topological order
     String v1ProtoPayload = new String(v1Proto.getProcessorDescriptor().getTezUserPayload().getUserPayload().toByteArray());
     String v2ProtoPayload = new String(v2Proto.getProcessorDescriptor().getTezUserPayload().getUserPayload().toByteArray());
     assertTrue(v1ProtoPayload.equals("processor1Bytes") || v1ProtoPayload.equals("processor3Bytes"));
@@ -306,16 +306,16 @@ public class TestDAGPlan {
     Token<TokenIdentifier> token2 = new Token<TokenIdentifier>();
     dagCredentials.addToken(new Text("Token1"), token1);
     dagCredentials.addToken(new Text("Token2"), token2);
-    
+
     dag.setCredentials(dagCredentials);
 
     DAGPlan dagProto = dag.createDag(new TezConfiguration(), null, null, null, true);
 
     assertTrue(dagProto.hasCredentialsBinary());
-    
+
     Credentials fetchedCredentials = DagTypeConverters.convertByteStringToCredentials(dagProto
         .getCredentialsBinary());
-    
+
     assertEquals(2, fetchedCredentials.numberOfTokens());
     assertNotNull(fetchedCredentials.getToken(new Text("Token1")));
     assertNotNull(fetchedCredentials.getToken(new Text("Token2")));

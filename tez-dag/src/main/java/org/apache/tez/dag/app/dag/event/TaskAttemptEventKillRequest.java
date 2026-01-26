@@ -20,7 +20,7 @@ package org.apache.tez.dag.app.dag.event;
 import org.apache.tez.dag.records.TaskAttemptTerminationCause;
 import org.apache.tez.dag.records.TezTaskAttemptID;
 
-public class TaskAttemptEventKillRequest extends TaskAttemptEvent 
+public class TaskAttemptEventKillRequest extends TaskAttemptEvent
   implements DiagnosableEvent, TaskAttemptEventTerminationCauseEvent, RecoveryEvent {
 
   private final String message;

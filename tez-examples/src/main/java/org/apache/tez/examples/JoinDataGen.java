@@ -142,13 +142,13 @@ public class JoinDataGen extends TezExampleBase {
         GenDataProcessor.class.getName()).setUserPayload(
         UserPayload.create(ByteBuffer.wrap(GenDataProcessor.createConfiguration(largeOutSizePerTask,
             smallOutSizePerTask)))), numTasks);
-    genDataVertex.addDataSink(STREAM_OUTPUT_NAME, 
+    genDataVertex.addDataSink(STREAM_OUTPUT_NAME,
         MROutput.createConfigBuilder(new Configuration(tezConf),
             TextOutputFormat.class, largeOutPath.toUri().toString()).build());
-    genDataVertex.addDataSink(HASH_OUTPUT_NAME, 
+    genDataVertex.addDataSink(HASH_OUTPUT_NAME,
         MROutput.createConfigBuilder(new Configuration(tezConf),
             TextOutputFormat.class, smallOutPath.toUri().toString()).build());
-    genDataVertex.addDataSink(EXPECTED_OUTPUT_NAME, 
+    genDataVertex.addDataSink(EXPECTED_OUTPUT_NAME,
         MROutput.createConfigBuilder(new Configuration(tezConf),
             TextOutputFormat.class, expectedOutputPath.toUri().toString()).build());
 

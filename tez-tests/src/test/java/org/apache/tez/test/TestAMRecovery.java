@@ -628,7 +628,7 @@ public class TestAMRecovery {
     }
   }
 
-  
+
   /**
    * VertexManager which control schedule only one task when it is test case of partially-finished.
    *
@@ -673,19 +673,19 @@ public class TestAMRecovery {
     @Override
     public void onSourceTaskCompleted(TaskAttemptIdentifier attempt)
         throws Exception {
-      
+
     }
 
     @Override
     public void onVertexManagerEventReceived(VertexManagerEvent vmEvent)
         throws Exception {
-      
+
     }
 
     @Override
     public void onRootVertexInitialized(String inputName,
         InputDescriptor inputDescriptor, List<Event> events) throws Exception {
-      
+
     }
   }
 
@@ -753,7 +753,7 @@ public class TestAMRecovery {
 
     @Override
     public void run() throws Exception {
-      // Sleep 3 second in vertex2 to avoid that vertex2 completed 
+      // Sleep 3 second in vertex2 to avoid that vertex2 completed
       // before vertex2 get the SourceVertexTaskAttemptCompletedEvent.
       // SourceVertexTaskAttemptCompletedEvent will been ingored if vertex in SUCCEEDED,
       // so AM won't been killed in the VM of vertex2

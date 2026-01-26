@@ -150,7 +150,7 @@ public class TestFetcher {
 
   @Test(timeout = 3000)
   public void testSetupLocalDiskFetch() throws Exception {
-    
+
     CompositeInputAttemptIdentifier[] srcAttempts = {
         new CompositeInputAttemptIdentifier(0, 1, InputAttemptIdentifier.PATH_PREFIX + "pathComponent_0", 1),
         new CompositeInputAttemptIdentifier(1, 2, InputAttemptIdentifier.PATH_PREFIX + "pathComponent_1", 1),

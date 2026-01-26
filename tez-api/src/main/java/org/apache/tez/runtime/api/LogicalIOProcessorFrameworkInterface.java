@@ -32,7 +32,7 @@ public interface LogicalIOProcessorFrameworkInterface extends ProcessorFramework
 
   /**
    * Runs the {@link Processor}
-   * 
+   *
    * @param inputs
    *          a map of the source vertex name to {@link LogicalInput} - one per
    *          incoming edge.

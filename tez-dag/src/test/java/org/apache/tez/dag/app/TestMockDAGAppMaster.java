@@ -117,7 +117,7 @@ import org.junit.Test;
 public class TestMockDAGAppMaster {
   private static final Log LOG = LogFactory.getLog(TestMockDAGAppMaster.class);
   static Configuration defaultConf;
-  static FileSystem localFs;  
+  static FileSystem localFs;
   static {
     try {
       defaultConf = new Configuration(false);
@@ -130,7 +130,7 @@ public class TestMockDAGAppMaster {
       throw new RuntimeException("init failure", e);
     }
   }
-  
+
   static class TestEventsDelegate implements EventsDelegate {
     @Override
     public void getEvents(TaskSpec taskSpec, List<TezEvent> events, long time) {
@@ -146,20 +146,20 @@ public class TestMockDAGAppMaster {
                   .getDestinationVertexName(), taskSpec.getTaskAttemptID()), time));
         }
       }
-    }    
+    }
   }
-  
+
   @Test (timeout = 5000)
   public void testLocalResourceSetup() throws Exception {
     TezConfiguration tezconf = new TezConfiguration(defaultConf);
-    
+
     MockTezClient tezClient = new MockTezClient("testMockAM", tezconf, true, null, null, null, null);
     tezClient.start();
-    
+
     MockDAGAppMaster mockApp = tezClient.getLocalClient().getMockApp();
     MockContainerLauncher mockLauncher = mockApp.getContainerLauncher();
     mockLauncher.startScheduling(false);
-    
+
     Map<String, LocalResource> lrDAG = Maps.newHashMap();
     String lrName1 = "LR1";
     lrDAG.put(lrName1, LocalResource.newInstance(URL.newInstance("file", "localhost", 0, "/test"),
@@ -181,20 +181,20 @@ public class TestMockDAGAppMaster {
     // verify tasks are launched with both DAG and task resources.
     Assert.assertTrue(taskLR.containsKey(lrName1));
     Assert.assertTrue(taskLR.containsKey(lrName2));
-    
+
     mockLauncher.startScheduling(true);
     dagClient.waitForCompletion();
     Assert.assertEquals(DAGStatus.State.SUCCEEDED, dagClient.getDAGStatus(null).getState());
     tezClient.stop();
   }
-  
+
   @Test (timeout = 5000)
   public void testInternalPreemption() throws Exception {
     TezConfiguration tezconf = new TezConfiguration(defaultConf);
-    
+
     MockTezClient tezClient = new MockTezClient("testMockAM", tezconf, true, null, null, null, null);
     tezClient.start();
-    
+
     MockDAGAppMaster mockApp = tezClient.getLocalClient().getMockApp();
     MockContainerLauncher mockLauncher = mockApp.getContainerLauncher();
     mockLauncher.startScheduling(false);
@@ -208,7 +208,7 @@ public class TestMockDAGAppMaster {
     ContainerData cData = mockLauncher.getContainers().values().iterator().next();
     DAGImpl dagImpl = (DAGImpl) mockApp.getContext().getCurrentDAG();
     mockApp.getTaskSchedulerManager().preemptContainer(0, cData.cId);
-    
+
     mockLauncher.startScheduling(true);
     dagClient.waitForCompletion();
     Assert.assertEquals(DAGStatus.State.SUCCEEDED, dagClient.getDAGStatus(null).getState());
@@ -223,10 +223,10 @@ public class TestMockDAGAppMaster {
   @Test (timeout = 5000)
   public void testBasicEvents() throws Exception {
     TezConfiguration tezconf = new TezConfiguration(defaultConf);
-    
+
     MockTezClient tezClient = new MockTezClient("testMockAM", tezconf, true, null, null, null, null);
     tezClient.start();
-    
+
     MockDAGAppMaster mockApp = tezClient.getLocalClient().getMockApp();
     MockContainerLauncher mockLauncher = mockApp.getContainerLauncher();
     mockLauncher.startScheduling(false);
@@ -298,7 +298,7 @@ public class TestMockDAGAppMaster {
 
     tezClient.stop();
   }
-  
+
   public static class LegacyEdgeTestEdgeManager extends EdgeManagerPlugin {
     List<Integer> destinationInputIndices = Collections.singletonList(0);
     public LegacyEdgeTestEdgeManager(EdgeManagerPluginContext context) {
@@ -321,7 +321,7 @@ public class TestMockDAGAppMaster {
 
     @Override
     public void routeDataMovementEventToDestination(DataMovementEvent event,
-        int sourceTaskIndex, int sourceOutputIndex, 
+        int sourceTaskIndex, int sourceOutputIndex,
         Map<Integer, List<Integer>> destinationTaskAndInputIndices) {
       destinationTaskAndInputIndices.put(sourceTaskIndex, destinationInputIndices);
     }
@@ -337,20 +337,20 @@ public class TestMockDAGAppMaster {
         int destinationTaskIndex, int destinationFailedInputIndex) {
       return destinationTaskIndex;
     }
-    
+
     @Override
     public int getNumDestinationConsumerTasks(int sourceTaskIndex) {
       return 1;
     }
   }
-  
+
   @Test (timeout = 100000)
   public void testMixedEdgeRouting() throws Exception {
    TezConfiguration tezconf = new TezConfiguration(defaultConf);
-    
+
     MockTezClient tezClient = new MockTezClient("testMockAM", tezconf, true, null, null, null, null);
     tezClient.start();
-    
+
     MockDAGAppMaster mockApp = tezClient.getLocalClient().getMockApp();
     MockContainerLauncher mockLauncher = mockApp.getContainerLauncher();
     mockLauncher.startScheduling(false);
@@ -413,23 +413,23 @@ public class TestMockDAGAppMaster {
 
     tezClient.stop();
   }
-  
+
   @Test (timeout = 100000)
   public void testConcurrencyLimit() throws Exception {
     // the test relies on local mode behavior of launching a new container per task.
     // so task concurrency == container concurrency
     TezConfiguration tezconf = new TezConfiguration(defaultConf);
-    
+
     final int concurrencyLimit = 5;
     MockTezClient tezClient = new MockTezClient("testMockAM", tezconf, true, null, null, null,
         null, false, false, concurrencyLimit*4, 1000);
 
     tezClient.start();
-    
+
     MockDAGAppMaster mockApp = tezClient.getLocalClient().getMockApp();
     MockContainerLauncher mockLauncher = mockApp.getContainerLauncher();
     mockLauncher.startScheduling(false);
-    
+
     final AtomicInteger concurrency = new AtomicInteger(0);
     final AtomicBoolean exceededConcurrency = new AtomicBoolean(false);
     mockApp.containerDelegate = new ContainerDelegate() {
@@ -634,10 +634,10 @@ public class TestMockDAGAppMaster {
     if (vaGrouName != vBGrouName) {
       Assert.fail("String group name objects dont match despite interning.");
     }
-    
+
     tezClient.stop();
   }
-  
+
   @Test (timeout = 10000)
   public void testBasicStatistics() throws Exception {
     TezConfiguration tezconf = new TezConfiguration(defaultConf);
@@ -678,7 +678,7 @@ public class TestMockDAGAppMaster {
     DataOutput outB = new DataOutputStream(bosB);
     vBStats.write(outB);
     final byte[] payloadB = bosB.toByteArray();
-    
+
     MockDAGAppMaster mockApp = tezClient.getLocalClient().getMockApp();
     MockContainerLauncher mockLauncher = mockApp.getContainerLauncher();
     mockLauncher.startScheduling(false);
@@ -708,7 +708,7 @@ public class TestMockDAGAppMaster {
     mockLauncher.startScheduling(true);
     DAGStatus status = dagClient.waitForCompletion();
     Assert.assertEquals(DAGStatus.State.SUCCEEDED, status.getState());
-    
+
     // verify that the values have been correct aggregated
     for (org.apache.tez.dag.app.dag.Vertex v : dagImpl.getVertices().values()) {
       VertexStatistics vStats = v.getStatistics();
@@ -724,34 +724,34 @@ public class TestMockDAGAppMaster {
         Assert.assertEquals(2, vStats.getOutputStatistics(sinkName).getItemsProcessed());
       }
     }
-    
+
     tezClient.stop();
   }
-  
-  private void checkMemory(String name, MockDAGAppMaster mockApp) {                
-    long mb = 1024*1024;                                                           
-                                                                                   
-    //Getting the runtime reference from system                                    
-    Runtime runtime = Runtime.getRuntime();                                        
-                                                                                   
-    System.out.println("##### Heap utilization statistics [MB] for " + name);      
-                                                                                   
-    runtime.gc();                                                                  
-                                                                                   
-    //Print used memory                                                            
-    System.out.println("##### Used Memory:"                                        
-        + (runtime.totalMemory() - runtime.freeMemory()) / mb);                    
-                                                                                    
-    //Print free memory                                                            
-    System.out.println("##### Free Memory:"                                        
-        + runtime.freeMemory() / mb);                                              
-                                                                                   
-    //Print total available memory                                                 
-    System.out.println("##### Total Memory:" + runtime.totalMemory() / mb);        
-                                                                                   
-    //Print Maximum available memory                                               
-    System.out.println("##### Max Memory:" + runtime.maxMemory() / mb);            
-  }  
+
+  private void checkMemory(String name, MockDAGAppMaster mockApp) {
+    long mb = 1024*1024;
+
+    //Getting the runtime reference from system
+    Runtime runtime = Runtime.getRuntime();
+
+    System.out.println("##### Heap utilization statistics [MB] for " + name);
+
+    runtime.gc();
+
+    //Print used memory
+    System.out.println("##### Used Memory:"
+        + (runtime.totalMemory() - runtime.freeMemory()) / mb);
+
+    //Print free memory
+    System.out.println("##### Free Memory:"
+        + runtime.freeMemory() / mb);
+
+    //Print total available memory
+    System.out.println("##### Total Memory:" + runtime.totalMemory() / mb);
+
+    //Print Maximum available memory
+    System.out.println("##### Max Memory:" + runtime.maxMemory() / mb);
+  }
 
   @Ignore
   @Test (timeout = 60000)
@@ -763,7 +763,7 @@ public class TestMockDAGAppMaster {
     tezClient.start();
 
     final String vAName = "A";
-    
+
     DAG dag = DAG.create("testBasicCounterMemory");
     Vertex vA = Vertex.create(vAName, ProcessorDescriptor.create("Proc.class"), 10000);
     dag.addVertex(vA);
@@ -797,7 +797,7 @@ public class TestMockDAGAppMaster {
     checkMemory(dag.getName(), mockApp);
     tezClient.stop();
   }
-  
+
   @Ignore
   @Test (timeout = 60000)
   public void testTaskEventsProcessingSpeed() throws Exception {
@@ -809,7 +809,7 @@ public class TestMockDAGAppMaster {
     tezClient.start();
 
     final String vAName = "A";
-    
+
     DAG dag = DAG.create("testTaskEventsProcessingSpeed");
     Vertex vA = Vertex.create(vAName, ProcessorDescriptor.create("Proc.class"), 50000);
     dag.addVertex(vA);
@@ -854,7 +854,7 @@ public class TestMockDAGAppMaster {
     DataOutput outA = new DataOutputStream(bosA);
     vAStats.write(outA);
     final byte[] payloadA = bosA.toByteArray();
-    
+
     MockDAGAppMaster mockApp = tezClient.getLocalClient().getMockApp();
     MockContainerLauncher mockLauncher = mockApp.getContainerLauncher();
     mockLauncher.startScheduling(false);
@@ -888,7 +888,7 @@ public class TestMockDAGAppMaster {
     checkMemory(dag.getName(), mockApp);
     tezClient.stop();
   }
-  
+
   @Test (timeout = 10000)
   public void testMultipleSubmissions() throws Exception {
     Map<String, LocalResource> lrDAG = Maps.newHashMap();
@@ -905,14 +905,14 @@ public class TestMockDAGAppMaster {
     dag.addVertex(vA);
 
     TezConfiguration tezconf = new TezConfiguration(defaultConf);
-    
+
     MockTezClient tezClient = new MockTezClient("testMockAM", tezconf, true, null, null, null, null);
     tezClient.start();
     DAGClient dagClient = tezClient.submitDAG(dag);
     dagClient.waitForCompletion();
     Assert.assertEquals(DAGStatus.State.SUCCEEDED, dagClient.getDAGStatus(null).getState());
     tezClient.stop();
-    
+
     // submit the same DAG again to verify it can be done.
     tezClient = new MockTezClient("testMockAM", tezconf, true, null, null, null, null);
     tezClient.start();
@@ -1027,7 +1027,7 @@ public class TestMockDAGAppMaster {
     DAGClient dagClient = tezClient.submitDAG(dag1);
     dagClient.waitForCompletion();
     Assert.assertEquals(DAGStatus.State.SUCCEEDED, dagClient.getDAGStatus(null).getState());
-    
+
     // vertexGroupCommiter fail (uv12)
     DAG dag2 = createDAG("testDAGVertexGroupCommitFail", true, false);
     dagClient = tezClient.submitDAG(dag2);
@@ -1080,7 +1080,7 @@ public class TestMockDAGAppMaster {
     DAGClient dagClient = tezClient.submitDAG(dag1);
     dagClient.waitForCompletion();
     Assert.assertEquals(DAGStatus.State.SUCCEEDED, dagClient.getDAGStatus(null).getState());
-    
+
     // vertexGroupCommiter fail (uv12)
     DAG dag2 = createDAG("testDAGVertexGroupCommitFail", true, false);
     dagClient = tezClient.submitDAG(dag2);
@@ -1113,7 +1113,7 @@ public class TestMockDAGAppMaster {
     Assert.assertEquals(VertexStatus.State.FAILED, dagClient.getVertexStatus("v3", null).getState());
     Assert.assertTrue(StringUtils.join(dagClient.getVertexStatus("v3", null).getDiagnostics(),",")
         .contains("fail output committer:v3Out"));
-    
+
     // both committers fail
     DAG dag4 = createDAG("testDAGBothCommitsFail", true, true);
     dagClient = tezClient.submitDAG(dag4);
@@ -1139,7 +1139,7 @@ public class TestMockDAGAppMaster {
 
     tezClient.stop();
   }
-  
+
   public static class FailingOutputCommitter extends OutputCommitter {
 
     boolean failOnCommit = false;

@@ -40,7 +40,7 @@ public class ContainerContextMatcher implements ContainerSignatureMatcher {
             + cs1.getClass().getName() + " and " + cs2.getClass().getName());
 
   }
-  
+
   @Override
   public boolean isSuperSet(Object cs1, Object cs2) {
     checkArguments(cs1, cs2);

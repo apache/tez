@@ -109,12 +109,12 @@ public final class DAGUtils {
     }
     return dagJson;
   }
-  
+
   public static JSONObject convertDataEventDependencyInfoToJSON(List<DataEventDependencyInfo> info)
       throws JSONException {
     return new JSONObject(convertDataEventDependecyInfoToATS(info));
   }
-  
+
   public static Map<String, Object> convertDataEventDependecyInfoToATS(List<DataEventDependencyInfo> info) {
     ArrayList<Object> infoList = new ArrayList<Object>();
     for (DataEventDependencyInfo event : info) {
@@ -466,7 +466,7 @@ public final class DAGUtils {
   public static Map<String,Object> convertEdgeProperty(
       EdgeProperty edge) {
     Map<String, Object> jsonDescriptor = new HashMap<String, Object>();
-    
+
     jsonDescriptor.put(DATA_MOVEMENT_TYPE_KEY,
         edge.getDataMovementType().name());
     jsonDescriptor.put(DATA_SOURCE_TYPE_KEY, edge.getDataSourceType().name());
@@ -492,7 +492,7 @@ public final class DAGUtils {
     }
     return jsonDescriptor;
   }
-  
+
   public static Map<String,Object> convertEdgeManagerPluginDescriptor(
       EdgeManagerPluginDescriptor descriptor) {
     Map<String, Object> jsonDescriptor = new HashMap<String, Object>();

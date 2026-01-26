@@ -50,10 +50,10 @@ import org.junit.Assert;
 import org.junit.Test;
 
 public class TestPreemption {
-  
+
   static Configuration defaultConf;
   static FileSystem localFs;
-  
+
   static {
     try {
       defaultConf = new Configuration(false);
@@ -66,25 +66,25 @@ public class TestPreemption {
       throw new RuntimeException("init failure", e);
     }
   }
-  
-  MockDAGAppMaster mockApp;    
+
+  MockDAGAppMaster mockApp;
   MockContainerLauncher mockLauncher;
-  
+
   int dagCount = 0;
-  
+
   DAG createDAG(DataMovementType dmType) {
     DAG dag = DAG.create("test-" + dagCount++);
     Vertex vA = Vertex.create("A", ProcessorDescriptor.create("Proc.class"), 5);
     Vertex vB = Vertex.create("B", ProcessorDescriptor.create("Proc.class"), 5);
-    Edge eAB = Edge.create(vA, vB, 
+    Edge eAB = Edge.create(vA, vB,
     EdgeProperty.create(dmType, DataSourceType.PERSISTED,
         SchedulingType.SEQUENTIAL, OutputDescriptor.create("O.class"),
         InputDescriptor.create("I.class")));
-    
+
     dag.addVertex(vA).addVertex(vB).addEdge(eAB);
     return dag;
   }
-  
+
   @Test (timeout = 5000)
   public void testPreemptionWithoutSession() throws Exception {
     System.out.println("TestPreemptionWithoutSession");
@@ -94,7 +94,7 @@ public class TestPreemption {
     MockTezClient tezClient = new MockTezClient("testPreemption", tezconf, false, null, null,
         null, mockAppLauncherGoFlag, false, false, 2, 2);
     tezClient.start();
-    
+
     DAGClient dagClient = tezClient.submitDAG(createDAG(DataMovementType.SCATTER_GATHER));
     // now the MockApp has been started. sync with it to get the launcher
     syncWithMockAppLauncher(false, mockAppLauncherGoFlag, tezClient);
@@ -111,19 +111,19 @@ public class TestPreemption {
 
     mockLauncher.preemptContainerForTask(taId.getTaskID(), upToTaskVersion);
     mockLauncher.startScheduling(true);
-    
+
     dagClient.waitForCompletion();
     Assert.assertEquals(DAGStatus.State.SUCCEEDED, dagClient.getDAGStatus(null).getState());
 
     for (int i=0; i<=upToTaskVersion; ++i) {
-      TezTaskAttemptID testTaId = TezTaskAttemptID.getInstance(TezTaskID.getInstance(vertexId, 0), i);      
+      TezTaskAttemptID testTaId = TezTaskAttemptID.getInstance(TezTaskID.getInstance(vertexId, 0), i);
       TaskAttemptImpl taImpl = dagImpl.getTaskAttempt(testTaId);
       Assert.assertEquals(TaskAttemptStateInternal.KILLED, taImpl.getInternalState());
     }
-    
+
     tezClient.stop();
   }
-  
+
   @Test (timeout = 30000)
   public void testPreemptionWithSession() throws Exception {
     System.out.println("TestPreemptionWithSession");
@@ -142,7 +142,7 @@ public class TestPreemption {
     testPreemptionMultiple(tezClient, createDAG(DataMovementType.ONE_TO_ONE), 1, "1-1");
     tezClient.stop();
   }
-  
+
   MockTezClient createTezSession() throws Exception {
     TezConfiguration tezconf = new TezConfiguration(defaultConf);
     tezconf.setInt(TezConfiguration.TEZ_AM_TASK_MAX_FAILED_ATTEMPTS, 0);
@@ -153,8 +153,8 @@ public class TestPreemption {
     syncWithMockAppLauncher(false, mockAppLauncherGoFlag, tezClient);
     return tezClient;
   }
-  
-  void syncWithMockAppLauncher(boolean allowScheduling, AtomicBoolean mockAppLauncherGoFlag, 
+
+  void syncWithMockAppLauncher(boolean allowScheduling, AtomicBoolean mockAppLauncherGoFlag,
       MockTezClient tezClient) throws Exception {
     synchronized (mockAppLauncherGoFlag) {
       while (!mockAppLauncherGoFlag.get()) {
@@ -164,9 +164,9 @@ public class TestPreemption {
       mockLauncher = mockApp.getContainerLauncher();
       mockLauncher.startScheduling(allowScheduling);
       mockAppLauncherGoFlag.notify();
-    }     
+    }
   }
-  
+
   void testPreemptionSingle(MockTezClient tezClient, DAG dag, int vertexIndex, String info)
       throws Exception {
     testPreemptionJob(tezClient, dag, vertexIndex, 0, info + "-Single");
@@ -182,27 +182,27 @@ public class TestPreemption {
     System.out.println("TestPreemption - Running - " + info);
     TezConfiguration tezconf = new TezConfiguration(defaultConf);
     tezconf.setInt(TezConfiguration.TEZ_AM_TASK_MAX_FAILED_ATTEMPTS, 0);
-    
+
     mockLauncher.startScheduling(false); // turn off scheduling to block DAG before submitting it
     DAGClient dagClient = tezClient.submitDAG(dag);
-    
+
     DAGImpl dagImpl = (DAGImpl) mockApp.getContext().getCurrentDAG();
     TezVertexID vertexId = TezVertexID.getInstance(dagImpl.getID(), vertexIndex);
     TezTaskAttemptID taId = TezTaskAttemptID.getInstance(TezTaskID.getInstance(vertexId, 0), 0);
 
     mockLauncher.preemptContainerForTask(taId.getTaskID(), upToTaskVersion);
     mockLauncher.startScheduling(true);
-    
+
     dagClient.waitForCompletion();
     Assert.assertEquals(DAGStatus.State.SUCCEEDED, dagClient.getDAGStatus(null).getState());
-    
+
     for (int i=0; i<=upToTaskVersion; ++i) {
-      TezTaskAttemptID testTaId = TezTaskAttemptID.getInstance(TezTaskID.getInstance(vertexId, 0), i);      
+      TezTaskAttemptID testTaId = TezTaskAttemptID.getInstance(TezTaskID.getInstance(vertexId, 0), i);
       TaskAttemptImpl taImpl = dagImpl.getTaskAttempt(testTaId);
       Assert.assertEquals(TaskAttemptStateInternal.KILLED, taImpl.getInternalState());
       Assert.assertEquals(TaskAttemptTerminationCause.EXTERNAL_PREEMPTION, taImpl.getTerminationCause());
     }
-    
+
     System.out.println("TestPreemption - Done running - " + info);
   }
 }

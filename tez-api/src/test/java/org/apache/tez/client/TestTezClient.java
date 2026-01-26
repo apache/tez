@@ -181,7 +181,7 @@ public class TestTezClient {
       IOException {
     return configureAndCreateTezClient(new HashMap<String, LocalResource>(), true, conf);
   }
-  
+
   TezClientForTest configureAndCreateTezClient(Map<String, LocalResource> lrs, boolean isSession,
                                                TezConfiguration conf) throws YarnException, IOException, ServiceException {
     if (conf == null) {
@@ -210,12 +210,12 @@ public class TestTezClient {
 
     return client;
   }
-  
+
   @Test (timeout = 5000)
   public void testTezClientApp() throws Exception {
     testTezClient(false, true, "testTezClientApp");
   }
-  
+
   @Test (timeout = 5000)
   public void testTezClientSession() throws Exception {
     testTezClient(true, true, "testTezClientSession");
@@ -336,13 +336,13 @@ public class TestTezClient {
     verify(client2.mockYarnClient, times(1)).stop();
     /* END reuse of AM from new TezClient */
   }
-  
+
   public TezClientForTest testTezClient(boolean isSession, boolean shouldStop, String dagName) throws Exception {
     Map<String, LocalResource> lrs = Maps.newHashMap();
     String lrName1 = "LR1";
     lrs.put(lrName1, LocalResource.newInstance(URL.newInstance("file", "localhost", 0, "/test"),
         LocalResourceType.FILE, LocalResourceVisibility.PUBLIC, 1, 1));
-    
+
     TezClientForTest client = configureAndCreateTezClient(lrs, isSession, null);
 
     ArgumentCaptor<ApplicationSubmissionContext> captor = ArgumentCaptor.forClass(ApplicationSubmissionContext.class);
@@ -364,7 +364,7 @@ public class TestTezClient {
     } else {
       verify(client.mockYarnClient, times(0)).submitApplication(captor.capture());
     }
-    
+
     String mockLR1Name = "LR1";
     Map<String, LocalResource> lrDAG = Collections.singletonMap(mockLR1Name, LocalResource
         .newInstance(URL.newInstance("file", "localhost", 0, "/test1"), LocalResourceType.FILE,
@@ -377,7 +377,7 @@ public class TestTezClient {
               .thenReturn(GetAMStatusResponseProto.newBuilder().setStatus(TezAppMasterStatusProto.SHUTDOWN).build());
     }
     DAGClient dagClient = client.submitDAG(dag);
-        
+
     assertTrue(dagClient.getExecutionContext().contains(client.mockAppId.toString()));
     assertEquals(dagClient.getSessionIdentifierString(), client.mockAppId.toString());
 
@@ -414,7 +414,7 @@ public class TestTezClient {
     dag = DAG.create("DAG-2-" + dagName).addVertex(
         Vertex.create("Vertex", ProcessorDescriptor.create("P"), 1, Resource.newInstance(1, 1)));
     dagClient = client.submitDAG(dag);
-    
+
     if (isSession) {
       // same app master
       verify(client.mockYarnClient, times(1)).submitApplication(captor.capture());
@@ -557,14 +557,14 @@ public class TestTezClient {
 
     when(client.mockYarnClient.getApplicationReport(client.mockAppId).getYarnApplicationState())
         .thenReturn(YarnApplicationState.RUNNING);
-    
+
     when(
         client.sessionAmProxy.getAMStatus(any(), any()))
         .thenReturn(GetAMStatusResponseProto.newBuilder().setStatus(TezAppMasterStatusProto.READY).build());
 
     PreWarmVertex vertex = PreWarmVertex.create("PreWarm", 1, Resource.newInstance(1, 1));
     client.preWarm(vertex);
-    
+
     ArgumentCaptor<SubmitDAGRequestProto> captor1 = ArgumentCaptor.forClass(SubmitDAGRequestProto.class);
     verify(client.sessionAmProxy, times(1)).submitDAG(any(), captor1.capture());
     SubmitDAGRequestProto proto = captor1.getValue();
@@ -698,14 +698,14 @@ public class TestTezClient {
     testMultipleSubmissionsJob(false);
     testMultipleSubmissionsJob(true);
   }
-  
+
   public void testMultipleSubmissionsJob(boolean isSession) throws Exception {
     TezClientForTest client1 = configureAndCreateTezClient(new HashMap<String, LocalResource>(),
         isSession, null);
     when(client1.mockYarnClient.getApplicationReport(client1.mockAppId).getYarnApplicationState())
     .thenReturn(YarnApplicationState.RUNNING);
     client1.start();
-    
+
     String mockLR1Name = "LR1";
     Map<String, LocalResource> lrDAG = Collections.singletonMap(mockLR1Name, LocalResource
         .newInstance(URL.newInstance("file", "localhost", 0, "/test"), LocalResourceType.FILE,
@@ -721,20 +721,20 @@ public class TestTezClient {
 
     // the dag resource will be added to the vertex once
     client1.submitDAG(dag);
-    
+
     TezClientForTest client2 = configureAndCreateTezClient();
     when(client2.mockYarnClient.getApplicationReport(client2.mockAppId).getYarnApplicationState())
     .thenReturn(YarnApplicationState.RUNNING);
     client2.start();
-    
+
     // verify resubmission of same dag to new client (simulates submission error resulting in the
     // creation of a new client and resubmission of the DAG)
     client2.submitDAG(dag);
-    
+
     client1.stop();
     client2.stop();
   }
-  
+
   @Test(timeout = 5000)
   public void testWaitTillReady_Interrupt() throws Exception {
     final TezClientForTest client = configureAndCreateTezClient();
@@ -760,7 +760,7 @@ public class TestTezClient {
     Assert.assertThat(exceptionReference.get(), CoreMatchers.instanceOf(InterruptedException.class));
     client.stop();
   }
-  
+
   @Test(timeout = 5000)
   public void testWaitTillReadyAppFailed() throws Exception {
     final TezClientForTest client = configureAndCreateTezClient();
@@ -778,7 +778,7 @@ public class TestTezClient {
     }
     client.stop();
   }
-  
+
   @Test(timeout = 5000)
   public void testWaitTillReadyAppFailedNoDiagnostics() throws Exception {
     final TezClientForTest client = configureAndCreateTezClient();
@@ -793,12 +793,12 @@ public class TestTezClient {
     }
     client.stop();
   }
-  
+
   @Test(timeout = 5000)
   public void testSubmitDAGAppFailed() throws Exception {
     final TezClientForTest client = configureAndCreateTezClient();
     client.start();
-    
+
     client.callRealGetSessionAMProxy = true;
     String msg = "Application Test Failed";
     when(client.mockYarnClient.getApplicationReport(client.mockAppId).getYarnApplicationState())
@@ -809,7 +809,7 @@ public class TestTezClient {
     Vertex vertex = Vertex.create("Vertex", ProcessorDescriptor.create("P"), 1,
         Resource.newInstance(1, 1));
     DAG dag = DAG.create("DAG-testSubmitDAGAppFailed").addVertex(vertex);
-    
+
     try {
       client.submitDAG(dag);
       fail();

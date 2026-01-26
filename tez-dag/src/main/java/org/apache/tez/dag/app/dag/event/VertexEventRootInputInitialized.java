@@ -38,11 +38,11 @@ public class VertexEventRootInputInitialized extends VertexEvent {
       this.events = events;
     }
   }
-  
+
   public List<Event> getEvents() {
     return events;
   }
-  
+
   public String getInputName() {
     return this.inputName;
   }

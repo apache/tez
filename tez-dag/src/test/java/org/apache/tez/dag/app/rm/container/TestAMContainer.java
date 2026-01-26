@@ -123,7 +123,7 @@ public class TestAMContainer {
     assertEquals(wc.taskAttemptID, wc.amContainer.getCurrentTaskAttempt());
     assertTrue(wc.amContainer.getCurrentTaskAttemptAllocationTime() > 0);
     assertTrue(wc.amContainer.getCurrentTaskAttemptAllocationTime() >= currTime);
-    
+
     // Container Launched
     wc.containerLaunched();
     wc.verifyState(AMContainerState.RUNNING);
@@ -1235,7 +1235,7 @@ public class TestAMContainer {
     EventHandler eventHandler;
 
     AppContext appContext;
-    
+
     HistoryEventHandler historyEventHandler;
 
     TezDAGID dagID;
@@ -1274,7 +1274,7 @@ public class TestAMContainer {
       vertexID = TezVertexID.getInstance(dagID, 1);
       taskID = TezTaskID.getInstance(vertexID, 1);
       taskAttemptID = TezTaskAttemptID.getInstance(taskID, 1);
-      
+
       eventHandler = mock(EventHandler.class);
       historyEventHandler = mock(HistoryEventHandler.class);
 
@@ -1328,7 +1328,7 @@ public class TestAMContainer {
       verify(eventHandler, times(invocations)).handle(args.capture());
       return args.getAllValues();
     }
-    
+
     public void verifyHistoryStopEvent() {
       ArgumentCaptor<DAGHistoryEvent> args = ArgumentCaptor.forClass(DAGHistoryEvent.class);
       verify(historyEventHandler, times(1)).handle(args.capture());
@@ -1425,11 +1425,11 @@ public class TestAMContainer {
           state, amContainer.getState());
     }
   }
-  
+
   private static class WrappedContainerMultipleDAGs extends WrappedContainer {
-    
+
     private TezDAGID newDAGID = null;
-    
+
     @Override
     protected void mockDAGID() {
       doAnswer(new Answer<TezDAGID>() {
@@ -1439,7 +1439,7 @@ public class TestAMContainer {
         }
       }).when(appContext).getCurrentDAGID();
     }
-    
+
     void setNewDAGID(TezDAGID newDAGID) {
       this.newDAGID = newDAGID;
     }
@@ -1482,7 +1482,7 @@ public class TestAMContainer {
     }
     return null;
   }
-  
+
   private LocalResource createLocalResource(String name) {
     LocalResource lr = LocalResource.newInstance(URL.newInstance(null, "localhost", 2321, name),
         LocalResourceType.FILE, LocalResourceVisibility.APPLICATION, 1, 1000000);

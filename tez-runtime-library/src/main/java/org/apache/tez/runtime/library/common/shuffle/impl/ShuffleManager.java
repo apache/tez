@@ -153,7 +153,7 @@ public class ShuffleManager implements FetcherCallback {
   private final BlockingQueue<InputHost> pendingHosts;
   private final Set<InputAttemptIdentifier> obsoletedInputs;
   private Set<Fetcher> runningFetchers;
-  
+
   private final AtomicInteger numCompletedInputs = new AtomicInteger(0);
   private final AtomicInteger numFetchedSpills = new AtomicInteger(0);
 
@@ -164,10 +164,10 @@ public class ShuffleManager implements FetcherCallback {
   // Required to be held when manipulating pendingHosts
   private final ReentrantLock lock = new ReentrantLock();
   private final Condition wakeLoop = lock.newCondition();
-  
+
   private final int numFetchers;
   private final boolean asyncHttp;
-  
+
   // Parameters required by Fetchers
   private final JobTokenSecretManager jobTokenSecretMgr;
   private final CompressionCodec codec;
@@ -185,7 +185,7 @@ public class ShuffleManager implements FetcherCallback {
    * Holds the time to wait for failures to batch them and send less events.
    */
   private final int maxTimeToWaitForReportMillis;
-  
+
   private final String sourceDestNameTrimmed;
 
   private final int maxTaskOutputAtOnce;
@@ -202,10 +202,10 @@ public class ShuffleManager implements FetcherCallback {
   private final TezCounter bytesShuffledToDiskCounter;
   private final TezCounter bytesShuffledToMemCounter;
   private final TezCounter bytesShuffledDirectDiskCounter;
-  
+
   private volatile Throwable shuffleError;
   private final HttpConnectionParams httpConnectionParams;
-  
+
 
   private final LocalDirAllocator localDirAllocator;
   private final RawLocalFileSystem localFs;
@@ -222,7 +222,7 @@ public class ShuffleManager implements FetcherCallback {
   final Map<Integer, ShuffleEventInfo> shuffleInfoEventsMap;
 
   // TODO More counters - FetchErrors, speed?
-  
+
   public ShuffleManager(InputContext inputContext, Configuration conf, int numInputs,
       int bufferSize, boolean ifileReadAheadEnabled, int ifileReadAheadLength,
       CompressionCodec codec, FetchedInputAllocator inputAllocator) throws IOException {
@@ -260,7 +260,7 @@ public class ShuffleManager implements FetcherCallback {
     this.firstEventReceived = inputContext.getCounters().findCounter(TaskCounter.FIRST_EVENT_RECEIVED);
     this.lastEventReceived = inputContext.getCounters().findCounter(TaskCounter.LAST_EVENT_RECEIVED);
     this.compositeFetch = ShuffleUtils.isTezShuffleHandler(conf);
-    
+
     this.enableFetcherTestingErrors =
         conf.getBoolean(TezRuntimeConfiguration.TEZ_RUNTIME_SHUFFLE_FETCH_ENABLE_TESTING_ERRORS,
             TezRuntimeConfiguration.TEZ_RUNTIME_SHUFFLE_FETCH_ENABLE_TESTING_ERRORS_DEFAULT);
@@ -279,11 +279,11 @@ public class ShuffleManager implements FetcherCallback {
     obsoletedInputs = Collections.newSetFromMap(new ConcurrentHashMap<InputAttemptIdentifier, Boolean>());
     runningFetchers = Collections.newSetFromMap(new ConcurrentHashMap<Fetcher, Boolean>());
 
-    int maxConfiguredFetchers = 
+    int maxConfiguredFetchers =
         conf.getInt(
             TezRuntimeConfiguration.TEZ_RUNTIME_SHUFFLE_PARALLEL_COPIES,
             TezRuntimeConfiguration.TEZ_RUNTIME_SHUFFLE_PARALLEL_COPIES_DEFAULT);
-    
+
     this.numFetchers = Math.min(maxConfiguredFetchers, numInputs);
 
     final ExecutorService fetcherRawExecutor;
@@ -301,7 +301,7 @@ public class ShuffleManager implements FetcherCallback {
         .setDaemon(true).setNameFormat("ShuffleRunner {" + sourceDestNameTrimmed + "}").build());
     this.schedulerExecutor = MoreExecutors.listeningDecorator(schedulerRawExecutor);
     this.schedulerCallable = new RunShuffleCallable(conf);
-    
+
     this.startTime = System.currentTimeMillis();
     this.lastProgressTime = startTime;
 
@@ -621,9 +621,9 @@ public class ShuffleManager implements FetcherCallback {
     }
     return fetcherBuilder.build();
   }
-  
+
   /////////////////// Methods for InputEventHandler
-  
+
   public void addKnownInput(String hostName, int port,
                             CompositeInputAttemptIdentifier srcAttemptIdentifier, int srcPhysicalIndex) {
     HostPort identifier = new HostPort(hostName, port);
@@ -1176,17 +1176,17 @@ public class ShuffleManager implements FetcherCallback {
         inputContext.reportFailure(TaskFailureType.NON_FATAL, t, "Shuffle Scheduler Failed");
       }
     }
-    
+
   }
-  
+
   private class FetchFutureCallback implements FutureCallback<FetchResult> {
 
     private final Fetcher fetcher;
-    
+
     public FetchFutureCallback(Fetcher fetcher) {
       this.fetcher = fetcher;
     }
-    
+
     private void doBookKeepingForFetcherComplete() {
       lock.lock();
       try {
@@ -1196,7 +1196,7 @@ public class ShuffleManager implements FetcherCallback {
         lock.unlock();
       }
     }
-    
+
     @Override
     public void onSuccess(FetchResult result) {
       fetcher.shutdown();

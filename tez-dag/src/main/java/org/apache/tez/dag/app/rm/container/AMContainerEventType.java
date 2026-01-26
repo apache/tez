@@ -23,7 +23,7 @@ public enum AMContainerEventType {
   //Producer: Scheduler
   C_LAUNCH_REQUEST,
   C_ASSIGN_TA,
-  
+
   //Producer: NMCommunicator
   C_LAUNCHED,
   C_LAUNCH_FAILED,
@@ -33,21 +33,21 @@ public enum AMContainerEventType {
 
   //Producer: RMCommunicator
   C_COMPLETED,
-  
+
   //Producer: RMCommunicator, AMNode
   C_NODE_FAILED,
-  
+
   //TODO ZZZ CREUSE: Consider introducing a new event C_NODE_BLACKLISTED -> container can take a call on what to do if this event comes in.
-  
+
   //Producer: TA-> Scheduler -> Container (in case of failure etc)
   //          Scheduler -> Container (in case of pre-emption etc)
   //          Node -> Container (in case of Node blacklisted etc)
   C_STOP_REQUEST,
-  
+
   //Producer: NMCommunicator
   C_NM_STOP_FAILED,
   C_NM_STOP_SENT,
-  
+
   //Producer: ContainerHeartbeatHandler
   C_TIMED_OUT,
 }

@@ -35,9 +35,9 @@ public interface TaskCommunicatorManagerInterface {
   void registerRunningContainer(ContainerId containerId, int taskCommId);
 
   void registerTaskAttempt(AMContainerTask amContainerTask, ContainerId containerId, int taskCommId);
-  
+
   void unregisterRunningContainer(ContainerId containerId, int taskCommId, ContainerEndReason endReason, String diagnostics);
-  
+
   void unregisterTaskAttempt(TezTaskAttemptID attemptID, int taskCommId, TaskAttemptEndReason endReason, String diagnostics);
 
   void dagComplete(DAG dag);

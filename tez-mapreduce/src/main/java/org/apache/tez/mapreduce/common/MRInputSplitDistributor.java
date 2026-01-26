@@ -48,7 +48,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 /**
- * Implements an {@link InputInitializer} that distributes Map Reduce 
+ * Implements an {@link InputInitializer} that distributes Map Reduce
  * splits created by the client to tasks in the {@link Vertex}
  * This can be used when certain reasons (e.g. security) prevent splits
  * from being produced in the App Master via {@link MRInputAMSplitGenerator}
@@ -60,7 +60,7 @@ import org.slf4j.LoggerFactory;
 public class MRInputSplitDistributor extends InputInitializer {
 
   private static final Logger LOG = LoggerFactory.getLogger(MRInputSplitDistributor.class);
-  
+
   private boolean sendSerializedEvents;
 
   private MRSplitsProto splitsProto;
@@ -89,7 +89,7 @@ public class MRInputSplitDistributor extends InputInitializer {
     LOG.info("Emitting serialized splits: " + sendSerializedEvents);
 
     this.splitsProto = userPayloadProto.getSplits();
-    
+
     MRInputUserPayloadProto.Builder updatedPayloadBuilder = MRInputUserPayloadProto.newBuilder(userPayloadProto);
     updatedPayloadBuilder.clearSplits();
 

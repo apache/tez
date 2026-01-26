@@ -42,8 +42,8 @@ import org.apache.tez.runtime.api.TaskContext;
  */
 @InterfaceAudience.Private
 @InterfaceStability.Unstable
-public abstract class TaskInputOutputContextImpl<KEYIN,VALUEIN,KEYOUT,VALUEOUT> 
-       extends TaskAttemptContextImpl 
+public abstract class TaskInputOutputContextImpl<KEYIN,VALUEIN,KEYOUT,VALUEOUT>
+       extends TaskAttemptContextImpl
        implements TaskInputOutputContext<KEYIN, VALUEIN, KEYOUT, VALUEOUT> {
   private RecordWriter<KEYOUT,VALUEOUT> output;
   private OutputCommitter committer;
@@ -61,16 +61,16 @@ public abstract class TaskInputOutputContextImpl<KEYIN,VALUEIN,KEYOUT,VALUEOUT>
    * Advance to the next key, value pair, returning null if at end.
    * @return the key object that was read into, or null if no more
    */
-  public abstract 
+  public abstract
   boolean nextKeyValue() throws IOException, InterruptedException;
- 
+
   /**
    * Get the current key.
    * @return the current key object or null if there isn't one
    * @throws IOException
    * @throws InterruptedException
    */
-  public abstract 
+  public abstract
   KEYIN getCurrentKey() throws IOException, InterruptedException;
 
   /**
@@ -79,7 +79,7 @@ public abstract class TaskInputOutputContextImpl<KEYIN,VALUEIN,KEYOUT,VALUEOUT>
    * @throws IOException
    * @throws InterruptedException
    */
-  public abstract VALUEIN getCurrentValue() throws IOException, 
+  public abstract VALUEIN getCurrentValue() throws IOException,
                                                    InterruptedException;
 
   /**

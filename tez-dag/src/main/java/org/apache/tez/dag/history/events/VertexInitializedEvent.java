@@ -200,7 +200,7 @@ public class VertexInitializedEvent implements HistoryEvent, VertexIDAware {
     return numTasks;
   }
 
-  public Map<String, RootInputLeafOutput<InputDescriptor, InputInitializerDescriptor>> 
+  public Map<String, RootInputLeafOutput<InputDescriptor, InputInitializerDescriptor>>
     getAdditionalInputs() {
     return additionalInputs;
   }

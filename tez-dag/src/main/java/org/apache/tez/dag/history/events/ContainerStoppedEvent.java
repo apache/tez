@@ -40,7 +40,7 @@ public class ContainerStoppedEvent implements HistoryEvent {
 
   public ContainerStoppedEvent() {
   }
-  
+
   public ContainerStoppedEvent(ContainerId containerId,
       long stopTime,
       int exitStatus,
@@ -50,7 +50,7 @@ public class ContainerStoppedEvent implements HistoryEvent {
     this.exitStatus = exitStatus;
     this.applicationAttemptId = applicationAttemptId;
   }
-  
+
   @Override
   public HistoryEventType getEventType() {
     return HistoryEventType.CONTAINER_STOPPED;
@@ -101,7 +101,7 @@ public class ContainerStoppedEvent implements HistoryEvent {
   @Override
   public String toString() {
     return "containerId=" + containerId
-        + ", stoppedTime=" + stopTime 
+        + ", stoppedTime=" + stopTime
         + ", exitStatus=" + exitStatus;
   }
 
@@ -112,7 +112,7 @@ public class ContainerStoppedEvent implements HistoryEvent {
   public long getStoppedTime() {
     return stopTime;
   }
-  
+
   public int getExitStatus() {
     return exitStatus;
   }

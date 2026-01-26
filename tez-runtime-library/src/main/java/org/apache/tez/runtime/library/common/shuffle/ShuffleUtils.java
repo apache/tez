@@ -144,7 +144,7 @@ public final class ShuffleUtils {
       }
     }
   }
-  
+
   public static void shuffleToDisk(OutputStream output, String hostIdentifier,
       InputStream input, long compressedLength, long decompressedLength, Logger LOG, InputAttemptIdentifier identifier,
       boolean ifileReadAhead, int ifileReadAheadLength, boolean verifyChecksum) throws IOException {
@@ -188,8 +188,8 @@ public final class ShuffleUtils {
     if (bytesLeft != 0) {
       throw new IOException("Incomplete map output received for " +
           identifier + " from " +
-          hostIdentifier + " (" + 
-          bytesLeft + " bytes missing of " + 
+          hostIdentifier + " (" +
+          bytesLeft + " bytes missing of " +
           compressedLength + ")");
     }
   }

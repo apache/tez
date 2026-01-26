@@ -52,7 +52,7 @@ import org.slf4j.LoggerFactory;
 
 public class ResourceMgrDelegate {
   private static final Logger LOG = LoggerFactory.getLogger(ResourceMgrDelegate.class);
-      
+
   private YarnConfiguration conf;
   private GetNewApplicationResponse application;
   private ApplicationId applicationId;
@@ -109,7 +109,7 @@ public class ResourceMgrDelegate {
     } catch (YarnException e) {
       throw new IOException(e);
     }
-    ClusterMetrics oldMetrics = new ClusterMetrics(1, 1, 1, 1, 1, 1, 
+    ClusterMetrics oldMetrics = new ClusterMetrics(1, 1, 1, 1, 1, 1,
         metrics.getNumNodeManagers() * 10, metrics.getNumNodeManagers() * 2, 1,
         metrics.getNumNodeManagers(), 0, 0);
     return oldMetrics;
@@ -133,7 +133,7 @@ public class ResourceMgrDelegate {
 
   public JobID getNewJobID() throws IOException, InterruptedException {
     try {
-      this.application = 
+      this.application =
           client.createApplication().getNewApplicationResponse();
     } catch (YarnException e) {
       throw new IOException(e);
@@ -193,7 +193,7 @@ public class ResourceMgrDelegate {
 
   public String getStagingAreaDir() throws IOException, InterruptedException {
 //    Path path = new Path(MRJobConstants.JOB_SUBMIT_DIR);
-    String user = 
+    String user =
       UserGroupInformation.getCurrentUser().getShortUserName();
     Path path = MRApps.getStagingAreaDir(conf, user);
     LOG.debug("getStagingAreaDir: dir=" + path);
@@ -206,13 +206,13 @@ public class ResourceMgrDelegate {
     //FileContext.getFileContext(conf).delete(sysDir, true);
     return sysDir.toString();
   }
-  
+
 
   public long getTaskTrackerExpiryInterval() throws IOException,
       InterruptedException {
     return 0;
   }
-  
+
   public void setJobPriority(JobID arg0, String arg1) throws IOException,
       InterruptedException {
     return;

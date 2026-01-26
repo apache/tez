@@ -42,7 +42,7 @@ import org.apache.tez.dag.api.TezUncheckedException;
  */
 @Public
 @Evolving
-public class TezGroupedSplit extends InputSplit 
+public class TezGroupedSplit extends InputSplit
   implements Writable, Configurable {
 
   List<InputSplit> wrappedSplits = null;
@@ -54,7 +54,7 @@ public class TezGroupedSplit extends InputSplit
 
   @InterfaceAudience.Private
   public TezGroupedSplit() {
-    
+
   }
 
   @InterfaceAudience.Private
@@ -77,12 +77,12 @@ public class TezGroupedSplit extends InputSplit
     this.locations = locations;
     this.rack = rack;
   }
-  
+
   public TezGroupedSplit(int numSplits, String wrappedInputFormatName,
       String[] locations) {
     this(numSplits, wrappedInputFormatName, locations, null);
   }
-  
+
   public void addSplit(InputSplit split) {
     wrappedSplits.add(split);
     try {
@@ -109,7 +109,7 @@ public class TezGroupedSplit extends InputSplit
       writeWrappedSplit(split, out);
     }
     out.writeLong(length);
-    
+
     if (locations == null || locations.length == 0) {
       out.writeInt(0);
     } else {
@@ -132,14 +132,14 @@ public class TezGroupedSplit extends InputSplit
     } catch (TezException e) {
       throw new IOException(e);
     }
-    
+
     int numSplits = in.readInt();
-    
+
     wrappedSplits = new ArrayList<InputSplit>(numSplits);
     for (int i=0; i<numSplits; ++i) {
       addSplit(readWrappedSplit(in, clazz));
     }
-    
+
     long recordedLength = in.readLong();
     if(recordedLength != length) {
       throw new TezUncheckedException("Expected length: " + recordedLength
@@ -153,7 +153,7 @@ public class TezGroupedSplit extends InputSplit
       }
     }
   }
-  
+
   void writeWrappedSplit(InputSplit split, DataOutput out) throws IOException {
     if (split instanceof Writable) {
       ((Writable) split).write(out);
@@ -162,7 +162,7 @@ public class TezGroupedSplit extends InputSplit
           split.getClass().getName() + " is not a Writable");
     }
   }
-  
+
   InputSplit readWrappedSplit(DataInput in, Class<? extends InputSplit> clazz) {
     try {
       InputSplit split = clazz.newInstance();
@@ -171,13 +171,13 @@ public class TezGroupedSplit extends InputSplit
         return split;
       } else {
         throw new TezUncheckedException(
-            split.getClass().getName() + " is not a Writable");          
+            split.getClass().getName() + " is not a Writable");
       }
     } catch (Exception e) {
       throw new TezUncheckedException(e);
     }
   }
-  
+
   @Override
   public long getLength() throws IOException, InterruptedException {
     return length;
@@ -187,7 +187,7 @@ public class TezGroupedSplit extends InputSplit
   public String[] getLocations() throws IOException, InterruptedException {
     return locations;
   }
-  
+
   @Override
   public void setConf(Configuration conf) {
     this.conf = conf;
@@ -197,7 +197,7 @@ public class TezGroupedSplit extends InputSplit
   public Configuration getConf() {
     return conf;
   }
-  
+
   public String getRack() {
     return rack;
   }

@@ -56,15 +56,15 @@ public class ContainerTask implements Writable {
   public boolean shouldDie() {
     return shouldDie;
   }
-  
+
   public Map<String, TezLocalResource> getAdditionalResources() {
     return this.additionalResources;
   }
-  
+
   public Credentials getCredentials() {
     return this.credentials;
   }
-  
+
   public boolean haveCredentialsChanged() {
     return this.credentialsChanged;
   }

@@ -352,7 +352,7 @@ public class TestATSHistoryWithACLs {
   }
 
   /**
-   * Test Disable Logging for all dags in a session 
+   * Test Disable Logging for all dags in a session
    * due to failure to create domain in session start
    * @throws Exception
    */
@@ -460,7 +460,7 @@ public class TestATSHistoryWithACLs {
         .get(ClientResponse.class);
     assertEquals(404, response.getStatus());
   }
-  
+
   /**
    * use mini cluster to verify data do push to ats when
    * the dag logging flag in dagsubmitted event is set on

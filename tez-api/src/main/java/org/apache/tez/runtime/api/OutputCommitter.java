@@ -67,7 +67,7 @@ public abstract class OutputCommitter {
    * master process. Based on user configuration, commit is called at the end of
    * the DAG execution for all outputs or immediately upon completion of all the
    * tasks that produced the output. This is guaranteed to only be called once.
-   * 
+   *
    * @throws java.lang.Exception
    */
   public abstract void commitOutput() throws Exception;
@@ -77,7 +77,7 @@ public abstract class OutputCommitter {
    * non-successful state. This is also called to abort a previously committed
    * output in the case of a post-commit failure. This is called from the
    * application master process. This may be called multiple times.
-   * 
+   *
    * @param finalState
    *          final run-state of the vertex
    * @throws java.lang.Exception

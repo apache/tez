@@ -23,7 +23,7 @@ import org.apache.hadoop.classification.InterfaceAudience.Private;
 // Per-job counters
 @Private
 public enum JobCounter {
-  NUM_FAILED_MAPS, 
+  NUM_FAILED_MAPS,
   NUM_FAILED_REDUCES,
   NUM_KILLED_MAPS,
   NUM_KILLED_REDUCES,

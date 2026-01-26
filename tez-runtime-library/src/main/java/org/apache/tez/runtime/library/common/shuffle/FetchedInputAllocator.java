@@ -27,8 +27,8 @@ public interface FetchedInputAllocator {
 
   public FetchedInput allocate(long actualSize, long compresedSize,
       InputAttemptIdentifier inputAttemptIdentifier) throws IOException;
-  
+
   public FetchedInput allocateType(Type type, long actualSize, long compresedSize,
       InputAttemptIdentifier inputAttemptIdentifier) throws IOException;
-  
+
 }

@@ -32,7 +32,7 @@ import org.apache.tez.runtime.api.Writer;
 public abstract class KeyValueWriter extends Writer {
   /**
    * Writes a key/value pair.
-   * 
+   *
    * @param key
    *          the key to write
    * @param value

@@ -132,7 +132,7 @@ public class TestTaskReporter {
     }
 
   }
-  
+
   @Test(timeout = 10000)
   public void testEventThrottling() throws Exception {
     TezTaskAttemptID mockTaskAttemptId = mock(TezTaskAttemptID.class);
@@ -179,20 +179,20 @@ public class TestTaskReporter {
     boolean progressNotified = false;
     doReturn(progressNotified).when(mockTask).getAndClearProgressNotification();
     TezTaskUmbilicalProtocol mockUmbilical = mock(TezTaskUmbilicalProtocol.class);
-    
+
     float progress = 0.5f;
     TaskStatistics stats = new TaskStatistics();
     TezCounters counters = new TezCounters();
     doReturn(progress).when(mockTask).getProgress();
     doReturn(stats).when(mockTask).getTaskStatistics();
     doReturn(counters).when(mockTask).getCounters();
-    
+
     // Setup the sleep time to be way higher than the test timeout
     TaskReporter.HeartbeatCallable heartbeatCallable =
         new TaskReporter.HeartbeatCallable(mockTask, mockUmbilical, 100000, 100000, 5,
             new AtomicLong(0),
             "containerIdStr");
-    
+
     // task not initialized - nothing obtained from task
     doReturn(false).when(mockTask).hasInitialized();
     TaskStatusUpdateEvent event = heartbeatCallable.getStatusUpdateEvent(true);

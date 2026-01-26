@@ -26,7 +26,7 @@ import org.apache.tez.dag.api.client.rpc.DAGClientAMProtocolRPC.DAGClientAMProto
 @ProtocolInfo(
     protocolName = "org.apache.tez.dag.api.client.rpc.DAGClientAMProtocolBlockingPB",
     protocolVersion = 1)
-public interface DAGClientAMProtocolBlockingPB 
+public interface DAGClientAMProtocolBlockingPB
                               extends DAGClientAMProtocol.BlockingInterface {
 
 }

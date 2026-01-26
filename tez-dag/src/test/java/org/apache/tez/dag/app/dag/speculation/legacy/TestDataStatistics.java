@@ -34,7 +34,7 @@ public class TestDataStatistics {
     Assert.assertEquals(0, statistics.std(), TOL);
     Assert.assertEquals(Long.MAX_VALUE, statistics.outlier(1.0f), TOL);
   }
-  
+
   @Test(timeout = 5000)
   public void testSingleEntryDataStatistics() throws Exception {
     DataStatistics statistics = new DataStatistics(17.29);
@@ -44,7 +44,7 @@ public class TestDataStatistics {
     Assert.assertEquals(0, statistics.std(), TOL);
     Assert.assertEquals(17.29, statistics.outlier(1.0f), TOL);
   }
-  
+
   @Test(timeout = 5000)
   public void testMutiEntryDataStatistics() throws Exception {
     DataStatistics statistics = new DataStatistics();
@@ -56,7 +56,7 @@ public class TestDataStatistics {
     Assert.assertEquals(6.0, statistics.std(), TOL);
     Assert.assertEquals(29.0, statistics.outlier(1.0f), TOL);
  }
-  
+
   @Test(timeout = 5000)
   public void testUpdateStatistics() throws Exception {
     DataStatistics statistics = new DataStatistics(17);

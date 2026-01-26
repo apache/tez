@@ -29,7 +29,7 @@ public class AMContainerEventCompleted extends AMContainerEvent {
   private final String diagnostics;
   private final TaskAttemptTerminationCause errCause;
 
-  public AMContainerEventCompleted(ContainerId containerId, 
+  public AMContainerEventCompleted(ContainerId containerId,
       int exitStatus, String diagnostics, TaskAttemptTerminationCause errCause) {
     super(containerId, AMContainerEventType.C_COMPLETED);
     this.exitStatus = exitStatus;
@@ -38,26 +38,26 @@ public class AMContainerEventCompleted extends AMContainerEvent {
   }
 
   public boolean isPreempted() {
-    return (exitStatus == ContainerExitStatus.PREEMPTED || 
+    return (exitStatus == ContainerExitStatus.PREEMPTED ||
         errCause == TaskAttemptTerminationCause.INTERNAL_PREEMPTION);
   }
-  
+
   public boolean isDiskFailed() {
     return (exitStatus == ContainerExitStatus.DISKS_FAILED);
   }
-  
+
   public boolean isSystemAction() {
     return isPreempted() || isDiskFailed();
   }
-  
+
   public String getDiagnostics() {
     return diagnostics;
   }
-  
+
   public int getContainerExitStatus() {
     return exitStatus;
   }
-  
+
   public TaskAttemptTerminationCause getTerminationCause() {
     return errCause;
   }

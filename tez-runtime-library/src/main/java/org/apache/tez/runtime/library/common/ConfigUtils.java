@@ -59,7 +59,7 @@ public final class ConfigUtils {
   }
 
   // TODO Move defaults over to a constants file.
-  
+
   public static boolean shouldCompressIntermediateOutput(Configuration conf) {
     return conf.getBoolean(
         TezRuntimeConfiguration.TEZ_RUNTIME_COMPRESS, false);
@@ -70,7 +70,7 @@ public final class ConfigUtils {
         TezRuntimeConfiguration.TEZ_RUNTIME_VALUE_CLASS, null,
         Object.class);
   }
-  
+
   public static <V> Class<V> getIntermediateInputValueClass(Configuration conf) {
     return (Class<V>) conf.getClass(
         TezRuntimeConfiguration.TEZ_RUNTIME_VALUE_CLASS, null,
@@ -109,8 +109,8 @@ public final class ConfigUtils {
         WritableComparable.class), conf);
   }
 
-  
-  
+
+
   // TODO Fix name
   public static <V> RawComparator<V> getInputKeySecondaryGroupingComparator(
       Configuration conf) {
@@ -124,7 +124,7 @@ public final class ConfigUtils {
 
     return ReflectionUtils.newInstance(theClass, conf);
   }
-  
+
   public static boolean useNewApi(Configuration conf) {
     return conf.getBoolean("mapred.mapper.new-api", false);
   }

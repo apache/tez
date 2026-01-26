@@ -27,7 +27,7 @@ import java.util.Map.Entry;
 import org.apache.tez.runtime.api.ObjectRegistry;
 
 public class ObjectRegistryImpl implements ObjectRegistry {
-  
+
   public enum ObjectLifeCycle {
     /** Objects are valid for the lifetime of the Tez JVM/Session
      */

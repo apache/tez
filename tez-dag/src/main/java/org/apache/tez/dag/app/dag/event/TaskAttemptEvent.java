@@ -29,7 +29,7 @@ import org.apache.tez.dag.records.TezTaskAttemptID;
 public class TaskAttemptEvent extends TezAbstractEvent<TaskAttemptEventType> implements TaskAttemptIDAware {
 
   private TezTaskAttemptID attemptID;
-  
+
   /**
    * Create a new TaskAttemptEvent.
    * @param id the id of the task attempt
@@ -44,7 +44,7 @@ public class TaskAttemptEvent extends TezAbstractEvent<TaskAttemptEventType> imp
   public TezTaskAttemptID getTaskAttemptID() {
     return attemptID;
   }
-  
+
   @Override
   public int getSerializingHash() {
     return attemptID.getTaskID().getSerializingHash();

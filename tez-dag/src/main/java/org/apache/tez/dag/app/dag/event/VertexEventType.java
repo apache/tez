@@ -28,37 +28,37 @@ public enum VertexEventType {
 
   //Producer:Job
   V_INIT,
-  
+
   //Producer:Vertex
   V_COMPLETED,
   V_START,
   V_SOURCE_TASK_ATTEMPT_COMPLETED,
   V_SOURCE_VERTEX_STARTED,
   V_DELETE_SHUFFLE_DATA,
-  
+
   //Producer:Task
   V_TASK_COMPLETED,
   V_TASK_RESCHEDULED,
   V_TASK_ATTEMPT_COMPLETED,
-  
+
   //Producer:Any component
   V_INTERNAL_ERROR,
   V_MANAGER_USER_CODE_ERROR,
-  
+
   V_ROUTE_EVENT,
-  
+
   //Producer: VertexInputInitializer
   V_ROOT_INPUT_INITIALIZED,
   V_ROOT_INPUT_FAILED,
-  
+
   V_INPUT_DATA_INFORMATION,
 
   // Recover Event, Producer:DAG
   V_RECOVER,
-  
+
   // Producer: Vertex
   V_READY_TO_INIT,
-  
+
   // Producer: Edge
   V_NULL_EDGE_INITIALIZED,
 

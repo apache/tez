@@ -23,7 +23,7 @@ import org.apache.hadoop.classification.InterfaceAudience.Public;
 /**
  * An @link {@link Output} which handles all outgoing physical connections on an
  * edge. A {@link LogicalIOProcessor} sees a single Logical Output per outgoing
- * edge. It's expected to hide the details of output partitioning and physical 
+ * edge. It's expected to hide the details of output partitioning and physical
  * outputs from the {@link Processor}
  * Users are expected to derive from {@link AbstractLogicalOutput}
  */

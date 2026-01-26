@@ -24,7 +24,7 @@ import java.util.LinkedList;
 import org.apache.hadoop.yarn.util.Clock;
 
 public class MockClock implements Clock {
-  
+
   long time;
   Collection<MockClockListener> listeners = new LinkedList<>();
 
@@ -40,7 +40,7 @@ public class MockClock implements Clock {
   public long getTime() {
     return time;
   }
-  
+
   public void incrementTime(long inc) {
     time += inc;
     for (MockClockListener listener : listeners) {

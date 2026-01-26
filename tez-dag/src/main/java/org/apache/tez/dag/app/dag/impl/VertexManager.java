@@ -100,7 +100,7 @@ public class VertexManager {
   final AppContext appContext;
   final BlockingQueue<TezEvent> rootInputInitEventQueue;
   final StateChangeNotifier stateChangeNotifier;
-  
+
   private final ListeningExecutorService execService;
   private final LinkedBlockingQueue<VertexManagerEvent> eventQueue;
   private final AtomicBoolean eventInFlight;
@@ -125,7 +125,7 @@ public class VertexManager {
         throw new TezUncheckedException("Cannot invoke context methods after throwing an exception");
       }
     }
-    
+
     @Override
     public synchronized Map<String, EdgeProperty> getInputVertexEdgeProperties() {
       checkAndThrowIfDone();
@@ -149,11 +149,11 @@ public class VertexManager {
       }
       return vertexEdgeMap;
     }
-    
+
     @Override
     public synchronized VertexStatistics getVertexStatistics(String vertexName) {
       checkAndThrowIfDone();
-      return appContext.getCurrentDAG().getVertex(vertexName).getStatistics();      
+      return appContext.getCurrentDAG().getVertex(vertexName).getStatistics();
     }
 
     @Override
@@ -180,7 +180,7 @@ public class VertexManager {
         throw new TezUncheckedException(e);
       }
     }
-    
+
     @Override
     public synchronized void reconfigureVertex(int parallelism, VertexLocationHint vertexLocationHint,
         Map<String, EdgeProperty> sourceEdgeProperties,
@@ -193,7 +193,7 @@ public class VertexManager {
         throw new TezUncheckedException(e);
       }
     }
-    
+
     @Override
     public synchronized void reconfigureVertex(int parallelism,
         @Nullable VertexLocationHint locationHint,
@@ -205,7 +205,7 @@ public class VertexManager {
         throw new TezUncheckedException(e);
       }
     }
-    
+
     @Override
     public void reconfigureVertex(@Nullable Map<String, InputSpecUpdate> rootInputSpecUpdate,
         @Nullable VertexLocationHint locationHint,
@@ -223,7 +223,7 @@ public class VertexManager {
       checkAndThrowIfDone();
       managedVertex.scheduleTasks(tasks);
     }
-    
+
     @Override
     public synchronized void scheduleVertexTasks(List<TaskWithLocationHint> tasks) {
       checkAndThrowIfDone();
@@ -365,7 +365,7 @@ public class VertexManager {
 
       }
     }
-    
+
     boolean isComplete() {
       return (isComplete.get() == true);
     }
@@ -404,7 +404,7 @@ public class VertexManager {
 
     @Override
     public void onStateUpdated(VertexStateUpdate event) {
-      // this is not called by the vertex manager plugin. 
+      // this is not called by the vertex manager plugin.
       // no need to synchronize this. similar to other external notification methods
       enqueueAndScheduleNextEvent(new VertexManagerEventOnVertexStateUpdate(event));
     }
@@ -424,7 +424,7 @@ public class VertexManager {
     this.stateChangeNotifier = stateChangeNotifier;
     // don't specify the size of rootInputInitEventQueue, otherwise it will fail when addAll
     this.rootInputInitEventQueue = new LinkedBlockingQueue<TezEvent>();
-    
+
     pluginContext = new VertexManagerPluginContextImpl();
     payload = pluginDesc.getUserPayload();
     pluginFailed = new AtomicBoolean(false);
@@ -451,7 +451,7 @@ public class VertexManager {
       throw new AMUserCodeException(Source.VertexManager, e);
     }
   }
-  
+
   private boolean pluginInvocationAllowed(String msg) {
     if (pluginFailed.get()) {
       if (LOG.isDebugEnabled()) {
@@ -467,7 +467,7 @@ public class VertexManager {
     }
     return true;
   }
-  
+
   private void enqueueAndScheduleNextEvent(VertexManagerEvent e) {
     if (!pluginInvocationAllowed("Dropping event")) {
       return;
@@ -475,7 +475,7 @@ public class VertexManager {
     eventQueue.add(e);
     tryScheduleNextEvent();
   }
-  
+
   private void tryScheduleNextEvent() {
     if (!pluginInvocationAllowed("Not scheduling")) {
       return;
@@ -491,10 +491,10 @@ public class VertexManager {
         ListenableFuture<Void> future = execService.submit(e);
         Futures.addCallback(future, e.getCallback(), GuavaShim.directExecutor());
       } else {
-        // This may happen. Lets say Callback succeeded on threadA. It set eventInFlight to false 
-        // and called tryScheduleNextEvent() and found queue not empty but got paused before it 
-        // could check eventInFlight.compareAndSet(). Another thread managed to dequeue the event 
-        // and schedule a callback. That callback succeeded and set eventInFlight to false, found 
+        // This may happen. Lets say Callback succeeded on threadA. It set eventInFlight to false
+        // and called tryScheduleNextEvent() and found queue not empty but got paused before it
+        // could check eventInFlight.compareAndSet(). Another thread managed to dequeue the event
+        // and schedule a callback. That callback succeeded and set eventInFlight to false, found
         // the queue empty and completed. Now threadA woke up and successfully did compareAndSet()
         // tried to dequeue an event and got null.
         // This could also happen if there is a bug and we manage to schedule for than 1 callback
@@ -552,7 +552,7 @@ public class VertexManager {
         sendInternalError(e);
       }
     }
-    
+
     @Override
     public void onSuccess(Void result) {
       try {
@@ -563,10 +563,10 @@ public class VertexManager {
         sendInternalError(e);
       }
     }
-    
+
     protected void onSuccessDerived(Void result) {
     }
-    
+
     private void sendInternalError(Exception e) {
       // fail the DAG so that we dont hang
       // state change must be triggered via an event transition
@@ -577,7 +577,7 @@ public class VertexManager {
               + ", error=" + ExceptionUtils.getStackTrace(e))));
     }
   }
-  
+
   private class VertexManagerRootInputInitializedCallback extends VertexManagerCallback {
 
     @Override
@@ -593,10 +593,10 @@ public class VertexManager {
           new VertexEventInputDataInformation(managedVertex.getVertexId(), resultEvents));
     }
   }
-  
+
   class VertexManagerEventOnVertexStateUpdate extends VertexManagerEvent {
     private final VertexStateUpdate event;
-    
+
     public VertexManagerEventOnVertexStateUpdate(VertexStateUpdate event) {
       this.event = event;
     }
@@ -605,56 +605,56 @@ public class VertexManager {
     public void invoke() throws Exception {
       plugin.onVertexStateUpdated(event);
     }
-    
+
   }
-  
+
   class VertexManagerEventOnVertexStarted extends VertexManagerEvent {
     private final List<TaskAttemptIdentifier> pluginCompletions;
 
     public VertexManagerEventOnVertexStarted(List<TaskAttemptIdentifier> pluginCompletions) {
       this.pluginCompletions = pluginCompletions;
     }
-    
+
     @Override
     public void invoke() throws Exception {
       plugin.onVertexStarted(pluginCompletions);
     }
-    
+
   }
-  
+
   class VertexManagerEventSourceTaskCompleted extends VertexManagerEvent {
     private final TaskAttemptIdentifier attempt;
-    
+
     public VertexManagerEventSourceTaskCompleted(TaskAttemptIdentifier attempt) {
       this.attempt = attempt;
     }
-    
+
     @Override
     public void invoke() throws Exception {
-      plugin.onSourceTaskCompleted(attempt);      
+      plugin.onSourceTaskCompleted(attempt);
     }
-    
+
   }
-  
+
   class VertexManagerEventReceived extends VertexManagerEvent {
     private final org.apache.tez.runtime.api.events.VertexManagerEvent vmEvent;
-    
+
     public VertexManagerEventReceived(org.apache.tez.runtime.api.events.VertexManagerEvent vmEvent) {
       this.vmEvent = vmEvent;
     }
-    
+
     @Override
     public void invoke() throws Exception {
       plugin.onVertexManagerEventReceived(vmEvent);
     }
-    
+
   }
-  
+
   class VertexManagerEventRootInputInitialized extends VertexManagerEvent {
     private final String inputName;
     private final InputDescriptor inputDescriptor;
     private final List<Event> events;
-    
+
     public VertexManagerEventRootInputInitialized(String inputName,
         InputDescriptor inputDescriptor, List<Event> events) {
       super(new VertexManagerRootInputInitializedCallback());
@@ -669,7 +669,7 @@ public class VertexManager {
     }
 
   }
-  
+
   abstract class VertexManagerEvent extends CallableEvent {
     public VertexManagerEvent() {
       this(VM_CALLBACK);

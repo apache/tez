@@ -44,7 +44,7 @@ import com.google.common.collect.Lists;
 @InterfaceStability.Evolving
 /**
  * Configure {@link org.apache.tez.runtime.library.output.OrderedPartitionedKVOutput} </p>
- * 
+ *
  * Values will be picked up from tez-site if not specified, otherwise defaults from
  * {@link org.apache.tez.runtime.library.api.TezRuntimeConfiguration} will be used.
  */

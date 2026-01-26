@@ -64,7 +64,7 @@ public class JobContextImpl implements JobContext {
   public JobContextImpl(Configuration conf, TezDAGID dagId) {
     this(conf, dagId, MRTaskReporter.NULL);
   }
-  
+
   public JobContextImpl(Configuration conf, TezDAGID dagId, Progressable progress) {
     if (conf instanceof JobConf) {
       this.conf = (JobConf)conf;
@@ -91,26 +91,26 @@ public class JobContextImpl implements JobContext {
   public JobID getJobID() {
     return IDConverter.toMRJobId(dagId);
   }
-  
+
   /**
    * Set the JobID.
    */
   public void setJobID(JobID jobId) {
     this.dagId = IDConverter.fromMRJobId(jobId);
   }
-  
+
   /**
-   * Get configured the number of reduce tasks for this job. Defaults to 
+   * Get configured the number of reduce tasks for this job. Defaults to
    * <code>1</code>.
    * @return the number of reduce tasks for this job.
    */
   public int getNumReduceTasks() {
     return conf.getNumReduceTasks();
   }
-  
+
   /**
    * Get the current working directory for the default file system.
-   * 
+   *
    * @return the directory name.
    */
   public Path getWorkingDirectory() throws IOException {
@@ -124,7 +124,7 @@ public class JobContextImpl implements JobContext {
   public Class<?> getOutputKeyClass() {
     return conf.getOutputKeyClass();
   }
-  
+
   /**
    * Get the value class for job outputs.
    * @return the value class for job outputs.
@@ -147,7 +147,7 @@ public class JobContextImpl implements JobContext {
    * Get the value class for the map output data. If it is not set, use the
    * (final) output value class This allows the map output value class to be
    * different than the final output value class.
-   *  
+   *
    * @return the map output value class.
    */
   public Class<?> getMapOutputValueClass() {
@@ -155,9 +155,9 @@ public class JobContextImpl implements JobContext {
   }
 
   /**
-   * Get the user-specified job name. This is only used to identify the 
+   * Get the user-specified job name. This is only used to identify the
    * job to the user.
-   * 
+   *
    * @return the job's name, defaulting to "".
    */
   public String getJobName() {
@@ -166,79 +166,79 @@ public class JobContextImpl implements JobContext {
 
   /**
    * Get the {@link InputFormat} class for the job.
-   * 
+   *
    * @return the {@link InputFormat} class for the job.
    */
   @SuppressWarnings("unchecked")
-  public Class<? extends InputFormat<?,?>> getInputFormatClass() 
+  public Class<? extends InputFormat<?,?>> getInputFormatClass()
      throws ClassNotFoundException {
-    return (Class<? extends InputFormat<?,?>>) 
+    return (Class<? extends InputFormat<?,?>>)
       conf.getClass(INPUT_FORMAT_CLASS_ATTR, TextInputFormat.class);
   }
 
   /**
    * Get the {@link Mapper} class for the job.
-   * 
+   *
    * @return the {@link Mapper} class for the job.
    */
   @SuppressWarnings("unchecked")
-  public Class<? extends Mapper<?,?,?,?>> getMapperClass() 
+  public Class<? extends Mapper<?,?,?,?>> getMapperClass()
      throws ClassNotFoundException {
-    return (Class<? extends Mapper<?,?,?,?>>) 
+    return (Class<? extends Mapper<?,?,?,?>>)
       conf.getClass(MAP_CLASS_ATTR, Mapper.class);
   }
 
   /**
    * Get the combiner class for the job.
-   * 
+   *
    * @return the combiner class for the job.
    */
   @SuppressWarnings("unchecked")
-  public Class<? extends Reducer<?,?,?,?>> getCombinerClass() 
+  public Class<? extends Reducer<?,?,?,?>> getCombinerClass()
      throws ClassNotFoundException {
-    return (Class<? extends Reducer<?,?,?,?>>) 
+    return (Class<? extends Reducer<?,?,?,?>>)
       conf.getClass(COMBINE_CLASS_ATTR, null);
   }
 
   /**
    * Get the {@link Reducer} class for the job.
-   * 
+   *
    * @return the {@link Reducer} class for the job.
    */
   @SuppressWarnings("unchecked")
-  public Class<? extends Reducer<?,?,?,?>> getReducerClass() 
+  public Class<? extends Reducer<?,?,?,?>> getReducerClass()
      throws ClassNotFoundException {
-    return (Class<? extends Reducer<?,?,?,?>>) 
+    return (Class<? extends Reducer<?,?,?,?>>)
       conf.getClass(REDUCE_CLASS_ATTR, Reducer.class);
   }
 
   /**
    * Get the {@link OutputFormat} class for the job.
-   * 
+   *
    * @return the {@link OutputFormat} class for the job.
    */
   @SuppressWarnings("unchecked")
-  public Class<? extends OutputFormat<?,?>> getOutputFormatClass() 
+  public Class<? extends OutputFormat<?,?>> getOutputFormatClass()
      throws ClassNotFoundException {
-    return (Class<? extends OutputFormat<?,?>>) 
+    return (Class<? extends OutputFormat<?,?>>)
       conf.getClass(OUTPUT_FORMAT_CLASS_ATTR, TextOutputFormat.class);
   }
 
   /**
    * Get the {@link Partitioner} class for the job.
-   * 
+   *
    * @return the {@link Partitioner} class for the job.
    */
   @SuppressWarnings("unchecked")
-  public Class<? extends Partitioner<?,?>> getPartitionerClass() 
+  public Class<? extends Partitioner<?,?>> getPartitionerClass()
      throws ClassNotFoundException {
-    return (Class<? extends Partitioner<?,?>>) 
+    return (Class<? extends Partitioner<?,?>>)
       conf.getClass(PARTITIONER_CLASS_ATTR, HashPartitioner.class);
   }
 
   /**
    * Get the {@link RawComparator} comparator used to compare keys.
-   * 
+   *
    * @return the {@link RawComparator} comparator used to compare keys.
    */
   public RawComparator<?> getSortComparator() {
@@ -264,44 +264,44 @@ public class JobContextImpl implements JobContext {
     return getSortComparator();
   }
 
-  /** 
-   * Get the user defined {@link RawComparator} comparator for 
+  /**
+   * Get the user defined {@link RawComparator} comparator for
    * grouping keys of inputs to the reduce.
-   * 
+   *
    * @return comparator set by the user for grouping values.
-   * @see Job#setGroupingComparatorClass(Class) for details.  
+   * @see Job#setGroupingComparatorClass(Class) for details.
    */
   public RawComparator<?> getGroupingComparator() {
     return conf.getOutputValueGroupingComparator();
   }
-  
+
   /**
-   * Get whether job-setup and job-cleanup is needed for the job 
-   * 
-   * @return boolean 
+   * Get whether job-setup and job-cleanup is needed for the job
+   *
+   * @return boolean
    */
   public boolean getJobSetupCleanupNeeded() {
     return conf.getBoolean(MRJobConfig.SETUP_CLEANUP_NEEDED, true);
   }
-  
+
   /**
-   * Get whether task-cleanup is needed for the job 
-   * 
-   * @return boolean 
+   * Get whether task-cleanup is needed for the job
+   *
+   * @return boolean
    */
   public boolean getTaskCleanupNeeded() {
     return conf.getBoolean(MRJobConfig.TASK_CLEANUP_NEEDED, true);
   }
 
   /**
-   * This method checks to see if symlinks are to be create for the 
-   * localized cache files in the current working directory 
+   * This method checks to see if symlinks are to be create for the
+   * localized cache files in the current working directory
    * @return true if symlinks are to be created- else return false
    */
   public boolean getSymlink() {
     return DistributedCache.getSymlink(conf);
   }
-  
+
   /**
    * Get the archive entries in classpath as an array of Path
    */
@@ -357,7 +357,7 @@ public class JobContextImpl implements JobContext {
 
   /**
    * Parse a list of longs into strings.
-   * 
+   *
    * @param timestamps
    *          the list of longs to parse
    * @return a list of string that were parsed. same length as timestamps.
@@ -376,7 +376,7 @@ public class JobContextImpl implements JobContext {
   /**
    * Get the timestamps of the archives.  Used by internal
    * DistributedCache and MapReduce code.
-   * @return a string array of timestamps 
+   * @return a string array of timestamps
    * @throws IOException
    */
   public String[] getArchiveTimestamps() {
@@ -386,29 +386,29 @@ public class JobContextImpl implements JobContext {
   /**
    * Get the timestamps of the files.  Used by internal
    * DistributedCache and MapReduce code.
-   * @return a string array of timestamps 
+   * @return a string array of timestamps
    * @throws IOException
    */
   public String[] getFileTimestamps() {
     return toTimestampStrs(DistributedCache.getFileTimestamps(conf));
   }
 
-  /** 
+  /**
    * Get the configured number of maximum attempts that will be made to run a
    * map task, as specified by the <code>mapred.map.max.attempts</code>
    * property. If this property is not already set, the default is 4 attempts.
-   *  
+   *
    * @return the max number of attempts per map task.
    */
   public int getMaxMapAttempts() {
     return conf.getMaxMapAttempts();
   }
 
-  /** 
+  /**
    * Get the configured number of maximum attempts  that will be made to run a
    * reduce task, as specified by the <code>mapred.reduce.max.attempts</code>
    * property. If this property is not already set, the default is 4 attempts.
-   * 
+   *
    * @return the max number of attempts per reduce task.
    */
   public int getMaxReduceAttempts() {
@@ -428,7 +428,7 @@ public class JobContextImpl implements JobContext {
    *
    * The default value for this property is
    * "-agentlib:hprof=cpu=samples,heap=sites,force=n,thread=y,verbose=n,file=%s"
-   * 
+   *
    * @return the parameters to pass to the task child to configure profiling
    */
   public String getProfileParams() {
@@ -446,7 +446,7 @@ public class JobContextImpl implements JobContext {
 
   /**
    * Get the reported username for this job.
-   * 
+   *
    * @return the username
    */
   public String getUser() {
@@ -466,5 +466,5 @@ public class JobContextImpl implements JobContext {
   public Progressable getProgressible() {
     return progress;
   }
-  
+
 }

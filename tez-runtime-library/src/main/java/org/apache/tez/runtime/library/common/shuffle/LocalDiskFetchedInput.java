@@ -91,7 +91,7 @@ public class LocalDiskFetchedInput extends FetchedInput {
       notifyFetchFailure();
     }
   }
-  
+
   @Override
   public void free() {
     Preconditions.checkState(

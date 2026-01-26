@@ -32,7 +32,7 @@ import org.apache.tez.dag.api.Vertex;
 
 /**
  * Simple Test DAG with 3 vertices using TestProcessor/TestInput/TestOutput.
- * 
+ *
  * v1
  * |
  * v2
@@ -47,8 +47,8 @@ public final class SimpleTestDAG3Vertices {
   public static int TEZ_SIMPLE_DAG_NUM_TASKS_DEFAULT = 2;
 
   private SimpleTestDAG3Vertices() {}
-  
-  public static DAG createDAG(String name, 
+
+  public static DAG createDAG(String name,
       Configuration conf) throws Exception {
     UserPayload payload = null;
     int taskCount = TEZ_SIMPLE_DAG_NUM_TASKS_DEFAULT;
@@ -74,7 +74,7 @@ public final class SimpleTestDAG3Vertices {
             TestInput.getInputDesc(payload))));
     return dag;
   }
-  
+
   public static DAG createDAG(Configuration conf) throws Exception {
     return createDAG("SimpleTestDAG3Vertices", conf);
   }

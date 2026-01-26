@@ -846,7 +846,7 @@ public class TestMergeManager {
     assertEquals(m1Prefix, m2Prefix);
     assertNotEquals(m1Prefix, m3Prefix);
     assertNotEquals(m2Prefix, m3Prefix);
-    
+
     verify(inputContext, atLeastOnce()).notifyProgress();
 
   }

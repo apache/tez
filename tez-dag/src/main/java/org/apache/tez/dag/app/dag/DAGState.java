@@ -24,7 +24,7 @@ public enum DAGState {
   SUCCEEDED,
   FAILED,
   KILLED,
-  ERROR, 
+  ERROR,
   TERMINATING,
   COMMITTING,
 }

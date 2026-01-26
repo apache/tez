@@ -25,7 +25,7 @@ import org.junit.Assert;
 import org.junit.Test;
 
 public class TestInputIdentifiers {
-  
+
   @Test(timeout = 5000)
   public void testInputAttemptIdentifier() {
     Set<InputAttemptIdentifier> set = new HashSet<InputAttemptIdentifier>();
@@ -33,7 +33,7 @@ public class TestInputIdentifiers {
     InputAttemptIdentifier i2 = new InputAttemptIdentifier(1, 1, null);
     InputAttemptIdentifier i3 = new InputAttemptIdentifier(1, 0, null);
     InputAttemptIdentifier i4 = new InputAttemptIdentifier(0, 1, null);
-    
+
     Assert.assertTrue(set.add(i1));
     Assert.assertFalse(set.add(i1));
     Assert.assertFalse(set.add(i2));

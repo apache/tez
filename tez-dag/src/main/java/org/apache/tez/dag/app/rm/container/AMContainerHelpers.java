@@ -102,12 +102,12 @@ public final class AMContainerHelpers {
     Map<String, ByteBuffer> serviceData = new HashMap<>();
 
     // Tokens
-    
+
     // Setup up task credentials buffer
     ByteBuffer containerCredentialsBuffer;
     try {
       Credentials containerCredentials = new Credentials();
-      
+
       // All Credentials need to be set so that YARN can localize the resources
       // correctly, even though they may not be used by all tasks which will run
       // on this container.

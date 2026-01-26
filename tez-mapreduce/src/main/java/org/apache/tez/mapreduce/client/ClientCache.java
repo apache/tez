@@ -29,7 +29,7 @@ public class ClientCache {
   private final Configuration conf;
   private final ResourceMgrDelegate rm;
 
-  private Map<JobID, ClientServiceDelegate> cache = 
+  private Map<JobID, ClientServiceDelegate> cache =
       new HashMap<JobID, ClientServiceDelegate>();
 
   public ClientCache(Configuration conf, ResourceMgrDelegate rm) {

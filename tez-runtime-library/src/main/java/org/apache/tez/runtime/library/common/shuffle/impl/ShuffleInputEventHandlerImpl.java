@@ -57,7 +57,7 @@ import org.slf4j.LoggerFactory;
 public class ShuffleInputEventHandlerImpl implements ShuffleEventHandler {
 
   private static final Logger LOG = LoggerFactory.getLogger(ShuffleInputEventHandlerImpl.class);
-  
+
   private final ShuffleManager shuffleManager;
   //TODO: unused. Consider removing later?
   private final FetchedInputAllocator inputAllocator;
@@ -97,7 +97,7 @@ public class ShuffleInputEventHandlerImpl implements ShuffleEventHandler {
       handleEvent(event);
     }
   }
-  
+
   private void handleEvent(Event event) throws IOException {
     if (event instanceof DataMovementEvent) {
       numDmeEvents.incrementAndGet();

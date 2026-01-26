@@ -138,7 +138,7 @@ public class LogicalIOProcessorRuntimeTask extends RuntimeTask {
   /** Maps which will be provided to the processor run method */
   final LinkedHashMap<String, LogicalInput> runInputMap;
   final LinkedHashMap<String, LogicalOutput> runOutputMap;
-  
+
   private final Map<String, ByteBuffer> serviceConsumerMetadata;
   private final Map<String, String> envMap;
 
@@ -153,7 +153,7 @@ public class LogicalIOProcessorRuntimeTask extends RuntimeTask {
   private final int appAttemptNumber;
 
   private volatile InputReadyTracker inputReadyTracker;
-  
+
   private volatile ObjectRegistry objectRegistry;
   private final ExecutionContext ExecutionContext;
   private final long memAvailable;
@@ -981,7 +981,7 @@ public class LogicalIOProcessorRuntimeTask extends RuntimeTask {
     inputContextMap.clear();
     outputContextMap.clear();
 
-    // only clean up objects in non-local mode, because local mode share the same 
+    // only clean up objects in non-local mode, because local mode share the same
     // taskSpec in AM rather than getting it through RPC in non-local mode
     /** Put other objects here when they are shared between AM & TezChild in local mode **/
     if (!tezConf.getBoolean(TezConfiguration.TEZ_LOCAL_MODE, TezConfiguration.TEZ_LOCAL_MODE_DEFAULT)) {
@@ -1025,13 +1025,13 @@ public class LogicalIOProcessorRuntimeTask extends RuntimeTask {
       }
     }
   }
-  
+
   @Private
   @VisibleForTesting
   public Collection<InputContext> getInputContexts() {
     return this.inputContextMap.values();
   }
-  
+
   @Private
   @VisibleForTesting
   public Collection<OutputContext> getOutputContexts() {
@@ -1043,7 +1043,7 @@ public class LogicalIOProcessorRuntimeTask extends RuntimeTask {
   public ProcessorContext getProcessorContext() {
     return this.processorContext;
   }
-  
+
   @Private
   @VisibleForTesting
   public LogicalIOProcessor getProcessor() {

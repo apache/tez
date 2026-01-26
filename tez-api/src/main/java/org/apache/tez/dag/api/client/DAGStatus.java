@@ -174,8 +174,8 @@ public class DAGStatus {
           && getDiagnostics().equals(other.getDiagnostics())
           && getDAGProgress().equals(other.getDAGProgress())
           && getVertexProgress().equals(other.getVertexProgress())
-          && 
-          ((getDAGCounters() == null && other.getDAGCounters() == null) 
+          &&
+          ((getDAGCounters() == null && other.getDAGCounters() == null)
             || getDAGCounters().equals(other.getDAGCounters()));
     }
     return false;
