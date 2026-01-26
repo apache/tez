@@ -39,7 +39,7 @@ import java.util.Map;
 import java.util.Random;
 import java.util.Set;
 
-import org.apache.commons.lang.mutable.MutableInt;
+import org.apache.commons.lang3.mutable.MutableInt;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.fs.FileSystem;
 import org.apache.hadoop.fs.Path;
@@ -915,7 +915,9 @@ public class TestGroupedSplits {
       int nodeId = Character.getNumericValue(loc.charAt(loc.length() - 1));
       assertTrue(nodeId < 4);
       assertTrue(loc.startsWith("node") && loc.length() == 5);
-      assertEquals(2, entry.getValue().getValue());
+      // commons-lang2.x MutableInt returns Object
+      // commons-lang3.x MutableInt returns Integer
+      assertEquals(2, entry.getValue().getValue().intValue());
     }
   }
 

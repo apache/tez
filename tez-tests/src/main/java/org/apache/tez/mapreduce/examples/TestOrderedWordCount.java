@@ -28,7 +28,7 @@ import java.util.StringTokenizer;
 import java.util.TreeMap;
 
 import org.apache.commons.cli.ParseException;
-import org.apache.commons.lang.RandomStringUtils;
+import org.apache.commons.lang3.RandomStringUtils;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.conf.Configured;
 import org.apache.hadoop.fs.CommonConfigurationKeys;

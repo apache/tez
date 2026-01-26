@@ -28,7 +28,7 @@ import java.io.PrintWriter;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 
-import org.apache.commons.lang.StringEscapeUtils;
+import org.apache.commons.lang3.StringEscapeUtils;
 import org.apache.tez.tools.javadoc.model.Config;
 import org.apache.tez.tools.javadoc.model.ConfigProperty;
 
