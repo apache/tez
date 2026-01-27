@@ -34,6 +34,11 @@
     </property>
 
     <property>
+        <name>tez.am.tez-ui.webservice.enable</name>
+        <value>false</value>
+    </property>
+
+    <property>
         <name>tez.am.zookeeper.quorum</name>
         <value>host.docker.internal:2181</value>
     </property>

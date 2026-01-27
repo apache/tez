@@ -79,7 +79,7 @@ RUN chmod +x /entrypoint.sh
 USER tez
 WORKDIR $TEZ_HOME
 
-# Expose AM RPC Ports
-EXPOSE 10001 10002 10003 8042 2181
+# Expose AM ports via -p flag in docker command
+# EXPOSE 10001 10002 10003 8042
 
 ENTRYPOINT ["/entrypoint.sh"]

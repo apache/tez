@@ -18,33 +18,36 @@
 
 set -xeou pipefail
 
- #######################
- # 1. PLUGIN EXTENSION #
- #######################
-# The directory /opt/tez/plugins is intended to be a volume mount point.
-# If custom jars are present, we add them to classpath.
+################################################
+# 1. Mocking DAGAppMaster#main() env variables #
+################################################
 
-PLUGIN_DIR="/opt/tez/plugins"
-PLUGIN_CLASSPATH=""
+export CONTAINER_ID=${CONTAINER_ID:-"container_1700000000000_0001_01_000001"}
+export USER=${USER:-"tez"}
+export HADOOP_USER_NAME=${HADOOP_USER_NAME:-"tez"}
 
-if [ -d "$PLUGIN_DIR" ]; then
-    count=$(find "$PLUGIN_DIR" -maxdepth 1 -name "*.jar" 2>/dev/null | wc -l)
-    if [ "$count" != "0" ]; then
-        echo "--> Found $count custom jars in $PLUGIN_DIR. Adding to classpath..."
-        PLUGIN_CLASSPATH="$PLUGIN_DIR/*"
-    else
-        echo "--> Plugin directory exists but contains no jars."
-    fi
+export NM_HOST=${NM_HOST:-"localhost"}
+export NM_PORT=${NM_PORT:-"12345"}
+export NM_HTTP_PORT=${NM_HTTP_PORT:-"8042"}
+
+export LOCAL_DIRS=${LOCAL_DIRS:-"/tmp"}
+export LOG_DIRS=${LOG_DIRS:-"/opt/tez/logs"}
+export APP_SUBMIT_TIME_ENV=${APP_SUBMIT_TIME_ENV:-$(($(date +%s) * 1000))}
+
+export TEZ_AM_EXTERNAL_ID=${TEZ_AM_EXTERNAL_ID:-"tez-session-$(hostname)"}
+
+if [ ! -f "tez-conf.pb" ]; then
+    touch "tez-conf.pb"
+    echo "--> Created dummy tez-conf.pb"
 fi
 
-# =========================================================================
-# 2. CONFIGURATION HANDLING
-# =========================================================================
-# 1. Custom Conf Dir: If mounted, symlink it to use it directly.
-# 2. Templates: If not custom, use envsubst to generate configs from ENV.
+ mkdir -p "$LOG_DIRS"
 
-# Point HADOOP_CONF_DIR to TEZ_CONF_DIR, we need to populate it
-# with defaults from the Hadoop installation if they aren't provided by the user.
+##########################
+# CONFIGURATION HANDLING #
+##########################
+
+# Symlink hadoop conf in tez conf dir
 if [ -d "$HADOOP_HOME/etc/hadoop" ]; then
     echo "--> Linking missing Hadoop configs to $TEZ_CONF_DIR..."
     for f in "$HADOOP_HOME/etc/hadoop"/*; do
@@ -63,76 +66,38 @@ fi
 if [ -n "${TEZ_CUSTOM_CONF_DIR:-}" ] && [ -d "$TEZ_CUSTOM_CONF_DIR" ]; then
     echo "--> Using custom configuration directory: $TEZ_CUSTOM_CONF_DIR"
     find "${TEZ_CUSTOM_CONF_DIR}" -type f -exec \
-        ln -sfn {} "${TEZ_CONF_DIR}"/ \;
-else
-    echo "--> Generating configuration from templates..."
-    # Set defaults for template variables if not provided
-    export TEZ_AM_RPC_PORT=${TEZ_AM_RPC_PORT:-10001}
-    export TEZ_AM_RESOURCE_MEMORY=${TEZ_AM_RESOURCE_MEMORY:-1024}
+        ln -sf {} "${TEZ_CONF_DIR}"/ \;
 
-    # Process templates
+    # Remove template keyword if it exist
     if [ -f "$TEZ_CONF_DIR/tez-site.xml.template" ]; then
         envsubst < "$TEZ_CONF_DIR/tez-site.xml.template" > "$TEZ_CONF_DIR/tez-site.xml"
     fi
 fi
 
 
-####################
-# Find TEZ DAG JAR #
-####################
-TEZ_DAG_JAR=$(find "$TEZ_HOME" -maxdepth 1 -name "tez-dag-*.jar" ! -name "*-tests.jar" | head -n 1)
-
-if [ -z "$TEZ_DAG_JAR" ]; then
-    echo "Error: Could not find tez-dag-*.jar in $TEZ_HOME"
-    ls -l "$TEZ_HOME"
-    exit 1
-fi
-
-##############################################
-# YARN ENVIRONMENT SIMULATION () #
-##############################################
-export APP_SUBMIT_TIME_ENV=${APP_SUBMIT_TIME_ENV:-$(($(date +%s) * 1000))}
-
-# 2. Container ID
-export CONTAINER_ID=${CONTAINER_ID:-"container_1700000000000_0001_01_000001"}
-
-# 3. NodeManager Details
-export NM_HOST=${NM_HOST:-"localhost"}
-export NM_PORT=${NM_PORT:-"12345"}
-export NM_HTTP_PORT=${NM_HTTP_PORT:-"8042"}
-export LOCAL_DIRS=${LOCAL_DIRS:-"/tmp"}
-export LOG_DIRS=${LOG_DIRS:-"/opt/tez/logs"}
-
-# 4. User Identity
-export HADOOP_USER_NAME=${HADOOP_USER_NAME:-"tez"}
-export USER=${HADOOP_USER_NAME}
-
-export TEZ_AM_EXTERNAL_ID=${TEZ_AM_EXTERNAL_ID:-"tez-session-$(hostname)"}
-
-echo "--> Mocked YARN Environment:"
-echo "    APP_SUBMIT_TIME_ENV: $APP_SUBMIT_TIME_ENV"
-echo "    CONTAINER_ID:        $CONTAINER_ID"
-echo "    USER:                $USER"
-
-mkdir -p "$LOG_DIRS"
-
-if [ ! -f "tez-conf.pb" ]; then
-    touch "tez-conf.pb"
-    echo "--> Created dummy tez-conf.pb"
-fi
-
 #############
-# EXECUTION #
+# CLASSPATH #
 #############
-
-CLASSPATH="${TEZ_CONF_DIR}:${TEZ_HOME}/*:${TEZ_HOME}/lib/*"
-
-if [ -n "$PLUGIN_CLASSPATH" ]; then
-    CLASSPATH="${CLASSPATH}:${PLUGIN_CLASSPATH}"
-fi
 
 export HADOOP_USER_CLASSPATH_FIRST=true
+# Order is: conf -> plugins -> tez jars -> hadoop jars
+CLASSPATH="${TEZ_CONF_DIR}"
 
+# Custom Plugins
+# This allows mounting a volume at /opt/tez/plugins containing aux jars
+PLUGIN_DIR="/opt/tez/plugins"
+if [ -d "$PLUGIN_DIR" ]; then
+    count=$(find "$PLUGIN_DIR" -maxdepth 1 -name "*.jar" 2>/dev/null | wc -l)
+    if [ "$count" != "0" ]; then
+        echo "--> Found $count plugin jars. Prepending to classpath."
+        CLASSPATH="${CLASSPATH}:${PLUGIN_DIR}/*"
+    fi
+fi
+
+# Tez Jars
+CLASSPATH="${CLASSPATH}:${TEZ_HOME}/*:${TEZ_HOME}/lib/*"
+
+# Hadoop Jars
 CLASSPATH="${CLASSPATH}:${HADOOP_HOME}/share/hadoop/common/*"
 CLASSPATH="${CLASSPATH}:${HADOOP_HOME}/share/hadoop/common/lib/*"
 CLASSPATH="${CLASSPATH}:${HADOOP_HOME}/share/hadoop/hdfs/*"
@@ -142,18 +107,36 @@ CLASSPATH="${CLASSPATH}:${HADOOP_HOME}/share/hadoop/yarn/lib/*"
 CLASSPATH="${CLASSPATH}:${HADOOP_HOME}/share/hadoop/mapreduce/*"
 CLASSPATH="${CLASSPATH}:${HADOOP_HOME}/share/hadoop/mapreduce/lib/*"
 
-echo "--> Starting DAGAppMaster with JAR: $TEZ_DAG_JAR"
+#############
+# Execution #
+#############
+TEZ_DAG_JAR=$(find "$TEZ_HOME" -maxdepth 1 -name "tez-dag-*.jar" ! -name "*-tests.jar" | head -n 1)
+
+if [ -z "$TEZ_DAG_JAR" ]; then
+    echo "Error: Could not find tez-dag-*.jar in $TEZ_HOME"
+    exit 1
+fi
+
+echo "--> Starting DAGAppMaster..."
 echo "--> HADOOP_CONF_DIR: $HADOOP_CONF_DIR"
 
-exec java \
-    --add-opens java.base/java.lang=ALL-UNNAMED \
+# Check for Log4j2 Configuration
+JAVA_OPTS="${JAVA_OPTS:-"-Xmx1024m"}"
+LOG4J2_FILE="$TEZ_CONF_DIR/log4j2.properties"
+if [ -f "$LOG4J2_FILE" ]; then
+    echo "--> [TEZ-AM] Found Log4j2 configuration: $LOG4J2_FILE"
+    JAVA_OPTS="$JAVA_OPTS -Dlog4j.configurationFile=file:$LOG4J2_FILE"
+fi
+
+JAVA_ADD_OPENS="--add-opens java.base/java.lang=ALL-UNNAMED \
     --add-opens java.base/java.util=ALL-UNNAMED \
     --add-opens java.base/java.lang.reflect=ALL-UNNAMED \
     --add-opens java.base/java.text=ALL-UNNAMED \
     --add-opens java.base/java.nio=ALL-UNNAMED \
     --add-opens java.base/sun.nio.ch=ALL-UNNAMED \
-    --add-opens java.base/java.util.concurrent=ALL-UNNAMED \
-    --add-opens java.base/java.util.concurrent.atomic=ALL-UNNAMED \
+    --add-opens java.base/java.util.concurrent=ALL-UNNAMED"
+
+exec java $JAVA_OPTS $JAVA_ADD_OPENS \
     -Duser.name="$HADOOP_USER_NAME" \
     -Djava.library.path="$HADOOP_HOME/lib/native" \
     -Dhadoop.home.dir="$HADOOP_HOME" \
