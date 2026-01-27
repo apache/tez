@@ -19,6 +19,7 @@
 package org.apache.tez.dag.app;
 
 
+import static org.apache.tez.frameworkplugins.FrameworkMode.STANDALONE_ZOOKEEPER;
 
 import java.io.File;
 import java.io.FileInputStream;
@@ -2429,7 +2430,10 @@ public class DAGAppMaster extends AbstractService {
       Objects.requireNonNull(appSubmitTimeStr,
           ApplicationConstants.APP_SUBMIT_TIME_ENV + " is null");
 
-      Configuration conf = new Configuration();
+      Configuration conf =
+          STANDALONE_ZOOKEEPER.name().equals(System.getenv(TezConstants.TEZ_FRAMEWORK_MODE))
+              ? new TezConfiguration()
+              : new Configuration();
 
       AMExtensions amExtensions = getFrameworkService(conf).getAMExtensions();
       DAGProtos.ConfigurationProto confProto = amExtensions.loadConfigurationProto();
