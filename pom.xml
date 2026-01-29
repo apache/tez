@@ -74,6 +74,7 @@
     <dependency-maven-plugin.version>3.8.1</dependency-maven-plugin.version>
     <spotbugs.version>4.9.3</spotbugs.version>
     <spotbugs-maven-plugin.version>4.9.3.0</spotbugs-maven-plugin.version>
+    <spotbugs.plexus-velocity.version>2.3.0</spotbugs.plexus-velocity.version>
     <frontend-maven-plugin.version>1.15.0</frontend-maven-plugin.version>
     <guava.version>32.0.1-jre</guava.version>
     <hadoop.version>3.4.2</hadoop.version>
@@ -1011,6 +1012,12 @@
               <groupId>com.github.spotbugs</groupId>
               <artifactId>spotbugs</artifactId>
               <version>${spotbugs.version}</version>
+            </dependency>
+            <!-- Upgraded plexus-velocity is required by spotbugs since TEZ-4669 -->
+            <dependency>
+              <groupId>org.codehaus.plexus</groupId>
+              <artifactId>plexus-velocity</artifactId>
+              <version>${spotbugs.plexus-velocity.version}</version>
             </dependency>
           </dependencies>
           <configuration>
