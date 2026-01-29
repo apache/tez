@@ -252,8 +252,8 @@ prebuildWithoutPatch () {
   echo ""
   echo ""
   echo "Compiling $(pwd)"
-  echo "$MVN clean test -DskipTests -Ptest-patch > $PATCH_DIR/masterJavacWarnings.txt 2>&1"
-  $MVN clean test -DskipTests -Ptest-patch > $PATCH_DIR/masterJavacWarnings.txt 2>&1
+  echo "$MVN clean -T2C test -DskipTests -Ptest-patch > $PATCH_DIR/masterJavacWarnings.txt 2>&1"
+  $MVN clean -T2C test -DskipTests -Ptest-patch > $PATCH_DIR/masterJavacWarnings.txt 2>&1
   if [[ $? != 0 ]] ; then
     echo "master compilation is broken?"
     JIRA_COMMENT="$JIRA_COMMENT
@@ -518,8 +518,8 @@ buildAndInstall () {
   echo "======================================================================"
   echo ""
   echo ""
-  echo "$MVN install -Dmaven.javadoc.skip=true -DskipTests -D${PROJECT_NAME}PatchProcess"
-  $MVN install -Dmaven.javadoc.skip=true -DskipTests -D${PROJECT_NAME}PatchProcess
+  echo "$MVN install -T2C -Dmaven.javadoc.skip=true -DskipTests -D${PROJECT_NAME}PatchProcess"
+  $MVN install -T2C -Dmaven.javadoc.skip=true -DskipTests -D${PROJECT_NAME}PatchProcess
   return $?
 }
 
