@@ -90,7 +90,7 @@ public class ImmediateStartVertexManager extends VertexManagerPlugin {
     if (!canScheduleTasks()) {
       return;
     }
-    
+
     tasksScheduled = true;
     List<ScheduleTaskRequest> tasksToStart = Lists.newArrayListWithCapacity(managedTasks);
     for (int i = 0; i < managedTasks; ++i) {
@@ -119,7 +119,7 @@ public class ImmediateStartVertexManager extends VertexManagerPlugin {
 
     return true;
   }
-  
+
   @Override
   public void onVertexStateUpdated(VertexStateUpdate stateUpdate) {
     Preconditions.checkArgument(stateUpdate.getVertexState() == VertexState.CONFIGURED,

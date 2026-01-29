@@ -79,7 +79,7 @@ import org.apache.tez.serviceplugins.api.ServicePluginsDescriptor;
 import org.junit.Assert;
 import org.junit.Test;
 /**
- * 
+ *
  */
 public class TestTezClientUtils {
   private static String TEST_ROOT_DIR = "target" + Path.SEPARATOR
@@ -87,7 +87,7 @@ public class TestTezClientUtils {
   private static final File STAGING_DIR = new File(System.getProperty("test.build.data", "target"),
       TestTezClientUtils.class.getName()).getAbsoluteFile();
   /**
-   * 
+   *
    */
   @Test (timeout=5000)
   public void validateSetTezJarLocalResourcesNotDefined() throws Exception {
@@ -121,7 +121,7 @@ public class TestTezClientUtils {
   }
 
   /**
-   * 
+   *
    */
   @Test(expected=FileNotFoundException.class, timeout=5000)
   public void validateSetTezJarLocalResourcesDefinedNonExistingDirectory() throws Exception {
@@ -181,7 +181,7 @@ public class TestTezClientUtils {
             assertTrue(resourceNames.contains(innerFile.getName()));
             assertedDir = true;
           }
-          // not supporting deep hierarchies 
+          // not supporting deep hierarchies
         }
       } else {
         assertTrue(resourceNames.contains(file.getName()));
@@ -193,7 +193,7 @@ public class TestTezClientUtils {
   }
 
   /**
-   * 
+   *
    * @throws Exception
    */
   @Test (timeout=5000)
@@ -214,7 +214,7 @@ public class TestTezClientUtils {
   }
 
   /**
-   * 
+   *
    * @throws Exception
    */
   @Test (timeout=20000)

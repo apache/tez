@@ -151,7 +151,7 @@ public class TestRecovery {
     ContainerId containerId = ContainerId.newInstance(
         ApplicationAttemptId.newInstance(appId, 1), 1);
     NodeId nodeId = NodeId.newInstance("localhost", 10);
-    
+
     List<TezEvent> initGeneratedEvents = Lists.newArrayList(
             new TezEvent(InputDataInformationEvent.createWithObjectPayload(0, new Object()), null));
 
@@ -178,7 +178,7 @@ public class TestRecovery {
             new SimpleShutdownCondition(TIMING.POST,
                 new VertexConfigurationDoneEvent(vertexId0, 0L, 2, null, null,
                     null, true)),
-                        
+
             new SimpleShutdownCondition(TIMING.POST,
                 new VertexConfigurationDoneEvent(vertexId1, 0L, 2, null, null,
                     null, true)),
@@ -394,7 +394,7 @@ public class TestRecovery {
         new SimpleShutdownCondition(TIMING.POST,
             new VertexConfigurationDoneEvent(vertexId0, 0L, 2, null, null,
                 null, true)),
-                    
+
         new SimpleShutdownCondition(TIMING.POST,
             new VertexConfigurationDoneEvent(vertexId1, 0L, 2, null, null,
                 null, true)),
@@ -402,7 +402,7 @@ public class TestRecovery {
         new SimpleShutdownCondition(TIMING.POST,
             new VertexConfigurationDoneEvent(vertexId2, 0L, 2, null, null,
                 null, true)),
-                    
+
         new SimpleShutdownCondition(TIMING.POST, new VertexFinishedEvent(
             vertexId0, "vertexName", 1, 0L, 0L, 0L, 0L, 0L,
             VertexState.SUCCEEDED, "", new TezCounters(), new VertexStats(),

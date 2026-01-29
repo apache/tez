@@ -41,7 +41,7 @@ import org.apache.hadoop.classification.InterfaceAudience.Public;
  * This typically means that the Processor will not block when reading from the
  * corresponding Input. This is done via {@link InputContext}.inputIsReady.
  * Inputs choose the policy on when they are ready.
- * 
+ *
  * Input implementations are expected to derive from {@link AbstractLogicalInput}
  */
 @Public

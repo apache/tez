@@ -124,15 +124,15 @@ import org.junit.Assert;
 import org.junit.Test;
 
 /**
- * 
+ *
  * The test case of commit here are different from that in TestDAGImpl &
  * TestVertexImpl in that the commits here are running in separated thread. So
  * should need to pay some special attention.
- * 
- * 2 kinds of commit 
+ *
+ * 2 kinds of commit
  * <li> test XXX_OnDAGSuccess means TEZ_AM_COMMIT_ALL_OUTPUTS_ON_DAG_SUCCESS is true
  * <li> test XXX_OnVertexSuccess means TEZ_AM_COMMIT_ALL_OUTPUTS_ON_DAG_SUCCESS is false
- * 
+ *
  */
 public class TestCommit {
 
@@ -807,7 +807,7 @@ public class TestCommit {
     VertexManagerEvent vmEvent = VertexManagerEvent.create("vertex1", ByteBuffer.wrap(new byte[0]));
     TezTaskAttemptID taId = TezTaskAttemptID.getInstance(TezTaskID.getInstance(v1.getVertexId(), 0), 0);
     TezEvent tezEvent = new TezEvent(vmEvent,
-        new EventMetaData(EventProducerConsumerType.OUTPUT, "vertex1", 
+        new EventMetaData(EventProducerConsumerType.OUTPUT, "vertex1",
             null, taId));
     v1.handle(new VertexEventRouteEvent(v1.getVertexId(), Collections.singletonList(tezEvent)));
     waitUntil(dag, DAGState.FAILED);
@@ -1848,7 +1848,7 @@ public class TestCommit {
         false);
     setupDAG(createDAGPlan(true, true, "testVertexGroupCommitFinishedEventFail_OnVertexSuccess"));
     historyEventHandler.failVertexGroupCommitFinishedEvent = true;
-    
+
     initDAG(dag);
     startDAG(dag);
     VertexImpl v1 = (VertexImpl) dag.getVertex("vertex1");
@@ -1885,7 +1885,7 @@ public class TestCommit {
     Assert.assertEquals(VertexState.KILLED, v3.getState());
     Assert.assertEquals(VertexTerminationCause.OTHER_VERTEX_FAILURE, v3.getTerminationCause());
     Assert.assertTrue(v3.commitFutures.isEmpty());
-    
+
     Assert.assertEquals(1, v12OutputCommitter.initCounter);
     Assert.assertEquals(1, v12OutputCommitter.setupCounter);
     Assert.assertEquals(1, v12OutputCommitter.commitCounter);
@@ -1903,7 +1903,7 @@ public class TestCommit {
         true);
     setupDAG(createDAGPlan(true, true, "testDAGCommitStartedEventFail_OnDAGSuccess"));
     historyEventHandler.failDAGCommitStartedEvent = true;
-    
+
     initDAG(dag);
     startDAG(dag);
     VertexImpl v1 = (VertexImpl) dag.getVertex("vertex1");
@@ -1986,7 +1986,7 @@ public class TestCommit {
 
     dag.handle(new DAGEventTerminateDag(dag.getID(), terminationCause, null));
     waitUntil(dag, terminationCause.getFinishedState());
-    
+
     Assert.assertEquals(terminationCause, dag.getTerminationCause());
     // mean the commits have been canceled
     Assert.assertTrue(dag.commitFutures.isEmpty());
@@ -2010,7 +2010,7 @@ public class TestCommit {
     // commit is not started because ControlledThreadPoolExecutor wait before schedule tasks
     Assert.assertEquals(0, v12OutputCommitter.commitCounter);
     Assert.assertEquals(1, v12OutputCommitter.abortCounter);
-    
+
     Assert.assertEquals(1, v3OutputCommitter.initCounter);
     Assert.assertEquals(1, v3OutputCommitter.setupCounter);
     // commit is not started because ControlledThreadPoolExecutor  wait before schedule tasks
@@ -2133,7 +2133,7 @@ public class TestCommit {
       Assert.assertEquals(expectedTimes, actualTimes);
     }
   }
-  
+
   private static class ControlledThreadPoolExecutor extends ThreadPoolExecutor {
 
     public ControlledThreadPoolExecutor(int poolSize) {
@@ -2147,7 +2147,7 @@ public class TestCommit {
     }
 
     public boolean startFlag = false;
-    
+
     @Override
     protected void beforeExecute(Thread t, Runnable r) {
       while(!startFlag) {

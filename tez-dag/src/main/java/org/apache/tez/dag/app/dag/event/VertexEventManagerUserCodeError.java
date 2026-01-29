@@ -23,12 +23,12 @@ import org.apache.tez.dag.records.TezVertexID;
 
 public class VertexEventManagerUserCodeError extends VertexEvent {
   final AMUserCodeException e;
-  
+
   public VertexEventManagerUserCodeError(TezVertexID vertexId, AMUserCodeException e) {
     super(vertexId, VertexEventType.V_MANAGER_USER_CODE_ERROR);
     this.e = e;
   }
-  
+
   public AMUserCodeException getError() {
     return e;
   }

@@ -50,15 +50,15 @@ class AMConfiguration {
   void addAMLocalResources(Map<String, LocalResource> localResources) {
     this.amLocalResources.putAll(localResources);
   }
-  
+
   void clearAMLocalResources() {
     this.amLocalResources.clear();
   }
-  
+
   void setCredentials(Credentials credentials) {
     this.credentials = credentials;
   }
-  
+
   void setTezConfiguration(TezConfiguration tezConf) {
     this.tezConf = tezConf;
   }
@@ -78,11 +78,11 @@ class AMConfiguration {
   Credentials getCredentials() {
     return credentials;
   }
-  
+
   void setBinaryConfLR(LocalResource binaryConfLRsrc) {
     this.binaryConfLRsrc = binaryConfLRsrc;
   }
-  
+
   LocalResource getBinaryConfLR() {
     return binaryConfLRsrc;
   }

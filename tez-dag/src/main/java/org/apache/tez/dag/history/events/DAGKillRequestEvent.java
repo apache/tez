@@ -85,7 +85,7 @@ public class DAGKillRequestEvent implements HistoryEvent, SummaryEvent {
     }
     fromProto(proto);
   }
-  
+
   public void fromProto(RecoveryProtos.DAGKillRequestProto proto) {
     this.dagID = TezDAGID.fromString(proto.getDagId());
     this.killRequestTime = proto.getKillRequestTime();
@@ -120,7 +120,7 @@ public class DAGKillRequestEvent implements HistoryEvent, SummaryEvent {
   public TezDAGID getDagID() {
     return dagID;
   }
-  
+
   public long getKillRequestTime() {
     return killRequestTime;
   }

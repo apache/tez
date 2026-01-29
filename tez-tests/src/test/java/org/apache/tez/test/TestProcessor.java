@@ -50,9 +50,9 @@ import org.slf4j.LoggerFactory;
 public class TestProcessor extends AbstractLogicalIOProcessor {
   private static final Logger LOG = LoggerFactory
       .getLogger(TestProcessor.class);
-  
+
   Configuration conf;
-  
+
   boolean doFail = false;
   boolean doRandomFail = false;
   float randomFailProbability = 0.0f;
@@ -60,10 +60,10 @@ public class TestProcessor extends AbstractLogicalIOProcessor {
   Set<Integer> failingTaskIndices = Sets.newHashSet();
   int failingTaskAttemptUpto = 0;
   Integer failAll = new Integer(-1);
-  
+
   int verifyValue = -1;
   Set<Integer> verifyTaskIndices = Sets.newHashSet();
-  
+
   /**
    * Enable failure for this processor
    */
@@ -77,14 +77,14 @@ public class TestProcessor extends AbstractLogicalIOProcessor {
    * Probability to random fail a task attempt. Range is 0 to 1. The number is set per DAG.
    */
   public static String TEZ_FAILING_PROCESSOR_RANDOM_FAIL_PROBABILITY = "tez.failing-processor.random-fail-probability";
-  
+
   /**
    * Time to sleep in the processor in milliseconds.
    */
   public static String TEZ_FAILING_PROCESSOR_SLEEP_MS =
       "tez.failing-processor.sleep-ms";
   /**
-   * The indices of tasks in the vertex for which the processor will fail. This 
+   * The indices of tasks in the vertex for which the processor will fail. This
    * is a comma-separated list of +ve integeres. -1 means all fail.
    */
   public static String TEZ_FAILING_PROCESSOR_FAILING_TASK_INDEX =
@@ -95,10 +95,10 @@ public class TestProcessor extends AbstractLogicalIOProcessor {
    */
   public static String TEZ_FAILING_PROCESSOR_FAILING_UPTO_TASK_ATTEMPT =
       "tez.failing-processor.failing-upto-task-attempt";
-  
-  public static String TEZ_FAILING_PROCESSOR_VERIFY_VALUE = 
+
+  public static String TEZ_FAILING_PROCESSOR_VERIFY_VALUE =
       "tez.failing-processor.verify-value";
-  
+
   public static String TEZ_FAILING_PROCESSOR_VERIFY_TASK_INDEX =
       "tez.failing-processor.verify-task-index";
 
@@ -128,12 +128,12 @@ public class TestProcessor extends AbstractLogicalIOProcessor {
   public static String getVertexConfName(String confName, String vertexName) {
     return confName + "." + vertexName;
   }
-  
+
   public static String getVertexConfName(String confName, String vertexName,
       int taskIndex) {
     return confName + "." + vertexName + "." + String.valueOf(taskIndex);
   }
-  
+
   @Override
   public void initialize() throws Exception {
     if (getContext().getUserPayload() != null && getContext().getUserPayload().hasPayload()) {
@@ -165,10 +165,10 @@ public class TestProcessor extends AbstractLogicalIOProcessor {
         }
         failingTaskAttemptUpto = conf.getInt(
             getVertexConfName(TEZ_FAILING_PROCESSOR_FAILING_UPTO_TASK_ATTEMPT, vName), 0);
-        LOG.info("Adding failing attempt : " + failingTaskAttemptUpto + 
+        LOG.info("Adding failing attempt : " + failingTaskAttemptUpto +
             " dag: " + getContext().getDAGName());
       }
-      
+
       doRandomFail = conf
           .getBoolean(TEZ_FAILING_PROCESSOR_DO_RANDOM_FAIL, false);
       randomFailProbability = conf.getFloat(TEZ_FAILING_PROCESSOR_RANDOM_FAIL_PROBABILITY, 0.0f);
@@ -198,16 +198,16 @@ public class TestProcessor extends AbstractLogicalIOProcessor {
     }
 
     Thread.sleep(sleepMs);
-    
+
     if (!doRandomFail) {
       // not random fail
       if (doFail) {
         if (
             (failingTaskIndices.contains(failAll) ||
             failingTaskIndices.contains(getContext().getTaskIndex())) &&
-            (failingTaskAttemptUpto == failAll.intValue() || 
+            (failingTaskAttemptUpto == failAll.intValue() ||
              failingTaskAttemptUpto >= getContext().getTaskAttemptNumber())) {
-          String msg = "FailingProcessor: " + getContext().getUniqueIdentifier() + 
+          String msg = "FailingProcessor: " + getContext().getUniqueIdentifier() +
               " dag: " + getContext().getDAGName() +
               " taskIndex: " + getContext().getTaskIndex() +
               " taskAttempt: " + getContext().getTaskAttemptNumber();
@@ -219,17 +219,17 @@ public class TestProcessor extends AbstractLogicalIOProcessor {
       // random fail
       // If task attempt number is below limit, try to randomly fail the attempt.
       int taskAttemptNumber = getContext().getTaskAttemptNumber();
-      int maxFailedAttempt = conf.getInt(TezConfiguration.TEZ_AM_TASK_MAX_FAILED_ATTEMPTS, 
+      int maxFailedAttempt = conf.getInt(TezConfiguration.TEZ_AM_TASK_MAX_FAILED_ATTEMPTS,
                                      TezConfiguration.TEZ_AM_TASK_MAX_FAILED_ATTEMPTS_DEFAULT);
       if (taskAttemptNumber < maxFailedAttempt - 1) {
         float rollNumber = (float) Math.random();
-        String msg = "FailingProcessor random fail turned on." + 
-            " Do a roll: " + getContext().getUniqueIdentifier() + 
+        String msg = "FailingProcessor random fail turned on." +
+            " Do a roll: " + getContext().getUniqueIdentifier() +
             " dag: " + getContext().getDAGName() +
             " taskIndex: " + getContext().getTaskIndex() +
             " taskAttempt: " + taskAttemptNumber +
             " maxFailedAttempt: " + maxFailedAttempt +
-            " rollNumber: " + rollNumber + 
+            " rollNumber: " + rollNumber +
             " randomFailProbability " + randomFailProbability;
         LOG.info(msg);
         if (rollNumber < randomFailProbability) {
@@ -240,9 +240,9 @@ public class TestProcessor extends AbstractLogicalIOProcessor {
         }
       }
     }
-      
+
     if (inputs.entrySet().size() > 0) {
-        String msg = "Reading input of current FailingProcessor: " + getContext().getUniqueIdentifier() + 
+        String msg = "Reading input of current FailingProcessor: " + getContext().getUniqueIdentifier() +
             " dag: " + getContext().getDAGName() +
             " vertex: " + getContext().getTaskVertexName() +
             " taskIndex: " + getContext().getTaskIndex() +
@@ -267,9 +267,9 @@ public class TestProcessor extends AbstractLogicalIOProcessor {
       LOG.info("Reading input: " + entry.getKey() + " inputValue= " + inputValue);
       sum += inputValue;
     }
-    
+
     if (outputs.entrySet().size() > 0) {
-        String msg = "Writing output of current FailingProcessor: " + getContext().getUniqueIdentifier() + 
+        String msg = "Writing output of current FailingProcessor: " + getContext().getUniqueIdentifier() +
             " dag: " + getContext().getDAGName() +
             " vertex: " + getContext().getTaskVertexName() +
             " taskIndex: " + getContext().getTaskIndex() +
@@ -286,8 +286,8 @@ public class TestProcessor extends AbstractLogicalIOProcessor {
       TestOutput output = (TestOutput) entry.getValue();
       output.write(sum);
     }
-    
-    LOG.info("Output for DAG: " + getContext().getDAGName() 
+
+    LOG.info("Output for DAG: " + getContext().getDAGName()
         + " vertex: " + getContext().getTaskVertexName()
         + " task: " + getContext().getTaskIndex()
         + " attempt: " + getContext().getTaskAttemptNumber()
@@ -296,8 +296,8 @@ public class TestProcessor extends AbstractLogicalIOProcessor {
         .contains(new Integer(getContext().getTaskIndex()))) {
       if (verifyValue != -1 && verifyValue != sum) {
         // expected output value set and not equal to observed value
-        String msg = "Expected output mismatch of current FailingProcessor: " 
-                     + getContext().getUniqueIdentifier() + 
+        String msg = "Expected output mismatch of current FailingProcessor: "
+                     + getContext().getUniqueIdentifier() +
                      " dag: " + getContext().getDAGName() +
                      " vertex: " + getContext().getTaskVertexName() +
                      " taskIndex: " + getContext().getTaskIndex() +

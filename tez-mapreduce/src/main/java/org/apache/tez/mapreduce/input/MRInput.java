@@ -77,9 +77,9 @@ import org.slf4j.LoggerFactory;
  * {@link MRInput} is an {@link Input} which provides key/values pairs
  * for the consumer.
  *
- * It is compatible with all standard Apache Hadoop MapReduce 
+ * It is compatible with all standard Apache Hadoop MapReduce
  * {@link InputFormat} implementations.
- * 
+ *
  * This class is not meant to be extended by external projects.
  */
 @Public
@@ -154,16 +154,16 @@ public class MRInput extends MRInputBase {
         initializeInputPath();
       }
     }
-    
+
     MRInputConfigBuilder setInputClassName(String className) {
       this.inputClassName = className;
       return this;
     }
 
     private MRInputConfigBuilder setInputPaths(String inputPaths) {
-      if (!(org.apache.hadoop.mapred.FileInputFormat.class.isAssignableFrom(inputFormat) || 
+      if (!(org.apache.hadoop.mapred.FileInputFormat.class.isAssignableFrom(inputFormat) ||
           FileInputFormat.class.isAssignableFrom(inputFormat))) {
-        throw new TezUncheckedException("When setting inputPaths the inputFormat must be " + 
+        throw new TezUncheckedException("When setting inputPaths the inputFormat must be " +
             "assignable from either org.apache.hadoop.mapred.FileInputFormat or " +
             "org.apache.hadoop.mapreduce.lib.input.FileInputFormat. " +
             "Otherwise use the non-path configBuilder." +
@@ -272,7 +272,7 @@ public class MRInput extends MRInputBase {
         throw new TezUncheckedException(e);
       }
     }
-    
+
     private DataSourceDescriptor createDistributorDataSource() throws IOException {
       InputSplitInfo inputSplitInfo;
       setupBasicConf(conf);
@@ -330,7 +330,7 @@ public class MRInput extends MRInputBase {
     private DataSourceDescriptor createGeneratorDataSource() throws IOException {
       setupBasicConf(conf);
       MRHelpers.translateMRConfToTez(conf);
-      
+
       Collection<URI> uris = maybeGetURIsForCredentials();
 
       UserPayload payload = MRInputHelpersInternal.createMRInputPayload(
@@ -404,7 +404,7 @@ public class MRInput extends MRInputBase {
   }
 
   /**
-   * Create an {@link org.apache.tez.mapreduce.input.MRInput.MRInputConfigBuilder} 
+   * Create an {@link org.apache.tez.mapreduce.input.MRInput.MRInputConfigBuilder}
    * for {@link org.apache.hadoop.mapreduce.lib.input.FileInputFormat}
    * or {@link org.apache.hadoop.mapred.FileInputFormat} format based InputFormats.
    * <p/>
@@ -433,7 +433,7 @@ public class MRInput extends MRInputBase {
   }
 
   private static final Logger LOG = LoggerFactory.getLogger(MRInput.class);
-  
+
   private final ReentrantLock rrLock = new ReentrantLock();
   private final Condition rrInited = rrLock.newCondition();
 
@@ -444,7 +444,7 @@ public class MRInput extends MRInputBase {
   protected TaskSplitIndex splitMetaInfo = new TaskSplitIndex();
 
   // Potential counters - #splits, #totalSize, #actualyBytesRead
-  
+
   @Private
   volatile boolean splitInfoViaEvents;
 
@@ -476,7 +476,7 @@ public class MRInput extends MRInputBase {
     // Primarily for visibility
     rrLock.lock();
     try {
-      
+
       if (splitInfoViaEvents) {
         if (useNewApi) {
           mrReader = new MRReaderMapReduce(jobConf, getContext().getCounters(), inputRecordCounter,
@@ -484,7 +484,7 @@ public class MRInput extends MRInputBase {
                   .getTaskVertexIndex(), getContext().getApplicationId().getId(), getContext()
                   .getTaskIndex(), getContext().getTaskAttemptNumber(), getContext());
         } else {
-          mrReader = new MRReaderMapred(jobConf, getContext().getCounters(), inputRecordCounter, 
+          mrReader = new MRReaderMapred(jobConf, getContext().getCounters(), inputRecordCounter,
               getContext());
         }
       } else {
@@ -527,7 +527,7 @@ public class MRInput extends MRInputBase {
   }
 
   /**
-   * Returns a {@link KeyValueReader} that can be used to read 
+   * Returns a {@link KeyValueReader} that can be used to read
    * Map Reduce compatible key value data. An exception will be thrown if next()
    * is invoked after false, either from the framework or from the underlying InputFormat
    */
@@ -605,7 +605,7 @@ public class MRInput extends MRInputBase {
    * {@link MRInput} sets some additional parameters like split location when using
    * the new API. This methods returns the list of additional updates, and
    * should be used by Processors using the old MapReduce API with {@link MRInput}.
-   * 
+   *
    * @return the additional fields set by {@link MRInput}
    */
   public Configuration getConfigUpdates() {
@@ -638,7 +638,7 @@ public class MRInput extends MRInputBase {
       rrLock.unlock();
     }
   }
-  
+
   void checkAndAwaitRecordReaderInitialization() throws IOException {
     assert rrLock.getHoldCount() == 1;
     rrLock.lock();
@@ -665,7 +665,7 @@ public class MRInput extends MRInputBase {
       rrLock.unlock();
     }
   }
-  
+
   private void initFromEventInternal(InputDataInformationEvent initEvent) throws IOException {
     if (LOG.isDebugEnabled()) {
       LOG.debug(getContext().getInputOutputVertexNames() + " initializing RecordReader from event");

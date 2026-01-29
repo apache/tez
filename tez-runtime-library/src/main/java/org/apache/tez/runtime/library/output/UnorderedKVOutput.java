@@ -66,7 +66,7 @@ public class UnorderedKVOutput extends AbstractLogicalOutput {
 
   @VisibleForTesting
   Configuration conf;
-  
+
   private MemoryUpdateCallbackHandler memoryUpdateCallbackHandler;
   private final AtomicBoolean isStarted = new AtomicBoolean(false);
 
@@ -95,7 +95,7 @@ public class UnorderedKVOutput extends AbstractLogicalOutput {
         UnorderedPartitionedKVWriter.getInitialMemoryRequirement(conf, getContext()
             .getTotalMemoryAvailableToTask()) : 0;
     getContext().requestInitialMemory(memRequestSize, memoryUpdateCallbackHandler);
-    
+
     return Collections.emptyList();
   }
 

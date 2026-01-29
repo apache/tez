@@ -22,24 +22,24 @@ import org.apache.tez.dag.records.TezTaskAttemptID;
 import org.apache.tez.runtime.api.events.TaskStatusUpdateEvent;
 
 public class TaskAttemptEventStatusUpdate extends TaskAttemptEvent {
-  
+
   private TaskStatusUpdateEvent taskAttemptStatus;
   private boolean readErrorReported = false;
-  
+
   public TaskAttemptEventStatusUpdate(TezTaskAttemptID id,
       TaskStatusUpdateEvent statusEvent) {
     super(id, TaskAttemptEventType.TA_STATUS_UPDATE);
     this.taskAttemptStatus = statusEvent;
   }
-  
+
   public TaskStatusUpdateEvent getStatusEvent() {
     return this.taskAttemptStatus;
   }
-  
+
   public void setReadErrorReported(boolean value) {
     readErrorReported = value;
   }
-  
+
   public boolean getReadErrorReported() {
     return readErrorReported;
   }

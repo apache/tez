@@ -29,7 +29,7 @@ import org.slf4j.LoggerFactory;
 
 @InterfaceAudience.Private
 public class Limits {
-  
+
   private static final Logger LOG = LoggerFactory.getLogger(Limits.class);
 
   private static final Configuration DEFAULT_CONFIGURATION = new TezConfiguration();

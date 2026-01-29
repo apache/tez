@@ -27,7 +27,7 @@ public class VertexEventSourceTaskAttemptCompleted extends VertexEvent {
   public VertexEventSourceTaskAttemptCompleted(
       TezVertexID targetVertexId,
       VertexEventTaskAttemptCompleted completionEvent) {
-    super(targetVertexId, 
+    super(targetVertexId,
         VertexEventType.V_SOURCE_TASK_ATTEMPT_COMPLETED);
     this.completionEvent = completionEvent;
   }

@@ -31,14 +31,14 @@ import org.apache.hadoop.security.Credentials;
 import com.google.common.collect.Sets;
 
 /**
- * Defines the output and output committer for a data sink 
+ * Defines the output and output committer for a data sink
  *
  */
 @Public
 public class DataSinkDescriptor {
   private final OutputDescriptor outputDescriptor;
   private final OutputCommitterDescriptor committerDescriptor;
-  
+
   private final Credentials credentials;
   private final Collection<URI> urisForCredentials = Sets.newHashSet();
 
@@ -90,7 +90,7 @@ public class DataSinkDescriptor {
       @Nullable Credentials credentials) {
     return new DataSinkDescriptor(outputDescriptor, committerDescriptor, credentials);
   }
-  
+
   /**
    * Get the {@link OutputDescriptor} for this {@link DataSinkDescriptor}
    * @return {@link OutputDescriptor}
@@ -98,7 +98,7 @@ public class DataSinkDescriptor {
   public OutputDescriptor getOutputDescriptor() {
     return outputDescriptor;
   }
-  
+
   /**
    * Get the {@link OutputCommitterDescriptor} for this {@link DataSinkDescriptor}
    * @return {@link OutputCommitterDescriptor}
@@ -106,16 +106,16 @@ public class DataSinkDescriptor {
   public @Nullable OutputCommitterDescriptor getOutputCommitterDescriptor() {
     return committerDescriptor;
   }
-  
-  /** 
+
+  /**
   * This method can be used to specify a list of URIs for which Credentials
   * need to be obtained so that the job can run. An incremental list of URIs
   * can be provided by making multiple calls to the method.
-  * 
+  *
   * Currently, @{link credentials} can only be fetched for HDFS and other
   * {@link org.apache.hadoop.fs.FileSystem} implementations that support
   * credentials.
-  * 
+  *
   * @param uris
   *          a list of {@link URI}s
   * @return this
@@ -125,7 +125,7 @@ public class DataSinkDescriptor {
     urisForCredentials.addAll(uris);
     return this;
   }
-  
+
   /**
    * Get the URIs for which credentials will be obtained
    * @return an unmodifiable list representing the URIs for which credentials

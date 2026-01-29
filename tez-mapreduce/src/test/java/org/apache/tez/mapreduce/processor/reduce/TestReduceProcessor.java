@@ -89,7 +89,7 @@ import org.slf4j.LoggerFactory;
 
 @SuppressWarnings("deprecation")
 public class TestReduceProcessor {
-  
+
   private static final Logger LOG = LoggerFactory.getLogger(TestReduceProcessor.class);
 
   private static JobConf defaultConf = new JobConf();
@@ -134,14 +134,14 @@ public class TestReduceProcessor {
     String reduceVertexName = MultiStageMRConfigUtil.getFinalReduceVertexName();
     JobConf jobConf = new JobConf(defaultConf);
     setUpJobConf(jobConf);
-    
+
     MRHelpers.translateMRConfToTez(jobConf);
     jobConf.setInt(MRJobConfig.APPLICATION_ATTEMPT_ID, 0);
 
     jobConf.set(MRFrameworkConfigs.TASK_LOCAL_RESOURCE_DIR, new Path(workDir,
         "localized-resources").toUri().toString());
     jobConf.setBoolean(MRJobConfig.MR_TEZ_SPLITS_VIA_EVENTS, false);
-    
+
     Path mapInput = new Path(workDir, "map0");
     MapUtils.generateInputSplit(localFs, workDir, jobConf, mapInput, 10);
 
@@ -152,7 +152,7 @@ public class TestReduceProcessor {
                     .setConfigurationBytes(TezUtils.createByteStringFromConf(jobConf)).build()
                     .toByteArray()))),
         1);
-    OutputSpec mapOutputSpec = new OutputSpec("NullDestVertex", 
+    OutputSpec mapOutputSpec = new OutputSpec("NullDestVertex",
         OutputDescriptor.create(OrderedPartitionedKVOutput.class.getName()).
           setUserPayload(TezUtils.createUserPayloadFromConf(jobConf)), 1);
     // Run a map
@@ -178,9 +178,9 @@ public class TestReduceProcessor {
     Assert.assertEquals(1, cdmEvent.getCount());
     DataMovementEvent dme = cdmEvent.getEvents().iterator().next();
     dme.setTargetIndex(0);
-    
+
     LOG.info("Starting reduce...");
-    
+
     JobTokenIdentifier identifier = new JobTokenIdentifier(new Text(dagName));
     JobTokenSecretManager jobTokenSecretManager = new JobTokenSecretManager(jobConf);
     Token<JobTokenIdentifier> shuffleToken = new Token<JobTokenIdentifier>(identifier,
@@ -195,7 +195,7 @@ public class TestReduceProcessor {
     ProcessorDescriptor reduceProcessorDesc = ProcessorDescriptor.create(
         ReduceProcessor.class.getName()).setUserPayload(
         TezUtils.createUserPayloadFromConf(jobConf));
-    
+
     InputSpec reduceInputSpec = new InputSpec(mapVertexName,
         InputDescriptor.create(OrderedGroupedInputLegacy.class.getName())
             .setUserPayload(TezUtils.createUserPayloadFromConf(jobConf)), 1);

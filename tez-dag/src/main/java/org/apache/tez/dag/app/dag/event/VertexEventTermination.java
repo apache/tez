@@ -23,8 +23,8 @@ import org.apache.tez.dag.records.TezVertexID;
 
 /**
  * Specialized VertexEvent for termination conditions.
- *  
- * The VertexEventType is always V_TERMINATE.  
+ *
+ * The VertexEventType is always V_TERMINATE.
  * The terminationCause denotes the specific reason why the vertex is being terminated.
  */
 public class VertexEventTermination extends VertexEvent {

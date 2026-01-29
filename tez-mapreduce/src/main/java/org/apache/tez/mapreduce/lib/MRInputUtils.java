@@ -61,7 +61,7 @@ public final class MRInputUtils {
     return MRInputHelpers.createNewFormatSplitFromUserPayload(
         splitProto, serializationFactory);
   }
-  
+
   @SuppressWarnings("unchecked")
   public static org.apache.hadoop.mapreduce.InputSplit getNewSplitDetailsFromDisk(
       TaskSplitIndex splitMetaInfo, JobConf jobConf, TezCounter splitBytesCounter)
@@ -125,7 +125,7 @@ public final class MRInputUtils {
     inFile.close();
     return split;
   }
-  
+
   @Private
   public static InputSplit getOldSplitDetailsFromEvent(MRSplitProto splitProto, Configuration conf)
       throws IOException {

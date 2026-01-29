@@ -32,7 +32,7 @@ public class ProcessorDescriptor extends EntityDescriptor<ProcessorDescriptor> {
   public ProcessorDescriptor() {
     super();
   }
-  
+
   private ProcessorDescriptor(String processorClassName) {
     super(processorClassName);
   }

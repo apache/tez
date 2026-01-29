@@ -24,7 +24,7 @@ import org.junit.Assert;
 import org.junit.Test;
 
 public class TestTaskLocationHint {
-  
+
   @Test (timeout = 5000)
   public void testEquality() {
     TaskLocationHint t1 = TaskLocationHint.createTaskLocationHint("v1", 0);

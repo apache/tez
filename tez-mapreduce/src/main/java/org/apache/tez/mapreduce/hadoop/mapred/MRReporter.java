@@ -29,8 +29,8 @@ public class MRReporter implements Reporter {
   private TezCounters tezCounters;
   private InputSplit split;
   private float progress = 0f;
-  
-  
+
+
   public MRReporter(TezCounters tezCounters) {
     this(tezCounters, null);
   }
@@ -39,7 +39,7 @@ public class MRReporter implements Reporter {
     this.tezCounters = tezCounters;
     this.split = split;
   }
-  
+
   @Override
   public void progress() {
     //TODO NEWTEZ
@@ -84,7 +84,7 @@ public class MRReporter implements Reporter {
   public void setProgress(float progress) {
     this.progress = progress;
   }
-  
+
   @Override
   public float getProgress() {
     // TODO NEWTEZ This is likely broken. Only set on task complete in Map/ReduceProcessor

@@ -81,7 +81,7 @@ public class InputAttemptIdentifier {
   public int getAttemptNumber() {
     return attemptNumber;
   }
-  
+
   public String getPathComponent() {
     return pathComponent;
   }

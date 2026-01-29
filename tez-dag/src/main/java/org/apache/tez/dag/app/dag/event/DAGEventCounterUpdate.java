@@ -26,7 +26,7 @@ import org.apache.tez.dag.records.TezDAGID;
 public class DAGEventCounterUpdate extends DAGEvent {
 
   List<CounterIncrementalUpdate> counterUpdates = null;
-  
+
   public DAGEventCounterUpdate(TezDAGID dagId) {
     super(dagId, DAGEventType.DAG_COUNTER_UPDATE);
     counterUpdates = new ArrayList<>();
@@ -35,20 +35,20 @@ public class DAGEventCounterUpdate extends DAGEvent {
   public void addCounterUpdate(Enum<?> key, long incrValue) {
     counterUpdates.add(new CounterIncrementalUpdate(key, incrValue));
   }
-  
+
   public List<CounterIncrementalUpdate> getCounterUpdates() {
     return counterUpdates;
   }
-  
+
   public static class CounterIncrementalUpdate {
     Enum<?> key;
     long incrValue;
-    
+
     public CounterIncrementalUpdate(Enum<?> key, long incrValue) {
       this.key = key;
       this.incrValue = incrValue;
     }
-    
+
     public Enum<?> getCounterKey() {
       return key;
     }

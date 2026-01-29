@@ -100,7 +100,7 @@ public class WeightedScalingMemoryDistributor implements InitialMemoryAllocator 
     }
 
     if (numRequestsScaled == 0) {
-      // Fall back to regular scaling. e.g. BROADCAST : SHUFFLE = 0:1. 
+      // Fall back to regular scaling. e.g. BROADCAST : SHUFFLE = 0:1.
       // i.e. if Shuffle present, Broadcast gets nothing, but otherwise it
       // should get an allocation
       numRequestsScaled = numRequests;

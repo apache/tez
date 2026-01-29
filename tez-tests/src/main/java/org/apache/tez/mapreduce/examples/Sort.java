@@ -50,22 +50,22 @@ import org.apache.hadoop.util.ToolRunner;
  *
  * To run: bin/hadoop jar build/hadoop-examples.jar sort
  *            [-r <i>reduces</i>]
- *            [-inFormat <i>input format class</i>] 
- *            [-outFormat <i>output format class</i>] 
- *            [-outKey <i>output key class</i>] 
- *            [-outValue <i>output value class</i>] 
+ *            [-inFormat <i>input format class</i>]
+ *            [-outFormat <i>output format class</i>]
+ *            [-outKey <i>output key class</i>]
+ *            [-outValue <i>output value class</i>]
  *            [-totalOrder <i>pcnt</i> <i>num samples</i> <i>max splits</i>]
- *            <i>in-dir</i> <i>out-dir</i> 
+ *            <i>in-dir</i> <i>out-dir</i>
  */
 public class Sort<K,V> extends Configured implements Tool {
-  public static final String REDUCES_PER_HOST = 
+  public static final String REDUCES_PER_HOST =
     "mapreduce.sort.reducesperhost";
   private Job job = null;
 
   static int printUsage() {
     System.out.println("sort [-r <reduces>] " +
                        "[-inFormat <input format class>] " +
-                       "[-outFormat <output format class>] " + 
+                       "[-outFormat <output format class>] " +
                        "[-outKey <output key class>] " +
                        "[-outValue <output value class>] " +
                        "[-totalOrder <pcnt> <num samples> <max splits>] " +
@@ -89,12 +89,12 @@ public class Sort<K,V> extends Configured implements Tool {
     int num_reduces = (int) (cluster.getMaxReduceTasks() * 0.9);
     String sort_reduces = conf.get(REDUCES_PER_HOST);
     if (sort_reduces != null) {
-       num_reduces = cluster.getTaskTrackers() * 
+       num_reduces = cluster.getTaskTrackers() *
                        Integer.parseInt(sort_reduces);
     }
-    Class<? extends InputFormat> inputFormatClass = 
+    Class<? extends InputFormat> inputFormatClass =
       SequenceFileInputFormat.class;
-    Class<? extends OutputFormat> outputFormatClass = 
+    Class<? extends OutputFormat> outputFormatClass =
       SequenceFileOutputFormat.class;
     Class<? extends WritableComparable> outputKeyClass = BytesWritable.class;
     Class<? extends Writable> outputValueClass = BytesWritable.class;
@@ -105,16 +105,16 @@ public class Sort<K,V> extends Configured implements Tool {
         if ("-r".equals(args[i])) {
           num_reduces = Integer.parseInt(args[++i]);
         } else if ("-inFormat".equals(args[i])) {
-          inputFormatClass = 
+          inputFormatClass =
             Class.forName(args[++i]).asSubclass(InputFormat.class);
         } else if ("-outFormat".equals(args[i])) {
-          outputFormatClass = 
+          outputFormatClass =
             Class.forName(args[++i]).asSubclass(OutputFormat.class);
         } else if ("-outKey".equals(args[i])) {
-          outputKeyClass = 
+          outputKeyClass =
             Class.forName(args[++i]).asSubclass(WritableComparable.class);
         } else if ("-outValue".equals(args[i])) {
-          outputValueClass = 
+          outputValueClass =
             Class.forName(args[++i]).asSubclass(Writable.class);
         } else if ("-totalOrder".equals(args[i])) {
           double pcnt = Double.parseDouble(args[++i]);
@@ -140,7 +140,7 @@ public class Sort<K,V> extends Configured implements Tool {
     job.setJobName("sorter");
     job.setJarByClass(Sort.class);
 
-    job.setMapperClass(Mapper.class);        
+    job.setMapperClass(Mapper.class);
     job.setReducerClass(Reducer.class);
 
     job.setNumReduceTasks(num_reduces);
@@ -159,7 +159,7 @@ public class Sort<K,V> extends Configured implements Tool {
     }
     FileInputFormat.setInputPaths(job, otherArgs.get(0));
     FileOutputFormat.setOutputPath(job, new Path(otherArgs.get(1)));
-    
+
     if (sampler != null) {
       System.out.println("Sampling input to effect total-order sort...");
       job.setPartitionerClass(TotalOrderPartitioner.class);
@@ -175,7 +175,7 @@ public class Sort<K,V> extends Configured implements Tool {
 
     System.out.println("Running on " +
         cluster.getTaskTrackers() +
-        " nodes to sort from " + 
+        " nodes to sort from " +
         FileInputFormat.getInputPaths(job)[0] + " into " +
         FileOutputFormat.getOutputPath(job) +
         " with " + num_reduces + " reduces.");
@@ -184,7 +184,7 @@ public class Sort<K,V> extends Configured implements Tool {
     int ret = job.waitForCompletion(true) ? 0 : 1;
     Date end_time = new Date();
     System.out.println("Job ended: " + end_time);
-    System.out.println("The job took " + 
+    System.out.println("The job took " +
         (end_time.getTime() - startTime.getTime()) /1000 + " seconds.");
     return ret;
   }

@@ -125,7 +125,7 @@ public class TaskAttemptStartedEvent implements HistoryEvent, TaskAttemptIDAware
   public long getStartTime() {
     return launchTime;
   }
-  
+
   public ContainerId getContainerId() {
     return containerId;
   }

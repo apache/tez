@@ -19,11 +19,11 @@
 package org.apache.tez.runtime.library.common.shuffle;
 
 public interface FetchedInputCallback {
-  
+
   public void fetchComplete(FetchedInput fetchedInput);
-  
+
   public void fetchFailed(FetchedInput fetchedInput);
-  
+
   public void freeResources(FetchedInput fetchedInput);
-  
+
 }

@@ -111,7 +111,7 @@ public class MiniTezClusterWithTimeline extends MiniYARNCluster {
       conf.set(MRJobConfig.MR_AM_STAGING_DIR, new File(getTestWorkDir(),
           "apps_staging_dir" + Path.SEPARATOR).getAbsolutePath());
     }
-    
+
     if (conf.get(YarnConfiguration.DEBUG_NM_DELETE_DELAY_SEC) == null) {
       // nothing defined. set quick delete value
       conf.setLong(YarnConfiguration.DEBUG_NM_DELETE_DELAY_SEC, 0l);
@@ -131,7 +131,7 @@ public class MiniTezClusterWithTimeline extends MiniYARNCluster {
     } else {
       LOG.info("Using Tez AppJar: " + appJarLocalFile.getAbsolutePath());
     }
-    
+
     FileSystem fs = FileSystem.get(conf);
     Path testRootDir = fs.makeQualified(new Path("target", getName() + "-tmpDir"));
     Path appRemoteJar = new Path(testRootDir, "TezAppJar.jar");
@@ -309,7 +309,7 @@ public class MiniTezClusterWithTimeline extends MiniYARNCluster {
       yarnClient.stop();
     }
   }
-  
+
   public Path getConfigFilePath() {
     return confFilePath;
   }

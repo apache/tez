@@ -105,7 +105,7 @@ public final class TezEventUtils {
     tezEvent.setDestinationInfo(destinationInfo);
     return tezEvent;
   }
-  
+
   public static RecoveryProtos.EventMetaDataProto convertEventMetaDataToProto(
       EventMetaData eventMetaData) {
     RecoveryProtos.EventMetaDataProto.Builder builder =

@@ -43,17 +43,17 @@ public class PreWarmProcessor extends SimpleProcessor {
     preWarmTezCode();
     preWarmUserCode();
   }
-  
+
   /**
    * Pre-warm Tez code. Users can override this with an empty method
    * to not pre-warm Tez code if they want to.
    */
   protected void preWarmTezCode() {
     // Do nothing. Can potentially pre-warm Tez library components
-    
+
     // Currently, must sleep for some time so that container re-use
-    // can be prevented from kicking in. This will allow sufficient 
-    // time to obtain containers from YARN as long as those resources 
+    // can be prevented from kicking in. This will allow sufficient
+    // time to obtain containers from YARN as long as those resources
     // are available
     try {
       Thread.sleep(3000);
@@ -61,10 +61,10 @@ public class PreWarmProcessor extends SimpleProcessor {
       e.printStackTrace();
     }
   }
-  
+
   /**
-   * Pre-warm user code. Users can override this 
-   * to pre-warm their own code if they want to. 
+   * Pre-warm user code. Users can override this
+   * to pre-warm their own code if they want to.
    */
   protected void preWarmUserCode() {
     // Do nothing

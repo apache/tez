@@ -41,7 +41,7 @@ public class TaskAttemptContextImpl
 
   private final TezCounters tezCounters;
   private final Reporter reporter;
-  
+
   public static org.apache.hadoop.mapred.TaskAttemptID createMockTaskAttemptID(
       long clusterId, int vertexIndex, int appId, int taskIndex, int taskAttemptNumber, boolean isMap) {
     return new org.apache.hadoop.mapred.TaskAttemptID(
@@ -50,8 +50,8 @@ public class TaskAttemptContextImpl
             isMap ? TaskType.MAP : TaskType.REDUCE, taskIndex),
         taskAttemptNumber);
   }
-  
-  public static org.apache.hadoop.mapred.TaskAttemptID 
+
+  public static org.apache.hadoop.mapred.TaskAttemptID
     createMockTaskAttemptIDFromTezTaskAttemptId(TezTaskAttemptID tezTaId, boolean isMap) {
     TezVertexID vId = tezTaId.getVertexID();
     ApplicationId appId = vId.getApplicationId();
@@ -61,8 +61,8 @@ public class TaskAttemptContextImpl
             isMap ? TaskType.MAP : TaskType.REDUCE, tezTaId.getTaskID().getId()),
         tezTaId.getId());
   }
-  
-  public static org.apache.hadoop.mapred.TaskID 
+
+  public static org.apache.hadoop.mapred.TaskID
     createMockTaskAttemptIDFromTezTaskId(TezTaskID tezTaId, boolean isMap) {
     TezVertexID vId = tezTaId.getVertexID();
     ApplicationId appId = vId.getApplicationId();
@@ -81,12 +81,12 @@ public class TaskAttemptContextImpl
   }
 
   //FIXME we need to use DAG Id but we are using App Id
-   public TaskAttemptContextImpl(Configuration conf, TaskAttemptID attemptId, 
+   public TaskAttemptContextImpl(Configuration conf, TaskAttemptID attemptId,
        TezCounters tezCounters, boolean isMap, Reporter reporter) {
      // TODO NEWTEZ Can the jt Identifier string be taskContext.getUniqueId ?
      this(conf, attemptId, tezCounters, reporter);
    }
- 
+
   public TaskAttemptContextImpl(Configuration conf, TaskAttemptID taId, TezCounters tezCounters, Reporter reporter) {
     super(conf, taId);
     this.tezCounters = tezCounters;
