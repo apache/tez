@@ -19,6 +19,7 @@ import org.apache.tez.runtime.api.ExecutionContext;
 public class ExecutionContextImpl implements ExecutionContext {
 
   private final String hostname;
+  private String containerId = null;
 
   public ExecutionContextImpl(String hostname) {
     this.hostname = hostname;
@@ -27,5 +28,14 @@ public class ExecutionContextImpl implements ExecutionContext {
   @Override
   public String getHostName() {
     return hostname;
+  }
+
+  public ExecutionContext withContainerId(String containerId) {
+    this.containerId = containerId;
+    return this;
+  }
+
+  public String getContainerId() {
+    return containerId;
   }
 }
