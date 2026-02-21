@@ -24,16 +24,6 @@
     </property>
 
     <property>
-        <name>tez.am.resource.memory.mb</name>
-        <value>1024</value>
-    </property>
-
-    <property>
-        <name>tez.framework.mode</name>
-        <value>STANDALONE_ZOOKEEPER</value>
-    </property>
-
-    <property>
         <name>tez.am.tez-ui.webservice.enable</name>
         <value>false</value>
     </property>
@@ -49,8 +39,8 @@
     </property>
 
     <property>
-        <name>tez.am.mode.session</name>
-        <value>true</value>
+        <name>fs.defaultFS</name>
+        <value>hdfs://host.docker.internal:9000</value>
     </property>
 
     <property>

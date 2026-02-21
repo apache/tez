@@ -36,16 +36,6 @@ set -xeou pipefail
 export CONTAINER_ID USER HADOOP_USER_NAME NM_HOST NM_PORT NM_HTTP_PORT \
     LOCAL_DIRS LOG_DIRS APP_SUBMIT_TIME_ENV TEZ_AM_EXTERNAL_ID
 
-if [[ ! -f "tez-conf.pb" ]]; then
-    touch "tez-conf.pb"
-    echo "--> Created dummy tez-conf.pb"
-fi
-
-if [[ ! -f "tez-dag.pb" ]]; then
-    touch "tez-dag.pb"
-    echo "--> Created dummy tez-dag.pb"
-fi
-
 mkdir -p "$LOG_DIRS"
 
 ##########################
