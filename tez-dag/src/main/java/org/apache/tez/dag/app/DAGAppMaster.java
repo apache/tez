@@ -2425,7 +2425,7 @@ public class DAGAppMaster extends AbstractService {
       Objects.requireNonNull(appSubmitTimeStr,
           ApplicationConstants.APP_SUBMIT_TIME_ENV + " is null");
 
-      Configuration conf = new TezConfiguration();
+      Configuration conf = new Configuration();
 
       ServerFrameworkService frameworkService = getFrameworkService(conf);
       AMExtensions amExtensions = frameworkService.getAMExtensions();
