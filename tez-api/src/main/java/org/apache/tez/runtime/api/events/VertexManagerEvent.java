@@ -38,12 +38,12 @@ import org.apache.tez.runtime.api.TaskAttemptIdentifier;
 public class VertexManagerEvent extends Event {
 
   /**
-   * Vertex to which the event should be sent 
+   * Vertex to which the event should be sent
    */
   private final String targetVertexName;
-  
+
   private TaskAttemptIdentifier producerAttempt;
-  
+
   /**
    * User payload to be sent
    */
@@ -74,21 +74,21 @@ public class VertexManagerEvent extends Event {
   public String getTargetVertexName() {
     return targetVertexName;
   }
-  
+
   public ByteBuffer getUserPayload() {
     return userPayload == null ? null : userPayload.asReadOnlyBuffer();
   }
-  
+
   /**
    * Get metadata about the task attempt that produced the event.
-   * This method will provide a valid return value only when invoked in the 
+   * This method will provide a valid return value only when invoked in the
    * {@link VertexManagerPlugin}
    * @return attempt metadata
    */
   public TaskAttemptIdentifier getProducerAttemptIdentifier() {
     return producerAttempt;
   }
-  
+
   @Private
   public void setProducerAttemptIdentifier(TaskAttemptIdentifier producerAttempt) {
     this.producerAttempt = producerAttempt;

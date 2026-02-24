@@ -1186,7 +1186,7 @@ public class TestShuffleHandler {
       shuffle = new ShuffleHandler();
       shuffle.setRecoveryPath(new Path(tmpDir.toString()));
       shuffle.init(conf);
-    
+
       try {
         shuffle.start();
         Assert.fail("Incompatible version, should expect fail here.");

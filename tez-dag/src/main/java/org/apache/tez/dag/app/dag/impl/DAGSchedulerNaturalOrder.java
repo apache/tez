@@ -31,18 +31,18 @@ import org.slf4j.LoggerFactory;
 
 @SuppressWarnings("rawtypes")
 public class DAGSchedulerNaturalOrder extends DAGScheduler {
-  
-  private static final Logger LOG = 
+
+  private static final Logger LOG =
                             LoggerFactory.getLogger(DAGSchedulerNaturalOrder.class);
 
   private final DAG dag;
   private final EventHandler handler;
-  
+
   public DAGSchedulerNaturalOrder(DAG dag, EventHandler dispatcher) {
     this.dag = dag;
     this.handler = dispatcher;
   }
-  
+
   @Override
   public void scheduleTaskEx(DAGEventSchedulerUpdate event) {
     TaskAttempt attempt = event.getAttempt();
@@ -56,17 +56,17 @@ public class DAGSchedulerNaturalOrder extends DAGScheduler {
       LOG.debug("Scheduling " + attempt.getTaskAttemptID() + " between priorityLow: " + priorityLowLimit
           + " and priorityHigh: " + priorityHighLimit);
     }
-    
+
     TaskAttemptEventSchedule attemptEvent = new TaskAttemptEventSchedule(
         attempt.getTaskAttemptID(), priorityLowLimit, priorityHighLimit);
-                                      
+
     sendEvent(attemptEvent);
   }
-  
+
   @Override
   public void taskCompletedEx(DAGEventSchedulerUpdate event) {
   }
-  
+
   @SuppressWarnings("unchecked")
   void sendEvent(TaskAttemptEventSchedule event) {
     handler.handle(event);

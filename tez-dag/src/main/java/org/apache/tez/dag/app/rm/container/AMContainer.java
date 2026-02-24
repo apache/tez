@@ -26,7 +26,7 @@ import org.apache.hadoop.yarn.event.EventHandler;
 import org.apache.tez.dag.records.TezTaskAttemptID;
 
 public interface AMContainer extends EventHandler<AMContainerEvent>{
-  
+
   public AMContainerState getState();
   public ContainerId getContainerId();
   public Container getContainer();

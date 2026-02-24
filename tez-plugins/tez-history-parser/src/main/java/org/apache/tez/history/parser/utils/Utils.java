@@ -100,8 +100,8 @@ public final class Utils {
       LOG.debug("Error finding {} in {} with displayName {}", counterName, group, displayName);
     }
   }
-  
-  public static List<DataDependencyEvent> parseDataEventDependencyFromJSON(JSONObject jsonObject) 
+
+  public static List<DataDependencyEvent> parseDataEventDependencyFromJSON(JSONObject jsonObject)
       throws JSONException {
     List<DataDependencyEvent> events = Lists.newArrayList();
     JSONArray fields = jsonObject.optJSONArray(Constants.LAST_DATA_EVENTS);

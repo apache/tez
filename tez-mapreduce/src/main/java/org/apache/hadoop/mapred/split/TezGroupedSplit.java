@@ -36,7 +36,7 @@ import org.apache.tez.dag.api.TezException;
 import org.apache.tez.dag.api.TezUncheckedException;
 
 /**
- * Implements an InputSplit that provides a generic wrapper around 
+ * Implements an InputSplit that provides a generic wrapper around
  * a group of real InputSplits
  */
 @Public
@@ -49,9 +49,9 @@ public class TezGroupedSplit implements InputSplit, Configurable {
   String rack = null;
   long length = 0;
   Configuration conf;
-  
+
   public TezGroupedSplit() {
-    
+
   }
 
   public TezGroupedSplit(List<InputSplit> wrappedSplits, String wrappedInputFormatName,
@@ -87,7 +87,7 @@ public class TezGroupedSplit implements InputSplit, Configurable {
       throw new TezUncheckedException(e);
     }
   }
-  
+
   @Override
   public void write(DataOutput out) throws IOException {
     if (wrappedSplits == null) {
@@ -101,7 +101,7 @@ public class TezGroupedSplit implements InputSplit, Configurable {
       writeWrappedSplit(split, out);
     }
     out.writeLong(length);
-    
+
     if (locations == null || locations.length == 0) {
       out.writeInt(0);
     } else {
@@ -126,12 +126,12 @@ public class TezGroupedSplit implements InputSplit, Configurable {
     }
 
     int numSplits = in.readInt();
-    
+
     wrappedSplits = new ArrayList<InputSplit>(numSplits);
     for (int i=0; i<numSplits; ++i) {
       addSplit(readWrappedSplit(in, clazz));
     }
-    
+
     long recordedLength = in.readLong();
     if(recordedLength != length) {
       throw new TezUncheckedException("Expected length: " + recordedLength
@@ -145,12 +145,12 @@ public class TezGroupedSplit implements InputSplit, Configurable {
       }
     }
   }
-  
+
   void writeWrappedSplit(InputSplit split, DataOutput out) throws IOException {
     split.write(out);
   }
-  
-  InputSplit readWrappedSplit(DataInput in, Class<? extends InputSplit> clazz) 
+
+  InputSplit readWrappedSplit(DataInput in, Class<? extends InputSplit> clazz)
       throws IOException {
     InputSplit split;
     try {
@@ -161,7 +161,7 @@ public class TezGroupedSplit implements InputSplit, Configurable {
     split.readFields(in);
     return split;
   }
-  
+
   @Override
   public long getLength() throws IOException {
     return length;
@@ -181,7 +181,7 @@ public class TezGroupedSplit implements InputSplit, Configurable {
   public Configuration getConf() {
     return conf;
   }
-  
+
   public String getRack() {
     return rack;
   }

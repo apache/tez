@@ -61,7 +61,7 @@ public class TezMergedInputContextImpl implements MergedInputContext {
   public UserPayload getUserPayload() {
     return userPayload;
   }
-  
+
   @Override
   public void inputIsReady() {
     inputReadyTracker.setInputIsReady(groupInputsMap.get(groupInputName));

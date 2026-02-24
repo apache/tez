@@ -84,11 +84,11 @@ public class TaskAttemptFinishedEvent implements HistoryEvent, TaskAttemptIDAwar
       TaskAttemptState state,
       @Nullable TaskFailureType taskFailureType,
       TaskAttemptTerminationCause error,
-      String diagnostics, TezCounters counters, 
+      String diagnostics, TezCounters counters,
       List<DataEventDependencyInfo> dataEvents,
       List<TezEvent> taGeneratedEvents,
-      long creationTime, 
-      TezTaskAttemptID creationCausalTA, 
+      long creationTime,
+      TezTaskAttemptID creationCausalTA,
       long allocationTime,
       ContainerId containerId,
       NodeId nodeId,
@@ -133,11 +133,11 @@ public class TaskAttemptFinishedEvent implements HistoryEvent, TaskAttemptIDAwar
   public boolean isHistoryEvent() {
     return true;
   }
-  
+
   public List<DataEventDependencyInfo> getDataEvents() {
     return dataEvents;
   }
-  
+
   public TaskAttemptFinishedProto toProto() throws IOException {
     TaskAttemptFinishedProto.Builder builder =
         TaskAttemptFinishedProto.newBuilder();
@@ -323,7 +323,7 @@ public class TaskAttemptFinishedEvent implements HistoryEvent, TaskAttemptIDAwar
   public String getDiagnostics() {
     return diagnostics;
   }
-  
+
   public TaskAttemptTerminationCause getTaskAttemptError() {
     return error;
   }
@@ -343,15 +343,15 @@ public class TaskAttemptFinishedEvent implements HistoryEvent, TaskAttemptIDAwar
   public long getStartTime() {
     return startTime;
   }
-  
+
   public long getCreationTime() {
     return creationTime;
   }
-  
+
   public long getAllocationTime() {
     return allocationTime;
   }
-  
+
   public TezTaskAttemptID getCreationCausalTA() {
     return creationCausalTA;
   }

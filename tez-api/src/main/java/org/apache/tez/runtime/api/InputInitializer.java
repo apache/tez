@@ -56,7 +56,7 @@ public abstract class InputInitializer {
    * processing the event being done via this method. The moment this method
    * returns a list of events, input initialization is considered to be
    * complete.
-   * 
+   *
    * @return a list of events which are eventually routed to a
    *         {@link org.apache.tez.dag.api.VertexManagerPlugin} for routing
    * @throws Exception
@@ -79,7 +79,7 @@ public abstract class InputInitializer {
   /**
    * Return ahe {@link org.apache.tez.runtime.api.InputInitializerContext}
    * for this specific instance of the Initializer.
-   * 
+   *
    * @return the {@link org.apache.tez.runtime.api.InputInitializerContext}
    *         for the initializer
    */
@@ -97,7 +97,7 @@ public abstract class InputInitializer {
    *
    * Extensive processing should not be performed via this method call. Instead this should just be
    * used as a notification mechanism to the main initialization, which is via the initialize method.
-   * <br>This method may be invoked concurrently with {@link #initialize()} etc. and 
+   * <br>This method may be invoked concurrently with {@link #initialize()} etc. and
    * multi-threading/concurrency implications must be considered.
    * @param stateUpdate an event indicating the name of the vertex, and it's updated state.
    *                    Additional information may be available for specific events, Look at the

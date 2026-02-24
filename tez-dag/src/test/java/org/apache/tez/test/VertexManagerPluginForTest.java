@@ -38,29 +38,29 @@ import org.apache.tez.runtime.api.events.VertexManagerEvent;
 
 public class VertexManagerPluginForTest extends VertexManagerPlugin {
   VertexManagerPluginForTestConfig pluginConfig = new VertexManagerPluginForTestConfig();
-  
+
   public static class VertexManagerPluginForTestConfig {
     Configuration conf = new Configuration(false);
 
     static final String RECONFIGURE_ON_START = "reconfigureOnStart";
     static final String NUM_TASKS = "numTasks";
-    
+
     public void setReconfigureOnStart(boolean value) {
       conf.setBoolean(RECONFIGURE_ON_START, value);
     }
-    
+
     public void setNumTasks(int value) {
       conf.setInt(NUM_TASKS, value);
     }
-    
+
     boolean getReconfigureOnStart() {
       return conf.getBoolean(RECONFIGURE_ON_START, false);
     }
-    
+
     int getNumTasks() {
       return conf.getInt(NUM_TASKS, 1);
     }
-    
+
     public ByteBuffer getPayload() {
       ByteArrayOutputStream b = new ByteArrayOutputStream();
       DataOutputStream out = new DataOutputStream(b);
@@ -71,7 +71,7 @@ public class VertexManagerPluginForTest extends VertexManagerPlugin {
       }
       return ByteBuffer.wrap(b.toByteArray());
     }
-    
+
     void initialize(ByteBuffer buff) {
       ByteBuffer copy = ByteBuffer.allocate(buff.capacity());
       copy.put(buff);
@@ -88,7 +88,7 @@ public class VertexManagerPluginForTest extends VertexManagerPlugin {
   public VertexManagerPluginForTest(VertexManagerPluginContext context) {
     super(context);
   }
-  
+
 
   @Override
   public void initialize() {

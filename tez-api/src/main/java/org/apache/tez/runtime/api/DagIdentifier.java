@@ -21,6 +21,6 @@ package org.apache.tez.runtime.api;
 public interface DagIdentifier {
 
   public String getName();
-  
+
   public int getIdentifier();
 }

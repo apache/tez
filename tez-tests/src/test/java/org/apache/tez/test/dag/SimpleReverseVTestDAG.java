@@ -47,8 +47,8 @@ public final class SimpleReverseVTestDAG {
   public static int TEZ_SIMPLE_REVERSE_V_DAG_NUM_TASKS_DEFAULT = 2;
 
   private SimpleReverseVTestDAG() {}
-  
-  public static DAG createDAG(String name, 
+
+  public static DAG createDAG(String name,
       Configuration conf) throws Exception {
     UserPayload payload = UserPayload.create(null);
     int taskCount = TEZ_SIMPLE_REVERSE_V_DAG_NUM_TASKS_DEFAULT;
@@ -75,7 +75,7 @@ public final class SimpleReverseVTestDAG {
             TestInput.getInputDesc(payload))));
     return dag;
   }
-  
+
   public static DAG createDAG(Configuration conf) throws Exception {
     return createDAG("SimpleReverseVTestDAG", conf);
   }

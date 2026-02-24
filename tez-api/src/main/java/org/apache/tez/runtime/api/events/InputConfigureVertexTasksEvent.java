@@ -26,8 +26,8 @@ import org.apache.tez.runtime.api.InputInitializer;
 import org.apache.tez.runtime.api.InputSpecUpdate;
 
 /**
- * An event typically sent by the {@link InputInitializer} of a vertex 
- * to configure the tasks of the vertex. It could change the task 
+ * An event typically sent by the {@link InputInitializer} of a vertex
+ * to configure the tasks of the vertex. It could change the task
  * placement hints or input specification for the inputs of the tasks
  */
 @Unstable

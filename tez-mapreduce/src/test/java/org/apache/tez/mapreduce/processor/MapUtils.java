@@ -77,7 +77,7 @@ public final class MapUtils {
   private static final Logger LOG = LoggerFactory.getLogger(MapUtils.class);
 
   private MapUtils() {}
-  
+
   public static void configureLocalDirs(Configuration conf, String localDir)
       throws IOException {
     String[] localSysDirs = new String[1];
@@ -121,8 +121,8 @@ public final class MapUtils {
     }
     conf.set(MRFrameworkConfigs.JOB_LOCAL_DIR, workDir.toString());
   }
-  
-  private static InputSplit 
+
+  private static InputSplit
   createInputSplit(FileSystem fs, Path workDir, JobConf job, Path file, int numKVs)
       throws IOException {
     FileInputFormat.setInputPaths(job, workDir);
@@ -146,23 +146,23 @@ public final class MapUtils {
     } finally {
       writer.close();
     }
-    
+
     SequenceFileInputFormat<LongWritable, Text> format =
             new SequenceFileInputFormat<>();
     InputSplit[] splits = format.getSplits(job, 1);
     System.err.println("#split = " + splits.length + " ; " +
         "#locs = " + splits[0].getLocations().length + "; " +
-        "loc = " + splits[0].getLocations()[0] + "; " + 
+        "loc = " + splits[0].getLocations()[0] + "; " +
         "off = " + splits[0].getLength() + "; " +
         "file = " + ((FileSplit)splits[0]).getPath());
     return splits[0];
   }
-  
+
   final private static FsPermission JOB_FILE_PERMISSION = FsPermission
       .createImmutable((short) 0644); // rw-r--r--
 
   // Will write files to PWD, from where they are read.
-  
+
   private static void writeSplitFiles(FileSystem fs, JobConf conf,
       InputSplit split) throws IOException {
     Path jobSplitFile = new Path(conf.get(MRFrameworkConfigs.TASK_LOCAL_RESOURCE_DIR,
@@ -200,7 +200,7 @@ public final class MapUtils {
     InputSplit split = createInputSplit(fs, workDir, jobConf, mapInput, numKVs);
     writeSplitFiles(fs, jobConf, split);
   }
-  
+
   public static LogicalIOProcessorRuntimeTask createLogicalTask(FileSystem fs, Path workDir,
       JobConf jobConf, int mapId, Path mapInput,
       TezUmbilical umbilical, String dagName,
@@ -211,7 +211,7 @@ public final class MapUtils {
     ProcessorDescriptor mapProcessorDesc = ProcessorDescriptor.create(
         MapProcessor.class.getName()).setUserPayload(
         TezUtils.createUserPayloadFromConf(jobConf));
-    
+
     Token<JobTokenIdentifier> shuffleToken = new Token<>();
 
     TaskSpec taskSpec = new TaskSpec(

@@ -32,5 +32,5 @@ public class CallableEventDispatcher implements EventHandler<CallableEvent> {
         event.getCallback().onFailure(e);
       }
     }
-    
+
   }

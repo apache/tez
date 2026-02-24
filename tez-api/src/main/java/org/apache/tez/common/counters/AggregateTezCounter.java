@@ -25,7 +25,7 @@ public interface AggregateTezCounter {
   public abstract long getMin();
 
   public abstract long getMax();
-  
+
   public abstract long getCount();
 
 }

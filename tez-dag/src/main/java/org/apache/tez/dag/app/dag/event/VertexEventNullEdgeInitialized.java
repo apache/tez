@@ -25,17 +25,17 @@ import org.apache.tez.dag.records.TezVertexID;
 public class VertexEventNullEdgeInitialized extends VertexEvent {
   final Edge edge;
   final Vertex vertex;
-  
+
   public VertexEventNullEdgeInitialized(TezVertexID vertexId, Edge edge, Vertex vertex) {
     super(vertexId, VertexEventType.V_NULL_EDGE_INITIALIZED);
     this.edge = edge;
     this.vertex = vertex;
   }
-  
+
   public Edge getEdge() {
     return edge;
   }
-  
+
   public Vertex getVertex() {
     return vertex;
   }

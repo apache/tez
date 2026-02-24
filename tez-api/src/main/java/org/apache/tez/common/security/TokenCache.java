@@ -42,17 +42,17 @@ import org.slf4j.LoggerFactory;
  * This class provides user facing APIs for transferring secrets from
  * the job client to the tasks.
  * The secrets can be stored just before submission of jobs and read during
- * the task execution.  
+ * the task execution.
  */
 @InterfaceAudience.Private
 @InterfaceStability.Unstable
 public final class TokenCache {
-  
+
   private static final Logger LOG = LoggerFactory.getLogger(TokenCache.class);
 
   private TokenCache() {}
 
-  
+
   /**
    * auxiliary method to get user's secret keys..
    *
@@ -63,9 +63,9 @@ public final class TokenCache {
       return null;
     return credentials.getSecretKey(alias);
   }
-  
+
   /**
-   * Convenience method to obtain delegation tokens from namenodes 
+   * Convenience method to obtain delegation tokens from namenodes
    * corresponding to the paths passed.
    * @param credentials credentials
    * @param ps array of paths
@@ -121,7 +121,7 @@ public final class TokenCache {
   /**
    * get delegation token for a specific FS
    */
-  static void obtainTokensForFileSystemsInternal(FileSystem fs, 
+  static void obtainTokensForFileSystemsInternal(FileSystem fs,
       Credentials credentials, Configuration conf) throws IOException {
     // TODO Change this to use YARN utilities once YARN-1664 is fixed.
     // RM skips renewing token with empty renewer
@@ -149,12 +149,12 @@ public final class TokenCache {
    * store session specific token
    */
   @InterfaceAudience.Private
-  public static void setSessionToken(Token<? extends TokenIdentifier> t, 
+  public static void setSessionToken(Token<? extends TokenIdentifier> t,
       Credentials credentials) {
     credentials.addToken(SESSION_TOKEN, t);
   }
   /**
-   * 
+   *
    * @return session token
    */
   @SuppressWarnings("unchecked")

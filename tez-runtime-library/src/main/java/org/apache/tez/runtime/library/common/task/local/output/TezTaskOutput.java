@@ -67,7 +67,7 @@ public abstract class TezTaskOutput {
   /**
    * Create a local output file name. This method is meant to be used *only* if
    * the size of the file is not know up front.
-   * 
+   *
    * @return path the path to write to
    * @throws IOException
    */

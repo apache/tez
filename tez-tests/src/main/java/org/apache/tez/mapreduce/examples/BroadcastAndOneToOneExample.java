@@ -106,10 +106,10 @@ public class BroadcastAndOneToOneExample extends Configured implements Tool {
       boolean doLocalityCheck = getContext().getUserPayload().getPayload().get(0) > 0 ? true : false;
       int broadcastSum = getContext().getUserPayload().getPayload().get(1);
       int expectedSum = broadcastSum + getContext().getTaskIndex();
-      System.out.println("Index: " + getContext().getTaskIndex() + 
+      System.out.println("Index: " + getContext().getTaskIndex() +
           " sum: " + sum + " expectedSum: " + expectedSum + " broadcastSum: " + broadcastSum);
-      Preconditions.checkState((sum == expectedSum), "Sum = " + sum);      
-      
+      Preconditions.checkState((sum == expectedSum), "Sum = " + sum);
+
       if (doLocalityCheck) {
         ObjectRegistry objectRegistry = getContext().getObjectRegistry();
         String index = (String) objectRegistry.get(String.valueOf(getContext().getTaskIndex()));
@@ -149,7 +149,7 @@ public class BroadcastAndOneToOneExample extends Configured implements Tool {
 
     Vertex broadcastVertex = Vertex.create("Broadcast", ProcessorDescriptor.create(
         InputProcessor.class.getName()), numBroadcastTasks);
-    
+
     Vertex inputVertex = Vertex.create("Input", ProcessorDescriptor.create(
         InputProcessor.class.getName()).setUserPayload(procPayload), numOneToOneTasks);
 
@@ -174,7 +174,7 @@ public class BroadcastAndOneToOneExample extends Configured implements Tool {
                 edgeConf.createDefaultBroadcastEdgeProperty()));
     return dag;
   }
-  
+
   public boolean run(Configuration conf, boolean doLocalityCheck) throws Exception {
     System.out.println("Running BroadcastAndOneToOneExample");
     // conf and UGI
@@ -195,7 +195,7 @@ public class BroadcastAndOneToOneExample extends Configured implements Tool {
     Path stagingDir = new Path(stagingDirStr);
     tezConf.set(TezConfiguration.TEZ_AM_STAGING_DIR, stagingDirStr);
     stagingDir = fs.makeQualified(stagingDir);
-    
+
     // No need to add jar containing this class as assumed to be part of
     // the tez jars.
 
@@ -226,7 +226,7 @@ public class BroadcastAndOneToOneExample extends Configured implements Tool {
       tezSession.stop();
     }
   }
-  
+
   @Override
   public int run(String[] args) throws Exception {
     boolean doLocalityCheck = true;
@@ -252,12 +252,12 @@ public class BroadcastAndOneToOneExample extends Configured implements Tool {
     boolean status = run(getConf(), doLocalityCheck);
     return status ? 0 : 1;
   }
-  
+
   private static void printUsage() {
     System.err.println("broadcastAndOneToOneExample " + skipLocalityCheck);
     ToolRunner.printGenericCommandUsage(System.err);
   }
-  
+
   static String skipLocalityCheck = "-skipLocalityCheck";
 
   public static void main(String[] args) throws Exception {

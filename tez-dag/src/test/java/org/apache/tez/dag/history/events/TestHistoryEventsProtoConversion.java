@@ -223,7 +223,7 @@ public class TestHistoryEventsProtoConversion {
   }
 
   private void testDAGKillRequestEvent() throws Exception {
-    DAGKillRequestEvent event = 
+    DAGKillRequestEvent event =
         new DAGKillRequestEvent(TezDAGID.getInstance(ApplicationId.newInstance(0, 1), 1), 100334l,false);
     DAGKillRequestEvent deserializedEvent = (DAGKillRequestEvent)
         testProtoConversion(event);
@@ -328,17 +328,17 @@ public class TestHistoryEventsProtoConversion {
     Map<String, InputSpecUpdate> rootInputSpecUpdates = new HashMap<String, InputSpecUpdate>();
     rootInputSpecUpdates.put("input1", rootInputSpecUpdateBulk);
     rootInputSpecUpdates.put("input2", rootInputSpecUpdatePerTask);
-    
+
     Map<String, EdgeProperty> sourceEdgeManagers
       = new HashMap<String, EdgeProperty>();
     // add standard and custom edge
-    sourceEdgeManagers.put("foo", EdgeProperty.create(DataMovementType.SCATTER_GATHER, 
-        DataSourceType.PERSISTED, SchedulingType.SEQUENTIAL, 
+    sourceEdgeManagers.put("foo", EdgeProperty.create(DataMovementType.SCATTER_GATHER,
+        DataSourceType.PERSISTED, SchedulingType.SEQUENTIAL,
         OutputDescriptor.create("Out1"), InputDescriptor.create("in1")));
     sourceEdgeManagers.put("foo1", EdgeProperty.create(EdgeManagerPluginDescriptor.create("bar1")
         .setUserPayload(
-            UserPayload.create(ByteBuffer.wrap(new String("payload").getBytes()), 100)), 
-        DataSourceType.PERSISTED, SchedulingType.SEQUENTIAL, 
+            UserPayload.create(ByteBuffer.wrap(new String("payload").getBytes()), 100)),
+        DataSourceType.PERSISTED, SchedulingType.SEQUENTIAL,
         OutputDescriptor.create("Out1"), InputDescriptor.create("in1")));
 
     final long reconfigureDoneTime = 100;

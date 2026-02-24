@@ -63,7 +63,7 @@ public class MemoryFetchedInput extends FetchedInput {
   public byte[] getBytes() {
     return byteArray;
   }
-  
+
   @Override
   public void commit() {
     if (isState(State.PENDING)) {
@@ -79,7 +79,7 @@ public class MemoryFetchedInput extends FetchedInput {
       notifyFetchFailure();
     }
   }
-  
+
   @Override
   public void free() {
     Preconditions.checkState(

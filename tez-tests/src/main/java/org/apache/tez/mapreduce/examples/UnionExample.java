@@ -167,7 +167,7 @@ public class UnionExample {
       Map<String, LocalResource> localResources, Path stagingDir,
       String inputPath, String outputPath) throws IOException {
     DAG dag = DAG.create("UnionExample");
-    
+
     int numMaps = -1;
     Configuration inputConf = new Configuration(tezConf);
     inputConf.setBoolean("mapred.mapper.new-api", false);
@@ -194,14 +194,14 @@ public class UnionExample {
     outputConf.set(FileOutputFormat.OUTDIR, outputPath);
     DataSinkDescriptor od = MROutput.createConfigBuilder(outputConf, null).build();
     checkerVertex.addDataSink("union", od);
-    
+
 
     Configuration allPartsConf = new Configuration(tezConf);
     DataSinkDescriptor od2 = MROutput.createConfigBuilder(allPartsConf,
         TextOutputFormat.class, outputPath + "-all-parts").build();
     checkerVertex.addDataSink("all-parts", od2);
 
-    Configuration partsConf = new Configuration(tezConf);    
+    Configuration partsConf = new Configuration(tezConf);
     DataSinkDescriptor od1 = MROutput.createConfigBuilder(partsConf,
         TextOutputFormat.class, outputPath + "-parts").build();
     VertexGroup unionVertex = dag.createVertexGroup("union", mapVertex1, mapVertex2);
@@ -221,7 +221,7 @@ public class UnionExample {
             GroupInputEdge.create(unionVertex, checkerVertex, edgeConf.createDefaultEdgeProperty(),
                 InputDescriptor.create(
                     ConcatenatedMergedKeyValuesInput.class.getName())));
-    return dag;  
+    return dag;
   }
 
   private static void printUsage() {
@@ -244,18 +244,18 @@ public class UnionExample {
     FileSystem fs = FileSystem.get(tezConf);
     String stagingDirStr = Path.SEPARATOR + "user" + Path.SEPARATOR
         + user + Path.SEPARATOR+ ".staging" + Path.SEPARATOR
-        + Path.SEPARATOR + Long.toString(System.currentTimeMillis());    
+        + Path.SEPARATOR + Long.toString(System.currentTimeMillis());
     Path stagingDir = new Path(stagingDirStr);
     tezConf.set(TezConfiguration.TEZ_AM_STAGING_DIR, stagingDirStr);
     stagingDir = fs.makeQualified(stagingDir);
-    
+
 
     // No need to add jar containing this class as assumed to be part of
     // the tez jars.
 
     // TEZ-674 Obtain tokens based on the Input / Output paths. For now assuming staging dir
     // is the same filesystem as the one used for Input/Output.
-    
+
     TezClient tezSession = TezClient.create("UnionExampleSession", tezConf);
     tezSession.start();
 
@@ -269,10 +269,10 @@ public class UnionExample {
           throw new FileAlreadyExistsException("Output directory "
               + outputPath + " already exists");
         }
-        
+
         Map<String, LocalResource> localResources =
           new TreeMap<String, LocalResource>();
-        
+
         DAG dag = createDAG(fs, tezConf, localResources,
             stagingDir, inputPath, outputPath);
 

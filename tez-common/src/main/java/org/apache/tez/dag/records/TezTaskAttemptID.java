@@ -55,10 +55,10 @@ public class TezTaskAttemptID extends TezID implements TaskIDAware {
   // Public for Writable serialization. Verify if this is actually required.
   public TezTaskAttemptID() {
   }
-  
+
   /**
-   * Constructs a TaskAttemptID object from given {@link TezTaskID}.  
-   * @param taskID TaskID that this task belongs to  
+   * Constructs a TaskAttemptID object from given {@link TezTaskID}.
+   * @param taskID TaskID that this task belongs to
    * @param id the task attempt number
    * @throws  NullPointerException if {@code taskID} is {@code null}
    */
@@ -77,7 +77,7 @@ public class TezTaskAttemptID extends TezID implements TaskIDAware {
   public TezTaskID getTaskID() {
     return taskId;
   }
-  
+
   @Override
   public boolean equals(Object o) {
     if (!super.equals(o))
@@ -86,7 +86,7 @@ public class TezTaskAttemptID extends TezID implements TaskIDAware {
     TezTaskAttemptID that = (TezTaskAttemptID)o;
     return this.taskId.equals(that.taskId);
   }
-  
+
   /**
    * Add the unique string to the StringBuilder
    * @param builder the builder to append ot
@@ -97,12 +97,12 @@ public class TezTaskAttemptID extends TezID implements TaskIDAware {
     builder.append(SEPARATOR);
     return builder.append(id);
   }
-  
+
   @Override
   public int hashCode() {
     return taskId.hashCode() * 539501 + id;
   }
-  
+
   /**Compare TaskIds by first tipIds, then by task numbers. */
   @Override
   public int compareTo(TezID o) {
@@ -114,10 +114,10 @@ public class TezTaskAttemptID extends TezID implements TaskIDAware {
     else return tipComp;
   }
   @Override
-  public String toString() { 
+  public String toString() {
     return appendTo(new StringBuilder(ATTEMPT)).toString();
   }
-  
+
   @Override
   // Can't do much about this instance if used via the RPC layer. Any downstream
   // users can however avoid using this method.
@@ -125,7 +125,7 @@ public class TezTaskAttemptID extends TezID implements TaskIDAware {
     taskId = TezTaskID.readTezTaskID(in);
     super.readFields(in);
   }
-  
+
   public static TezTaskAttemptID readTezTaskAttemptID(DataInput in) throws IOException {
     TezTaskID taskID = TezTaskID.readTezTaskID(in);
     int attemptIdInt = TezID.readID(in);

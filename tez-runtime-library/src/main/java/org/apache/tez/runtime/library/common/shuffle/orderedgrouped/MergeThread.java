@@ -27,7 +27,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 abstract class MergeThread<T> extends Thread {
-  
+
   private static final Logger LOG = LoggerFactory.getLogger(MergeThread.class);
 
   private volatile boolean inProgress = false;
@@ -38,14 +38,14 @@ abstract class MergeThread<T> extends Thread {
   private final int mergeFactor;
 
   private Thread shuffleSchedulerThread;
-  
+
   public MergeThread(MergeManager manager, int mergeFactor,
                      ExceptionReporter reporter) {
     this.manager = manager;
     this.mergeFactor = mergeFactor;
     this.reporter = reporter;
   }
-  
+
   public synchronized void close() throws InterruptedException {
     closed = true;
     if (!Thread.currentThread().isInterrupted()) {
@@ -69,7 +69,7 @@ abstract class MergeThread<T> extends Thread {
   public synchronized boolean isInProgress() {
     return inProgress;
   }
-  
+
   public synchronized void startMerge(Set<T> inputs) {
     if (!closed) {
       this.inputs.clear();
@@ -79,7 +79,7 @@ abstract class MergeThread<T> extends Thread {
         this.inputs.add(iter.next());
         iter.remove();
       }
-      LOG.info(getName() + ": Starting merge with " + this.inputs.size() + 
+      LOG.info(getName() + ": Starting merge with " + this.inputs.size() +
                " segments, while ignoring " + inputs.size() + " segments");
       notifyAll();
     }
@@ -122,14 +122,14 @@ abstract class MergeThread<T> extends Thread {
         synchronized (this) {
           // Clear inputs
           inputs.clear();
-          inProgress = false;        
+          inProgress = false;
           notifyAll();
         }
       }
     }
   }
 
-  public abstract void merge(List<T> inputs) 
+  public abstract void merge(List<T> inputs)
       throws IOException, InterruptedException;
 
   public abstract void cleanup(List<T> inputs, boolean deleteData)

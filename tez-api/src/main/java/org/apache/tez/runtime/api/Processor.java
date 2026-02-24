@@ -22,9 +22,9 @@ import org.apache.hadoop.classification.InterfaceAudience.Public;
 
 /**
  * {@link Processor} represents the <em>Tez</em> entity responsible for
- * consuming {@link Input} and producing {@link Output}. It defines the 
+ * consuming {@link Input} and producing {@link Output}. It defines the
  * application logic that processes and transforms the data.
- * 
+ *
  * Users are expected to derive from {@link AbstractLogicalIOProcessor}
  */
 @Public

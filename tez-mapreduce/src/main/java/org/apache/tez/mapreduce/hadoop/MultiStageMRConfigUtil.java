@@ -45,11 +45,11 @@ public final class MultiStageMRConfigUtil {
     return MRJobConfig.MRR_INTERMEDIATE_STAGE_PREFIX + intermediateStage + "."
         + originalPropertyName;
   }
- 
+
  //////////////////////////////////////////////////////////////////////////////
  //                  Methods based on Vertex Name                            //
  //////////////////////////////////////////////////////////////////////////////
-  
+
   private static final String INITIAL_MAP_VERTEX_NAME = "initialmap";
   private static final String FINAL_REDUCE_VERTEX_NAME = "finalreduce";
   private static final String INTERMEDIATE_TASK_VERTEX_NAME_PREFIX = "ivertex";

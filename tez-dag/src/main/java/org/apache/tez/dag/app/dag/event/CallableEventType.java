@@ -19,7 +19,7 @@
 package org.apache.tez.dag.app.dag.event;
 
 public enum CallableEventType {
-  
+
   CALLABLE,
 
 }

@@ -59,7 +59,7 @@ public class ContainerContext {
     this.javaOpts = javaOpts;
     this.vertex = null;
   }
-  
+
   public ContainerContext(Map<String, LocalResource> localResources,
       Credentials credentials, Map<String, String> environment, String javaOpts,
       @Nullable Vertex vertex) {
@@ -114,7 +114,7 @@ public class ContainerContext {
     return isSuperSet(this.environment, otherContext.getEnvironment(), "Environment")
         && localResourcesCompatible(this.localResources, otherContext.getLocalResources());
   }
-  
+
   /**
    * @return true if this ContainerContext is an exact match of the specified
    *         container context.

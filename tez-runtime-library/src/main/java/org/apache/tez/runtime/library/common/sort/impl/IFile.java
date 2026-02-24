@@ -58,7 +58,7 @@ import org.slf4j.LoggerFactory;
  * <code>IFile</code> is the simple <key-len, value-len, key, value> format
  * for the intermediate map-outputs in Map-Reduce.
  *
- * There is a <code>Writer</code> to write out map-outputs in this format and 
+ * There is a <code>Writer</code> to write out map-outputs in this format and
  * a <code>Reader</code> to read files of this format.
  */
 @InterfaceAudience.Private

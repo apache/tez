@@ -28,13 +28,13 @@ import org.apache.tez.dag.api.records.DAGProtos.ProgressProtoOrBuilder;
 @Public
 @Evolving
 public class Progress {
-  
+
   ProgressProtoOrBuilder proxy = null;
-  
+
   Progress(ProgressProtoOrBuilder proxy) {
     this.proxy = proxy;
   }
-  
+
   public int getTotalTaskCount() {
     return proxy.getTotalTaskCount();
   }
@@ -71,7 +71,7 @@ public class Progress {
   public boolean equals(Object obj) {
     if (obj instanceof Progress){
       Progress other = (Progress)obj;
-      return getTotalTaskCount() == other.getTotalTaskCount() 
+      return getTotalTaskCount() == other.getTotalTaskCount()
           && getSucceededTaskCount() == other.getSucceededTaskCount()
           && getRunningTaskCount() == other.getRunningTaskCount()
           && getFailedTaskCount() == other.getFailedTaskCount()
@@ -114,9 +114,9 @@ public class Progress {
     sb.append(getSucceededTaskCount());
     sb.append(" Running: ");
     sb.append(getRunningTaskCount());
-    sb.append(" Failed: "); 
+    sb.append(" Failed: ");
     sb.append(getFailedTaskCount());
-    sb.append(" Killed: "); 
+    sb.append(" Killed: ");
     sb.append(getKilledTaskCount());
     if (getFailedTaskAttemptCount() > 0) {
       sb.append(" FailedTaskAttempts: ");

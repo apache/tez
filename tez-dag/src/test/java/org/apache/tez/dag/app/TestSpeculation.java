@@ -277,7 +277,7 @@ public class TestSpeculation {
       mockLauncher = mockApp.getContainerLauncher();
       mockLauncher.startScheduling(allowScheduling);
       mockAppLauncherGoFlag.notify();
-    }     
+    }
   }
 
   /**
@@ -371,7 +371,7 @@ public class TestSpeculation {
     Assert.assertEquals(successTaId, task.getSuccessfulAttempt().getTaskAttemptID());
     TaskAttempt killedAttempt = task.getAttempt(killedTaId);
     Joiner.on(",").join(killedAttempt.getDiagnostics()).contains("Killed as speculative attempt");
-    Assert.assertEquals(TaskAttemptTerminationCause.TERMINATED_EFFECTIVE_SPECULATION, 
+    Assert.assertEquals(TaskAttemptTerminationCause.TERMINATED_EFFECTIVE_SPECULATION,
         killedAttempt.getTerminationCause());
     if (withProgress) {
       // without progress updates occasionally more than 1 task speculates
@@ -491,7 +491,7 @@ public class TestSpeculation {
     dag.addVertex(vA);
 
     MockTezClient tezClient = createTezSession();
-    
+
     DAGClient dagClient = tezClient.submitDAG(dag);
     DAGImpl dagImpl = (DAGImpl) mockApp.getContext().getCurrentDAG();
     TezVertexID vertexId = TezVertexID.getInstance(dagImpl.getID(), 0);
@@ -510,7 +510,7 @@ public class TestSpeculation {
     Assert.assertEquals(successTaId, task.getSuccessfulAttempt().getTaskAttemptID());
     TaskAttempt killedAttempt = task.getAttempt(killedTaId);
     Joiner.on(",").join(killedAttempt.getDiagnostics()).contains("Killed speculative attempt as");
-    Assert.assertEquals(TaskAttemptTerminationCause.TERMINATED_INEFFECTIVE_SPECULATION, 
+    Assert.assertEquals(TaskAttemptTerminationCause.TERMINATED_INEFFECTIVE_SPECULATION,
         killedAttempt.getTerminationCause());
     Assert.assertEquals(1, task.getCounters().findCounter(TaskCounter.NUM_SPECULATIONS)
         .getValue());

@@ -22,7 +22,7 @@ import org.apache.hadoop.classification.InterfaceAudience.Private;
 @Private
 public enum Scope {
   // DO NOT CHANGE THE ORDER
-  AM,       // can only been set at AM level 
+  AM,       // can only been set at AM level
   DAG,      // can been set at AM/DAG level
   VERTEX,   // can been set at AM/DAG/VERTEX level
   CLIENT,   // Client scope - only applicable on client

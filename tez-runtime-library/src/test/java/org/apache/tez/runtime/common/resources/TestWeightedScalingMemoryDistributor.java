@@ -44,7 +44,7 @@ import com.google.common.base.Joiner;
 import org.junit.Test;
 
 public class TestWeightedScalingMemoryDistributor extends TestMemoryDistributor {
-  
+
   @Override
   public void setup() {
     conf.setBoolean(TezConfiguration.TEZ_TASK_SCALE_MEMORY_ENABLED, true);
@@ -53,7 +53,7 @@ public class TestWeightedScalingMemoryDistributor extends TestMemoryDistributor 
     conf.setDouble(TezConfiguration.TEZ_TASK_SCALE_MEMORY_RESERVE_FRACTION, 0.3d);
     conf.setDouble(TezConfiguration.TEZ_TASK_SCALE_MEMORY_ADDITIONAL_RESERVATION_FRACTION_PER_IO, 0.0d);
   }
-  
+
   @Test(timeout = 5000)
   public void testSimpleWeightedScaling() throws TezException {
     Configuration conf = new Configuration(this.conf);
@@ -147,7 +147,7 @@ public class TestWeightedScalingMemoryDistributor extends TestMemoryDistributor 
     assertEquals(500, e3Callback.assigned);
     assertEquals(1500, e4Callback.assigned);
   }
-  
+
   @Test(timeout = 5000)
   public void testWeightedScalingNonConcurrent() throws TezException {
     Configuration conf = new Configuration(this.conf);

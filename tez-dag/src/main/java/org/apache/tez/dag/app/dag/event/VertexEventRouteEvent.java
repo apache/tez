@@ -24,7 +24,7 @@ import org.apache.tez.dag.records.TezVertexID;
 import org.apache.tez.runtime.api.impl.TezEvent;
 
 public class VertexEventRouteEvent extends VertexEvent {
-  
+
   final List<TezEvent> events;
 
   public VertexEventRouteEvent(TezVertexID vertexId, List<TezEvent> events) {

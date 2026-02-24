@@ -145,7 +145,7 @@ public class TestTaskAttempt {
       return new FileStatus(1, false, 1, 1, 1, f);
     }
   }
-  
+
   AppContext appCtx;
   TezConfiguration vertexConf = new TezConfiguration();
   TaskLocationHint locationHint;
@@ -158,7 +158,7 @@ public class TestTaskAttempt {
   public static void setup() {
     MockDNSToSwitchMapping.initializeMockRackResolver();
   }
-  
+
   @Before
   public void setupTest() {
     appCtx = mock(AppContext.class);
@@ -218,7 +218,7 @@ public class TestTaskAttempt {
       fail("Second event not of type "
           + AMSchedulerEventTALaunchRequest.class.getName());
     }
-    
+
     // TODO Move the Rack request check to the client after TEZ-125 is fixed.
     Set<String> requestedRacks = taImpl.taskRacks;
     assertEquals(1, requestedRacks.size());
@@ -537,7 +537,7 @@ public class TestTaskAttempt {
 
     assertEquals(2, taImpl.getDiagnostics().size());
     assertEquals("Terminated", taImpl.getDiagnostics().get(1));
-    
+
     // check that original error cause is retained
     assertEquals(TaskAttemptTerminationCause.APPLICATION_ERROR, taImpl.getTerminationCause());
   }
@@ -721,7 +721,7 @@ public class TestTaskAttempt {
     assertEquals(0, taImpl.getDiagnostics().size());
     assertEquals(TaskAttemptTerminationCause.UNKNOWN_ERROR, taImpl.getTerminationCause());
   }
-  
+
   @Test(timeout = 5000)
   public void testLastDataEventRecording() throws Exception {
     ApplicationId appId = ApplicationId.newInstance(1, 2);
@@ -771,7 +771,7 @@ public class TestTaskAttempt {
     taImpl.handle(new TaskAttemptEventStartedRemotely(taskAttemptID));
     assertEquals("Task attempt is not in the RUNNING state", taImpl.getState(),
         TaskAttemptState.RUNNING);
-    
+
     long ts1 = 1024;
     long ts2 = 2048;
     TezTaskAttemptID mockId1 = mock(TezTaskAttemptID.class);
@@ -806,7 +806,7 @@ public class TestTaskAttempt {
     assertEquals(ts2, taImpl.lastDataEvents.get(1).getTimestamp());
     assertEquals(mockId2, taImpl.lastDataEvents.get(1).getTaskAttemptId()); // over-write earlier value
   }
-  
+
   @Test(timeout = 5000)
   public void testFailure() throws Exception {
     ApplicationId appId = ApplicationId.newInstance(1, 2);
@@ -864,9 +864,9 @@ public class TestTaskAttempt {
     verifyEventType(
         arg.getAllValues().subList(0,
             expectedEventsAtRunning), SpeculatorEventTaskAttemptStatusUpdate.class, 1);
-    
+
     taImpl.handle(new TaskAttemptEventStatusUpdate(taskAttemptID, new TaskStatusUpdateEvent(null, 0.1f, null, false)));
-    
+
     taImpl.handle(new TaskAttemptEventAttemptFailed(taskAttemptID, TaskAttemptEventType.TA_FAILED,
         TaskFailureType.NON_FATAL, "0",
         TaskAttemptTerminationCause.APPLICATION_ERROR));
@@ -1271,7 +1271,7 @@ public class TestTaskAttempt {
     assertEquals("Task attempt is not in the RUNNING state", taImpl.getState(),
         TaskAttemptState.RUNNING);
     verify(mockHeartbeatHandler).register(taskAttemptID);
-    
+
     when(mockClock.getTime()).thenReturn(100l);
     taImpl.handle(new TaskAttemptEventStatusUpdate(
         taskAttemptID, new TaskStatusUpdateEvent(null, 0.1f, null, true)));
@@ -1317,7 +1317,7 @@ public class TestTaskAttempt {
     TezTaskAttemptID taID11 = TezTaskAttemptID.getInstance(taskID1, 0);
     TezTaskAttemptID taID12 = TezTaskAttemptID.getInstance(taskID1, 1);
     TezTaskAttemptID taID21 = TezTaskAttemptID.getInstance(taskID2, 1);
-    
+
     TaskAttemptEvent taEventFail11 = new TaskAttemptEvent(taID11, TaskAttemptEventType.TA_FAILED);
     TaskAttemptEvent taEventKill11 = new TaskAttemptEvent(taID11, TaskAttemptEventType.TA_KILL_REQUEST);
     TaskAttemptEvent taEventKill12 = new TaskAttemptEvent(taID12, TaskAttemptEventType.TA_KILL_REQUEST);
@@ -1325,7 +1325,7 @@ public class TestTaskAttempt {
     TaskEvent tEventKill1 = new TaskEvent(taskID1, TaskEventType.T_ATTEMPT_KILLED);
     TaskEvent tEventFail1 = new TaskEvent(taskID1, TaskEventType.T_ATTEMPT_FAILED);
     TaskEvent tEventFail2 = new TaskEvent(taskID2, TaskEventType.T_ATTEMPT_FAILED);
-    
+
     // all of them should have the same value
     assertEquals(taEventFail11.getSerializingHash(), taEventKill11.getSerializingHash());
     assertEquals(taEventKill11.getSerializingHash(), taEventKill12.getSerializingHash());
@@ -1475,10 +1475,10 @@ public class TestTaskAttempt {
     verifyEventType(
         arg.getAllValues().subList(0,
             expectedEventsAtRunning), SpeculatorEventTaskAttemptStatusUpdate.class, 1);
-    
-    taImpl.handle(new TaskAttemptEventStatusUpdate(taskAttemptID, 
+
+    taImpl.handle(new TaskAttemptEventStatusUpdate(taskAttemptID,
         new TaskStatusUpdateEvent(null, 0.1f, null, false)));
-    
+
     taImpl.handle(new TaskAttemptEvent(taskAttemptID, TaskAttemptEventType.TA_DONE));
 
     assertEquals("Task attempt is not in the  SUCCEEDED state", taImpl.getState(),
@@ -1504,7 +1504,7 @@ public class TestTaskAttempt {
         arg.getAllValues().subList(expectedEventsAtRunning,
             expectedEventsAfterTerminating), SpeculatorEventTaskAttemptStatusUpdate.class, 2);
   }
-  
+
   @Test(timeout = 5000)
   // Ensure Container Preemption race with task completion is handled correctly by
   // the TaskAttempt
@@ -1704,7 +1704,7 @@ public class TestTaskAttempt {
         "InternalError occurred trying to handle TA_TEZ_EVENT_UPDATE in KILLED state",
         eventHandler.internalError);
   }
-  
+
   @Test(timeout = 5000)
   // Ensure node failure on Successful Leaf tasks do not cause them to be marked as KILLED
   public void testNodeFailedLeafVertex() throws Exception {
@@ -1783,7 +1783,7 @@ public class TestTaskAttempt {
             expectedEventsAfterTerminating), DAGEventCounterUpdate.class, 1);
 
     // Send out a Node Failure.
-    taImpl.handle(new TaskAttemptEventNodeFailed(taskAttemptID, "NodeDecomissioned", 
+    taImpl.handle(new TaskAttemptEventNodeFailed(taskAttemptID, "NodeDecomissioned",
         TaskAttemptTerminationCause.NODE_FAILED));
 
     // Verify no additional events
@@ -1884,7 +1884,7 @@ public class TestTaskAttempt {
     when(appCtx.getCurrentDAG()).thenReturn(mockDAG);
     TezEvent tzEvent = new TezEvent(mockReEvent, mockMeta);
     taImpl.handle(new TaskAttemptEventOutputFailed(taskAttemptID, tzEvent, 11));
-    
+
     // failure threshold not met. state is SUCCEEDED
     assertEquals("Task attempt is not in succeeded state", taImpl.getState(),
         TaskAttemptState.SUCCEEDED);
@@ -1908,7 +1908,7 @@ public class TestTaskAttempt {
     when(destVertex.getRunningTasks()).thenReturn(11);
     when(mockDAG.getVertex(destVertexID)).thenReturn(destVertex);
     taImpl.handle(new TaskAttemptEventOutputFailed(taskAttemptID, tzEvent, 11));
-    
+
     assertEquals("Task attempt is not in FAILED state", TaskAttemptState.FAILED, taImpl.getState());
     assertEquals(TaskAttemptTerminationCause.OUTPUT_LOST, taImpl.getTerminationCause());
     // verify unregister is not invoked again
@@ -1977,7 +1977,7 @@ public class TestTaskAttempt {
     // verify unregister is not invoked again
     verify(mockHeartbeatHandler, times(1)).unregister(taskAttemptID2);
 
-    Clock mockClock = mock(Clock.class); 
+    Clock mockClock = mock(Clock.class);
     int readErrorTimespanSec = 1;
 
     newVertexConf = new Configuration(vertexConf);
@@ -2374,7 +2374,7 @@ public class TestTaskAttempt {
   }
 
   private class MockTaskAttemptImpl extends TaskAttemptImpl {
-    
+
     public int taskAttemptStartedEventLogged = 0;
     public int taskAttemptFinishedEventLogged = 0;
     public MockTaskAttemptImpl(TezTaskID taskId, int attemptNumber,
@@ -2421,7 +2421,7 @@ public class TestTaskAttempt {
       taskAttemptFinishedEventLogged++;
       super.logJobHistoryAttemptUnsuccesfulCompletion(state, taskFailureType);
     }
-    
+
     @Override
     protected void sendInputFailedToConsumers() {
       inputFailedReported = true;

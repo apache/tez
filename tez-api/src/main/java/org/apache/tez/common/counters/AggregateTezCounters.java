@@ -19,13 +19,13 @@
 package org.apache.tez.common.counters;
 
 public class AggregateTezCounters extends TezCounters {
-  
+
   private static final GroupFactory groupFactory = new GroupFactory();
-  
+
   public AggregateTezCounters() {
     super(groupFactory);
   }
-  
+
   // Mix framework group implementation into CounterGroup interface
   private static class AggregateFrameworkGroupImpl<T extends Enum<T>>
       extends FrameworkCounterGroup<T, TezCounter> implements CounterGroup {

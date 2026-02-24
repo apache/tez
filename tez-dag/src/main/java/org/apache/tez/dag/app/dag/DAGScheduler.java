@@ -37,9 +37,9 @@ public abstract class DAGScheduler {
       this.concurrencyLimit = limit;
     }
   }
-  
+
   Map<TezVertexID, VertexInfo> vertexInfo = null;
-  
+
   public void addVertexConcurrencyLimit(TezVertexID vId, int concurrency) {
     if (vertexInfo == null) {
       vertexInfo = new HashMap<>();
@@ -48,7 +48,7 @@ public abstract class DAGScheduler {
       vertexInfo.put(vId, new VertexInfo(concurrency));
     }
   }
-  
+
   public void scheduleTask(DAGEventSchedulerUpdate event) {
     VertexInfo vInfo = null;
     if (vertexInfo != null) {
@@ -56,7 +56,7 @@ public abstract class DAGScheduler {
     }
     scheduleTaskWithLimit(event, vInfo);
   }
-  
+
   private void scheduleTaskWithLimit(DAGEventSchedulerUpdate event, VertexInfo vInfo) {
     if (vInfo != null) {
       if (vInfo.concurrency >= vInfo.concurrencyLimit) {
@@ -67,7 +67,7 @@ public abstract class DAGScheduler {
     }
     scheduleTaskEx(event);
   }
-  
+
   public void taskCompleted(DAGEventSchedulerUpdate event) {
     taskCompletedEx(event);
     if (vertexInfo != null) {
@@ -85,9 +85,9 @@ public abstract class DAGScheduler {
       }
     }
   }
-  
+
   public abstract void scheduleTaskEx(DAGEventSchedulerUpdate event);
-  
+
   public abstract void taskCompletedEx(DAGEventSchedulerUpdate event);
 
   /**

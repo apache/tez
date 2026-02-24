@@ -57,7 +57,7 @@ public class FilterByWordOutputProcessor extends SimpleMRProcessor {
 
   @Override
   public void run() throws Exception {
-    
+
     if (inputs.size() != 1) {
       throw new IllegalStateException("FilterByWordOutputProcessor processor can only work with a single input");
     }

@@ -311,7 +311,7 @@ public class TestHistoryParser {
           for (TaskAttemptInfo attempt : attempts) {
             DataDependencyEvent item = attempt.getLastDataEvents().get(0);
             assertTrue(item.getTimestamp() > 0);
-            
+
             if (lastDataEventSourceTA == null) {
               lastDataEventSourceTA = item.getTaskAttemptId();
             } else {

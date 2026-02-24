@@ -36,7 +36,7 @@ import org.slf4j.LoggerFactory;
 public class DiskFetchedInput extends FetchedInput {
 
   private static final Logger LOG = LoggerFactory.getLogger(DiskFetchedInput.class);
-  
+
   private final FileSystem localFS;
   private final Path tmpOutputPath;
   private final Path outputPath;
@@ -85,7 +85,7 @@ public class DiskFetchedInput extends FetchedInput {
     }
     return this.tmpOutputPath;
   }
-  
+
   @Override
   public void commit() throws IOException {
     if (isState(State.PENDING)) {
@@ -104,7 +104,7 @@ public class DiskFetchedInput extends FetchedInput {
       notifyFetchFailure();
     }
   }
-  
+
   @Override
   public void free() {
     Preconditions.checkState(

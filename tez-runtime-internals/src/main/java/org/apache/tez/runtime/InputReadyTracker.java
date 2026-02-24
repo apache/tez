@@ -40,9 +40,9 @@ import com.google.common.collect.Maps;
 public class InputReadyTracker {
 
   private final ConcurrentMap<Input, Boolean> readyInputs;
-  
+
   private ConcurrentMap<Input, List<MergedLogicalInput>> inputToGroupMap;
-  
+
   private final ReentrantLock lock = new ReentrantLock();
   private final Condition condition = lock.newCondition();
 

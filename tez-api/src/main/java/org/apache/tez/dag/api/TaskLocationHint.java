@@ -29,7 +29,7 @@ import org.apache.tez.common.Preconditions;
 
 /**
  * Describes the placements hints for tasks.
- * The system will make a best-effort attempt to run the tasks 
+ * The system will make a best-effort attempt to run the tasks
  * close to the specified locations.
  */
 @Public
@@ -63,7 +63,7 @@ public class TaskLocationHint {
   private Set<String> hosts;
   // Rack names if any to be used
   private Set<String> racks;
-  
+
   private TaskBasedLocationAffinity affinitizedTask;
 
   private TaskLocationHint(String vertexName, int taskIndex) {
@@ -86,7 +86,7 @@ public class TaskLocationHint {
   }
 
   /**
-   * Provide a location hint that affinitizes to the given task in the given vertex. Tez will try 
+   * Provide a location hint that affinitizes to the given task in the given vertex. Tez will try
    * to run in the same container as the given task or node local to it. Locality may degrade to
    * rack local or further depending on cluster resource allocations.<br>
    * This is expected to be used only during dynamic optimizations via {@link VertexManagerPlugin}s

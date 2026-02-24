@@ -131,14 +131,14 @@ public class TestTaskCommunicatorManager1 {
     eventHandler = mock(EventHandler.class);
 
     MockClock clock = new MockClock();
-    
+
     appContext = mock(AppContext.class);
     doReturn(eventHandler).when(appContext).getEventHandler();
     doReturn(dag).when(appContext).getCurrentDAG();
     doReturn(appAcls).when(appContext).getApplicationACLs();
     doReturn(amContainerMap).when(appContext).getAllContainers();
     doReturn(clock).when(appContext).getClock();
-    
+
     doReturn(appAttemptId).when(appContext).getApplicationAttemptId();
     doReturn(credentials).when(appContext).getAppCredentials();
     NodeId nodeId = NodeId.newInstance("localhost", 0);
@@ -266,7 +266,7 @@ public class TestTaskCommunicatorManager1 {
     assertEquals(1, taEvent.getTezEvents().size());
     assertEquals(EventType.DATA_MOVEMENT_EVENT,
         taEvent.getTezEvents().get(0).getEventType());
-    
+
     final TaskAttemptEvent taCompleteEvent = (TaskAttemptEvent)argAllValues.get(2);
     assertEquals(TaskAttemptEventType.TA_DONE, taCompleteEvent.getType());
     final VertexEventRouteEvent vertexRouteEvent = (VertexEventRouteEvent)argAllValues.get(3);
@@ -274,7 +274,7 @@ public class TestTaskCommunicatorManager1 {
     assertEquals(EventType.DATA_MOVEMENT_EVENT,
         vertexRouteEvent.getEvents().get(0).getEventType());
   }
-  
+
   @Test (timeout = 5000)
   public void testTaskEventRoutingWithReadError() throws Exception {
     List<TezEvent> events =  Arrays.asList(
@@ -326,13 +326,13 @@ public class TestTaskCommunicatorManager1 {
     assertEquals("only event should be route event", TaskAttemptEventType.TA_DONE,
         event.getType());
   }
-  
+
   @Test (timeout = 5000)
   public void testTaskHeartbeatResponse() throws Exception {
     List<TezEvent> events = new ArrayList<TezEvent>();
     List<TezEvent> eventsToSend = new ArrayList<TezEvent>();
     TaskHeartbeatResponse response = generateHeartbeat(events, 0, 1, 2, eventsToSend);
-    
+
     assertEquals(2, response.getNextFromEventId());
     assertEquals(eventsToSend, response.getEvents());
   }
@@ -378,7 +378,7 @@ public class TestTaskCommunicatorManager1 {
     boolean succeedToAllocate = true;
     try {
       Configuration conf = new Configuration();
-      
+
       JobTokenIdentifier identifier = new JobTokenIdentifier(new Text(
           "fakeIdentifier"));
       Token<JobTokenIdentifier> sessionToken = new Token<JobTokenIdentifier>(identifier,

@@ -31,17 +31,17 @@ import org.junit.Test;
 public class TestConfigTranslationMRToTez {
 
   @Test(timeout = 5000)
-  // Tests derived keys - i.e. the actual key is not set, but the value is 
+  // Tests derived keys - i.e. the actual key is not set, but the value is
   // derived from a fallback key.
   public void testComplexKeys() {
 
     JobConf confVertex1 = new JobConf();
-    
+
     confVertex1.set(MRJobConfig.MAP_OUTPUT_KEY_CLASS, IntWritable.class.getName());
-    
+
     confVertex1.unset(MRJobConfig.KEY_COMPARATOR);
     confVertex1.unset(MRJobConfig.GROUP_COMPARATOR_CLASS);
-    
+
     MRHelpers.translateMRConfToTez(confVertex1);
 
     assertEquals(IntWritable.Comparator.class.getName(), ConfigUtils

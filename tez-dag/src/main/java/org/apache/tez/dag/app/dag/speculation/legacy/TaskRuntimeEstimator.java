@@ -26,7 +26,7 @@ import org.apache.tez.dag.records.TezTaskID;
 
 /**
  * Estimate the runtime for tasks of a given vertex.
- * 
+ *
  */
 public interface TaskRuntimeEstimator {
   void enrollAttempt(TezTaskAttemptID id, long timestamp);

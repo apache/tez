@@ -398,7 +398,7 @@ public class MRRSleepJob extends Configured implements Tool {
     int res = ToolRunner.run(new Configuration(), new MRRSleepJob(), args);
     System.exit(res);
   }
-  
+
   private Credentials credentials = new Credentials();
 
   public DAG createDAG(Configuration conf, Path stagingDir,
@@ -520,7 +520,7 @@ public class MRRSleepJob extends Configured implements Tool {
 
     List<Vertex> vertices = new ArrayList<Vertex>();
 
-    
+
     UserPayload mapUserPayload = TezUtils.createUserPayloadFromConf(mapStageConf);
     int numTasks = generateSplitsInAM ? -1 : numMapper;
 
@@ -538,7 +538,7 @@ public class MRRSleepJob extends Configured implements Tool {
     vertices.add(mapVertex);
 
     if (iReduceStagesCount > 0
-        && numIReducer > 0) {      
+        && numIReducer > 0) {
       for (int i = 0; i < iReduceStagesCount; ++i) {
         Configuration iconf =
             intermediateReduceStageConfs[i];
@@ -710,7 +710,7 @@ public class MRRSleepJob extends Configured implements Tool {
         }
         splitsOptionFound = true;
         generateSplitsInAM = Boolean.parseBoolean(args[++i]);
-        
+
       }
       else if (args[i].equals("-writeSplitsToDfs")) {
         if (splitsOptionFound) {

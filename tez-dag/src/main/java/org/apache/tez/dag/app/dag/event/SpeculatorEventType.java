@@ -25,5 +25,5 @@ public enum SpeculatorEventType {
 
   //Producer:TaskAttempt
   S_TASK_ATTEMPT_STATUS_UPDATE,
-  
+
 }

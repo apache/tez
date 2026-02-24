@@ -62,8 +62,8 @@ import org.slf4j.LoggerFactory;
  * {@link OrderedGroupedKVInput} in a {@link AbstractLogicalInput} which shuffles
  * intermediate sorted data, merges them and provides key/<values> to the
  * consumer. This is typically used to bring one partition of a set of partitioned
- * distributed data to one consumer. The shuffle operation brings all partitions 
- * to one place. These partitions are assumed to be sorted and are merged sorted to 
+ * distributed data to one consumer. The shuffle operation brings all partitions
+ * to one place. These partitions are assumed to be sorted and are merged sorted to
  * merge them into a single input view.
  *
  * The Copy and Merge will be triggered by the initialization - which is handled
@@ -198,14 +198,14 @@ public class OrderedGroupedKVInput extends AbstractLogicalInput {
     if (shuffle != null) {
       shuffle.shutdown();
     }
-    
+
     long dataSize = getContext().getCounters()
         .findCounter(TaskCounter.SHUFFLE_BYTES_DECOMPRESSED).getValue();
     getContext().getStatisticsReporter().reportDataSize(dataSize);
     long inputRecords = getContext().getCounters()
         .findCounter(TaskCounter.REDUCE_INPUT_RECORDS).getValue();
     getContext().getStatisticsReporter().reportItemsProcessed(inputRecords);
-    
+
     return Collections.emptyList();
   }
 

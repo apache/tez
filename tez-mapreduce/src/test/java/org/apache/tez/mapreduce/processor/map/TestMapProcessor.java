@@ -69,11 +69,11 @@ import org.slf4j.LoggerFactory;
 
 @SuppressWarnings("deprecation")
 public class TestMapProcessor {
-  
+
   private static final Logger LOG = LoggerFactory.getLogger(TestMapProcessor.class);
-  
+
   private static JobConf defaultConf = new JobConf();
-  private static FileSystem localFs = null; 
+  private static FileSystem localFs = null;
   private static Path workDir = null;
   static float progressUpdate = 0.0f;
   static {
@@ -89,10 +89,10 @@ public class TestMapProcessor {
       throw new RuntimeException("init failure", e);
     }
   }
-  
 
 
-  
+
+
 
   public void setUpJobConf(JobConf job) {
     job.set(TezRuntimeFrameworkConfigs.LOCAL_DIRS, workDir.toString());
@@ -119,7 +119,7 @@ public class TestMapProcessor {
   public void cleanup() throws Exception {
     localFs.delete(workDir, true);
   }
-  
+
   @Test(timeout = 5000)
   public void testMapProcessor() throws Exception {
     String dagName = "mrdag0";
@@ -134,10 +134,10 @@ public class TestMapProcessor {
 
     jobConf.set(MRFrameworkConfigs.TASK_LOCAL_RESOURCE_DIR, new Path(workDir,
         "localized-resources").toUri().toString());
-    
+
     Path mapInput = new Path(workDir, "map0");
-    
-    
+
+
     MapUtils.generateInputSplit(localFs, workDir, jobConf, mapInput, 10);
 
     InputSpec mapInputSpec = new InputSpec("NullSrcVertex",
@@ -147,7 +147,7 @@ public class TestMapProcessor {
                     .setConfigurationBytes(TezUtils.createByteStringFromConf(jobConf)).build()
                     .toByteArray()))),
         1);
-    OutputSpec mapOutputSpec = new OutputSpec("NullDestVertex", 
+    OutputSpec mapOutputSpec = new OutputSpec("NullDestVertex",
         OutputDescriptor.create(OrderedPartitionedKVOutput.class.getName())
             .setUserPayload(TezUtils.createUserPayloadFromConf(jobConf)), 1);
 
@@ -166,8 +166,8 @@ public class TestMapProcessor {
     TezTaskOutput mapOutputs = new TezTaskOutputFiles(
         jobConf, outputContext.getUniqueIdentifier(),
         outputContext.getDagIdentifier());
-    
-    
+
+
     // TODO NEWTEZ FIXME OutputCommitter verification
 //    MRTask mrTask = (MRTask)t.getProcessor();
 //    Assert.assertEquals(TezNullOutputCommitter.class.getName(), mrTask

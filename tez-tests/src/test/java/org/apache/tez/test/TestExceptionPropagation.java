@@ -212,9 +212,9 @@ public class TestExceptionPropagation {
   /**
    * verify the diagnostics in DAGStatus is correct in session mode, using local
    * mode for fast speed
-   * 
+   *
    * @throws Exception
-   * 
+   *
    */
   @Test(timeout = 600000)
   public void testExceptionPropagationSession() throws Exception {
@@ -242,7 +242,7 @@ public class TestExceptionPropagation {
    * verify the diagnostics in {@link DAGStatus} is correct in non-session mode,
    * and also verify that diagnostics from {@link DAGStatus} should match that
    * from {@link ApplicationReport}
-   * 
+   *
    * @throws Exception
    */
   @Test(timeout = 120000)
@@ -328,7 +328,7 @@ public class TestExceptionPropagation {
   /**
    * create a DAG with 2 vertices (v1 --> v2), set payload on Input/Output/Processor/VertexManagerPlugin to
    * control where throw exception
-   * 
+   *
    * @param exLocation
    * @return
    * @throws IOException
@@ -347,7 +347,7 @@ public class TestExceptionPropagation {
     v1.setVertexManagerPlugin(RootInputVertexManagerWithException
         .getVMDesc(exLocation));
 
-    Vertex v2 = 
+    Vertex v2 =
         Vertex.create("v2", DoNothingProcessor.getProcDesc(), 1);
     v2.addDataSource("input2",
         DataSourceDescriptor.create(InputDescriptor.create(NoOpInput.class.getName()),
@@ -848,7 +848,7 @@ public class TestExceptionPropagation {
       super.routeDataMovementEventToDestination(event, sourceTaskIndex,
           sourceOutputIndex, destinationTaskAndInputIndices);
     }
-    
+
     @Override
     public void prepareForRouting() throws Exception {
       if (exLocation == ExceptionLocation.EM_PrepareForRouting) {

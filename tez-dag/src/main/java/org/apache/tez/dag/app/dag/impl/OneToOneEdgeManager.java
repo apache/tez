@@ -47,20 +47,20 @@ public class OneToOneEdgeManager extends EdgeManagerPlugin {
   public int getNumDestinationTaskPhysicalInputs(int destinationTaskIndex) {
     return 1;
   }
-  
+
   @Override
   public int getNumSourceTaskPhysicalOutputs(int sourceTaskIndex) {
     return 1;
   }
-  
+
   @Override
   public void routeDataMovementEventToDestination(DataMovementEvent event,
-      int sourceTaskIndex, int sourceOutputIndex, 
+      int sourceTaskIndex, int sourceOutputIndex,
       Map<Integer, List<Integer>> destinationTaskAndInputIndices) {
     checkState();
     destinationTaskAndInputIndices.put(sourceTaskIndex, destinationInputIndices);
   }
-  
+
   @Override
   public void routeInputSourceTaskFailedEventToDestination(int sourceTaskIndex,
       Map<Integer, List<Integer>> destinationTaskAndInputIndices) {
@@ -72,7 +72,7 @@ public class OneToOneEdgeManager extends EdgeManagerPlugin {
       int destinationTaskIndex, int destinationFailedInputIndex) {
     return destinationTaskIndex;
   }
-  
+
   @Override
   public int getNumDestinationConsumerTasks(int sourceTaskIndex) {
     return 1;

@@ -513,7 +513,7 @@ public final class HistoryEventTimelineConversion {
     atsEntity.addOtherInfo(ATSConstants.COUNTERS,
         DAGUtils.convertCountersToATSMap(event.getCounters()));
     if (event.getDataEvents() != null && !event.getDataEvents().isEmpty()) {
-      atsEntity.addOtherInfo(ATSConstants.LAST_DATA_EVENTS, 
+      atsEntity.addOtherInfo(ATSConstants.LAST_DATA_EVENTS,
           DAGUtils.convertDataEventDependecyInfoToATS(event.getDataEvents()));
     }
     if (event.getNodeId() != null) {

@@ -28,8 +28,8 @@ import org.apache.tez.mapreduce.hadoop.IDConverter;
 
 @InterfaceAudience.Private
 @InterfaceStability.Unstable
-public class JobContextImpl 
-    extends org.apache.hadoop.mapreduce.task.JobContextImpl 
+public class JobContextImpl
+    extends org.apache.hadoop.mapreduce.task.JobContextImpl
     implements JobContext {
   private JobConf job;
   private Progressable progress;
@@ -44,20 +44,20 @@ public class JobContextImpl
   public JobContextImpl(JobConf conf, TezDAGID dagId) {
     this(conf, dagId, Reporter.NULL);
   }
-  
+
   /**
    * Get the job Configuration
-   * 
+   *
    * @return JobConf
    */
   public JobConf getJobConf() {
     return job;
   }
-  
+
   /**
    * Get the progress mechanism for reporting progress.
-   * 
-   * @return progress mechanism 
+   *
+   * @return progress mechanism
    */
   public Progressable getProgressible() {
     return progress;

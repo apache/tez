@@ -89,7 +89,7 @@ class MapHost {
   private final int partitionCount;
   // Tracks attempt IDs
   private List<InputAttemptIdentifier> maps = new ArrayList<InputAttemptIdentifier>();
-  
+
   public MapHost(String host, int port, int partition, int partitionCount) {
     this.host = host;
     this.port = port;
@@ -133,15 +133,15 @@ class MapHost {
     maps = new ArrayList<InputAttemptIdentifier>();
     return currentKnownMaps;
   }
-  
+
   public synchronized void markBusy() {
     state = State.BUSY;
   }
-  
+
   public synchronized void markPenalized() {
     state = State.PENALIZED;
   }
-  
+
   public synchronized int getNumKnownMapOutputs() {
     return maps.size();
   }
@@ -158,12 +158,12 @@ class MapHost {
     }
     return state;
   }
-  
+
   @Override
   public String toString() {
     return getHostIdentifier();
   }
-  
+
   /**
    * Mark the host as penalized
    */

@@ -27,8 +27,8 @@ import org.apache.tez.runtime.api.events.DataMovementEvent;
 import org.apache.tez.runtime.api.events.InputReadErrorEvent;
 
 /**
- * This interface defines the routing of the event between tasks of producer and 
- * consumer vertices. The routing is bi-directional. Users can customize the 
+ * This interface defines the routing of the event between tasks of producer and
+ * consumer vertices. The routing is bi-directional. Users can customize the
  * routing by providing an implementation of this interface.
  */
 @Public
@@ -41,7 +41,7 @@ public abstract class EdgeManagerPlugin {
    * Create an instance of the EdgeManagerPlugin. Classes extending this to
    * create a EdgeManagerPlugin, must provide the same constructor so that Tez
    * can create an instance of the class at runtime.
-   * 
+   *
    * @param context
    *          the context within which this EdgeManagerPlugin will run. Includes
    *          information like configuration which the user may have specified
@@ -61,10 +61,10 @@ public abstract class EdgeManagerPlugin {
    * @throws Exception
    */
   public abstract void initialize() throws Exception;
-  
+
   /**
    * Get the number of physical inputs on the destination task
-   * @param destinationTaskIndex Index of destination task for which number of 
+   * @param destinationTaskIndex Index of destination task for which number of
    * inputs is needed
    * @return Number of physical inputs on the destination task
    * @throws Exception
@@ -73,20 +73,20 @@ public abstract class EdgeManagerPlugin {
 
   /**
    * Get the number of physical outputs on the source task
-   * @param sourceTaskIndex Index of the source task for which number of outputs 
+   * @param sourceTaskIndex Index of the source task for which number of outputs
    * is needed
    * @return Number of physical outputs on the source task
    * @throws Exception
    */
   public abstract int getNumSourceTaskPhysicalOutputs(int sourceTaskIndex) throws Exception;
-  
+
   /**
    * Return the routing information to inform consumers about the source task
    * output that is now available. The return map has the routing information.
    * The event will be routed to every destination task index in the key of the
    * map. Every physical input in the value for that task key will receive the
    * input.
-   * 
+   *
    * @param event
    *          Data movement event that contains the output information
    * @param sourceTaskIndex
@@ -110,7 +110,7 @@ public abstract class EdgeManagerPlugin {
    * for that task key will receive the failure notification. This method will
    * be called once for every source task failure and information for all
    * affected destinations must be provided in that invocation.
-   * 
+   *
    * @param sourceTaskIndex
    *          Source task
    * @param destinationTaskAndInputIndices
@@ -126,16 +126,16 @@ public abstract class EdgeManagerPlugin {
    * @throws Exception
    */
   public abstract int getNumDestinationConsumerTasks(int sourceTaskIndex) throws Exception;
-  
+
   /**
    * Return the source task index to which to send the input error event
-   * 
+   *
    * @param event
    *          Input read error event. Has more information about the error
    * @param destinationTaskIndex
    *          Destination task that reported the error
    * @param destinationFailedInputIndex
-   *          Index of the physical input on the destination task that reported 
+   *          Index of the physical input on the destination task that reported
    *          the error
    * @return Index of the source task that created the unavailable input
    * @throws Exception

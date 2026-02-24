@@ -24,7 +24,7 @@ import org.apache.tez.dag.records.TaskAttemptTerminationCause;
 import org.apache.tez.dag.records.TezTaskAttemptID;
 import org.apache.tez.runtime.api.TaskFailureType;
 
-public class TaskAttemptEventAttemptFailed extends TaskAttemptEvent 
+public class TaskAttemptEventAttemptFailed extends TaskAttemptEvent
   implements DiagnosableEvent, TaskAttemptEventTerminationCauseEvent, RecoveryEvent {
 
   private final String diagnostics;
@@ -56,7 +56,7 @@ public class TaskAttemptEventAttemptFailed extends TaskAttemptEvent
   public String getDiagnosticInfo() {
     return diagnostics;
   }
-  
+
   @Override
   public TaskAttemptTerminationCause getTerminationCause() {
     return errorCause;

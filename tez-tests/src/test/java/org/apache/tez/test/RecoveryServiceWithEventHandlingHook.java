@@ -70,7 +70,7 @@ public class RecoveryServiceWithEventHandlingHook extends RecoveryService {
     super.serviceInit(conf);
     String clazz = conf.get(AM_RECOVERY_SERVICE_HOOK_CLASS);
     Preconditions.checkArgument(clazz != null, "RecoveryServiceHook class is not specified");
-    this.hook = ReflectionUtils.createClazzInstance(clazz, 
+    this.hook = ReflectionUtils.createClazzInstance(clazz,
         new Class[]{RecoveryServiceWithEventHandlingHook.class, AppContext.class},
         new Object[]{this, super.appContext});
   }
@@ -181,7 +181,7 @@ public class RecoveryServiceWithEventHandlingHook extends RecoveryService {
         recoveryService.shutdown();
       }
     }
- 
+
     @Override
     public void preHandleSummaryEvent(HistoryEventType eventType,
         SummaryEvent summaryEvent) throws IOException {
@@ -195,7 +195,7 @@ public class RecoveryServiceWithEventHandlingHook extends RecoveryService {
   }
 
   /**
-   * 
+   *
    * Shutdown AM based on one recovery event if it is matched.
    * This would be serialized as property of TezConfiguration and deserialized at runtime.
    */
@@ -378,7 +378,7 @@ public class RecoveryServiceWithEventHandlingHook extends RecoveryService {
 
       return false;
     }
-    
+
     public HistoryEventType getEventType() {
       return event.getEventType();
     }

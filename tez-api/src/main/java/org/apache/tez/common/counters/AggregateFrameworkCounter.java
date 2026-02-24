@@ -22,7 +22,7 @@ import org.apache.tez.common.counters.FrameworkCounterGroup.FrameworkCounter;
 
 @SuppressWarnings("rawtypes")
 public class AggregateFrameworkCounter<T extends Enum<T>> extends FrameworkCounter implements AggregateTezCounter  {
-  
+
   private long min = Long.MAX_VALUE;
   private long max = Long.MIN_VALUE;
   private long count = 0;
@@ -36,7 +36,7 @@ public class AggregateFrameworkCounter<T extends Enum<T>> extends FrameworkCount
   public void increment(long incr) {
     throw new IllegalArgumentException("Cannot increment an aggregate counter directly");
   }
-  
+
   @Override
   public void aggregate(TezCounter other) {
     final long val = other.getValue();
@@ -71,7 +71,7 @@ public class AggregateFrameworkCounter<T extends Enum<T>> extends FrameworkCount
   public long getMax() {
     return max;
   }
-  
+
   @SuppressWarnings("unchecked")
   public FrameworkCounter<T> asFrameworkCounter() {
     return ((FrameworkCounter<T>)this);

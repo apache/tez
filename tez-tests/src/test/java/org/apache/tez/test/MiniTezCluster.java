@@ -311,7 +311,7 @@ public class MiniTezCluster extends MiniYARNCluster {
       yarnClient.stop();
     }
   }
-  
+
   public Path getConfigFilePath() {
     return confFilePath;
   }

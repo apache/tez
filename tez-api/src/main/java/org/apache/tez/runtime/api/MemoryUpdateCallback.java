@@ -24,9 +24,9 @@ import org.apache.hadoop.classification.InterfaceStability.Unstable;
 /**
  * This interface will be used by Tez to inform components about available
  * memory. This will typically be implemented by authors of {@link Input}s,
- * {@link Output}s and potentially {@link Processor}s in order to request 
+ * {@link Output}s and potentially {@link Processor}s in order to request
  * for appropriate memory limits for the respective components.
- * 
+ *
  */
 @Unstable
 @Public

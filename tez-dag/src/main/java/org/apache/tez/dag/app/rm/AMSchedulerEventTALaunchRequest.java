@@ -66,7 +66,7 @@ public class AMSchedulerEventTALaunchRequest extends AMSchedulerEvent {
   public Resource getCapability() {
     return capability;
   }
-  
+
   public TaskLocationHint getLocationHint() {
     return locationHint;
   }

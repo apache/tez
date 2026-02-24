@@ -20,7 +20,7 @@ package org.apache.tez.dag.app.dag;
 
 
 /**
- * Represents proximate cause of a DAG transition to FAILED or KILLED. 
+ * Represents proximate cause of a DAG transition to FAILED or KILLED.
  */
 public enum DAGTerminationCause {
 
@@ -29,16 +29,16 @@ public enum DAGTerminationCause {
 
   /** A service plugin indicated an error */
   SERVICE_PLUGIN_ERROR(DAGState.FAILED),
-  
-  /** A vertex failed. */ 
+
+  /** A vertex failed. */
   VERTEX_FAILURE(DAGState.FAILED),
-  
+
   /** DAG failed due as it had zero vertices. */
   ZERO_VERTICES(DAGState.FAILED),
-  
+
   /** DAG failed during init. */
   INIT_FAILURE(DAGState.FAILED),
-  
+
   /** DAG failed during output commit. */
   COMMIT_FAILURE(DAGState.FAILED),
 

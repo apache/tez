@@ -119,7 +119,7 @@ import org.slf4j.LoggerFactory;
 
 /**
  * Tests for Tez example jobs
- * 
+ *
  */
 public class TestTezJobs {
 
@@ -802,7 +802,7 @@ public class TestTezJobs {
 
     Assert.assertEquals(0, currentCounter);
   }
-  
+
   public static void verifyOutput(Path outputDir, FileSystem fs) throws IOException {
     FileStatus[] fileStatuses = fs.listStatus(outputDir);
     Path resultFile = null;
@@ -831,7 +831,7 @@ public class TestTezJobs {
     assertTrue(foundSuccessFile);
     verifyOrderedWordCountOutput(resultFile, fs);
   }
-  
+
   @Test(timeout = 60000)
   public void testOrderedWordCount() throws Exception {
     String inputDirStr = "/tmp/owc-input/";
@@ -862,7 +862,7 @@ public class TestTezJobs {
     }
 
   }
-  
+
   @Test(timeout = 60000)
   public void testOrderedWordCountDisableSplitGrouping() throws Exception {
     String inputDirStr = TEST_ROOT_DIR + "/tmp/owc-input/";
@@ -911,7 +911,7 @@ public class TestTezJobs {
       Path inputDir = new Path(inputDirStr);
       remoteFs.mkdirs(inputDir);
       generateOrderedWordCountInput(inputDir, remoteFs);
-      String outputDirStr = "/tmp/owc-output-" + i + "/"; 
+      String outputDirStr = "/tmp/owc-output-" + i + "/";
       outputPaths[i] = outputDirStr;
       Path outputDir = new Path(outputDirStr);
       outputDirs[i] = outputDir;
@@ -923,10 +923,10 @@ public class TestTezJobs {
     YarnClient yarnClient = YarnClient.createYarnClient();
 
     try {
-      
+
       yarnClient.init(mrrTezCluster.getConfig());
       yarnClient.start();
-      
+
       List<ApplicationReport> apps = yarnClient.getApplications();
       int appsBeforeCount = apps != null ? apps.size() : 0;
 
@@ -940,10 +940,10 @@ public class TestTezJobs {
       for (int i=0; i<numIterations; ++i) {
         verifyOutput(outputDirs[i], remoteFs);
       }
-      
+
       apps = yarnClient.getApplications();
       int appsAfterCount = apps != null ? apps.size() : 0;
-      
+
       // Running in session mode. So should only create 1 more app.
       Assert.assertEquals(appsBeforeCount + 1, appsAfterCount);
     } finally {
@@ -1134,7 +1134,7 @@ public class TestTezJobs {
       }
     }
   }
-  
+
   @Test(timeout = 60000)
   public void testMultipleCommits_OnVertexSuccess() throws Exception {
     Path stagingDirPath = new Path("/tmp/commit-staging-dir");
@@ -1168,7 +1168,7 @@ public class TestTezJobs {
       }
     }
   }
-  
+
   private void verifyCommits(String outputPrefix, int outputNum) throws IllegalArgumentException, IOException {
     for (int i=0; i< outputNum; ++i) {
       String outputDir = outputPrefix + "_" + i;

@@ -120,7 +120,7 @@ public class Edge {
     public String getDestinationVertexName() {
       return destinationVertex.getName();
     }
-    
+
     @Override
     public int getSourceVertexNumTasks() {
       return sourceVertex.getTotalTasks();
@@ -244,7 +244,7 @@ public class Edge {
           sourceVertex));
     }
   }
-  
+
   // Test only method for creating specific scenarios
   @VisibleForTesting
   void setCustomEdgeManager(EdgeManagerPluginDescriptor descriptor)
@@ -257,7 +257,7 @@ public class Edge {
             edgeProperty.getEdgeDestination());
     setEdgeProperty(modifiedEdgeProperty);
   }
-  
+
   public void routingToBegin() throws AMUserCodeException {
     int numDestTasks = edgeManagerContext.getDestinationVertexNumTasks();
     synchronized (this) {
@@ -282,11 +282,11 @@ public class Edge {
                 "Fail to prepareForRouting " + getEdgeInfo(), e);
       }
     }
-    
-    LOG.info("Routing to begin for edge: " + getEdgeInfo() + ". EdgeProperty: " + edgeProperty + 
+
+    LOG.info("Routing to begin for edge: " + getEdgeInfo() + ". EdgeProperty: " + edgeProperty +
         " onDemandRouting: " + hasOnDemandRouting());
   }
-  
+
   public synchronized boolean hasOnDemandRouting() {
     return onDemandRouting;
   }
@@ -294,7 +294,7 @@ public class Edge {
   public synchronized EdgeProperty getEdgeProperty() {
     return this.edgeProperty;
   }
-  
+
   public EdgeManagerPlugin getEdgeManager() {
     return this.edgeManager;
   }
@@ -317,7 +317,7 @@ public class Edge {
   }
 
   public InputSpec getDestinationSpec(int destinationTaskIndex) throws AMUserCodeException {
-    Preconditions.checkState(edgeManager != null, 
+    Preconditions.checkState(edgeManager != null,
         "Edge Manager must be initialized by this time");
     try {
       int physicalInputCount = edgeManager.getNumDestinationTaskPhysicalInputs(destinationTaskIndex);
@@ -335,7 +335,7 @@ public class Edge {
   }
 
   public OutputSpec getSourceSpec(int sourceTaskIndex) throws AMUserCodeException {
-    Preconditions.checkState(edgeManager != null, 
+    Preconditions.checkState(edgeManager != null,
         "Edge Manager must be initialized by this time");
     try {
       int physicalOutputCount = edgeManager.getNumSourceTaskPhysicalOutputs(
@@ -351,11 +351,11 @@ public class Edge {
           + sourceTaskIndex + ", " + getEdgeInfo(), e);
     }
   }
-  
+
   public void startEventBuffering() {
     bufferEvents.set(true);
   }
-  
+
   public void stopEventBuffering() throws AMUserCodeException {
     // assume only 1 entity will start and stop event buffering
     bufferEvents.set(false);
@@ -368,9 +368,9 @@ public class Edge {
     }
     sourceEventBuffer.clear();
   }
-  
+
   public void sendTezEventToSourceTasks(TezEvent tezEvent) throws AMUserCodeException {
-    Preconditions.checkState(edgeManager != null, 
+    Preconditions.checkState(edgeManager != null,
         "Edge Manager must be initialized by this time");
     if (!bufferEvents.get()) {
       switch (tezEvent.getEventType()) {
@@ -411,7 +411,7 @@ public class Edge {
               " sourceVertex=" + sourceVertex.getLogIdentifier() +
               " srcIndex = " + srcTaskIndex +
               " destAttemptId=" + destAttemptId +
-              " destIndex=" + destTaskIndex + 
+              " destIndex=" + destTaskIndex +
               " edgeManager=" + edgeManager.getClass().getName());
         }
         TezTaskID srcTaskId = srcTask.getTaskID();
@@ -428,26 +428,26 @@ public class Edge {
       sourceEventBuffer.add(tezEvent);
     }
   }
-  
+
 
   private void handleCompositeDataMovementEvent(TezEvent tezEvent) throws AMUserCodeException {
     CompositeDataMovementEvent compEvent = (CompositeDataMovementEvent) tezEvent.getEvent();
     EventMetaData srcInfo = tezEvent.getSourceInfo();
-    
+
     for (DataMovementEvent dmEvent : compEvent.getEvents()) {
       TezEvent newEvent = new TezEvent(dmEvent, srcInfo, tezEvent.getEventReceivedTime());
       sendTezEventToDestinationTasks(newEvent);
     }
   }
-  
+
   void sendDmEventOrIfEventToTasks(TezEvent tezEvent, int srcTaskIndex,
       boolean isDataMovementEvent,
-      Map<Integer, List<Integer>> taskAndInputIndices) {    
-    Preconditions.checkState(edgeManager != null, 
+      Map<Integer, List<Integer>> taskAndInputIndices) {
+    Preconditions.checkState(edgeManager != null,
         "Edge Manager must be initialized by this time");
     Event event = tezEvent.getEvent();
     // cache of event object per input index
-    Map<Integer, TezEvent> inputIndicesWithEvents = Maps.newHashMap(); 
+    Map<Integer, TezEvent> inputIndicesWithEvents = Maps.newHashMap();
     for (Map.Entry<Integer, List<Integer>> entry : taskAndInputIndices.entrySet()) {
       int destTaskIndex = entry.getKey();
       List<Integer> inputIndices = entry.getValue();
@@ -475,15 +475,15 @@ public class Edge {
               " sourceVertex=" + sourceVertex.getLogIdentifier() +
               " srcTaskIndex = " + srcTaskIndex +
               " destVertex=" + destinationVertex.getLogIdentifier() +
-              " destTaskIndex=" + destTaskIndex + 
-              " destNumTasks=" + destinationVertex.getTotalTasks() + 
+              " destTaskIndex=" + destTaskIndex +
+              " destNumTasks=" + destinationVertex.getTotalTasks() +
               " edgeManager=" + edgeManager.getClass().getName());
         }
         sendEventToTask(destTask, tezEventToSend);
       }
     }
   }
-  
+
   public void sendTezEventToDestinationTasks(TezEvent tezEvent) throws AMUserCodeException {
     if (!bufferEvents.get()) {
       boolean isDataMovementEvent = true;
@@ -543,27 +543,27 @@ public class Edge {
       destinationEventBuffer.add(tezEvent);
     }
   }
-  
+
   static class PendingEventRouteMetadata {
     private final EventRouteMetadata routeMeta;
     private final TezEvent event;
     private int numEventsRouted;
-    
+
     public PendingEventRouteMetadata(EventRouteMetadata routeMeta, TezEvent event,
         int numEventsRouted) {
       this.routeMeta = routeMeta;
       this.event = event;
       this.numEventsRouted = numEventsRouted;
     }
-    
+
     public EventRouteMetadata getRouteMeta() {
       return routeMeta;
     }
-    
+
     public TezEvent getTezEvent() {
       return event;
     }
-    
+
     public int getNumEventsRouted() {
       return numEventsRouted;
     }
@@ -572,11 +572,11 @@ public class Edge {
   public PendingEventRouteMetadata removePendingEvents(TezTaskAttemptID attemptID) {
     return pendingEvents.remove(attemptID);
   }
-  
+
   // return false is event could be routed but ran out of space in the list
   public boolean maybeAddTezEventForDestinationTask(TezEvent tezEvent, TezTaskAttemptID attemptID,
-      int srcTaskIndex, List<TezEvent> listToAdd, int listMaxSize, 
-      PendingEventRouteMetadata pendingRoutes) 
+      int srcTaskIndex, List<TezEvent> listToAdd, int listMaxSize,
+      PendingEventRouteMetadata pendingRoutes)
           throws AMUserCodeException {
     if (!routingNeeded) {
       if (LOG.isDebugEnabled()) {
@@ -591,7 +591,7 @@ public class Edge {
         switch (tezEvent.getEventType()) {
         case COMPOSITE_DATA_MOVEMENT_EVENT:
           {
-            CompositeDataMovementEvent compEvent = (CompositeDataMovementEvent) tezEvent.getEvent(); 
+            CompositeDataMovementEvent compEvent = (CompositeDataMovementEvent) tezEvent.getEvent();
             CompositeEventRouteMetadata routeMeta = edgeManagerOnDemand
                   .routeCompositeDataMovementEventToDestination(srcTaskIndex, taskIndex);
 
@@ -686,7 +686,7 @@ public class Edge {
   private void sendEventToTask(Task task, TezEvent tezEvent) {
     task.registerTezEvent(tezEvent);
   }
-  
+
   @SuppressWarnings({ "unchecked", "rawtypes" })
   private void sendEvent(org.apache.hadoop.yarn.event.Event event) {
     eventHandler.handle(event);

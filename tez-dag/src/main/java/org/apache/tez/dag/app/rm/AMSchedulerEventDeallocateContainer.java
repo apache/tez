@@ -28,7 +28,7 @@ public class AMSchedulerEventDeallocateContainer extends AMSchedulerEvent {
     super(AMSchedulerEventType.S_CONTAINER_DEALLOCATE, schedulerId);
     this.containerId = containerId;
   }
-  
+
   public ContainerId getContainerId() {
     return this.containerId;
   }

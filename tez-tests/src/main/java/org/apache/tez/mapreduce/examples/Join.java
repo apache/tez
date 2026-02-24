@@ -48,24 +48,24 @@ import org.apache.hadoop.util.ToolRunner;
 
 /**
  * Given a set of sorted datasets keyed with the same class and yielding
- * equal partitions, it is possible to effect a join of those datasets 
+ * equal partitions, it is possible to effect a join of those datasets
  * prior to the map. The example facilitates the same.
  *
  * To run: bin/hadoop jar build/hadoop-examples.jar join
  *            [-r <i>reduces</i>]
- *            [-inFormat <i>input format class</i>] 
- *            [-outFormat <i>output format class</i>] 
- *            [-outKey <i>output key class</i>] 
- *            [-outValue <i>output value class</i>] 
+ *            [-inFormat <i>input format class</i>]
+ *            [-outFormat <i>output format class</i>]
+ *            [-outKey <i>output key class</i>]
+ *            [-outValue <i>output value class</i>]
  *            [-joinOp &lt;inner|outer|override&gt;]
- *            [<i>in-dir</i>]* <i>in-dir</i> <i>out-dir</i> 
+ *            [<i>in-dir</i>]* <i>in-dir</i> <i>out-dir</i>
  */
 public class Join extends Configured implements Tool {
   public static final String REDUCES_PER_HOST = "mapreduce.join.reduces_per_host";
   static int printUsage() {
     System.out.println("join [-r <reduces>] " +
                        "[-inFormat <input format class>] " +
-                       "[-outFormat <output format class>] " + 
+                       "[-outFormat <output format class>] " +
                        "[-outKey <output key class>] " +
                        "[-outValue <output value class>] " +
                        "[-joinOp <inner|outer|override>] " +

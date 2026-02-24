@@ -22,9 +22,9 @@ import org.apache.hadoop.classification.InterfaceAudience.Public;
 import org.apache.tez.runtime.api.MergedLogicalInput;
 
 /**
- * A composite edge that represents a common connection between a 
- * group of input vertices and a single output vertex. This can be 
- * used to perform e.g. an efficient union of the data produced by 
+ * A composite edge that represents a common connection between a
+ * group of input vertices and a single output vertex. This can be
+ * used to perform e.g. an efficient union of the data produced by
  * the input vertices. The output vertex tasks see a unified/merged
  * view of the data from all the input vertices.
  */
@@ -88,7 +88,7 @@ public class GroupInputEdge {
   public EdgeProperty getEdgeProperty() {
     return edgeProperty;
   }
-  
+
   InputDescriptor getMergedInput() {
     return mergedInput;
   }
@@ -100,7 +100,7 @@ public class GroupInputEdge {
   public String getId() {
     return String.valueOf(this.hashCode());
   }
- 
+
   @Override
   public String toString() {
     return inputVertexGroup + " -> " + outputVertex + " (" + edgeProperty + ")";

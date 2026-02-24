@@ -29,19 +29,19 @@ import org.apache.hadoop.classification.InterfaceStability.Unstable;
 @Public
 @Unstable
 public interface EdgeManagerPluginContext {
-  
+
   /**
    * Returns the payload specified by the user for the edge.
    * @return the {@link org.apache.tez.dag.api.UserPayload} specified by the user
    */
   public UserPayload getUserPayload();
-  
+
   /**
-   * Returns the source vertex name 
+   * Returns the source vertex name
    * @return the source vertex name
    */
   public String getSourceVertexName();
-  
+
   /**
    * Returns the destination vertex name
    * @return the destination vertex name

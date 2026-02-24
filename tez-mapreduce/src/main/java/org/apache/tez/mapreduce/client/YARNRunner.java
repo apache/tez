@@ -414,9 +414,9 @@ public class YARNRunner implements ClientProtocol {
 
     Resource taskResource = isMap ? MRHelpers.getResourceForMRMapper(stageConf)
         : MRHelpers.getResourceForMRReducer(stageConf);
-    
+
     stageConf.set(MRJobConfig.MROUTPUT_FILE_NAME_PREFIX, "part");
-    
+
     UserPayload vertexUserPayload = TezUtils.createUserPayloadFromConf(stageConf);
     Vertex vertex = Vertex.create(vertexName,
         ProcessorDescriptor.create(processorName).setUserPayload(vertexUserPayload),
@@ -458,7 +458,7 @@ public class YARNRunner implements ClientProtocol {
         .addTaskLocalFiles(taskLocalResources)
         .setLocationHint(VertexLocationHint.create(locations))
         .setTaskLaunchCmdOpts(taskJavaOpts);
-    
+
     if (!isMap) {
       vertex.setVertexManagerPlugin((ShuffleVertexManager.createConfigBuilder(stageConf).build()));
     }
@@ -623,20 +623,20 @@ public class YARNRunner implements ClientProtocol {
     try {
       dagAMConf.set(TezConfiguration.TEZ_AM_STAGING_DIR,
           jobSubmitDir);
-      
+
       // Set Tez parameters based on MR parameters.
       String queueName = jobConf.get(JobContext.QUEUE_NAME,
           YarnConfiguration.DEFAULT_QUEUE_NAME);
       dagAMConf.set(TezConfiguration.TEZ_QUEUE_NAME, queueName);
-      
+
       int amMemMB = jobConf.getInt(MRJobConfig.MR_AM_VMEM_MB, MRJobConfig.DEFAULT_MR_AM_VMEM_MB);
       int amCores = jobConf.getInt(MRJobConfig.MR_AM_CPU_VCORES, MRJobConfig.DEFAULT_MR_AM_CPU_VCORES);
       dagAMConf.setInt(TezConfiguration.TEZ_AM_RESOURCE_MEMORY_MB, amMemMB);
       dagAMConf.setInt(TezConfiguration.TEZ_AM_RESOURCE_CPU_VCORES, amCores);
 
-      dagAMConf.setInt(TezConfiguration.TEZ_AM_MAX_APP_ATTEMPTS, 
+      dagAMConf.setInt(TezConfiguration.TEZ_AM_MAX_APP_ATTEMPTS,
           jobConf.getInt(MRJobConfig.MR_AM_MAX_ATTEMPTS, MRJobConfig.DEFAULT_MR_AM_MAX_ATTEMPTS));
-      
+
       tezClient = new MRTezClient("MapReduce", dagAMConf, false, jobLocalResources, ts);
       tezClient.start();
       dagClient = new MRDAGClient(tezClient.submitDAGApplication(appId, dag));

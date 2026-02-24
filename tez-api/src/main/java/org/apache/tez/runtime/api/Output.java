@@ -26,7 +26,7 @@ import org.apache.hadoop.classification.InterfaceAudience.Public;
  *
  * This interface has methods which can be used by a {@link org.apache.tez.runtime.api.Processor}
  * to control execution of this Output and write data to it.
- * 
+ *
  * Users are expected to derive from {@link AbstractLogicalOutput}
  *
  */
@@ -38,16 +38,16 @@ public interface Output {
   /**
    * Start any processing that the Output may need to perform. It is the
    * responsibility of the Processor to start Outputs.
-   * 
+   *
    * This typically acts as a signal to Outputs to start any Processing that they
    * may required.
-   * 
+   *
    * This method may be invoked by the framework under certain circumstances,
-   * and as such requires the implementation to be non-blocking.   
-   * 
+   * and as such requires the implementation to be non-blocking.
+   *
    * Outputs must be written to handle multiple start invocations - typically
    * honoring only the first one.
-   * 
+   *
    * @throws Exception
    */
   public void start() throws Exception;

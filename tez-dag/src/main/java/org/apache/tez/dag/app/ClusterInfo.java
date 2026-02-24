@@ -27,7 +27,7 @@ public class ClusterInfo {
 
   public ClusterInfo() {
   }
-  
+
   public ClusterInfo(Resource maxCapability) {
     this.maxContainerCapability = maxCapability;
     initialized = true;

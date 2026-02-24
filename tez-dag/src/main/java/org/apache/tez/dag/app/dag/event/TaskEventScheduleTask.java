@@ -34,11 +34,11 @@ public class TaskEventScheduleTask extends TaskEvent implements RecoveryEvent {
     this.locationHint = locationHint;
     this.fromRecovery = fromRecovery;
   }
-  
+
   public TaskSpec getBaseTaskSpec() {
     return baseTaskSpec;
   }
-  
+
   public TaskLocationHint getTaskLocationHint() {
     return locationHint;
   }

@@ -93,14 +93,14 @@ public class TestDAGClient {
   private ApplicationReport mockAppReport;
   private String dagIdStr;
   private DAGClientAMProtocolBlockingPB mockProxy;
-  
+
   private VertexStatusProto vertexStatusProtoWithoutCounters;
   private VertexStatusProto vertexStatusProtoWithCounters;
-  
+
   private DAGStatusProto dagStatusProtoWithoutCounters;
   private DAGStatusProto dagStatusProtoWithCounters;
-  
-  
+
+
   private void setUpData(){
     // DAG
     ProgressProto dagProgressProto = ProgressProto.newBuilder()
@@ -110,7 +110,7 @@ public class TestDAGClient {
               .setSucceededTaskCount(2)
               .setTotalTaskCount(6)
               .build();
-    
+
     TezCountersProto dagCountersProto=TezCountersProto.newBuilder()
         .addCounterGroups(TezCounterGroupProto.newBuilder()
             .setName("DAGGroup")
@@ -118,7 +118,7 @@ public class TestDAGClient {
                   .setDisplayName("dag_counter_1")
                   .setValue(99)))
         .build();
-    
+
     dagStatusProtoWithoutCounters = DAGStatusProto.newBuilder()
               .addDiagnostics("Diagnostics_0")
               .setState(DAGStatusStateProto.DAG_RUNNING)
@@ -138,11 +138,11 @@ public class TestDAGClient {
                   .setKilledTaskCount(1))
                   )
               .build();
-    
+
     dagStatusProtoWithCounters = DAGStatusProto.newBuilder(dagStatusProtoWithoutCounters)
                       .setDagCounters(dagCountersProto)
                       .build();
-    
+
     // Vertex
     ProgressProto vertexProgressProto = ProgressProto.newBuilder()
                     .setFailedTaskCount(1)
@@ -150,14 +150,14 @@ public class TestDAGClient {
                     .setRunningTaskCount(0)
                     .setSucceededTaskCount(1)
                     .build();
-    
+
     TezCountersProto vertexCountersProto=TezCountersProto.newBuilder()
                     .addCounterGroups(TezCounterGroupProto.newBuilder()
                         .addCounters(TezCounterProto.newBuilder()
                               .setDisplayName("vertex_counter_1")
                               .setValue(99)))
                     .build();
-    
+
     vertexStatusProtoWithoutCounters = VertexStatusProto.newBuilder()
                     .setId("vertex_1")
                     .addDiagnostics("V_Diagnostics_0")
@@ -186,12 +186,12 @@ public class TestDAGClient {
           && requestProto.getStatusOptionsList().get(0) == StatusGetOptsProto.GET_COUNTERS;
     }
   }
-  
+
   @Before
   public void setUp() throws YarnException, IOException, TezException, ServiceException{
 
     setUpData();
-    
+
     /////////////// mock //////////////////////
     mockAppId = mock(ApplicationId.class);
     mockAppReport = mock(ApplicationReport.class);
@@ -202,7 +202,7 @@ public class TestDAGClient {
       .thenReturn(GetDAGStatusResponseProto.newBuilder().setDagStatus(dagStatusProtoWithoutCounters).build());
     when(mockProxy.getDAGStatus(isNull(), argThat(new DAGCounterRequestMatcher())))
       .thenReturn(GetDAGStatusResponseProto.newBuilder().setDagStatus(dagStatusProtoWithCounters).build());
-    
+
     when(mockProxy.getVertexStatus(isNull(), any()))
       .thenReturn(GetVertexStatusResponseProto.newBuilder().setVertexStatus(vertexStatusProtoWithoutCounters).build());
     when(mockProxy.getVertexStatus(isNull(), argThat(new VertexCounterRequestMatcher())))
@@ -215,7 +215,7 @@ public class TestDAGClient {
     realClient.appReport = mockAppReport;
     realClient.proxy = mockProxy;
   }
-  
+
   @Test(timeout = 5000)
   public void testApp() throws IOException, TezException, ServiceException{
     assertTrue(dagClient.getExecutionContext().contains(mockAppId.toString()));
@@ -224,7 +224,7 @@ public class TestDAGClient {
     DAGClientRPCImpl realClient = (DAGClientRPCImpl)((DAGClientImpl)dagClient).getRealClient();
     assertEquals(mockAppReport, realClient.getApplicationReportInternal());
   }
-  
+
   @Test(timeout = 5000)
   public void testDAGStatus() throws Exception{
     DAGStatus resultDagStatus = dagClient.getDAGStatus(null);
@@ -232,14 +232,14 @@ public class TestDAGClient {
         .setDagId(dagIdStr).setTimeout(0).build());
     assertEquals(new DAGStatus(dagStatusProtoWithoutCounters, DagStatusSource.AM), resultDagStatus);
     System.out.println("DAGStatusWithoutCounter:" + resultDagStatus);
-    
+
     resultDagStatus = dagClient.getDAGStatus(Sets.newSet(StatusGetOpts.GET_COUNTERS));
     verify(mockProxy, times(1)).getDAGStatus(null, GetDAGStatusRequestProto.newBuilder()
         .setDagId(dagIdStr).setTimeout(0).addStatusOptions(StatusGetOptsProto.GET_COUNTERS).build());
     assertEquals(new DAGStatus(dagStatusProtoWithCounters, DagStatusSource.AM), resultDagStatus);
     System.out.println("DAGStatusWithCounter:" + resultDagStatus);
   }
-  
+
   @Test(timeout = 5000)
   public void testVertexStatus() throws Exception{
     VertexStatus resultVertexStatus = dagClient.getVertexStatus("v1", null);
@@ -247,7 +247,7 @@ public class TestDAGClient {
         .setDagId(dagIdStr).setVertexName("v1").build());
     assertEquals(new VertexStatus(vertexStatusProtoWithoutCounters), resultVertexStatus);
     System.out.println("VertexWithoutCounter:" + resultVertexStatus);
-    
+
     resultVertexStatus = dagClient.getVertexStatus("v1", Sets.newSet(StatusGetOpts.GET_COUNTERS));
     verify(mockProxy).getVertexStatus(null, GetVertexStatusRequestProto.newBuilder()
         .setDagId(dagIdStr).setVertexName("v1").addStatusOptions(StatusGetOptsProto.GET_COUNTERS)
@@ -255,14 +255,14 @@ public class TestDAGClient {
     assertEquals(new VertexStatus(vertexStatusProtoWithCounters), resultVertexStatus);
     System.out.println("VertexWithCounter:" + resultVertexStatus);
   }
-  
+
   @Test(timeout = 5000)
   public void testTryKillDAG() throws Exception{
     dagClient.tryKillDAG();
     verify(mockProxy, times(1)).tryKillDAG(null, TryKillDAGRequestProto.newBuilder()
         .setDagId(dagIdStr).build());
   }
-  
+
   @Test(timeout = 5000)
   public void testWaitForCompletion() throws Exception{
     // first time return DAG_RUNNING, second time return DAG_SUCCEEDED
@@ -301,7 +301,7 @@ public class TestDAGClient {
             (DAGStatusProto.newBuilder(dagStatusProtoWithoutCounters)
                 .setState(DAGStatusStateProto.DAG_SUCCEEDED).build())
             .build());
-    
+
     //  first time for getVertexSet
     //  second & third time for check completion
     ArgumentCaptor<RpcController> rpcControllerArgumentCaptor =

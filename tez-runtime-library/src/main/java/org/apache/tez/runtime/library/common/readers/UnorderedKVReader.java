@@ -48,10 +48,10 @@ import org.slf4j.LoggerFactory;
 public class UnorderedKVReader<K, V> extends KeyValueReader {
 
   private static final Logger LOG = LoggerFactory.getLogger(UnorderedKVReader.class);
-  
+
   private final ShuffleManager shuffleManager;
   private final CompressionCodec codec;
-  
+
   private final Class<K> keyClass;
   private final Class<V> valClass;
   private final Deserializer<K> keyDeserializer;
@@ -62,18 +62,18 @@ public class UnorderedKVReader<K, V> extends KeyValueReader {
   private final boolean ifileReadAhead;
   private final int ifileReadAheadLength;
   private final int ifileBufferSize;
-  
+
   private final TezCounter inputRecordCounter;
   private final InputContext context;
-  
+
   private K key;
   private V value;
-  
+
   private FetchedInput currentFetchedInput;
   private IFile.Reader currentReader;
-  
+
   // TODO Remove this once per I/O counters are separated properly. Relying on
-  // the counter at the moment will generate aggregate numbers. 
+  // the counter at the moment will generate aggregate numbers.
   private int numRecordsRead = 0;
   private final AtomicLong totalBytesRead = new AtomicLong(0);
   private final AtomicLong totalFileBytes = new AtomicLong(0);
@@ -106,16 +106,16 @@ public class UnorderedKVReader<K, V> extends KeyValueReader {
   }
 
   // TODO NEWTEZ Maybe add an interface to check whether next will block.
-  
+
   /**
    * Moves to the next key/values(s) pair
-   * 
+   *
    * @return true if another key/value(s) pair exists, false if there are no
    *         more.
    * @throws IOException
    *           if an error occurs
    */
-  @Override  
+  @Override
   public boolean next() throws IOException {
     if (readNextFromCurrentReader()) {
       inputRecordCounter.increment(1);
@@ -180,11 +180,11 @@ public class UnorderedKVReader<K, V> extends KeyValueReader {
       return false;
     }
   }
-  
+
   /**
    * Moves to the next available input. This method may block if the input is not ready yet.
    * Also takes care of closing the previous input.
-   * 
+   *
    * @return true if the next input exists, false otherwise
    * @throws IOException
    */

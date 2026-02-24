@@ -21,8 +21,8 @@ package org.apache.tez.runtime.api;
 public interface VertexIdentifier {
 
   public int getIdentifier();
-  
+
   public String getName();
-  
+
   public DagIdentifier getDagIdentifier();
 }

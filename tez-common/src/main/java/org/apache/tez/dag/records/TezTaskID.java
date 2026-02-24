@@ -43,7 +43,7 @@ import com.google.common.collect.Interners;
 public class TezTaskID extends TezID implements VertexIDAware {
   public static final String TASK = "task";
   private final int serializingHash;
-  
+
   static final ThreadLocal<FastNumberFormat> tezTaskIdFormat = new ThreadLocal<FastNumberFormat>() {
     @Override
     public FastNumberFormat initialValue() {
@@ -72,7 +72,7 @@ public class TezTaskID extends TezID implements VertexIDAware {
     this.vertexId = vertexID;
     this.serializingHash = getHashCode(true);
   }
-  
+
   public int getSerializingHash() {
     return serializingHash;
   }
@@ -138,7 +138,7 @@ public class TezTaskID extends TezID implements VertexIDAware {
     vertexId = TezVertexID.readTezVertexID(in);
     super.readFields(in);
   }
-  
+
   public static TezTaskID readTezTaskID(DataInput in) throws IOException {
     TezVertexID vertexID = TezVertexID.readTezVertexID(in);
     int taskIdInt = TezID.readID(in);

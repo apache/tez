@@ -28,14 +28,14 @@ import org.apache.tez.runtime.library.common.InputAttemptIdentifier;
 
 @Private
 public abstract class FetchedInput {
-  
+
   public static enum Type {
     WAIT, // TODO NEWTEZ Implement this, only if required.
     MEMORY,
     DISK,
     DISK_DIRECT
   }
-  
+
   protected static enum State {
     PENDING, COMMITTED, ABORTED, FREED
   }
@@ -99,7 +99,7 @@ public abstract class FetchedInput {
   public void notifyFetchComplete() {
     this.callback.fetchComplete(this);
   }
-  
+
   /**
    * Inform the Allocator about a failed resource.
    * This should be called by abort
@@ -107,7 +107,7 @@ public abstract class FetchedInput {
   public void notifyFetchFailure() {
     this.callback.fetchFailed(this);
   }
-  
+
   /**
    * Inform the Allocator about a completed resource being released.
    * This should be called by free
@@ -115,7 +115,7 @@ public abstract class FetchedInput {
   public void notifyFreedResource() {
     this.callback.freeResources(this);
   }
-  
+
   /**
    * Returns the output stream to be used to write fetched data. Users are
    * expected to close the OutputStream when they're done
@@ -144,7 +144,7 @@ public abstract class FetchedInput {
    * reclaimed.
    */
   public abstract void free();
-  
+
   @Override
   public int hashCode() {
     return id;

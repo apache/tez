@@ -26,7 +26,7 @@ import org.apache.hadoop.yarn.event.EventHandler;
 import org.apache.tez.dag.app.dag.DAG;
 
 public interface AMNode extends EventHandler<AMNodeEvent> {
-  
+
   public NodeId getNodeId();
   public AMNodeState getState();
   public List<ContainerId> getContainers();

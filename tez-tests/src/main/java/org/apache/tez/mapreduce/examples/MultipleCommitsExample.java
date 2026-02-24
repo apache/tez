@@ -59,7 +59,7 @@ import org.slf4j.LoggerFactory;
  *  v1 -> v3 <br/>
  *  v2 -> v3 <br/>
  *  (v1,v2) is connected to v3 as vertex group. <br/>
- *  (v1,v2) have multiple shared outputs, each of them have its own multiple outputs. 
+ *  (v1,v2) have multiple shared outputs, each of them have its own multiple outputs.
  *  And v3 also has multiple outputs. </br>
  */
 public class MultipleCommitsExample extends TezExampleBase {
@@ -104,7 +104,7 @@ public class MultipleCommitsExample extends TezExampleBase {
       super.initialize();
       config = MultipleOutputProcessorConfig.fromUserPayload(getContext().getUserPayload());
     }
-    
+
     @Override
     public void run() throws Exception {
       for (int i=0;i < config.outputNum;++i) {
@@ -118,18 +118,18 @@ public class MultipleCommitsExample extends TezExampleBase {
         writer.write(NullWritable.get(), new Text("dummy"));
       }
     }
-    
+
     public static class MultipleOutputProcessorConfig implements Writable {
-      
+
       String outputNamePrefix;
       int outputNum;
       String sharedOutputNamePrefix = null;
       int sharedOutputNum;
 
       public MultipleOutputProcessorConfig(){
-        
+
       }
-      
+
       public MultipleOutputProcessorConfig(String outputNamePrefix, int outputNum) {
         this.outputNamePrefix = outputNamePrefix;
         this.outputNum = outputNum;
@@ -171,7 +171,7 @@ public class MultipleCommitsExample extends TezExampleBase {
           sharedOutputNum = in.readInt();
         }
       }
-      
+
       public UserPayload toUserPayload() throws IOException {
         NonSyncByteArrayOutputStream out = new NonSyncByteArrayOutputStream();
         this.write(new NonSyncDataOutputStream(out));
@@ -202,7 +202,7 @@ public class MultipleCommitsExample extends TezExampleBase {
     return runDag(dag, false, LOG);
   }
 
-  private DAG createDAG(TezConfiguration tezConf, 
+  private DAG createDAG(TezConfiguration tezConf,
       String v1OutputPathPrefix, int v1OutputNum, String v2OutputPathPrefix, int v2OutputNum,
       String uv12OutputPathPrefix, int uv12OutputNum,
       String v3OutputPathPrefix, int v3OutputNum, boolean commitOnVertexSuccess) throws IOException {

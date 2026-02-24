@@ -43,7 +43,7 @@ public class TaskAttemptEventAttemptKilled extends TaskAttemptEvent
     this(id, diagnostics, errorCause);
     this.fromRecovery = fromRecovery;
   }
-  
+
   @Override
   public String getDiagnosticInfo() {
     return diagnostics;

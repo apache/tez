@@ -47,7 +47,7 @@ public class DAGClientHandler {
 
   private DAGAppMaster dagAppMaster;
   private final AtomicLong lastHeartbeatTime;
-  
+
   public DAGClientHandler(DAGAppMaster dagAppMaster) {
     this.dagAppMaster = dagAppMaster;
     this.lastHeartbeatTime = new AtomicLong(dagAppMaster.getContext().getClock().getTime());

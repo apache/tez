@@ -33,16 +33,16 @@ public interface ContainerSignatureMatcher {
    *         signature.
    */
   public boolean isSuperSet(Object cs1, Object cs2);
-  
+
   /**
    * Checks if the container signatures match exactly
    * @return true if exact match
    */
   public boolean isExactMatch(Object cs1, Object cs2);
-  
+
   /**
    * Gets additional resources specified in lr2, which are not present for lr1
-   * 
+   *
    * @param lr1
    * @param lr2
    * @return additional resources specified in lr2, which are not present for lr1

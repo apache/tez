@@ -27,13 +27,13 @@ import org.apache.tez.dag.api.TezConstants;
 
 /**
  * A simple log4j-appender for a tez container's logs.
- * 
+ *
  */
 @Unstable
 public class TezContainerLogAppender extends FileAppender {
   private String containerLogDir;
   private String logFileName = TezConstants.TEZ_CONTAINER_LOG_FILE_NAME;
-  //so that log4j can configure it from the configuration(log4j.properties). 
+  //so that log4j can configure it from the configuration(log4j.properties).
 
   @Override
   public void activateOptions() {
@@ -47,7 +47,7 @@ public class TezContainerLogAppender extends FileAppender {
   /**
    * Set the name of the file for logging. This should NOT be an absolute path.
    * The file will be created within the container's log directory.
-   * 
+   *
    * @param fileName
    * @throws NullPointerException if {@code fileName} is {@code null}
    * @throws IllegalArgumentException if {@code fileName} is an absolute path

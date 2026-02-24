@@ -222,7 +222,7 @@ public class TestHistoryEventJsonConversion {
             ApplicationId.newInstance(1l, 1), 1), 1);
     Map<String, EdgeProperty> edgeMgrs =
         new HashMap<String, EdgeProperty>();
-    
+
     edgeMgrs.put("a", EdgeProperty.create(EdgeManagerPluginDescriptor.create("a.class")
         .setHistoryText("text"), DataSourceType.PERSISTED, SchedulingType.SEQUENTIAL,
         OutputDescriptor.create("Out"), InputDescriptor.create("In")));
