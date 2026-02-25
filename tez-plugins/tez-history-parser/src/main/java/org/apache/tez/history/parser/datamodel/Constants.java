@@ -54,6 +54,7 @@ public class Constants extends ATSConstants {
 
   //constants for ATS data export
   public static final String DAG = "dag";
+  public static final String DAG_EXTRA_INFO = "dag-extra-info";
   public static final String VERTICES = "vertices";
   public static final String TASKS = "tasks";
   public static final String TASK_ATTEMPTS = "task_attempts";
