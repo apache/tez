@@ -19,6 +19,8 @@
 package org.apache.tez.client.registry.zookeeper;
 
 import java.io.IOException;
+import java.util.List;
+import java.util.concurrent.TimeUnit;
 
 import org.apache.hadoop.yarn.api.protocolrecords.GetNewApplicationResponse;
 import org.apache.hadoop.yarn.api.records.ApplicationId;
@@ -110,6 +112,28 @@ public class ZkFrameworkClient extends FrameworkClient {
    */
   @Override
   public YarnClientApplication createApplication() {
+    if (amRecord == null) {
+      long startTime = System.currentTimeMillis();
+      while (!isZkInitialized() && (System.currentTimeMillis() - startTime) < 5000) {
+        try {
+          TimeUnit.MILLISECONDS.sleep(1000);
+        } catch (InterruptedException e) {
+          Thread.currentThread().interrupt();
+          throw new RuntimeException("Interrupted while waiting for ZK registry sync", e);
+        }
+      }
+
+      List<AMRecord> records = amRegistryClient.getAllRecords();
+      if (records != null && !records.isEmpty()) {
+        amRecord = records.getFirst();
+        LOG.info(
+            "No AppId provided, discovered AM from Zookeeper: {}", amRecord.getApplicationId());
+      } else {
+        throw new RuntimeException(
+            "No AM record found in Zookeeper. Ensure the AM is running and registered.");
+      }
+    }
+
     ApplicationSubmissionContext context = Records.newRecord(ApplicationSubmissionContext.class);
     ApplicationId appId = amRecord.getApplicationId();
     context.setApplicationId(appId);
