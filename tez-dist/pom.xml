@@ -136,12 +136,9 @@
                   <executable>/bin/bash</executable>
                   <arguments>
                     <argument>${project.basedir}/src/docker/build-docker.sh</argument>
-                    <argument>-hadoop</argument>
-                    <argument>${hadoop.version}</argument>
-                    <argument>-tez</argument>
-                    <argument>${project.version}</argument>
-                    <argument>-repo</argument>
-                    <argument>apache</argument>
+                    <argument>-hadoop ${hadoop.version}</argument>
+                    <argument>-tez ${project.version}</argument>
+                    <argument>-repo apache</argument>
                   </arguments>
                 </configuration>
               </execution>

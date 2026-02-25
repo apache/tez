@@ -21,7 +21,7 @@
 1. Building the docker image:
 
     ```bash
-    mvn clean install -DskipTests -Pdocker,tools
+    mvn clean install -DskipTests -Pdocker
     ```
 
 2. Install zookeeper in mac by:
@@ -34,32 +34,62 @@
 3. Running the Tez AM container:
 
     ```bash
-    docker run \
-        -p 10001:10001 -p 8042:8042 \
+    export TEZ_VERSION=1.0.0-SNAPSHOT
+   
+    docker run --rm \
+        -p 10001:10001 \
+        --env-file tez-dist/src/docker/tez.env \
         --name tez-am \
-        apache/tez-am:1.0.0-SNAPSHOT
+        --hostname localhost \
+        apache/tez-am:$TEZ_VERSION
     ```
 
+   * `TEZ_VERSION` corresponds to the Maven `${project.version}`.
+       Set this environment variable in your shell before running the commands.
+   * Expose ports using the `-p` flag based on the
+     `tez.am.client.am.port-range` property in `tez-site.xml`.
+   * The `--hostname` flag configures the container's hostname, allowing
+      services on the host (e.g., macOS) to connect to it.
+   * Ensure the `--env-file` flag is included, or at a minimum, pass
+     `-e TEZ_FRAMEWORK_MODE=STANDALONE_ZOOKEEPER` to the `docker run` command.
+
 4. Debugging the Tez AM container:
-Uncomment the JAVA_TOOL_OPTIONS in tez.env and expose 5005 port using -p flag
+Uncomment the `JAVA_TOOL_OPTIONS` in `tez.env` and expose 5005 port using `-p` flag
 
     ```bash
     docker run --rm \
-        -p 10001:10001 -p 8042:8042 -p 5005:5005 \
-        -e TEZ_FRAMEWORK_MODE="STANDALONE_ZOOKEEPER" \
-        --env-file tez.env \
+        -p 10001:10001 -p 5005:5005 \
+        --env-file tez-dist/src/docker/tez.env \
         --name tez-am \
-        apache/tez-am:1.0.0-SNAPSHOT
+        --hostname localhost \
+        apache/tez-am:$TEZ_VERSION
     ```
 
 5. To override the tez-site.xml in docker image use:
+   * Set the `TEZ_CUSTOM_CONF_DIR` environment variable in `tez.env`
+      or via the `docker run` command (e.g., `/opt/tez/custom-conf`).
 
-```bash
+    ```bash
+    export TEZ_SITE_PATH=$(pwd)/tez-dist/src/docker/conf/tez-site.xml
+
     docker run --rm \
-        -p 10001:10001 -p 8042:8042 -p 5005:5005 \
-        -e TEZ_FRAMEWORK_MODE="STANDALONE_ZOOKEEPER" \
-        --env-file tez.env \
-        -v "$(pwd)/conf/tez-site.xml:/opt/tez/custom-conf/tez-site.xml" \
+        -p 10001:10001 \
+        --env-file tez-dist/src/docker/tez.env \
+        -v "$TEZ_SITE_PATH:/opt/tez/custom-conf/tez-site.xml" \
         --name tez-am \
-        apache/tez-am:1.0.0-SNAPSHOT
+        --hostname localhost \
+        apache/tez-am:$TEZ_VERSION
+    ```
+
+6. To add plugin jars in docker image use:
+   * The plugin directory path inside the Docker container is fixed at `/opt/tez/plugins`.
+
+    ```bash
+    docker run --rm \
+        -p 10001:10001 \
+        --env-file tez-dist/src/docker/tez.env \
+        -v "/path/to/your/local/plugins:/opt/tez/plugins" \
+        --name tez-am \
+        --hostname localhost \
+        apache/tez-am:$TEZ_VERSION
     ```

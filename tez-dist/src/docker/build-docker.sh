@@ -69,7 +69,7 @@ SCRIPT_DIR=$(
 DIST_DIR=${DIST_DIR:-"$SCRIPT_DIR/../.."}
 PROJECT_ROOT=${PROJECT_ROOT:-"$SCRIPT_DIR/../../.."}
 
-repo=${REPO:-apache}
+REPO=${REPO:-apache}
 WORK_DIR="$(mktemp -d)"
 CACHE_DIR="$SCRIPT_DIR/cache"
 mkdir -p "$CACHE_DIR"
@@ -82,7 +82,7 @@ TEZ_VERSION=${TEZ_VERSION:-$(mvn -f "$PROJECT_ROOT/pom.xml" -q help:evaluate -De
 # HADOOP FETCH LOGIC #
 ######################
 HADOOP_FILE_NAME="hadoop-$HADOOP_VERSION.tar.gz"
-HADOOP_URL=${HADOOP_URL:-"https://archive.apache.org/dist/hadoop/core/hadoop-$HADOOP_VERSION/$HADOOP_FILE_NAME"}
+HADOOP_URL=${HADOOP_URL:-"https://dlcdn.apache.org/hadoop/common/hadoop-$HADOOP_VERSION/$HADOOP_FILE_NAME"}
 if [ ! -f "$CACHE_DIR/$HADOOP_FILE_NAME" ]; then
   echo "Downloading Hadoop from $HADOOP_URL..."
   if ! curl --fail -L "$HADOOP_URL" -o "$CACHE_DIR/$HADOOP_FILE_NAME.tmp"; then
@@ -112,17 +112,17 @@ fi
 # -------------------------------------------------------------------------
 cp "$CACHE_DIR/$HADOOP_FILE_NAME" "$WORK_DIR/"
 cp -R "$SCRIPT_DIR/conf" "$WORK_DIR/" 2>/dev/null || mkdir -p "$WORK_DIR/conf"
-cp "$SCRIPT_DIR/entrypoint.sh" "$WORK_DIR/"
+cp "$SCRIPT_DIR/tez-am-entrypoint.sh" "$WORK_DIR/"
 cp "$SCRIPT_DIR/Dockerfile" "$WORK_DIR/"
 
 echo "Building Docker image..."
 docker build \
   "$WORK_DIR" \
   -f "$WORK_DIR/Dockerfile" \
-  -t "$repo/tez-am:$TEZ_VERSION" \
+  -t "$REPO/tez-am:$TEZ_VERSION" \
   --build-arg "BUILD_ENV=unarchive" \
   --build-arg "HADOOP_VERSION=$HADOOP_VERSION" \
   --build-arg "TEZ_VERSION=$TEZ_VERSION"
 
 rm -r "${WORK_DIR}"
-echo "Docker image $repo/tez-am:$TEZ_VERSION built successfully."
+echo "Docker image $REPO/tez-am:$TEZ_VERSION built successfully."
