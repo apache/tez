@@ -118,6 +118,35 @@
         </dependency>
       </dependencies>
     </profile>
+    <profile>
+      <id>docker</id>
+      <build>
+        <plugins>
+          <plugin>
+            <groupId>org.codehaus.mojo</groupId>
+            <artifactId>exec-maven-plugin</artifactId>
+            <executions>
+              <execution>
+                <id>build-docker-image</id>
+                <phase>package</phase>
+                <goals>
+                  <goal>exec</goal>
+                </goals>
+                <configuration>
+                  <executable>/bin/bash</executable>
+                  <arguments>
+                    <argument>${project.basedir}/src/docker/build-docker.sh</argument>
+                    <argument>-hadoop ${hadoop.version}</argument>
+                    <argument>-tez ${project.version}</argument>
+                    <argument>-repo apache</argument>
+                  </arguments>
+                </configuration>
+              </execution>
+            </executions>
+          </plugin>
+        </plugins>
+      </build>
+    </profile>
   </profiles>
 
   <build>
