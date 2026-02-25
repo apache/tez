@@ -1,0 +1,79 @@
+/* Licensed under the MIT License (https://opensource.org/licenses/MIT) */
+.object-visualizer {
+  border-radius: 4px;
+  overflow-x: auto;
+  margin: 0;
+  padding: 10px;
+  font-family: Menlo;
+  font-size: 0.8rem;
+  line-height: 1.4;
+  /* background-color: hsl(0, 0%, 13%); */
+}
+
+.array > .value,
+.object > .value {
+  display: flex;
+  flex-direction: column;
+  margin-left: 2rem;
+}
+
+.key {
+  /* color: hsl(300, 60%, 65%); */
+}
+
+.string > .value {
+  color: hsl(15, 100%, 70%);
+}
+
+.boolean > .value,
+.number > .value {
+  color: hsl(250, 70%, 65%);
+}
+
+.null > .value,
+.undefined > .value {
+  color: hsl(0, 0%, 40%);
+}
+
+.separator {
+  font-size: 0.8rem;
+  color: hsl(0, 0%, 80%);
+}
+
+.array > .separator,
+.object > .separator {
+  cursor: pointer;
+}
+
+.indicator {
+  cursor: pointer;
+  font-size: 0.8rem;
+  padding-right: 0.3rem;
+  user-select: none;
+  vertical-align: text-bottom;
+  color: hsl(0, 0%, 50%);
+}
+
+.array > .key,
+.object > .key {
+  cursor: pointer;
+}
+
+.value > .array,
+.value > .object {
+  position: relative;
+  left: -0.8rem;
+}
+
+.count,
+.preview,
+.quotes {
+  font-size: 0.8rem;
+  color: hsl(0, 0%, 80%);
+}
+
+.count,
+.preview {
+  user-select: none;
+  cursor: pointer;
+}

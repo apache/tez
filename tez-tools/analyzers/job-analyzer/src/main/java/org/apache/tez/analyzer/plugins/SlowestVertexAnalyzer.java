@@ -61,7 +61,7 @@ public class SlowestVertexAnalyzer extends TezAnalyzerBase implements Analyzer {
     super(config);
     this.vertexRuntimeThreshold = Math.max(1, config.getLong(MAX_VERTEX_RUNTIME,
         MAX_VERTEX_RUNTIME_DEFAULT));
-
+    this.configProperties.add(MAX_VERTEX_RUNTIME);
   }
 
   private long getTaskRuntime(VertexInfo vertexInfo) {

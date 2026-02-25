@@ -30,6 +30,7 @@ import org.apache.tez.dag.api.TezException;
 import org.apache.tez.dag.history.logging.proto.HistoryEventProtoJsonConversion;
 import org.apache.tez.dag.history.logging.proto.HistoryLoggerProtos.HistoryEventProto;
 import org.apache.tez.dag.history.logging.proto.ProtoMessageReader;
+import org.apache.tez.history.parser.SimpleHistoryParser.JSONObjectSource;
 import org.apache.tez.history.parser.datamodel.DagInfo;
 
 import com.google.common.base.Strings;
@@ -77,7 +78,8 @@ public class ProtoHistoryParser extends SimpleHistoryParser {
     parse(dagId, source);
   }
 
-  private JSONObjectSource getJsonSource() throws IOException {
+  @Override
+  protected JSONObjectSource getJsonSource() throws IOException {
     final TezConfiguration conf = new TezConfiguration();
 
     Iterator<File> fileIt = protoFiles.iterator();

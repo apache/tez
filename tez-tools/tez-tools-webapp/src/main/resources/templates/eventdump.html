@@ -1,0 +1,153 @@
+<!--
+* Licensed to the Apache Software Foundation (ASF) under one
+* or more contributor license agreements.  See the NOTICE file
+* distributed with this work for additional information
+* regarding copyright ownership.  The ASF licenses this file
+* to you under the Apache License, Version 2.0 (the
+* "License"); you may not use this file except in compliance
+* with the License.  You may obtain a copy of the License at
+*
+*     http://www.apache.org/licenses/LICENSE-2.0
+*
+* Unless required by applicable law or agreed to in writing, software
+* distributed under the License is distributed on an "AS IS" BASIS,
+* WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+* See the License for the specific language governing permissions and
+* limitations under the License.
+-->
+<!doctype html>
+<html lang="en" xmlns:th="http://www.thymeleaf.org">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+
+<link
+  href="https://cdn.jsdelivr.net/npm/bootstrap@5.0.2/dist/css/bootstrap.min.css"
+  rel="stylesheet">
+
+<link rel="stylesheet"
+  href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.3.0/font/bootstrap-icons.css">
+<link type="text/css" rel="stylesheet" href="object-visualizer.css" />
+
+<script src="https://unpkg.com/object-visualizer"></script>
+
+<title>Tez history event dump</title>
+</head>
+<body>
+  <script
+    src="https://cdn.jsdelivr.net/npm/bootstrap@5.0.2/dist/js/bootstrap.bundle.min.js"></script>
+  <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+
+  <div class="container-fluid">
+    <div class="row flex-nowrap">
+      <div th:replace="fragments/menu">...</div>
+      <div class="col py-3">
+        <div class="container">
+          <h1>Tez history event dump</h1>
+
+          <form method='post' enctype="multipart/form-data"
+            id="eventDumpForm">
+
+            <div class="form-group" style="margin-bottom: 15px;">
+              <label for="">Files</label> <input class="form-control"
+                type="file" id="dagFiles" name="dagFiles" multiple /> <small
+                id="dagIdHelp" class="form-text text-muted">History
+                file(s) - simple / proto / ATS zip</small>
+            </div>
+
+            <div class="form-group" style="margin-bottom: 15px;">
+              <label for="dagId">DAG id</label> <input type="text"
+                class="form-control" id="dagId" name="dagId"
+                aria-describedby="dagIdHelp" placeholder="dag_*_*_*" disabled>
+              <small id="dagIdHelp" class="form-text text-muted">DAG id
+                parsed from the file (isn't needed for dumping events, no need
+                to edit)</small>
+            </div>
+            <button type="button" id="dumpEventsButton"
+              class="btn btn-success">Show events</button>
+            <button type="button" id="saveEventsAsJsonButton"
+              class="btn btn-primary" style="display: none">Save as
+              JSON file</button>
+          </form>
+          <div style="margin-top: 20px;">
+            <div class="alert alert-danger" role="alert" id="truncatedAlert"
+              style="display: none;">The displayed json tree was
+              truncated to 10000 items due to stability reasons, you can still
+              inspect the full tree by saving it as a JSON file.</div>
+            <div id="jsonOutput"></div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+  <script>
+    $('#dagFiles').on('change',function(){
+      const files = Array.from(this.files);
+      const dagIdRegex = "dag_[0-9]+_[0-9]+_[0-9]+";
+
+      for (var i = 0; i < files.length; i++){
+        if (files[i].name.match(dagIdRegex) != null){
+          $("#dagId").val(files[i].name.match(dagIdRegex)[0]);
+          break;
+        }
+      }
+      // at this point, we haven't managed to parse dag_id from file name,
+      // but we can still check the file if it's a simple history logging text file
+      var fr = new FileReader();
+      fr.onload = function(){
+        var dagIdMatch = fr.result.match(dagIdRegex);
+        if (dagIdMatch != null){
+          $("#dagId").val(dagIdMatch[0]);
+        }
+      }
+      fr.readAsText($('#dagFiles')[0].files[0]);
+      $(this).next('.form-label').html(files.map(item => item.name).join(", "));
+    })
+
+    $("#saveEventsAsJsonButton").click(function() {
+      const a = document.createElement("a");
+      a.href = URL.createObjectURL(new Blob([JSON.stringify(window.lastJsonData, null, 5)], {
+        type: "text/plain"
+      }));
+      a.setAttribute("download", $("#dagId").val() + ".txt");
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+    });
+
+    $("#dumpEventsButton" ).click(function() {
+        $("#jsonOutput").empty();
+        var formData = new FormData($("#eventDumpForm")[0]);
+        $("button").attr('disabled','disabled');
+
+        $.ajax({
+            url: '/eventdump',
+            type: 'POST',
+            data: formData,
+            processData: false,
+            contentType: false,
+            success: function (data) {
+                console.log(data);
+                if (data.length > 10000){
+                  $("#truncatedAlert").show();
+                }else{
+                  $("#truncatedAlert").hide();
+                }
+                window.lastJsonData = $.extend(true, {}, data);
+                $("#saveEventsAsJsonButton").show();
+                // ObjectVisualizer
+                const options = {
+                   expandOnCreatedAndUpdated: function (path) {
+                     return path.length == 1;
+                   },
+                };
+                ObjectVisualizer.mount(ObjectVisualizer.reactive(data.slice(0, 10000)), $("#jsonOutput")[0], options);
+            },
+            complete: function(){
+                $("button").attr('disabled',false);
+            }
+        });
+    });
+  </script>
+</body>
+</html>
