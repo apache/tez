@@ -63,7 +63,7 @@ if [[ -n "${TEZ_CUSTOM_CONF_DIR:-}" ]] && [[ -d "$TEZ_CUSTOM_CONF_DIR" ]]; then
     find "${TEZ_CUSTOM_CONF_DIR}" -type f -exec \
         ln -sf {} "${TEZ_CONF_DIR}"/ \;
 
-    # Remove template keyword if it exist
+    # Remove template keyword if it exists
     if [[ -f "$TEZ_CONF_DIR/tez-site.xml.template" ]]; then
         envsubst < "$TEZ_CONF_DIR/tez-site.xml.template" > "$TEZ_CONF_DIR/tez-site.xml"
     fi

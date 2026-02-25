@@ -44,7 +44,7 @@ RUN mkdir -p /opt/hadoop \
         -C /opt/tez \
     && rm -rf /opt/hadoop-$HADOOP_VERSION.tar.gz /opt/tez-$TEZ_VERSION.tar.gz
 
-FROM eclipse-temurin:21.0.3_9-jre-ubi9-minimal AS run
+FROM eclipse-temurin:21-jdk-ubi9-minimal AS run
 
 ARG UID=1000
 ARG HADOOP_VERSION
@@ -54,7 +54,7 @@ ARG TEZ_VERSION
 # hadolint ignore=DL3041
 RUN set -ex; \
     microdnf update -y; \
-    microdnf -y install procps gettext findutils; \
+    microdnf -y install procps gettext findutils hostname; \
     microdnf clean all; \
     useradd --no-create-home -s /sbin/nologin -c "" --uid $UID tez
 
@@ -74,13 +74,13 @@ COPY --from=env --chown=tez /opt/tez $TEZ_HOME
 
 RUN mkdir -p $TEZ_CONF_DIR && chown tez:tez $TEZ_CONF_DIR
 
-COPY --chown=tez entrypoint.sh /
+COPY --chown=tez tez-am-entrypoint.sh /
 COPY --chown=tez conf $TEZ_CONF_DIR
 
 # Create Extension Point Directory
 RUN mkdir -p /opt/tez/plugins && chown tez:tez /opt/tez/plugins && chmod 755 /opt/tez/plugins
 
-RUN chmod +x /entrypoint.sh
+RUN chmod +x /tez-am-entrypoint.sh
 
 USER tez
 WORKDIR $TEZ_HOME
@@ -88,4 +88,4 @@ WORKDIR $TEZ_HOME
 # Expose AM ports via -p flag in docker command
 # EXPOSE 10001 10002 10003 8042
 
-ENTRYPOINT ["/entrypoint.sh"]
+ENTRYPOINT ["/tez-am-entrypoint.sh"]
