@@ -1036,6 +1036,7 @@
               </importOrder>
               <removeUnusedImports/>
               <trimTrailingWhitespace/>
+              <endWithNewline/>
             </java>
           </configuration>
         </plugin>
