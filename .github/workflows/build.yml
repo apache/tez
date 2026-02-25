@@ -35,4 +35,4 @@ jobs:
       - uses: actions/setup-java@v1
         with:
           java-version: ${{ matrix.java-version }}
-      - run: mvn clean install -DskipTests -Dmaven.javadoc.skip=true
+      - run: mvn clean install -T2C -DskipTests -Dmaven.javadoc.skip=true
