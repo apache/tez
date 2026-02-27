@@ -32,12 +32,12 @@ import org.apache.tez.dag.api.records.DAGProtos.AMPluginDescriptorProto;
 public class LocalDAGAppMaster extends DAGAppMaster {
 
   public LocalDAGAppMaster(ApplicationAttemptId applicationAttemptId, ContainerId containerId,
-      String nmHost, int nmPort, int nmHttpPort, Clock clock, long appSubmitTime, boolean isSession,
+      Clock clock, long appSubmitTime, boolean isSession,
       String workingDirectory, String[] localDirs, String[] logDirs, String clientVersion,
-      Credentials credentials, String jobUserName, AMPluginDescriptorProto pluginDescriptorProto) {
-    super(applicationAttemptId, containerId, nmHost, nmPort, nmHttpPort, clock, appSubmitTime,
+      Credentials credentials, String jobUserName, AMPluginDescriptorProto pluginDescriptorProto, NodeContext nodeContext) {
+    super(applicationAttemptId, containerId, clock, appSubmitTime,
         isSession, workingDirectory, localDirs, logDirs, clientVersion, credentials, jobUserName,
-        pluginDescriptorProto);
+        pluginDescriptorProto, nodeContext);
   }
 
   @Override
