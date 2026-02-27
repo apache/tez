@@ -19,16 +19,14 @@
 
 set -xeou pipefail
 
-HADOOP_VERSION=
 TEZ_VERSION=
 REPO=
 
 usage() {
   cat <<EOF 1>&2
-Usage: $0 [-h] [-hadoop <Hadoop version>] [-tez <Tez version>] [-repo <Docker repo>]
+Usage: $0 [-h] [-tez <Tez version>] [-repo <Docker repo>]
 Build the Apache Tez AM Docker image
 -help                Display help
--hadoop              Build image with the specified Hadoop version
 -tez                 Build image with the specified Tez version
 -repo                Docker repository
 EOF
@@ -39,11 +37,6 @@ while [ $# -gt 0 ]; do
   -h)
     usage
     exit 0
-    ;;
-  -hadoop)
-    shift
-    HADOOP_VERSION=$1
-    shift
     ;;
   -tez)
     shift
@@ -74,23 +67,8 @@ WORK_DIR="$(mktemp -d)"
 CACHE_DIR="$SCRIPT_DIR/cache"
 mkdir -p "$CACHE_DIR"
 
-# Defaults Hadoop and Tez versions from pom.xml if not provided
-HADOOP_VERSION=${HADOOP_VERSION:-$(mvn -f "$PROJECT_ROOT/pom.xml" -q help:evaluate -Dexpression=hadoop.version -DforceStdout)}
+# Defaults Tez versions from pom.xml if not provided
 TEZ_VERSION=${TEZ_VERSION:-$(mvn -f "$PROJECT_ROOT/pom.xml" -q help:evaluate -Dexpression=project.version -DforceStdout)}
-
-######################
-# HADOOP FETCH LOGIC #
-######################
-HADOOP_FILE_NAME="hadoop-$HADOOP_VERSION.tar.gz"
-HADOOP_URL=${HADOOP_URL:-"https://dlcdn.apache.org/hadoop/common/hadoop-$HADOOP_VERSION/$HADOOP_FILE_NAME"}
-if [ ! -f "$CACHE_DIR/$HADOOP_FILE_NAME" ]; then
-  echo "Downloading Hadoop from $HADOOP_URL..."
-  if ! curl --fail -L "$HADOOP_URL" -o "$CACHE_DIR/$HADOOP_FILE_NAME.tmp"; then
-    echo "Fail to download Hadoop, exiting...."
-    exit 1
-  fi
-  mv "$CACHE_DIR/$HADOOP_FILE_NAME.tmp" "$CACHE_DIR/$HADOOP_FILE_NAME"
-fi
 
 #####################################
 # Pick tez tarball from local build #
@@ -110,7 +88,6 @@ fi
 # -------------------------------------------------------------------------
 # BUILD CONTEXT PREPARATION
 # -------------------------------------------------------------------------
-cp "$CACHE_DIR/$HADOOP_FILE_NAME" "$WORK_DIR/"
 cp -R "$SCRIPT_DIR/conf" "$WORK_DIR/" 2>/dev/null || mkdir -p "$WORK_DIR/conf"
 cp "$SCRIPT_DIR/tez-am-entrypoint.sh" "$WORK_DIR/"
 cp "$SCRIPT_DIR/Dockerfile" "$WORK_DIR/"
@@ -121,7 +98,6 @@ docker build \
   -f "$WORK_DIR/Dockerfile" \
   -t "$REPO/tez-am:$TEZ_VERSION" \
   --build-arg "BUILD_ENV=unarchive" \
-  --build-arg "HADOOP_VERSION=$HADOOP_VERSION" \
   --build-arg "TEZ_VERSION=$TEZ_VERSION"
 
 rm -r "${WORK_DIR}"

@@ -20,34 +20,21 @@ ARG BUILD_ENV=unarchive
 # hadolint ignore=DL3006
 FROM ubuntu AS unarchive
 # hadolint ignore=DL3010
-ONBUILD COPY hadoop-*.tar.gz /opt
-# hadolint ignore=DL3010
 ONBUILD COPY tez-*.tar.gz /opt
 
 # hadolint ignore=DL3006
 FROM ${BUILD_ENV} AS env
-ARG HADOOP_VERSION
 ARG TEZ_VERSION
 
-RUN mkdir -p /opt/hadoop \
-    && tar -xzv \
-        --exclude="hadoop-$HADOOP_VERSION/share/doc" \
-        --exclude="*/jdiff" \
-        --exclude="*/sources" \
-        --exclude="*tests.jar" \
-        --exclude="*/webapps" \
-        -f /opt/hadoop-$HADOOP_VERSION.tar.gz \
-        -C /opt/hadoop --strip-components 1 \
-    && mkdir -p /opt/tez \
+RUN mkdir -p /opt/tez \
     && tar -xzv \
         -f /opt/tez-$TEZ_VERSION.tar.gz \
         -C /opt/tez \
-    && rm -rf /opt/hadoop-$HADOOP_VERSION.tar.gz /opt/tez-$TEZ_VERSION.tar.gz
+    && rm -rf /opt/tez-$TEZ_VERSION.tar.gz
 
 FROM eclipse-temurin:21-jdk-ubi9-minimal AS run
 
 ARG UID=1000
-ARG HADOOP_VERSION
 ARG TEZ_VERSION
 
 # Install dependencies
@@ -59,17 +46,13 @@ RUN set -ex; \
     useradd --no-create-home -s /sbin/nologin -c "" --uid $UID tez
 
 # Set necessary environment variables
-ENV HADOOP_HOME=/opt/hadoop \
-    TEZ_HOME=/opt/tez \
-    TEZ_CONF_DIR=/opt/tez/conf \
-    HADOOP_CONF_DIR=/opt/tez/conf
+ENV TEZ_HOME=/opt/tez \
+    TEZ_CONF_DIR=/opt/tez/conf
 
 ENV TEZ_CLIENT_VERSION=$TEZ_VERSION
 
-ENV PATH=$TEZ_HOME/bin:$HADOOP_HOME/bin:$PATH
+ENV PATH=$TEZ_HOME/bin:$PATH
 
-COPY --from=env --chown=tez /opt/hadoop $HADOOP_HOME
-# UPDATED: Copy from the normalized directory name created in 'env' stage
 COPY --from=env --chown=tez /opt/tez $TEZ_HOME
 
 RUN mkdir -p $TEZ_CONF_DIR && chown tez:tez $TEZ_CONF_DIR
@@ -84,8 +67,5 @@ RUN chmod +x /tez-am-entrypoint.sh
 
 USER tez
 WORKDIR $TEZ_HOME
-
-# Expose AM ports via -p flag in docker command
-# EXPOSE 10001 10002 10003 8042
 
 ENTRYPOINT ["/tez-am-entrypoint.sh"]
