@@ -494,11 +494,11 @@ public class TestDAGAppMaster {
     sessionJarsPBOutStream.close();
     DAGAppMaster am = spy(new DAGAppMaster(attemptId,
         ContainerId.newContainerId(attemptId, 1),
-        "127.0.0.1", 0, 0, new MonotonicClock(), 1, true,
+        new MonotonicClock(), 1, true,
         TEST_DIR.toString(), new String[] {TEST_DIR.toString()},
         new String[] {TEST_DIR.toString()},
         new TezApiVersionInfo().getVersion(), amCreds,
-        "someuser", null));
+        "someuser", null, new LocalNodeContext("127.0.0.1", 0, 0)));
     when(am.getState()).thenReturn(DAGAppMasterState.RUNNING);
     am.init(conf);
     am.start();
@@ -579,11 +579,11 @@ public class TestDAGAppMaster {
     sessionJarsPBOutStream.close();
     DAGAppMaster am = new DAGAppMaster(attemptId,
         ContainerId.newInstance(attemptId, 1),
-        "127.0.0.1", 0, 0, new SystemClock(), 1, true,
+        new SystemClock(), 1, true,
         TEST_DIR.toString(), new String[] {TEST_DIR.toString()},
         new String[] {TEST_DIR.toString()},
         new TezApiVersionInfo().getVersion(), amCreds,
-        "someuser", null);
+        "someuser", null, new LocalNodeContext("127.0.0.1", 0, 0));
     am.init(conf);
     am.start();
 
@@ -701,10 +701,10 @@ public class TestDAGAppMaster {
     private DAGAppMasterReadinessService mockAppMasterReadinessService = mock(DAGAppMasterReadinessService.class);
 
     public DAGAppMasterForTest(ApplicationAttemptId attemptId, boolean isSession) {
-      super(attemptId, ContainerId.newContainerId(attemptId, 1), "hostname", 12345, 12346,
+      super(attemptId, ContainerId.newContainerId(attemptId, 1),
           new SystemClock(), 0, isSession, TEST_DIR.getAbsolutePath(),
           new String[] { TEST_DIR.getAbsolutePath() }, new String[] { TEST_DIR.getAbsolutePath() },
-          new TezDagVersionInfo().getVersion(), createCredentials(), "jobname", null);
+          new TezDagVersionInfo().getVersion(), createCredentials(), "jobname", null, new LocalNodeContext("hostname", 12345, 12346));
     }
 
     public static Credentials createCredentials() {

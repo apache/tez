@@ -67,6 +67,8 @@ import org.apache.tez.dag.app.AppContext;
 import org.apache.tez.dag.app.DAGAppMaster;
 import org.apache.tez.dag.app.DAGAppMasterState;
 import org.apache.tez.dag.app.LocalDAGAppMaster;
+import org.apache.tez.dag.app.LocalNodeContext;
+import org.apache.tez.dag.app.NodeContext;
 import org.apache.tez.dag.app.dag.DAG;
 
 import com.google.common.annotations.VisibleForTesting;
@@ -369,10 +371,11 @@ public class LocalClient extends FrameworkClient {
           long appSubmitTime = System.currentTimeMillis();
 
           dagAppMaster =
-              createDAGAppMaster(applicationAttemptId, cId, currentHost, nmPort, nmHttpPort,
+              createDAGAppMaster(applicationAttemptId, cId,
                   SystemClock.getInstance(), appSubmitTime, isSession, userDir.toUri().getPath(),
                   new String[] {localDir.toUri().getPath()}, new String[] {logDir.toUri().getPath()},
-                  amCredentials, UserGroupInformation.getCurrentUser().getShortUserName());
+                  amCredentials, UserGroupInformation.getCurrentUser().getShortUserName(),
+                  new LocalNodeContext(currentHost, nmPort, nmHttpPort));
           DAGAppMaster.initAndStartAppMaster(dagAppMaster, conf);
           clientHandler = new DAGClientHandler(dagAppMaster);
           ((AsyncDispatcher)dagAppMaster.getDispatcher()).setDrainEventsOnStop();
@@ -395,14 +398,19 @@ public class LocalClient extends FrameworkClient {
 
   // this can be overridden by test code to create a mock app
   @VisibleForTesting
-  protected DAGAppMaster createDAGAppMaster(ApplicationAttemptId applicationAttemptId,
-                                            ContainerId cId, String currentHost, int nmPort,
-                                            int nmHttpPort,
-                                            Clock clock, long appSubmitTime, boolean isSession,
-                                            String userDir,
-                                            String[] localDirs, String[] logDirs,
-                                            Credentials credentials, String jobUserName) throws
-      IOException {
+  protected DAGAppMaster createDAGAppMaster(
+          ApplicationAttemptId applicationAttemptId,
+          ContainerId cId,
+          Clock clock,
+          long appSubmitTime,
+          boolean isSession,
+          String userDir,
+          String[] localDirs,
+          String[] logDirs,
+          Credentials credentials,
+          String jobUserName,
+          NodeContext nodeContext)
+      throws IOException {
 
     // Read in additional information about external services
     AMPluginDescriptorProto amPluginDescriptorProto =
@@ -410,12 +418,12 @@ public class LocalClient extends FrameworkClient {
             .getAmPluginDescriptor();
 
     return isLocalWithoutNetwork
-      ? new LocalDAGAppMaster(applicationAttemptId, cId, currentHost, nmPort, nmHttpPort,
+      ? new LocalDAGAppMaster(applicationAttemptId, cId,
           SystemClock.getInstance(), appSubmitTime, isSession, userDir, localDirs, logDirs,
-          versionInfo.getVersion(), credentials, jobUserName, amPluginDescriptorProto)
-      : new DAGAppMaster(applicationAttemptId, cId, currentHost, nmPort, nmHttpPort,
+          versionInfo.getVersion(), credentials, jobUserName, amPluginDescriptorProto, nodeContext)
+      : new DAGAppMaster(applicationAttemptId, cId,
           SystemClock.getInstance(), appSubmitTime, isSession, userDir, localDirs, logDirs,
-          versionInfo.getVersion(), credentials, jobUserName, amPluginDescriptorProto);
+          versionInfo.getVersion(), credentials, jobUserName, amPluginDescriptorProto, nodeContext);
   }
 
   @Override
