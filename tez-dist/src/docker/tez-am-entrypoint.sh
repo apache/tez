@@ -38,23 +38,6 @@ export CONTAINER_ID USER HADOOP_USER_NAME NM_HOST NM_PORT NM_HTTP_PORT \
 
 mkdir -p "$LOG_DIRS"
 
-##########################
-# CONFIGURATION HANDLING #
-##########################
-
-# Symlink hadoop conf in tez conf dir
-if [[ -d "$HADOOP_HOME/etc/hadoop" ]]; then
-    echo "--> Linking missing Hadoop configs to $TEZ_CONF_DIR..."
-    for f in "$HADOOP_HOME/etc/hadoop"/*; do
-        basename=$(basename "$f")
-        # this check helps in case user wants to provide its custom hfds-site.xml
-        # or any other configuration file
-        if [[ ! -e "$TEZ_CONF_DIR/$basename" ]]; then
-            ln -s "$f" "$TEZ_CONF_DIR/$basename"
-        fi
-    done
-fi
-
 ###########################
 # Custom Config directory #
 ###########################
@@ -73,8 +56,7 @@ fi
 # CLASSPATH #
 #############
 
-export HADOOP_USER_CLASSPATH_FIRST=true
-# Order is: conf -> plugins -> tez jars -> hadoop jars
+# Order is: conf -> plugins -> tez jars
 CLASSPATH="${TEZ_CONF_DIR}"
 
 # Custom Plugins
@@ -91,16 +73,6 @@ fi
 # Tez Jars
 CLASSPATH="${CLASSPATH}:${TEZ_HOME}/*:${TEZ_HOME}/lib/*"
 
-# Hadoop Jars
-CLASSPATH="${CLASSPATH}:${HADOOP_HOME}/share/hadoop/common/*"
-CLASSPATH="${CLASSPATH}:${HADOOP_HOME}/share/hadoop/common/lib/*"
-CLASSPATH="${CLASSPATH}:${HADOOP_HOME}/share/hadoop/hdfs/*"
-CLASSPATH="${CLASSPATH}:${HADOOP_HOME}/share/hadoop/hdfs/lib/*"
-CLASSPATH="${CLASSPATH}:${HADOOP_HOME}/share/hadoop/yarn/*"
-CLASSPATH="${CLASSPATH}:${HADOOP_HOME}/share/hadoop/yarn/lib/*"
-CLASSPATH="${CLASSPATH}:${HADOOP_HOME}/share/hadoop/mapreduce/*"
-CLASSPATH="${CLASSPATH}:${HADOOP_HOME}/share/hadoop/mapreduce/lib/*"
-
 #############
 # Execution #
 #############
@@ -112,7 +84,6 @@ if [ -z "$TEZ_DAG_JAR" ]; then
 fi
 
 echo "--> Starting DAGAppMaster..."
-echo "--> HADOOP_CONF_DIR: $HADOOP_CONF_DIR"
 
 : "${TEZ_AM_HEAP_OPTS:="-Xmx2048m"}"
 
@@ -134,9 +105,6 @@ read -r -a HEAP_OPTS_ARR <<< "${TEZ_AM_HEAP_OPTS}"
 
 exec java "${HEAP_OPTS_ARR[@]}" "${JAVA_OPTS_ARR[@]}" "${JAVA_ADD_OPENS[@]}" \
     -Duser.name="$HADOOP_USER_NAME" \
-    -Djava.library.path="$HADOOP_HOME/lib/native" \
-    -Dhadoop.home.dir="$HADOOP_HOME" \
-    -Dhadoop.log.dir="$LOG_DIRS" \
     -Dtez.conf.dir="$TEZ_CONF_DIR" \
     -cp "$CLASSPATH" \
     org.apache.tez.dag.app.DAGAppMaster --session \
