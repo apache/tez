@@ -209,16 +209,16 @@ import org.slf4j.LoggerFactory;
  * The state machine is encapsulated in the implementation of Job interface.
  * All state changes happens via Job interface. Each event
  * results in a Finite State Transition in Job.
- *
+ * <p>
  * Tez DAG AppMaster is the composition of loosely coupled services. The services
  * interact with each other via events. The components resembles the
  * Actors model. The component acts on received event and send out the
  * events to other components.
  * This keeps it highly concurrent with no or minimal synchronization needs.
- *
+ * <p>
  * The events are dispatched by a central Dispatch mechanism. All components
  * register to the Dispatcher.
- *
+ * <p>
  * The information is shared across different components using AppContext.
  */
 
@@ -245,9 +245,7 @@ public class DAGAppMaster extends AbstractService {
   private String appName;
   private final ApplicationAttemptId appAttemptID;
   private final ContainerId containerID;
-  private final String nmHost;
-  private final int nmPort;
-  private final int nmHttpPort;
+  private String nmHost;
   private final String workingDirectory;
   private final String[] localDirs;
   private final String[] logDirs;
@@ -309,6 +307,7 @@ public class DAGAppMaster extends AbstractService {
 
   private ListeningExecutorService execService;
   private final PluginManager pluginManager;
+  private final NodeContext nodeContext;
 
 
   /**
@@ -344,10 +343,10 @@ public class DAGAppMaster extends AbstractService {
   private TezDAGHook[] hooks = {};
 
   public DAGAppMaster(ApplicationAttemptId applicationAttemptId,
-      ContainerId containerId, String nmHost, int nmPort, int nmHttpPort,
+      ContainerId containerId,
       Clock clock, long appSubmitTime, boolean isSession, String workingDirectory,
       String [] localDirs, String[] logDirs, String clientVersion,
-      Credentials credentials, String jobUserName, AMPluginDescriptorProto pluginDescriptorProto) {
+      Credentials credentials, String jobUserName, AMPluginDescriptorProto pluginDescriptorProto, NodeContext nodeContext) {
     super(DAGAppMaster.class.getName());
     this.mdcContext = LoggingUtils.setupLog4j();
     this.clock = clock;
@@ -355,9 +354,7 @@ public class DAGAppMaster extends AbstractService {
     this.appSubmitTime = appSubmitTime;
     this.appAttemptID = applicationAttemptId;
     this.containerID = containerId;
-    this.nmHost = nmHost;
-    this.nmPort = nmPort;
-    this.nmHttpPort = nmHttpPort;
+    this.nodeContext = nodeContext;
     this.state = DAGAppMasterState.NEW;
     this.isSession = isSession;
     this.workingDirectory = workingDirectory;
@@ -370,9 +367,6 @@ public class DAGAppMaster extends AbstractService {
     this.appMasterUgi = UserGroupInformation
         .createRemoteUser(jobUserName);
     this.appMasterUgi.addCredentials(amCredentials);
-
-    this.containerLogs = getRunningLogURL(this.nmHost + ":" + this.nmHttpPort,
-        this.containerID.toString(), this.appMasterUgi.getShortUserName());
 
     LOG.info("Created DAGAppMaster for application " + applicationAttemptId
         + ", versionInfo=" + dagVersionInfo);
@@ -442,6 +436,16 @@ public class DAGAppMaster extends AbstractService {
 
     this.isLocal = conf.getBoolean(TezConfiguration.TEZ_LOCAL_MODE,
         TezConfiguration.TEZ_LOCAL_MODE_DEFAULT);
+
+    if (!isLocal) {
+      this.nmHost = nodeContext.getNodeHostString();
+      int nmHttpPort = Integer.parseInt(nodeContext.getNodeHttpPortString());
+      this.containerLogs =
+          getRunningLogURL(
+              this.nmHost + ":" + nmHttpPort,
+              this.containerID.toString(),
+              this.appMasterUgi.getShortUserName());
+    }
 
     UserPayload defaultPayload = TezUtils.createUserPayloadFromConf(amConf);
 
@@ -1207,15 +1211,15 @@ public class DAGAppMaster extends AbstractService {
   }
 
   public String getAppNMHost() {
-    return nmHost;
+    return nodeContext.getNodeHostString();
   }
 
   public int getAppNMPort() {
-    return nmPort;
+    return Integer.parseInt(nodeContext.getNodePortString());
   }
 
   public int getAppNMHttpPort() {
-    return nmHttpPort;
+    return Integer.parseInt(nodeContext.getNodeHttpPortString());
   }
 
   public int getRpcPort() {
@@ -2415,13 +2419,15 @@ public class DAGAppMaster extends AbstractService {
       // Install the tez class loader, which can be used add new resources
       TezClassLoader.setupTezClassLoader();
       Thread.setDefaultUncaughtExceptionHandler(new YarnUncaughtExceptionHandler());
-      final String pid = System.getenv().get("JVM_PID");
 
-      String nodeHostString = System.getenv(ApplicationConstants.Environment.NM_HOST.name());
-      String nodePortString = System.getenv(ApplicationConstants.Environment.NM_PORT.name());
-      String nodeHttpPortString = System.getenv(ApplicationConstants.Environment.NM_HTTP_PORT.name());
+      final long pid = ProcessHandle.current().pid();
       String appSubmitTimeStr = System.getenv(ApplicationConstants.APP_SUBMIT_TIME_ENV);
       String clientVersion = System.getenv(TezConstants.TEZ_CLIENT_VERSION_ENV);
+      String jobUserName = System.getenv(ApplicationConstants.Environment.USER.name());
+      String pwd = System.getenv(ApplicationConstants.Environment.PWD.name());
+      String localDirs = System.getenv(ApplicationConstants.Environment.LOCAL_DIRS.name());
+      String logDirs = System.getenv(ApplicationConstants.Environment.LOG_DIRS.name());
+
       if (clientVersion == null) {
         clientVersion = VersionInfo.UNKNOWN;
       }
@@ -2435,6 +2441,7 @@ public class DAGAppMaster extends AbstractService {
       DAGProtos.ConfigurationProto confProto = amExtensions.loadConfigurationProto();
       TezUtilsInternal.addUserSpecifiedTezConfiguration(conf, confProto.getConfKeyValuesList());
 
+      NodeContext nodeContext = new YarnNodeManagerContext();
       ContainerId containerId = amExtensions.allocateContainerId(conf);
 
       ApplicationAttemptId applicationAttemptId = containerId.getApplicationAttemptId();
@@ -2442,7 +2449,6 @@ public class DAGAppMaster extends AbstractService {
               .Builder("tez_appmaster_" + containerId.getApplicationAttemptId()
       ).build());
       long appSubmitTime = Long.parseLong(appSubmitTimeStr);
-      String jobUserName = System.getenv(ApplicationConstants.Environment.USER.name());
 
       // Command line options
       Option option = Option.builder()
@@ -2462,9 +2468,9 @@ public class DAGAppMaster extends AbstractService {
           + ", jvmPid=" + pid
           + ", userFromEnv=" + jobUserName
           + ", cliSessionOption=" + sessionModeCliOption
-          + ", pwd=" + System.getenv(ApplicationConstants.Environment.PWD.name())
-          + ", localDirs=" + System.getenv(ApplicationConstants.Environment.LOCAL_DIRS.name())
-          + ", logDirs=" + System.getenv(ApplicationConstants.Environment.LOG_DIRS.name()));
+          + ", pwd=" + pwd
+          + ", localDirs=" + localDirs
+          + ", logDirs=" + logDirs);
 
       AMPluginDescriptorProto amPluginDescriptorProto = null;
       if (confProto.hasAmPluginDescriptor()) {
@@ -2477,20 +2483,26 @@ public class DAGAppMaster extends AbstractService {
       TezUtilsInternal.setSecurityUtilConfigration(LOG, conf);
 
       DAGAppMaster appMaster =
-          new DAGAppMaster(applicationAttemptId, containerId, nodeHostString, Integer.parseInt(nodePortString),
-              Integer.parseInt(nodeHttpPortString), new SystemClock(), appSubmitTime, sessionModeCliOption,
-              System.getenv(ApplicationConstants.Environment.PWD.name()),
-              TezCommonUtils.getTrimmedStrings(System.getenv(ApplicationConstants.Environment.LOCAL_DIRS.name())),
-              TezCommonUtils.getTrimmedStrings(System.getenv(ApplicationConstants.Environment.LOG_DIRS.name())),
-              clientVersion, credentials, jobUserName, amPluginDescriptorProto);
+          new DAGAppMaster(
+              applicationAttemptId,
+              containerId,
+              new SystemClock(),
+              appSubmitTime,
+              sessionModeCliOption,
+              pwd,
+              TezCommonUtils.getTrimmedStrings(localDirs),
+              TezCommonUtils.getTrimmedStrings(logDirs),
+              clientVersion,
+              credentials,
+              jobUserName,
+              amPluginDescriptorProto,
+              nodeContext);
       ShutdownHookManager.get().addShutdownHook(new DAGAppMasterShutdownHook(appMaster), SHUTDOWN_HOOK_PRIORITY);
 
       // log the system properties
       if (LOG.isInfoEnabled()) {
         String systemPropsToLog = TezCommonUtils.getSystemPropertiesToLog(conf);
-        if (systemPropsToLog != null) {
-          LOG.info(systemPropsToLog);
-        }
+        LOG.info(systemPropsToLog);
       }
 
       initAndStartAppMaster(appMaster, conf);

@@ -43,6 +43,7 @@ import org.apache.tez.client.registry.AMRecord;
 import org.apache.tez.client.registry.AMRegistryClientListener;
 import org.apache.tez.dag.api.TezConfiguration;
 import org.apache.tez.dag.app.DAGAppMaster;
+import org.apache.tez.dag.app.LocalNodeContext;
 import org.apache.tez.dag.app.MockDAGAppMaster;
 
 import org.junit.After;
@@ -156,9 +157,9 @@ public class TestZkAMRegistryClient {
     String[] logDirs = new String[]{TEST_DIR + "/logs"};
     String jobUserName = UserGroupInformation.getCurrentUser().getShortUserName();
 
-    dagAppMaster = new MockDAGAppMaster(attemptId, containerId, "localhost", 0, 0, SystemClock.getInstance(),
+    dagAppMaster = new MockDAGAppMaster(attemptId, containerId, SystemClock.getInstance(),
         System.currentTimeMillis(), true, workingDir, localDirs, logDirs, new AtomicBoolean(true), false, false,
-        new Credentials(), jobUserName, 1, 1);
+        new Credentials(), jobUserName, 1, 1, new LocalNodeContext("localhost", 0, 0));
 
     dagAppMaster.init(tezConf);
     dagAppMaster.start();
