@@ -25,10 +25,10 @@ public sealed interface NodeContext permits YarnNodeManagerContext, LocalNodeCon
   /**
    * @return The node port string
    */
-  String getNodePortString();
+  int getNodePort();
 
   /**
    * @return The node HTTP port string
    */
-  String getNodeHttpPortString();
+  int getNodeHttpPort();
 }

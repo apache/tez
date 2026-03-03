@@ -245,7 +245,6 @@ public class DAGAppMaster extends AbstractService {
   private String appName;
   private final ApplicationAttemptId appAttemptID;
   private final ContainerId containerID;
-  private String nmHost;
   private final String workingDirectory;
   private final String[] localDirs;
   private final String[] logDirs;
@@ -438,11 +437,9 @@ public class DAGAppMaster extends AbstractService {
         TezConfiguration.TEZ_LOCAL_MODE_DEFAULT);
 
     if (!isLocal) {
-      this.nmHost = nodeContext.getNodeHostString();
-      int nmHttpPort = Integer.parseInt(nodeContext.getNodeHttpPortString());
       this.containerLogs =
           getRunningLogURL(
-              this.nmHost + ":" + nmHttpPort,
+              nodeContext.getNodeHostString() + ":" + nodeContext.getNodeHttpPort(),
               this.containerID.toString(),
               this.appMasterUgi.getShortUserName());
     }
@@ -1215,11 +1212,11 @@ public class DAGAppMaster extends AbstractService {
   }
 
   public int getAppNMPort() {
-    return Integer.parseInt(nodeContext.getNodePortString());
+    return nodeContext.getNodePort();
   }
 
   public int getAppNMHttpPort() {
-    return Integer.parseInt(nodeContext.getNodeHttpPortString());
+    return nodeContext.getNodeHttpPort();
   }
 
   public int getRpcPort() {

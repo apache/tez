@@ -18,13 +18,13 @@ package org.apache.tez.dag.app;
 public final class LocalNodeContext implements NodeContext {
 
   private final String nodeHostString;
-  private final String nodePortString;
-  private final String nodeHttpPortString;
+  private final int nodePort;
+  private final int nodeHttpPort;
 
   public LocalNodeContext(String nodeHostString, int nodePortString, int nmHttpPort) {
     this.nodeHostString = nodeHostString;
-    this.nodePortString = String.valueOf(nodePortString);
-    this.nodeHttpPortString = String.valueOf(nmHttpPort);
+    this.nodePort = nodePortString;
+    this.nodeHttpPort = nmHttpPort;
   }
 
   @Override
@@ -33,12 +33,12 @@ public final class LocalNodeContext implements NodeContext {
   }
 
   @Override
-  public String getNodePortString() {
-    return nodePortString;
+  public int getNodePort() {
+    return nodePort;
   }
 
   @Override
-  public String getNodeHttpPortString() {
-    return nodeHttpPortString;
+  public int getNodeHttpPort() {
+    return nodeHttpPort;
   }
 }
