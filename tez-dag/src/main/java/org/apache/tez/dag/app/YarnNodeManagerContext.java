@@ -27,16 +27,16 @@ public final class YarnNodeManagerContext implements NodeContext {
 
   // Preserving original variable names conceptually inside the suppliers
   private final Supplier<String> nodeHostStringSupplier;
-  private final Supplier<String> nodePortStringSupplier;
-  private final Supplier<String> nodeHttpPortStringSupplier;
+  private final Supplier<Integer> nodePortStringSupplier;
+  private final Supplier<Integer> nodeHttpPortStringSupplier;
 
   public YarnNodeManagerContext() {
     this.nodeHostStringSupplier =
         () -> System.getenv(ApplicationConstants.Environment.NM_HOST.name());
     this.nodePortStringSupplier =
-        () -> System.getenv(ApplicationConstants.Environment.NM_PORT.name());
+        () -> Integer.valueOf(System.getenv(ApplicationConstants.Environment.NM_PORT.name()));
     this.nodeHttpPortStringSupplier =
-        () -> System.getenv(ApplicationConstants.Environment.NM_HTTP_PORT.name());
+        () -> Integer.valueOf(System.getenv(ApplicationConstants.Environment.NM_HTTP_PORT.name()));
   }
 
   @Override
@@ -45,12 +45,12 @@ public final class YarnNodeManagerContext implements NodeContext {
   }
 
   @Override
-  public String getNodePortString() {
+  public int getNodePort() {
     return nodePortStringSupplier.get();
   }
 
   @Override
-  public String getNodeHttpPortString() {
+  public int getNodeHttpPort() {
     return nodeHttpPortStringSupplier.get();
   }
 }
