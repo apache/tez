@@ -1211,14 +1211,6 @@ public class DAGAppMaster extends AbstractService {
     return nodeContext.getNodeHostString();
   }
 
-  public int getAppNMPort() {
-    return nodeContext.getNodePort();
-  }
-
-  public int getAppNMHttpPort() {
-    return nodeContext.getNodeHttpPort();
-  }
-
   public int getRpcPort() {
     return clientRpcServer.getBindAddress().getPort();
   }
@@ -2417,7 +2409,7 @@ public class DAGAppMaster extends AbstractService {
       TezClassLoader.setupTezClassLoader();
       Thread.setDefaultUncaughtExceptionHandler(new YarnUncaughtExceptionHandler());
 
-      final long pid = ProcessHandle.current().pid();
+      final String pid = System.getenv().get("JVM_PID");
       String appSubmitTimeStr = System.getenv(ApplicationConstants.APP_SUBMIT_TIME_ENV);
       String clientVersion = System.getenv(TezConstants.TEZ_CLIENT_VERSION_ENV);
       String jobUserName = System.getenv(ApplicationConstants.Environment.USER.name());
@@ -2434,11 +2426,16 @@ public class DAGAppMaster extends AbstractService {
 
       Configuration conf = new Configuration();
 
-      AMExtensions amExtensions = getFrameworkService(conf).getAMExtensions();
+      ServerFrameworkService frameworkService = getFrameworkService(conf);
+      AMExtensions amExtensions = frameworkService.getAMExtensions();
       DAGProtos.ConfigurationProto confProto = amExtensions.loadConfigurationProto();
       TezUtilsInternal.addUserSpecifiedTezConfiguration(conf, confProto.getConfKeyValuesList());
 
-      NodeContext nodeContext = new YarnNodeManagerContext();
+      NodeContext nodeContext =
+          (frameworkService instanceof YarnServerFrameworkService)
+              ? new YarnNodeManagerContext()
+              : null;
+
       ContainerId containerId = amExtensions.allocateContainerId(conf);
 
       ApplicationAttemptId applicationAttemptId = containerId.getApplicationAttemptId();
