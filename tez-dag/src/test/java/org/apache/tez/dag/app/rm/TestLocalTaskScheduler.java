@@ -51,7 +51,7 @@ public class TestLocalTaskScheduler {
 
     TaskSchedulerContext
         mockContext = TestTaskSchedulerHelpers.setupMockTaskSchedulerContext("", 0, "", true,
-        appAttemptId, 1000l, null, new Configuration());
+        appAttemptId, 1000L, null, new Configuration());
 
     LocalContainerFactory containerFactory = new LocalContainerFactory(appAttemptId, 1000);
 
@@ -69,7 +69,7 @@ public class TestLocalTaskScheduler {
     // Allocate up to max tasks
     for (int i = 0; i < MAX_TASKS; i++) {
       Priority priority = Priority.newInstance(20);
-      requestHandler.addAllocateTaskRequest(new Long(i), null, priority, null);
+      requestHandler.addAllocateTaskRequest((long) i, null, priority, null);
       requestHandler.dispatchRequest();
       requestHandler.allocateTask();
     }
@@ -80,7 +80,7 @@ public class TestLocalTaskScheduler {
 
     // Deallocate down to zero
     for (int i = 0; i < MAX_TASKS; i++) {
-      requestHandler.addDeallocateTaskRequest(new Long(i));
+      requestHandler.addDeallocateTaskRequest((long) i);
       requestHandler.dispatchRequest();
     }
 

@@ -264,7 +264,7 @@ public abstract class TezAnalyzerBase extends Configured implements Tool, Analyz
 
       String separator = sep.toString();
       LOG.debug(separator);
-      LOG.debug(String.format(format.toString(), (String[]) headers));
+      LOG.debug(String.format(format, (String[]) headers));
       LOG.debug(separator);
 
       Iterator<String[]> recordsIterator = ((CSVResult) result).getRecordsIterator();
