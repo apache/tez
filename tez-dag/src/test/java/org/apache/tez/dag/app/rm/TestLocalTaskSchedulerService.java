@@ -153,14 +153,14 @@ public class TestLocalTaskSchedulerService {
 
     ApplicationId appId = ApplicationId.newInstance(2000, 1);
     ApplicationAttemptId appAttemptId = ApplicationAttemptId.newInstance(appId, 1);
-    Long parentTask1 = new Long(1);
-    Long parentTask2 = new Long(2);
-    Long childTask1 = new Long(3);
-    Long grandchildTask1 = new Long(4);
+    Long parentTask1 = (long) 1;
+    Long parentTask2 = (long) 2;
+    Long childTask1 = (long) 3;
+    Long grandchildTask1 = (long) 4;
 
     TaskSchedulerContext
         mockContext = TestTaskSchedulerHelpers.setupMockTaskSchedulerContext("", 0, "", true,
-        appAttemptId, 1000l, null, tezConf);
+        appAttemptId, 1000L, null, tezConf);
     when(mockContext.getVertexIndexForTask(parentTask1)).thenReturn(0);
     when(mockContext.getVertexIndexForTask(parentTask2)).thenReturn(0);
     when(mockContext.getVertexIndexForTask(childTask1)).thenReturn(1);
