@@ -37,6 +37,8 @@ import org.apache.tez.common.security.TokenCache;
 import org.apache.tez.dag.api.TezConstants;
 import org.apache.tez.dag.api.records.DAGProtos;
 import org.apache.tez.dag.app.ClusterInfo;
+import org.apache.tez.dag.app.NodeContext;
+import org.apache.tez.dag.app.YarnNodeManagerContext;
 import org.apache.tez.dag.app.dag.Vertex;
 import org.apache.tez.frameworkplugins.AMExtensions;
 import org.apache.tez.frameworkplugins.ServerFrameworkService;
@@ -59,6 +61,11 @@ public class YarnServerFrameworkService implements ServerFrameworkService {
   @Override
   public AMExtensions getAMExtensions() {
     return amExtensions;
+  }
+
+  @Override
+  public NodeContext getNodeContext() {
+    return new YarnNodeManagerContext();
   }
 
   /**
