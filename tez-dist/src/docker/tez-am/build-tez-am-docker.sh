@@ -59,8 +59,8 @@ SCRIPT_DIR=$(
   pwd
 )
 
-DIST_DIR=${DIST_DIR:-"$SCRIPT_DIR/../.."}
-PROJECT_ROOT=${PROJECT_ROOT:-"$SCRIPT_DIR/../../.."}
+DIST_DIR=${DIST_DIR:-"$SCRIPT_DIR/../../.."}
+PROJECT_ROOT=${PROJECT_ROOT:-"$SCRIPT_DIR/../../../.."}
 
 REPO=${REPO:-apache}
 WORK_DIR="$(mktemp -d)"
@@ -90,12 +90,12 @@ fi
 # -------------------------------------------------------------------------
 cp -R "$SCRIPT_DIR/conf" "$WORK_DIR/" 2>/dev/null || mkdir -p "$WORK_DIR/conf"
 cp "$SCRIPT_DIR/tez-am-entrypoint.sh" "$WORK_DIR/"
-cp "$SCRIPT_DIR/Dockerfile" "$WORK_DIR/"
+cp "$SCRIPT_DIR/Dockerfile.tez_am" "$WORK_DIR/"
 
 echo "Building Docker image..."
 docker build \
   "$WORK_DIR" \
-  -f "$WORK_DIR/Dockerfile" \
+  -f "$WORK_DIR/Dockerfile.tez_am" \
   -t "$REPO/tez-am:$TEZ_VERSION" \
   --build-arg "BUILD_ENV=unarchive" \
   --build-arg "TEZ_VERSION=$TEZ_VERSION"

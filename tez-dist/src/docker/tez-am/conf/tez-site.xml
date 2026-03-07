@@ -18,36 +18,35 @@
 -->
 
 <configuration>
-    <property>
-        <name>tez.am.client.am.port-range</name>
-        <value>10001-10003</value>
-    </property>
+  <property>
+    <name>tez.am.client.am.port-range</name>
+    <value>10001-10003</value>
+  </property>
 
-    <property>
-        <name>tez.am.tez-ui.webservice.enable</name>
-        <value>false</value>
-    </property>
+  <property>
+    <name>tez.am.tez-ui.webservice.enable</name>
+    <value>false</value>
+  </property>
 
-    <property>
-        <name>tez.am.zookeeper.quorum</name>
-        <value>host.docker.internal:2181</value>
-    </property>
+  <property>
+    <name>tez.am.zookeeper.quorum</name>
+    <value>zookeeper:2181</value>
+  </property>
 
-    <property>
-        <name>tez.am.log.level</name>
-        <value>DEBUG</value>
-    </property>
+  <property>
+    <name>tez.am.log.level</name>
+    <value>DEBUG</value>
+  </property>
 
-    <!--
-    <property>
-        <name>fs.defaultFS</name>
-        <value>hdfs://host.docker.internal:9000</value>
-    </property>
-    -->
+  <property>
+    <name>tez.local.mode</name>
+    <value>true</value>
+  </property>
 
-    <property>
-        <name>tez.local.mode</name>
-        <value>true</value>
-    </property>
+  <!-- Tez AM should not timeout in ZK Mode -->
+  <property>
+    <name>tez.session.am.dag.submit.timeout.secs</name>
+    <value>-1</value>
+  </property>
 
 </configuration>
