@@ -14,43 +14,25 @@
  */
 package org.apache.tez.dag.app;
 
-import java.util.function.Supplier;
-
 import org.apache.hadoop.yarn.api.ApplicationConstants;
 
-/**
- * YARN specific implementation of NodeContext. Uses Suppliers to lazily resolve YARN environment
- * variables only when they are first requested, avoiding eager resolution during DAGAppMaster
- * startup.
- */
+/** YARN specific implementation of NodeContext. Resolves YARN environment variables on demand. */
 public final class YarnNodeManagerContext implements NodeContext {
 
-  // Preserving original variable names conceptually inside the suppliers
-  private final Supplier<String> nodeHostStringSupplier;
-  private final Supplier<Integer> nodePortStringSupplier;
-  private final Supplier<Integer> nodeHttpPortStringSupplier;
-
-  public YarnNodeManagerContext() {
-    this.nodeHostStringSupplier =
-        () -> System.getenv(ApplicationConstants.Environment.NM_HOST.name());
-    this.nodePortStringSupplier =
-        () -> Integer.valueOf(System.getenv(ApplicationConstants.Environment.NM_PORT.name()));
-    this.nodeHttpPortStringSupplier =
-        () -> Integer.valueOf(System.getenv(ApplicationConstants.Environment.NM_HTTP_PORT.name()));
+  @Override
+  public String nodeHost() {
+    return System.getenv(ApplicationConstants.Environment.NM_HOST.name());
   }
 
   @Override
-  public String getNodeHostString() {
-    return nodeHostStringSupplier.get();
+  public int nodePort() {
+    String port = System.getenv(ApplicationConstants.Environment.NM_PORT.name());
+    return Integer.parseInt(port);
   }
 
   @Override
-  public int getNodePort() {
-    return nodePortStringSupplier.get();
-  }
-
-  @Override
-  public int getNodeHttpPort() {
-    return nodeHttpPortStringSupplier.get();
+  public int nodeHttpPort() {
+    String port = System.getenv(ApplicationConstants.Environment.NM_HTTP_PORT.name());
+    return Integer.parseInt(port);
   }
 }

@@ -439,7 +439,7 @@ public class DAGAppMaster extends AbstractService {
     if (!isLocal) {
       this.containerLogs =
           getRunningLogURL(
-              nodeContext.getNodeHostString() + ":" + nodeContext.getNodeHttpPort(),
+              nodeContext.nodeHost() + ":" + nodeContext.nodeHttpPort(),
               this.containerID.toString(),
               this.appMasterUgi.getShortUserName());
     }
@@ -1208,7 +1208,7 @@ public class DAGAppMaster extends AbstractService {
   }
 
   public String getAppNMHost() {
-    return nodeContext.getNodeHostString();
+    return nodeContext.nodeHost();
   }
 
   public int getRpcPort() {
@@ -2431,10 +2431,7 @@ public class DAGAppMaster extends AbstractService {
       DAGProtos.ConfigurationProto confProto = amExtensions.loadConfigurationProto();
       TezUtilsInternal.addUserSpecifiedTezConfiguration(conf, confProto.getConfKeyValuesList());
 
-      NodeContext nodeContext =
-          (frameworkService instanceof YarnServerFrameworkService)
-              ? new YarnNodeManagerContext()
-              : null;
+      NodeContext nodeContext = frameworkService.getNodeContext();
 
       ContainerId containerId = amExtensions.allocateContainerId(conf);
 
