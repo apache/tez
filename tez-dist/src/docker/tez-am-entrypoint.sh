@@ -86,24 +86,27 @@ fi
 echo "--> Starting DAGAppMaster..."
 
 : "${TEZ_AM_HEAP_OPTS:="-Xmx2048m"}"
-
-# Check for Log4j2 Configuration
-LOG4J2_FILE="$TEZ_CONF_DIR/log4j2.properties"
-if [[ -f "$LOG4J2_FILE" ]]; then
-    echo "--> [TEZ-AM] Found Log4j2 configuration: $LOG4J2_FILE"
-    JAVA_OPTS="${JAVA_OPTS:+$JAVA_OPTS }-Dlog4j.configurationFile=file:$LOG4J2_FILE"
-fi
+# : "${TEZ_AM_GC_OPTS:="-Xlog:gc*=info,class+load=info::time,uptime,level,tags -XX:+UseNUMA"}"
 
 JAVA_ADD_OPENS=(
     "--add-opens=java.base/java.lang=ALL-UNNAMED"
     "--add-opens=java.base/java.util=ALL-UNNAMED"
     "--add-opens=java.base/java.io=ALL-UNNAMED"
+    "-Dnet.bytebuddy.experimental=true"
 )
 
 read -r -a JAVA_OPTS_ARR <<< "${JAVA_OPTS:-}"
 read -r -a HEAP_OPTS_ARR <<< "${TEZ_AM_HEAP_OPTS}"
+# read -r -a JAVA_GC_OPTS_ARR <<< "${TEZ_AM_GC_OPTS}"
 
+# Add "${JAVA_GC_OPTS_ARR[@]}" in following command to get gc information.
 exec java "${HEAP_OPTS_ARR[@]}" "${JAVA_OPTS_ARR[@]}" "${JAVA_ADD_OPENS[@]}" \
+    -Djava.net.preferIPv4Stack=true \
+    -Djava.io.tmpdir="$PWD/tmp" \
+    -Dtez.root.logger=INFO,CLA,console \
+    -Dlog4j.configuratorClass=org.apache.tez.common.TezLog4jConfigurator \
+    -Dlog4j.configuration=tez-container-log4j.properties \
+    -Dyarn.app.container.log.dir="$LOG_DIRS" \
     -Duser.name="$HADOOP_USER_NAME" \
     -Dtez.conf.dir="$TEZ_CONF_DIR" \
     -cp "$CLASSPATH" \
