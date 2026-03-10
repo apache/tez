@@ -47,8 +47,9 @@
     <!-- Build Properties -->
     <!-- Default empty argLine to prevent Surefire crashes when the 'jacoco' profile is inactive -->
     <argLine/>
-    <javaVersion>21</javaVersion>
-    <maven.compiler.release>21</maven.compiler.release>
+    <javaVersion>25</javaVersion>
+    <maven.compiler.release>25</maven.compiler.release>
+    <version.maven-shade-plugin>3.6.2</version.maven-shade-plugin>
     <maven.test.redirectTestOutputToFile>true</maven.test.redirectTestOutputToFile>
     <failIfNoTests>false</failIfNoTests>
     <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
