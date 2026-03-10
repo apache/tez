@@ -747,7 +747,7 @@ public class TestHistoryEventsProtoConversion {
     Collection<TezVertexID> vertexIds = Lists.newArrayList(vertexId1, vertexId2);
     VertexGroupCommitFinishedEvent event = new VertexGroupCommitFinishedEvent(
         TezDAGID.getInstance(ApplicationId.newInstance(0, 1), 1),
-        "fooGroup", vertexIds, 1000344l);
+        "fooGroup", vertexIds, 1000344L);
     {
       VertexGroupCommitFinishedEvent deserializedEvent =
           (VertexGroupCommitFinishedEvent) testProtoConversion(event);

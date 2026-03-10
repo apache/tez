@@ -51,7 +51,7 @@ public class TestLocalTaskScheduler {
 
     TaskSchedulerContext
         mockContext = TestTaskSchedulerHelpers.setupMockTaskSchedulerContext("", 0, "", true,
-        appAttemptId, 1000l, null, new Configuration());
+        appAttemptId, 1000L, null, new Configuration());
 
     LocalContainerFactory containerFactory = new LocalContainerFactory(appAttemptId, 1000);
 
