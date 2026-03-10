@@ -195,6 +195,14 @@
       <plugin>
         <groupId>org.apache.maven.plugins</groupId>
         <artifactId>maven-shade-plugin</artifactId>
+        <version>3.6.2</version>
+        <dependencies>
+          <dependency>
+          <groupId>org.ow2.asm</groupId>
+          <artifactId>asm</artifactId>
+          <version>9.8</version>
+          </dependency>
+        </dependencies>
         <executions>
           <execution>
             <phase>package</phase>

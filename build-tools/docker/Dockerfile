@@ -162,18 +162,18 @@ SHELL ["/bin/bash", "-o", "pipefail", "-c"]
 ####
 
 ####
-# OpenJDK 21
+# OpenJDK 25
 # hadolint ignore=DL3008
 RUN apt-get -q update \
-    && DEBIAN_FRONTEND=noninteractive apt-get install --no-install-recommends -y openjdk-21-jdk \
+    && DEBIAN_FRONTEND=noninteractive apt-get install --no-install-recommends -y openjdk-25-jdk \
     && apt-get clean && rm -rf /var/lib/apt/lists/*
 
-# Set JAVA_HOME and PATH environment variables
-ENV JAVA_HOME=/usr/lib/jvm/java-21-openjdk-amd64
+# Set JAVA_HOME and PATH environment variables for JDK 25
+ENV JAVA_HOME=/usr/lib/jvm/java-25-openjdk-amd64
 ENV PATH="${JAVA_HOME}/bin:${PATH}"
 
 # Set the default Java version using update-alternatives
-RUN update-alternatives --install /usr/bin/java java /usr/lib/jvm/java-21-openjdk-amd64/bin/java 1
+RUN update-alternatives --install /usr/bin/java java /usr/lib/jvm/java-25-openjdk-amd64/bin/java 1
 
 #######
 # Install SpotBugs 4.9.3
