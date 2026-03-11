@@ -418,10 +418,10 @@ public class LocalClient extends FrameworkClient {
             .getAmPluginDescriptor();
 
     return isLocalWithoutNetwork
-      ? new LocalDAGAppMaster(applicationAttemptId, cId,
+        ? new LocalDAGAppMaster(applicationAttemptId, cId,
           SystemClock.getInstance(), appSubmitTime, isSession, userDir, localDirs, logDirs,
           versionInfo.getVersion(), credentials, jobUserName, amPluginDescriptorProto, nodeContext)
-      : new DAGAppMaster(applicationAttemptId, cId,
+        : new DAGAppMaster(applicationAttemptId, cId,
           SystemClock.getInstance(), appSubmitTime, isSession, userDir, localDirs, logDirs,
           versionInfo.getVersion(), credentials, jobUserName, amPluginDescriptorProto, nodeContext);
   }

@@ -34,7 +34,8 @@ public class LocalDAGAppMaster extends DAGAppMaster {
   public LocalDAGAppMaster(ApplicationAttemptId applicationAttemptId, ContainerId containerId,
       Clock clock, long appSubmitTime, boolean isSession,
       String workingDirectory, String[] localDirs, String[] logDirs, String clientVersion,
-      Credentials credentials, String jobUserName, AMPluginDescriptorProto pluginDescriptorProto, NodeContext nodeContext) {
+      Credentials credentials, String jobUserName, AMPluginDescriptorProto pluginDescriptorProto,
+      NodeContext nodeContext) {
     super(applicationAttemptId, containerId, clock, appSubmitTime,
         isSession, workingDirectory, localDirs, logDirs, clientVersion, credentials, jobUserName,
         pluginDescriptorProto, nodeContext);

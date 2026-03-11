@@ -345,7 +345,8 @@ public class DAGAppMaster extends AbstractService {
       ContainerId containerId,
       Clock clock, long appSubmitTime, boolean isSession, String workingDirectory,
       String [] localDirs, String[] logDirs, String clientVersion,
-      Credentials credentials, String jobUserName, AMPluginDescriptorProto pluginDescriptorProto, NodeContext nodeContext) {
+      Credentials credentials, String jobUserName, AMPluginDescriptorProto pluginDescriptorProto,
+      NodeContext nodeContext) {
     super(DAGAppMaster.class.getName());
     this.mdcContext = LoggingUtils.setupLog4j();
     this.clock = clock;

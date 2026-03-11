@@ -701,10 +701,11 @@ public class TestDAGAppMaster {
     private DAGAppMasterReadinessService mockAppMasterReadinessService = mock(DAGAppMasterReadinessService.class);
 
     public DAGAppMasterForTest(ApplicationAttemptId attemptId, boolean isSession) {
-      super(attemptId, ContainerId.newContainerId(attemptId, 1),
-          new SystemClock(), 0, isSession, TEST_DIR.getAbsolutePath(),
+      super(attemptId, ContainerId.newContainerId(attemptId, 1), new SystemClock(),
+          0, isSession, TEST_DIR.getAbsolutePath(),
           new String[] { TEST_DIR.getAbsolutePath() }, new String[] { TEST_DIR.getAbsolutePath() },
-          new TezDagVersionInfo().getVersion(), createCredentials(), "jobname", null, new LocalNodeContext("hostname", 12345, 12346));
+          new TezDagVersionInfo().getVersion(), createCredentials(), "jobname",
+          null, new LocalNodeContext("hostname", 12345, 12346));
     }
 
     public static Credentials createCredentials() {
