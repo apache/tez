@@ -122,3 +122,13 @@ using `-p` flag
 
     * This command will start both the Tez AM, Zookeeper, Minimal
     Hadoop containers as defined in the `docker-compose.yml` file.
+
+8. For running a hive query using this docker image:
+    * Create a directory tez-plugins and add hive-exec jar in it.
+    * Add the line in docker compose under tez-am service to mount this
+      directory as volume to `/opt/tez/plugins` in docker container.
+
+      ```yml
+      volumes:
+        - ./tez-plugins:/opt/tez/plugins
+      ```

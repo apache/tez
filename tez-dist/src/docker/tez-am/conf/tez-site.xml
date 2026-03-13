@@ -18,6 +18,7 @@
 -->
 
 <configuration>
+
   <property>
     <name>tez.am.client.am.port-range</name>
     <value>10001-10003</value>
@@ -28,6 +29,7 @@
     <value>false</value>
   </property>
 
+  <!-- Use host.docker.internal:2181 for brew installed zookeeper -->
   <property>
     <name>tez.am.zookeeper.quorum</name>
     <value>zookeeper:2181</value>
@@ -35,7 +37,7 @@
 
   <property>
     <name>tez.am.log.level</name>
-    <value>DEBUG</value>
+    <value>INFO</value>
   </property>
 
   <property>
@@ -47,6 +49,12 @@
   <property>
     <name>tez.session.am.dag.submit.timeout.secs</name>
     <value>-1</value>
+  </property>
+
+  <!-- This is important for TEZ AM to connect to DataNode -->
+  <property>
+    <name>dfs.client.use.datanode.hostname</name>
+    <value>true</value>
   </property>
 
 </configuration>

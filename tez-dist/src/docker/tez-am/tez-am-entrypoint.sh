@@ -22,16 +22,13 @@ set -xeou pipefail
 # 1. Mocking DAGAppMaster#main() env variables #
 ################################################
 
-: "${CONTAINER_ID:="container_1700000000000_0001_01_000001"}"
 : "${USER:="tez"}"
-: "${HADOOP_USER_NAME:="tez"}"
 : "${LOCAL_DIRS:="/tmp"}"
 : "${LOG_DIRS:="/opt/tez/logs"}"
 : "${APP_SUBMIT_TIME_ENV:=$(($(date +%s) * 1000))}"
 : "${TEZ_AM_EXTERNAL_ID:="tez-session-$(hostname)"}"
 
-export CONTAINER_ID USER HADOOP_USER_NAME NM_HOST NM_PORT NM_HTTP_PORT \
-    LOCAL_DIRS LOG_DIRS APP_SUBMIT_TIME_ENV TEZ_AM_EXTERNAL_ID
+export USER LOCAL_DIRS LOG_DIRS APP_SUBMIT_TIME_ENV TEZ_AM_EXTERNAL_ID
 
 mkdir -p "$LOG_DIRS"
 
@@ -112,7 +109,6 @@ exec java "${HEAP_OPTS_ARR[@]}" "${JAVA_OPTS_ARR[@]}" "${JAVA_ADD_OPENS[@]}" \
     -Dlog4j.configuratorClass=org.apache.tez.common.TezLog4jConfigurator \
     -Dlog4j.configuration=tez-container-log4j.properties \
     -Dyarn.app.container.log.dir="$LOG_DIRS" \
-    -Duser.name="$HADOOP_USER_NAME" \
     -Dtez.conf.dir="$TEZ_CONF_DIR" \
     -cp "$CLASSPATH" \
     org.apache.tez.dag.app.DAGAppMaster --session \
