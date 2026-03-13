@@ -51,13 +51,13 @@ public class MockLocalClient extends LocalClient {
 
   @Override
   protected DAGAppMaster createDAGAppMaster(ApplicationAttemptId applicationAttemptId,
-      ContainerId cId, String currentHost, int nmPort, int nmHttpPort,
+      ContainerId cId,
       Clock clock, long appSubmitTime, boolean isSession, String userDir,
-      String[] localDirs, String[] logDirs, Credentials credentials, String jobUserName) {
-    mockApp = new MockDAGAppMaster(applicationAttemptId, cId, currentHost, nmPort, nmHttpPort,
+      String[] localDirs, String[] logDirs, Credentials credentials, String jobUserName, NodeContext nodeContext) {
+    mockApp = new MockDAGAppMaster(applicationAttemptId, cId,
         (mockClock!=null ? mockClock : clock), appSubmitTime, isSession, userDir, localDirs, logDirs,
         mockAppLauncherGoFlag, initFailFlag, startFailFlag, credentials, jobUserName,
-        concurrency, containers);
+        concurrency, containers, nodeContext);
     return mockApp;
   }
 

@@ -19,6 +19,7 @@ package org.apache.tez.frameworkplugins;
 
 import org.apache.hadoop.conf.Configuration;
 import org.apache.tez.client.registry.AMRegistry;
+import org.apache.tez.dag.app.NodeContext;
 
 /**
  * A {@code FrameworkService} that runs inside the Application Master (AM) process.
@@ -30,4 +31,5 @@ import org.apache.tez.client.registry.AMRegistry;
 public interface ServerFrameworkService extends FrameworkService {
   AMRegistry getAMRegistry(Configuration conf);
   AMExtensions getAMExtensions();
+  NodeContext getNodeContext();
 }

@@ -22,6 +22,8 @@ import org.apache.hadoop.conf.Configuration;
 import org.apache.tez.client.registry.AMRegistry;
 import org.apache.tez.dag.api.TezConstants;
 import org.apache.tez.dag.api.client.registry.zookeeper.ZkAMRegistry;
+import org.apache.tez.dag.app.LocalNodeContext;
+import org.apache.tez.dag.app.NodeContext;
 import org.apache.tez.frameworkplugins.AMExtensions;
 import org.apache.tez.frameworkplugins.ServerFrameworkService;
 
@@ -71,5 +73,14 @@ public class ZkStandaloneServerFrameworkService implements ServerFrameworkServic
   @Override
   public AMExtensions getAMExtensions() {
     return amExtensions;
+  }
+
+  /**
+   * This is a placeholder value. It will be replaced with the actual value once the Docker image
+   * for tez-am in Standalone_Zookeeper mode is finalized.
+   */
+  @Override
+  public NodeContext getNodeContext() {
+    return new LocalNodeContext("localhost", 0, 8042);
   }
 }
