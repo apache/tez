@@ -1,0 +1,65 @@
+name: tez-cluster
+
+services:
+  zookeeper:
+    image: zookeeper:3.8.4
+    container_name: zookeeper
+    hostname: zookeeper
+    networks:
+      - hadoop-network
+    ports:
+      - "2181:2181"
+    environment:
+      ZOO_MY_ID: 1
+    volumes:
+      - zookeeper_data:/data
+      - zookeeper_datalog:/datalog
+      - zookeeper_logs:/logs
+
+  hadoop-cluster:
+    image: minimal-hadoop:3.4.2
+    container_name: hadoop-cluster
+    hostname: hadoop-cluster
+    networks:
+      - hadoop-network
+    ports:
+      - "9870:9870" # NameNode Web UI
+      - "9000:9000" # IPC
+      - "9864:9864" # DataNode Web UI
+      - "9866:9866" # DataNode
+    volumes:
+      - hadoop_data:/hadoop
+
+  tez-am:
+    image: apache/tez-am:${TEZ_VERSION:-1.0.0-SNAPSHOT}
+    container_name: tez-am
+    hostname: tez-am
+    networks:
+      - hadoop-network
+    depends_on:
+      - zookeeper
+      - hadoop-cluster
+    ports:
+      - "10001:10001"
+      # - "5005:5005" # Uncomment for remote debugging
+    env_file:
+      - ./tez-am.env
+    # environment:
+    #   - TEZ_CUSTOM_CONF_DIR=/opt/tez/custom-conf
+    # volumes:
+    #   - ./custom-tez-site.xml:/opt/tez/custom-conf/tez-site.xml
+
+networks:
+  hadoop-network:
+    name: hadoop-network
+    driver: bridge
+
+volumes:
+  hadoop_data:
+    name: hadoop_data
+  zookeeper_data:
+    name: zookeeper_data
+  zookeeper_datalog:
+    name: zookeeper_datalog
+  zookeeper_logs:
+    name: zookeeper_logs
