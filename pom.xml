@@ -68,7 +68,6 @@
     <commons-collections4.version>4.4</commons-collections4.version>
     <commons-io.version>2.16.0</commons-io.version>
     <commons-lang3.version>3.19.0</commons-lang3.version>
-    <clover.license>${user.home}/clover.license</clover.license>
     <curator.version>5.9.0</curator.version>
     <dependency-check-maven.version>3.2.0</dependency-check-maven.version>
     <dependency-maven-plugin.version>3.8.1</dependency-maven-plugin.version>
@@ -143,12 +142,6 @@
   </repositories>
 
   <pluginRepositories>
-    <pluginRepository>
-      <id>maven2-repository.atlassian</id>
-      <name>Atlassian Maven Repository</name>
-      <url>https://maven.atlassian.com/repository/public</url>
-      <layout>default</layout>
-    </pluginRepository>
     <pluginRepository>
       <id>${distMgmtSnapshotsId}</id>
       <name>${distMgmtSnapshotsName}</name>
@@ -956,7 +949,9 @@
             <forkedProcessTimeoutInSeconds>900</forkedProcessTimeoutInSeconds>
             <testFailureIgnore>true</testFailureIgnore>
             <argLine>
+              @{argLine}
               -XX:+HeapDumpOnOutOfMemoryError
+              -XX:+EnableDynamicAgentLoading
               --add-opens=java.base/java.lang=ALL-UNNAMED
               --add-opens=java.base/java.util=ALL-UNNAMED
               --add-opens=java.base/java.io=ALL-UNNAMED
@@ -1247,54 +1242,58 @@
       </build>
     </profile>
     <profile>
-      <id>clover</id>
+      <id>jacoco</id>
       <activation>
         <activeByDefault>false</activeByDefault>
-        <property>
-          <name>clover</name>
-        </property>
       </activation>
       <properties>
-        <maven.clover.licenseLocation>${clover.license}</maven.clover.licenseLocation>
-        <clover.version>3.1.11</clover.version>
+        <jacoco.version>0.8.14</jacoco.version>
       </properties>
       <build>
         <plugins>
           <plugin>
-            <groupId>com.atlassian.maven.plugins</groupId>
-            <artifactId>maven-clover2-plugin</artifactId>
-            <version>${clover.version}</version>
+            <groupId>org.jacoco</groupId>
+            <artifactId>jacoco-maven-plugin</artifactId>
+            <version>${jacoco.version}</version>
             <configuration>
-              <includesAllSourceRoots>true</includesAllSourceRoots>
-              <includesTestSourceRoots>true</includesTestSourceRoots>
-              <targetPercentage>50%</targetPercentage>
-              <generateHtml>true</generateHtml>
-              <generateXml>true</generateXml>
               <excludes>
                 <exclude>**/generated/**</exclude>
               </excludes>
             </configuration>
             <executions>
               <execution>
-                <id>clover-setup</id>
-                <phase>process-sources</phase>
+                <id>jacoco-prepare-agent</id>
                 <goals>
-                  <goal>setup</goal>
+                  <goal>prepare-agent</goal>
                 </goals>
               </execution>
               <execution>
-                <id>clover</id>
+                <id>jacoco-report</id>
                 <phase>test</phase>
                 <goals>
-                  <goal>clover</goal>
+                  <goal>report</goal>
                 </goals>
               </execution>
               <execution>
-                <id>site</id>
-                <phase>pre-site</phase>
+                <id>jacoco-check</id>
+                <phase>verify</phase>
                 <goals>
-                  <goal>aggregate</goal>
+                  <goal>check</goal>
                 </goals>
+                <configuration>
+                  <rules>
+                    <rule>
+                      <element>BUNDLE</element>
+                      <limits>
+                        <limit>
+                          <counter>INSTRUCTION</counter>
+                          <value>COVEREDRATIO</value>
+                          <minimum>0.50</minimum>
+                        </limit>
+                      </limits>
+                    </rule>
+                  </rules>
+                </configuration>
               </execution>
             </executions>
           </plugin>
