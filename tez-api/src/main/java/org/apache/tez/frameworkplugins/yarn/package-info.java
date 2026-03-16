@@ -16,6 +16,10 @@
  * limitations under the License.
  */
 
+/**
+ * YARN-specific framework plugin implementations.
+ * Provides integration with YARN for resource management and application lifecycle.
+ */
 @Public
 @Evolving
 package org.apache.tez.frameworkplugins.yarn;

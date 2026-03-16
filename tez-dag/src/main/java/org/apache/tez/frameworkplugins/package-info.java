@@ -16,6 +16,7 @@
  * limitations under the License.
  */
 /**
- * Provides basic classes of framework plugins for Apache Tez.
+ * AM-side framework plugin base classes and registration for Apache Tez.
+ * Mirrors the API framework plugin interfaces used by the runtime.
  */
 package org.apache.tez.frameworkplugins;

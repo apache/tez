@@ -16,6 +16,9 @@
  * limitations under the License.
  */
 
+/**
+ * Data model types used by the Tez Javadoc doclets.
+ */
 @Private
 package org.apache.tez.tools.javadoc.model;
 

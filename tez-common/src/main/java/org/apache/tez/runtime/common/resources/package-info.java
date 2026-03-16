@@ -16,6 +16,9 @@
  * limitations under the License.
  */
 
+/**
+ * Common resource allocation and memory management for the runtime.
+ */
 @Private
 package org.apache.tez.runtime.common.resources;
 

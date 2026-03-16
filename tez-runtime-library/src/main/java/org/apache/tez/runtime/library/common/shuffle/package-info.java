@@ -16,6 +16,9 @@
  * limitations under the License.
  */
 
+/**
+ * Shuffle implementation: fetchers, merge, and ordered grouped input handling.
+ */
 @Private
 package org.apache.tez.runtime.library.common.shuffle;
 

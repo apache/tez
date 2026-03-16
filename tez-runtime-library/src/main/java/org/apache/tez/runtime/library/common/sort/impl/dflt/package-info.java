@@ -16,6 +16,9 @@
  * limitations under the License.
  */
 
+/**
+ * Default sort implementation (index and spill record handling).
+ */
 @Private
 package org.apache.tez.runtime.library.common.sort.impl.dflt;
 

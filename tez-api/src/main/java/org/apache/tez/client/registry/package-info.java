@@ -16,6 +16,10 @@
  * limitations under the License.
  */
 
+/**
+ * Registry and discovery for the Tez Application Master (AM).
+ * Enables clients to locate the AM and optional ZooKeeper-based implementation.
+ */
 @Public
 @Evolving
 package org.apache.tez.client.registry;

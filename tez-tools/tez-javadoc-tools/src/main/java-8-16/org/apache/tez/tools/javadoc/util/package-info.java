@@ -16,6 +16,9 @@
  * limitations under the License.
  */
 
+/**
+ * Utility classes for the Tez Javadoc doclets.
+ */
 @Private
 package org.apache.tez.tools.javadoc.util;
 

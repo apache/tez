@@ -16,6 +16,9 @@
  * limitations under the License.
  */
 
+/**
+ * Internal record and identifier types for DAG entities (vertices, tasks, attempts).
+ */
 @Private
 package org.apache.tez.dag.records;
 

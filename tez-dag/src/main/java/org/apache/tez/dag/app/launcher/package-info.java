@@ -15,6 +15,10 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
+
+/**
+ * Task and container launch logic from the AM.
+ */
 @InterfaceAudience.Private
 package org.apache.tez.dag.app.launcher;
 import org.apache.hadoop.classification.InterfaceAudience;

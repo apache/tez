@@ -16,6 +16,9 @@
  * limitations under the License.
  */
 
+/**
+ * Local task output handling for the runtime library (e.g. in-memory output for local fetch).
+ */
 @Private
 package org.apache.tez.runtime.library.common.task.local.output;
 

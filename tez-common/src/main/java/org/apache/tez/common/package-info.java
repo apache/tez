@@ -16,6 +16,9 @@
  * limitations under the License.
  */
 
+/**
+ * Shared utilities, helpers, and common types used across Tez modules.
+ */
 @Private
 package org.apache.tez.common;
 

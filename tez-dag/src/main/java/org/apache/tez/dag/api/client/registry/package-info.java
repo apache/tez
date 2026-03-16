@@ -16,6 +16,10 @@
  * limitations under the License.
  */
 
+/**
+ * Registry interface for the AM to register itself for client discovery.
+ * Enables ZooKeeper-based and other registry implementations in the AM.
+ */
 @Public
 @Evolving
 package org.apache.tez.dag.api.client.registry;

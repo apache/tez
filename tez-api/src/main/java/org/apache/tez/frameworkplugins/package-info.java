@@ -16,6 +16,10 @@
  * limitations under the License.
  */
 
+/**
+ * Pluggable framework services for the Tez runtime.
+ * Defines the client and AM framework service interfaces and utilities.
+ */
 @Public
 @Evolving
 package org.apache.tez.frameworkplugins;

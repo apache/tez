@@ -16,6 +16,9 @@
  * limitations under the License.
  */
 
+/**
+ * Configuration classes for the runtime library (inputs, outputs, edges).
+ */
 @Public
 @Evolving
 package org.apache.tez.runtime.library.conf;

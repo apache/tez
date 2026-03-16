@@ -16,6 +16,9 @@
  * limitations under the License.
  */
 
+/**
+ * Ordered grouped shuffle: fetcher, map host tracking, and merge for sorted input.
+ */
 @Private
 package org.apache.tez.runtime.library.common.shuffle.orderedgrouped;
 

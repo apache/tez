@@ -784,7 +784,7 @@ public class TezConfiguration extends Configuration {
 
   /**
    * Int value. The maximum number of attempts that can run concurrently for a given vertex.
-   * Setting <=0 implies no limit
+   * Setting &lt;=0 implies no limit
    */
   @ConfigurationScope(Scope.VERTEX)
   @ConfigurationProperty(type="integer")
@@ -1106,7 +1106,7 @@ public class TezConfiguration extends Configuration {
    * for this interval then the task will be considered hung and terminated.
    * The value for this config should be larger than {@link TezConfiguration#TASK_HEARTBEAT_TIMEOUT_MS}
    * and larger than 2 times the value of {@link TezConfiguration#TEZ_TASK_AM_HEARTBEAT_INTERVAL_MS}.
-   * A config value <=0 disables this.
+   * A config value &lt;=0 disables this.
    */
   @ConfigurationScope(Scope.VERTEX)
   @ConfigurationProperty
@@ -1337,7 +1337,7 @@ public class TezConfiguration extends Configuration {
    * must be +ve and >=
    * TezConfiguration#TEZ_AM_CONTAINER_IDLE_RELEASE_TIMEOUT_MIN_MILLIS.
    * Containers will have an expire time set to a random value between
-   * TezConfiguration#TEZ_AM_CONTAINER_IDLE_RELEASE_TIMEOUT_MIN_MILLIS &&
+   * TezConfiguration#TEZ_AM_CONTAINER_IDLE_RELEASE_TIMEOUT_MIN_MILLIS &amp;&amp;
    * TezConfiguration#TEZ_AM_CONTAINER_IDLE_RELEASE_TIMEOUT_MAX_MILLIS. This
    * creates a graceful reduction in the amount of idle resources held
    */

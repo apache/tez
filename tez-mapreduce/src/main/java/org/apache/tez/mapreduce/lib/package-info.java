@@ -16,6 +16,9 @@
  * limitations under the License.
  */
 
+/**
+ * MapReduce library classes: input, output, and partitioner adapters for Tez.
+ */
 @Private
 package org.apache.tez.mapreduce.lib;
 

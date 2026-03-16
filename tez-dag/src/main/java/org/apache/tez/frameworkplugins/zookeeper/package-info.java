@@ -16,6 +16,7 @@
  * limitations under the License.
  */
 /**
- * Provides Zookeeper-specific framework plugins for Apache Tez.
+ * ZooKeeper-specific framework plugin implementations in the AM.
+ * Provides standalone and embedded ZooKeeper services for Tez.
  */
 package org.apache.tez.frameworkplugins.zookeeper;

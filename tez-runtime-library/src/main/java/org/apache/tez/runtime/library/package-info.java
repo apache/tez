@@ -16,6 +16,10 @@
  * limitations under the License.
  */
 
+/**
+ * Built-in Tez runtime library: sort-merge shuffle, key-value I/O, and related processors.
+ * Provides the default implementations for common data processing patterns.
+ */
 @Public
 @Evolving
 package org.apache.tez.runtime.library;

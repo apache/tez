@@ -16,6 +16,9 @@
  * limitations under the License.
  */
 
+/**
+ * Internal writer implementations for the runtime library outputs.
+ */
 @Private
 package org.apache.tez.runtime.library.common.writers;
 
