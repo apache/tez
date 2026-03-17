@@ -209,9 +209,7 @@
         <groupId>org.apache.maven.plugins</groupId>
         <artifactId>maven-surefire-plugin</artifactId>
         <configuration>
-          <argLine>${test.jvm.args}</argLine>
-          <environmentVariables>
-            <LOG_DIRS>${test.log.dir}</LOG_DIRS>
+          <environmentVariables combine.children="append">
             <TEZ_AM_EXTERNAL_ID>test-external-id</TEZ_AM_EXTERNAL_ID>
           </environmentVariables>
         </configuration>

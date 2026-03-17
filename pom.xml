@@ -959,11 +959,11 @@
             <reuseForks>false</reuseForks>
             <forkedProcessTimeoutInSeconds>900</forkedProcessTimeoutInSeconds>
             <testFailureIgnore>true</testFailureIgnore>
-            <argLine>-Xmx1024m -XX:+HeapDumpOnOutOfMemoryError</argLine>
-            <argLine>${test.jvm.args}</argLine>
+            <argLine>-Xmx1024m -XX:+HeapDumpOnOutOfMemoryError ${test.jvm.args}</argLine>
             <environmentVariables>
               <JAVA_HOME>${java.home}</JAVA_HOME>
               <MALLOC_ARENA_MAX>4</MALLOC_ARENA_MAX>
+              <LOG_DIRS>${test.log.dir}</LOG_DIRS>
             </environmentVariables>
             <systemPropertyVariables>
               <test.build.data>${test.build.data}</test.build.data>
