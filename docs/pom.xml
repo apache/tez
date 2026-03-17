@@ -467,7 +467,6 @@
         <plugin>
           <groupId>org.apache.maven.plugins</groupId>
           <artifactId>maven-site-plugin</artifactId>
-          <version>${maven-site-plugin.version}</version>
           <configuration>
             <outputDirectory>./target</outputDirectory>
           </configuration>
@@ -488,7 +487,6 @@
         <plugin>
           <groupId>org.apache.maven.plugins</groupId>
           <artifactId>maven-project-info-reports-plugin</artifactId>
-          <version>${maven-project-info-reports-plugin.version}</version>
           <configuration>
             <customBundle>${project.basedir}/src/site/custom/project-info-report.properties</customBundle>
             <dependencyLocationsEnabled>false</dependencyLocationsEnabled>
