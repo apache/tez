@@ -17,7 +17,8 @@
  */
 
 /**
- * Async HTTP handling using Netty for the runtime library.
+ * Async HTTP handling using Async Http Client on top of Netty.
+ * @see <a href="https://github.com/AsyncHttpClient/async-http-client">Async Http Client</a>
  */
 @Private
 package org.apache.tez.http.async.netty;
