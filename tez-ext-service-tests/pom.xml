@@ -25,10 +25,6 @@
 
   <artifactId>tez-ext-service-tests</artifactId>
 
-  <properties>
-    <test.log.dir>${project.build.directory}/logs</test.log.dir>
-  </properties>
-
   <dependencies>
     <dependency>
       <groupId>io.netty</groupId>

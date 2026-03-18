@@ -31,7 +31,6 @@
     org.apache.tez.dag.app.rm.container.AMContainerImpl</tez.dag.state.classes>
     <tez.graphviz.title>Tez</tez.graphviz.title>
     <tez.graphviz.output.file>Tez.gv</tez.graphviz.output.file>
-    <test.log.dir>${project.build.directory}/logs</test.log.dir>
   </properties>
   <artifactId>tez-dag</artifactId>
 
@@ -204,15 +203,6 @@
             </goals>
           </execution>
         </executions>
-      </plugin>
-      <plugin>
-        <groupId>org.apache.maven.plugins</groupId>
-        <artifactId>maven-surefire-plugin</artifactId>
-        <configuration>
-          <environmentVariables combine.children="append">
-            <TEZ_AM_EXTERNAL_ID>test-external-id</TEZ_AM_EXTERNAL_ID>
-          </environmentVariables>
-        </configuration>
       </plugin>
       <plugin>
         <groupId>com.github.os72</groupId>

@@ -24,10 +24,6 @@
   </parent>
   <artifactId>tez-tests</artifactId>
 
-  <properties>
-    <test.log.dir>${project.build.directory}/logs</test.log.dir>
-  </properties>
-
   <dependencies>
     <dependency>
       <groupId>org.apache.tez</groupId>
