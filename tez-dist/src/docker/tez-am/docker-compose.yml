@@ -41,10 +41,10 @@ services:
     networks:
       - hadoop-network
     ports:
-      - "9870:9870" # NameNode Web UI
-      - "9000:9000" # IPC
+      - "9870:9870"  # NameNode Web UI
+      - "9000:9000"  # IPC
     volumes:
-      - hadoop_data:/data # Default persistence path
+      - hadoop_data:/data  # Default persistence path
       - hadoop_logs:/opt/hadoop/logs
       - ./conf/core-site.xml:/opt/hadoop/etc/hadoop/core-site.xml
       - ./conf/hdfs-site.xml:/opt/hadoop/etc/hadoop/hdfs-site.xml
@@ -80,10 +80,10 @@ services:
     networks:
       - hadoop-network
     ports:
-      - "9864:9864" # DataNode Web UI
-      - "9866:9866" # DataNode
+      - "9864:9864"  # DataNode Web UI
+      - "9866:9866"  # DataNode
     volumes:
-      - hadoop_data:/data # Default persistence path
+      - hadoop_data:/data  # Default persistence path
       - hadoop_logs:/opt/hadoop/logs
       - ./conf/core-site.xml:/opt/hadoop/etc/hadoop/core-site.xml
       - ./conf/hdfs-site.xml:/opt/hadoop/etc/hadoop/hdfs-site.xml
@@ -104,7 +104,7 @@ services:
       - "10001:10001"
       # - "5005:5005" # Uncomment for remote debugging
     env_file:
-      - ./tez-am.env
+      - ./am.env
       # Already define TEZ_CUSTOM_CONF_DIR in the env file,
       # but adding here for clarity
       # environment:
@@ -113,8 +113,9 @@ services:
       # tez-site.xml for the Tez AM
       # volumes:
       #   - ./custom-tez-site.xml:/opt/tez/custom-conf/tez-site.xml
-      # Uncomment the following lines if you want to mount custom
-      # plugins/JARS for instance hive-exec jar
+      # Uncomment the following lines to mount custom plugins or JARs
+      # required by Tez AM (e.g., UDFs, or dependencies previously managed
+      # via YARN localization)
       #   - ./tez-plugins:/opt/tez/plugins
     depends_on:
       zookeeper:

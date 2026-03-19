@@ -64,8 +64,6 @@ PROJECT_ROOT=${PROJECT_ROOT:-"$SCRIPT_DIR/../../../.."}
 
 REPO=${REPO:-apache}
 WORK_DIR="$(mktemp -d)"
-CACHE_DIR="$SCRIPT_DIR/cache"
-mkdir -p "$CACHE_DIR"
 
 # Defaults Tez versions from pom.xml if not provided
 TEZ_VERSION=${TEZ_VERSION:-$(mvn -f "$PROJECT_ROOT/pom.xml" -q help:evaluate -Dexpression=project.version -DforceStdout)}
@@ -89,13 +87,13 @@ fi
 # BUILD CONTEXT PREPARATION
 # -------------------------------------------------------------------------
 cp -R "$SCRIPT_DIR/conf" "$WORK_DIR/" 2>/dev/null || mkdir -p "$WORK_DIR/conf"
-cp "$SCRIPT_DIR/tez-am-entrypoint.sh" "$WORK_DIR/"
-cp "$SCRIPT_DIR/Dockerfile.tez_am" "$WORK_DIR/"
+cp "$SCRIPT_DIR/am-entrypoint.sh" "$WORK_DIR/"
+cp "$SCRIPT_DIR/Dockerfile.am" "$WORK_DIR/"
 
 echo "Building Docker image..."
 docker build \
   "$WORK_DIR" \
-  -f "$WORK_DIR/Dockerfile.tez_am" \
+  -f "$WORK_DIR/Dockerfile.am" \
   -t "$REPO/tez-am:$TEZ_VERSION" \
   --build-arg "BUILD_ENV=unarchive" \
   --build-arg "TEZ_VERSION=$TEZ_VERSION"

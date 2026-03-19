@@ -54,7 +54,7 @@
 
     docker run --rm \
         -p 10001:10001 \
-        --env-file tez-dist/src/docker/tez-am/tez-am.env \
+        --env-file tez-dist/src/docker/tez-am/am.env \
         --name tez-am \
         --hostname localhost \
         apache/tez-am:$TEZ_VERSION
@@ -70,20 +70,20 @@
      `-e TEZ_FRAMEWORK_MODE=STANDALONE_ZOOKEEPER` to the `docker run` command.
 
 4. Debugging the Tez AM container:
-Uncomment the `JAVA_TOOL_OPTIONS` in `tez-am.env` and expose 5005 port
+Uncomment the `JAVA_TOOL_OPTIONS` in `am.env` and expose 5005 port
 using `-p` flag
 
     ```bash
     docker run --rm \
         -p 10001:10001 -p 5005:5005 \
-        --env-file tez-dist/src/docker/tez-am/tez-am.env \
+        --env-file tez-dist/src/docker/tez-am/am.env \
         --name tez-am \
         --hostname localhost \
         apache/tez-am:$TEZ_VERSION
     ```
 
 5. To override the tez-site.xml in docker image use:
-   * Set the `TEZ_CUSTOM_CONF_DIR` environment variable in `tez-am.env`
+   * Set the `TEZ_CUSTOM_CONF_DIR` environment variable in `am.env`
       or via the `docker run` command (e.g., `/opt/tez/custom-conf`).
 
     ```bash
@@ -91,7 +91,7 @@ using `-p` flag
 
     docker run --rm \
     -p 10001:10001 \
-    --env-file tez-dist/src/docker/tez-am/tez-am.env \
+    --env-file tez-dist/src/docker/tez-am/am.env \
     -v "$TEZ_SITE_PATH:/opt/tez/custom-conf/tez-site.xml" \
     --name tez-am \
     --hostname localhost \
@@ -104,7 +104,7 @@ using `-p` flag
     ```bash
     docker run --rm \
     -p 10001:10001 \
-    --env-file tez-dist/src/docker/tez-am/tez-am.env \
+    --env-file tez-dist/src/docker/tez-am/am.env \
     -v "/path/to/your/local/plugins:/opt/tez/plugins" \
     --name tez-am \
     --hostname localhost \
@@ -123,10 +123,12 @@ using `-p` flag
     * This command will start both the Tez AM, Zookeeper, Minimal
     Hadoop containers as defined in the `docker-compose.yml` file.
 
-8. For running a hive query using this docker image:
-    * Create a directory tez-plugins and add hive-exec jar in it.
-    * Add the line in docker compose under tez-am service to mount this
-      directory as volume to `/opt/tez/plugins` in docker container.
+8. To mount custom plugins or JARs required by Tez AM (e.g., for split generation
+   — typically the hive-exec jar, but in general, any UDFs or dependencies
+   previously managed via YARN localization:
+    * Create a directory tez-plugins and add all required jars.
+    * Uncomment the following lines in docker compose under the tez-am service
+      to mount this directory as a volume to `/opt/tez/plugins` in the docker container.
 
       ```yml
       volumes:
