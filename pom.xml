@@ -106,14 +106,8 @@
     <snappy-java.version>1.1.10.4</snappy-java.version>
     <spotless-maven-plugin.version>3.1.0</spotless-maven-plugin.version>
     <test.build.data>${project.build.directory}/tmp</test.build.data>
+    <test.log.dir>${project.build.directory}/logs</test.log.dir>
     <wro4j-maven-plugin.version>1.7.9</wro4j-maven-plugin.version>
-    <test.jvm.args>
-      --add-opens=java.base/java.lang=ALL-UNNAMED
-      --add-opens=java.base/java.util=ALL-UNNAMED
-      --add-opens java.base/java.io=ALL-UNNAMED
-      -Dnet.bytebuddy.experimental=true
-    </test.jvm.args>
-
     <maven.javadoc.skip>true</maven.javadoc.skip> <!-- enabled only in relevant modules separately -->
   </properties>
   <scm>
@@ -961,11 +955,18 @@
             <reuseForks>false</reuseForks>
             <forkedProcessTimeoutInSeconds>900</forkedProcessTimeoutInSeconds>
             <testFailureIgnore>true</testFailureIgnore>
-            <argLine>-Xmx1024m -XX:+HeapDumpOnOutOfMemoryError</argLine>
-            <argLine>${test.jvm.args}</argLine>
+            <argLine>
+              -XX:+HeapDumpOnOutOfMemoryError
+              --add-opens=java.base/java.lang=ALL-UNNAMED
+              --add-opens=java.base/java.util=ALL-UNNAMED
+              --add-opens=java.base/java.io=ALL-UNNAMED
+              -Dnet.bytebuddy.experimental=true
+            </argLine>
             <environmentVariables>
               <JAVA_HOME>${java.home}</JAVA_HOME>
+              <LOG_DIRS>${test.log.dir}</LOG_DIRS>
               <MALLOC_ARENA_MAX>4</MALLOC_ARENA_MAX>
+              <TEZ_AM_EXTERNAL_ID>test-external-id</TEZ_AM_EXTERNAL_ID>
             </environmentVariables>
             <systemPropertyVariables>
               <test.build.data>${test.build.data}</test.build.data>
