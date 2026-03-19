@@ -1,0 +1,58 @@
+<configuration>
+
+  <property>
+    <name>dfs.replication</name>
+    <value>1</value>
+  </property>
+
+  <property>
+    <name>dfs.block.size</name>
+    <value>67108864</value>
+  </property>
+
+  <property>
+    <name>dfs.namenode.name.dir</name>
+    <value>file:///data/namenode</value>
+  </property>
+
+  <property>
+    <name>dfs.datanode.data.dir</name>
+    <value>file:///data/datanode</value>
+  </property>
+
+  <property>
+    <name>dfs.namenode.rpc-bind-host</name>
+    <value>0.0.0.0</value>
+  </property>
+
+  <property>
+    <name>dfs.datanode.address</name>
+    <value>0.0.0.0:9866</value>
+  </property>
+
+  <property>
+    <name>dfs.datanode.http.address</name>
+    <value>0.0.0.0:9864</value>
+  </property>
+
+  <property>
+    <name>dfs.client.use.datanode.hostname</name>
+    <value>true</value>
+  </property>
+
+  <property>
+    <name>dfs.datanode.use.datanode.hostname</name>
+    <value>true</value>
+  </property>
+
+  <property>
+    <name>dfs.permissions.enabled</name>
+    <value>false</value>
+  </property>
+
+  <property>
+    <name>dfs.datanode.hostname</name>
+    <value>datanode</value>
+  </property>
+
+</configuration>

@@ -33,19 +33,66 @@ services:
       - zookeeper_datalog:/datalog
       - zookeeper_logs:/logs
 
-  hadoop-cluster:
-    image: minimal-hadoop:3.4.2
-    container_name: hadoop-cluster
-    hostname: hadoop-cluster
+  namenode:
+    image: apache/hadoop:3.4.2-lean
+    container_name: namenode
+    hostname: namenode
+    platform: linux/amd64
     networks:
       - hadoop-network
     ports:
-      - "9870:9870"  # NameNode Web UI
-      - "9000:9000"  # IPC
-      - "9864:9864"  # DataNode Web UI
-      - "9866:9866"  # DataNode
+      - "9870:9870" # NameNode Web UI
+      - "9000:9000" # IPC
     volumes:
-      - hadoop_data:/hadoop
+      - hadoop_data:/data # Default persistence path
+      - hadoop_logs:/opt/hadoop/logs
+      - ./conf/core-site.xml:/opt/hadoop/etc/hadoop/core-site.xml
+      - ./conf/hdfs-site.xml:/opt/hadoop/etc/hadoop/hdfs-site.xml
+    healthcheck:
+      test:
+        - "CMD-SHELL"
+        - >
+          su -s /bin/bash hadoop -c
+          '/opt/hadoop/bin/hdfs dfsadmin -safemode get | grep -q "Safe mode is OFF"'
+      interval: 5s
+      timeout: 5s
+      retries: 5
+    user: root
+    command: >
+      /bin/bash -c "
+      chown -R hadoop:hadoop /data /opt/hadoop/logs;
+      su -s /bin/bash hadoop -c '
+        if [ ! -f /data/namenode/current/VERSION ]; then
+          echo \"Formatting NameNode...\";
+          /opt/hadoop/bin/hdfs namenode -format -force -nonInteractive;
+        fi;
+        /opt/hadoop/bin/hdfs namenode
+      '"
+
+  datanode:
+    image: apache/hadoop:3.4.2-lean
+    container_name: datanode
+    hostname: datanode
+    platform: linux/amd64
+    depends_on:
+      namenode:
+        condition: service_healthy
+    networks:
+      - hadoop-network
+    ports:
+      - "9864:9864" # DataNode Web UI
+      - "9866:9866" # DataNode
+    volumes:
+      - hadoop_data:/data # Default persistence path
+      - hadoop_logs:/opt/hadoop/logs
+      - ./conf/core-site.xml:/opt/hadoop/etc/hadoop/core-site.xml
+      - ./conf/hdfs-site.xml:/opt/hadoop/etc/hadoop/hdfs-site.xml
+    user: root
+    command: >
+      /bin/bash -c "
+      chown -R hadoop:hadoop /data /opt/hadoop/logs;
+      su -s /bin/bash hadoop -c '/opt/hadoop/bin/hdfs datanode'
+      "
 
   tez-am:
     image: apache/tez-am:${TEZ_VERSION:-1.0.0-SNAPSHOT}
@@ -53,9 +100,6 @@ services:
     hostname: tez-am
     networks:
       - hadoop-network
-    depends_on:
-      - zookeeper
-      - hadoop-cluster
     ports:
       - "10001:10001"
       # - "5005:5005" # Uncomment for remote debugging
@@ -72,6 +116,13 @@ services:
       # Uncomment the following lines if you want to mount custom
       # plugins/JARS for instance hive-exec jar
       #   - ./tez-plugins:/opt/tez/plugins
+    depends_on:
+      zookeeper:
+        condition: service_started
+      namenode:
+        condition: service_healthy
+      datanode:
+        condition: service_started
 
 networks:
   hadoop-network:
@@ -81,6 +132,8 @@ networks:
 volumes:
   hadoop_data:
     name: hadoop_data
+  hadoop_logs:
+    name: hadoop_logs
   zookeeper_data:
     name: zookeeper_data
   zookeeper_datalog:
