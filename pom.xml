@@ -41,6 +41,8 @@
 
   <properties>
     <!-- Build Properties -->
+    <!-- Default empty argLine to prevent Surefire crashes when the 'jacoco' profile is inactive -->
+    <argLine/>
     <maven.compiler.source>21</maven.compiler.source>
     <maven.compiler.target>21</maven.compiler.target>
     <maven.test.redirectTestOutputToFile>true</maven.test.redirectTestOutputToFile>
