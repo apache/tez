@@ -16,6 +16,7 @@
  * limitations under the License.
  */
 /**
- * Provides YARN-specific framework plugins for Apache Tez.
+ * YARN-specific framework plugin implementations in the AM.
+ * Integrates with YARN for resource management and application lifecycle.
  */
 package org.apache.tez.frameworkplugins.yarn;

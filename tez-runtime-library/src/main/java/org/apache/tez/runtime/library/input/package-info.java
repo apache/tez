@@ -16,6 +16,9 @@
  * limitations under the License.
  */
 
+/**
+ * Built-in input implementations: ordered and unordered key-value readers.
+ */
 @Public
 @Evolving
 package org.apache.tez.runtime.library.input;

@@ -160,7 +160,7 @@ public class Vertex {
   /**
    * Create a new vertex with the given name and parallelism. <br>
    * The vertex task resource will be picked from configuration
-   * {@link TezConfiguration#TEZ_TASK_RESOURCE_MEMORY_MB} &
+   * {@link TezConfiguration#TEZ_TASK_RESOURCE_MEMORY_MB} &amp;
    * {@link TezConfiguration#TEZ_TASK_RESOURCE_CPU_VCORES} Applications that
    * want more control over their task resource specification may create their
    * own logic to determine task resources and use

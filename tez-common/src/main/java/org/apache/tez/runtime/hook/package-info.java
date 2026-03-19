@@ -16,6 +16,9 @@
  * limitations under the License.
  */
 
+/**
+ * Runtime hooks for customizing task and vertex lifecycle behavior.
+ */
 @Private
 package org.apache.tez.runtime.hook;
 

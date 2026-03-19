@@ -16,6 +16,9 @@
  * limitations under the License.
  */
 
+/**
+ * Client API for submitting and managing MapReduce-style jobs on Tez.
+ */
 @Private
 package org.apache.tez.mapreduce.client;
 

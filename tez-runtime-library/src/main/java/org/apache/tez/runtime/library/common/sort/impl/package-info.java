@@ -16,6 +16,9 @@
  * limitations under the License.
  */
 
+/**
+ * Sort and spill implementation for the runtime library.
+ */
 @Private
 package org.apache.tez.runtime.library.common.sort.impl;
 

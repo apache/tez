@@ -16,6 +16,9 @@
  * limitations under the License.
  */
 
+/**
+ * ZooKeeper-based AM registry implementation for client discovery.
+ */
 @Public
 @Evolving
 package org.apache.tez.dag.api.client.registry.zookeeper;

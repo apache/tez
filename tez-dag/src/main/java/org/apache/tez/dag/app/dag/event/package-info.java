@@ -15,6 +15,10 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
+
+/**
+ * Events for DAG, vertex, and task state transitions in the AM.
+ */
 @InterfaceAudience.Private
 package org.apache.tez.dag.app.dag.event;
 import org.apache.hadoop.classification.InterfaceAudience;

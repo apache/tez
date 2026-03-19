@@ -16,6 +16,9 @@
  * limitations under the License.
  */
 
+/**
+ * Built-in output implementations: ordered and unordered key-value writers.
+ */
 @Public
 @Evolving
 package org.apache.tez.runtime.library.output;

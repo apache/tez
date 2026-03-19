@@ -16,6 +16,9 @@
  * limitations under the License.
  */
 
+/**
+ * Custom Javadoc doclets for Tez (e.g. config documentation generator).
+ */
 @Private
 package org.apache.tez.tools.javadoc.doclet;
 

@@ -32,7 +32,7 @@ public interface ProxyComparator<KEY> extends RawComparator {
    *
    * But this does not serve as a measure of equality.
    *
-   * getProxy(k1) < getProxy(k2) implies k1 < k2 (transitive between different keys for sorting requirements)
+   * getProxy(k1) &lt; getProxy(k2) implies k1 &lt; k2 (transitive between different keys for sorting requirements)
    *
    * getProxy(k1) == getProxy(k2) does not imply ordering, but requires actual key comparisons.
    *

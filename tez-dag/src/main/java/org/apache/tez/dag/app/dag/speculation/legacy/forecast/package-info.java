@@ -15,6 +15,10 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
+
+/**
+ * Legacy speculation and task completion forecasting for the scheduler.
+ */
 @InterfaceAudience.Private
 package org.apache.tez.dag.app.dag.speculation.legacy.forecast;
 import org.apache.hadoop.classification.InterfaceAudience;

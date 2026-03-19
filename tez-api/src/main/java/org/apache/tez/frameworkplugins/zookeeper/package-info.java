@@ -16,6 +16,10 @@
  * limitations under the License.
  */
 
+/**
+ * ZooKeeper-based framework plugin implementations.
+ * Provides standalone and embedded ZooKeeper client services for Tez.
+ */
 @Public
 @Evolving
 package org.apache.tez.frameworkplugins.zookeeper;

@@ -15,6 +15,10 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
+
+/**
+ * Internal DAG, vertex, and task state and scheduling within the AM.
+ */
 @InterfaceAudience.Private
 package org.apache.tez.dag.app.dag;
 import org.apache.hadoop.classification.InterfaceAudience;

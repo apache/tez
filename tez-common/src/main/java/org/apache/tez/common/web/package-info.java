@@ -16,6 +16,9 @@
  * limitations under the License.
  */
 
+/**
+ * Web and servlet adapters for Tez UI and monitoring endpoints.
+ */
 @Private
 package org.apache.tez.common.web;
 

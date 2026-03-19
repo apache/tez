@@ -84,7 +84,7 @@ public abstract class TezSplitGrouper {
    * This factor is used to decrease the per group desired (length and count) limits for groups
    * created by combining splits within a rack. Since reading this split involves reading data intra
    * rack, the group is made smaller to cover up for the increased latencies in doing intra rack
-   * reads. The value should be a fraction <= 1.
+   * reads. The value should be a fraction &lt;= 1.
    */
   public static final String TEZ_GROUPING_RACK_SPLIT_SIZE_REDUCTION =
       "tez.grouping.rack-split-reduction";

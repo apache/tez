@@ -16,6 +16,9 @@
  * limitations under the License.
  */
 
+/**
+ * Internal shuffle event handling and merge implementation.
+ */
 @Private
 package org.apache.tez.runtime.library.common.shuffle.impl;
 

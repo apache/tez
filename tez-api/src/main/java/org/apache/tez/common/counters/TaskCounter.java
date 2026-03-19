@@ -140,13 +140,13 @@ public enum TaskCounter {
   ADDITIONAL_SPILLS_BYTES_WRITTEN,
 
   /**
-   * Bytes read from disk due to previous spills (lac of adequate memory).
+   * Bytes read from disk due to previous spills (lack of adequate memory).
    * Used by OnFileSortedOutput and ShuffledMergedInput
    */
   ADDITIONAL_SPILLS_BYTES_READ,
 
   /**
-   * Spills that were generated & read by the same task (unnecessary spills due to lac of
+   * Spills that were generated &amp; read by the same task (unnecessary spills due to lack of
    * adequate memory).
    *
    * Used by OnFileSortedOutput
@@ -202,7 +202,7 @@ public enum TaskCounter {
 
   /**
    * Time taken to shuffle data. This includes time taken to fetch the data
-   * & merging the data in parallel to fetching when needed.  This also includes any
+   * &amp; merging the data in parallel to fetching when needed.  This also includes any
    * waiting time related to event delays from source.
    *
    * Represented in milliseconds.

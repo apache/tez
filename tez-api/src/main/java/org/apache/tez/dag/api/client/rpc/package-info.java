@@ -16,6 +16,10 @@
  * limitations under the License.
  */
 
+/**
+ * Internal RPC protocol definitions for DAG client to AM communication.
+ * Used by the generated Protobuf-based DAG client stub.
+ */
 @Private
 package org.apache.tez.dag.api.client.rpc;
 

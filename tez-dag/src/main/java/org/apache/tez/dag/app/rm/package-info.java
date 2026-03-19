@@ -15,6 +15,10 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
+
+/**
+ * Resource management and container allocation in the AM.
+ */
 @InterfaceAudience.Private
 package org.apache.tez.dag.app.rm;
 import org.apache.hadoop.classification.InterfaceAudience;

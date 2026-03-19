@@ -34,7 +34,7 @@ import com.google.common.collect.Sets;
  * the destination vertex see a single input named after the VertexGroup instead
  * multiple inputs from the members of the VertexGroup.
  * An output can be added to a VertexGroup.
- * All outgoing edges & outputs of a VertexGroup are automatically transferred to the
+ * All outgoing edges &amp; outputs of a VertexGroup are automatically transferred to the
  * member vertices of the VertexGroup.
  * A VertexGroup is not part of the final DAG.
  */

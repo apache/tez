@@ -16,6 +16,9 @@
  * limitations under the License.
  */
 
+/**
+ * Compatibility with the legacy MapReduce (mapred) API for Tez.
+ */
 @Private
 package org.apache.tez.mapreduce.hadoop.mapred;
 

@@ -15,6 +15,10 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
+
+/**
+ * Security and authorization for DAG and job access in the AM.
+ */
 @InterfaceAudience.Private
 package org.apache.tez.dag.app.security.authorize;
 import org.apache.hadoop.classification.InterfaceAudience;

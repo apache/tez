@@ -15,6 +15,10 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
+
+/**
+ * Application Master (AM) logic for DAG execution: scheduling, launcher, and RM interaction.
+ */
 @InterfaceAudience.Private
 package org.apache.tez.dag.app;
 import org.apache.hadoop.classification.InterfaceAudience;

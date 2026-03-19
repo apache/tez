@@ -16,6 +16,10 @@
  * limitations under the License.
  */
 
+/**
+ * Internal API types for the shuffle component of the runtime library.
+ * Used by the shuffle implementation to exchange data and control messages.
+ */
 @Private
 package org.apache.tez.runtime.library.common.shuffle.api;
 

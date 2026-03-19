@@ -16,6 +16,9 @@
  * limitations under the License.
  */
 
+/**
+ * Utility classes for DAG serialization, protobuf conversion, and relocalization.
+ */
 @Private
 package org.apache.tez.dag.utils;
 

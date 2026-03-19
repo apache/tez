@@ -16,6 +16,10 @@
  * limitations under the License.
  */
 
+/**
+ * ZooKeeper-based AM registry implementation.
+ * Enables clients to discover the Tez AM via ZooKeeper.
+ */
 @Public
 @Evolving
 package org.apache.tez.client.registry.zookeeper;

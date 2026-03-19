@@ -15,6 +15,10 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
+
+/**
+ * Concrete implementations of DAG, vertex, and task runtime objects in the AM.
+ */
 @InterfaceAudience.Private
 package org.apache.tez.dag.app.dag.impl;
 import org.apache.hadoop.classification.InterfaceAudience;
