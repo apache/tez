@@ -41,7 +41,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 /**
- * Sample Program inspired for WordCount but to run with External Tez AM with Zookeeper
+ * Sample Program inspired for WordCount but to run with External Tez AM with Zookeeper.
  */
 public class ExternalAmWordCount {
   private static final Logger LOG = LoggerFactory.getLogger(ExternalAmWordCount.class);
@@ -129,7 +129,7 @@ public class ExternalAmWordCount {
   }
 
   public static class TokenProcessor extends SimpleMRProcessor {
-    private static final IntWritable one = new IntWritable(1);
+    private static final IntWritable ONE = new IntWritable(1);
     private final Text word = new Text();
 
     public TokenProcessor(ProcessorContext context) {
@@ -152,7 +152,7 @@ public class ExternalAmWordCount {
 
         while (tokenizer.hasMoreTokens()) {
           word.set(tokenizer.nextToken());
-          writer.write(word, one);
+          writer.write(word, ONE);
         }
       }
     }
