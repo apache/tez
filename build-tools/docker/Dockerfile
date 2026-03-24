@@ -186,12 +186,15 @@ RUN mkdir -p /opt/spotbugs \
 ENV SPOTBUGS_HOME /opt/spotbugs
 
 ######
-# Install maven
+# Install Maven 3.9.14
 ######
-# hadolint ignore=DL3008
-RUN apt-get -q update && apt-get -q install --no-install-recommends -y maven \
-    && apt-get clean \
-    && rm -rf /var/lib/apt/lists/*
+RUN mkdir -p /opt/maven \
+    && curl -L -s -S https://dlcdn.apache.org/maven/maven-3/3.9.14/binaries/apache-maven-3.9.14-bin.tar.gz \
+      -o /opt/maven.tar.gz \
+    && tar xzf /opt/maven.tar.gz --strip-components 1 -C /opt/maven \
+    && ln -s /opt/maven/bin/mvn /usr/bin/mvn \
+    && rm /opt/maven.tar.gz
+ENV MAVEN_HOME /opt/maven
 
 ######
 # Install python3 and pylint4

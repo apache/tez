@@ -19,7 +19,7 @@
   <parent>
     <groupId>org.apache</groupId>
     <artifactId>apache</artifactId>
-    <version>23</version>
+    <version>37</version>
   </parent>
   <groupId>org.apache.tez</groupId>
   <artifactId>tez</artifactId>
@@ -30,23 +30,22 @@
   <licenses>
     <license>
       <name>The Apache Software License, Version 2.0</name>
-      <url>http://www.apache.org/licenses/LICENSE-2.0.txt</url>
+      <url>https://www.apache.org/licenses/LICENSE-2.0.txt</url>
     </license>
   </licenses>
 
   <organization>
     <name>Apache Software Foundation</name>
-    <url>http://www.apache.org</url>
+    <url>https://www.apache.org</url>
   </organization>
 
   <properties>
     <!-- Build Properties -->
     <!-- Default empty argLine to prevent Surefire crashes when the 'jacoco' profile is inactive -->
     <argLine/>
-    <maven.compiler.source>21</maven.compiler.source>
-    <maven.compiler.target>21</maven.compiler.target>
+    <javaVersion>21</javaVersion>
+    <maven.compiler.release>21</maven.compiler.release>
     <maven.test.redirectTestOutputToFile>true</maven.test.redirectTestOutputToFile>
-    <surefire.version>3.0.0-M4</surefire.version>
     <failIfNoTests>false</failIfNoTests>
     <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
     <build.time>${maven.build.timestamp}</build.time>
@@ -72,26 +71,18 @@
     <commons-lang3.version>3.19.0</commons-lang3.version>
     <curator.version>5.9.0</curator.version>
     <dependency-check-maven.version>3.2.0</dependency-check-maven.version>
-    <dependency-maven-plugin.version>3.8.1</dependency-maven-plugin.version>
     <spotbugs.version>4.9.3</spotbugs.version>
     <spotbugs-maven-plugin.version>4.9.3.0</spotbugs-maven-plugin.version>
     <plexus-velocity.version>2.3.0</plexus-velocity.version>
     <frontend-maven-plugin.version>1.15.0</frontend-maven-plugin.version>
     <guava.version>32.0.1-jre</guava.version>
     <hadoop.version>3.4.2</hadoop.version>
-    <jdk.tools.version>1.8</jdk.tools.version>
     <jersey.version>1.19.4</jersey.version>
     <jettison.version>1.5.4</jettison.version>
     <jsr305.version>3.0.0</jsr305.version>
     <junit.version>4.13.2</junit.version>
     <leveldbjni-all.version>1.8</leveldbjni-all.version>
     <lifecycle-mapping.version>1.0.0</lifecycle-mapping.version>
-    <maven-checkstyle-plugin.version>3.6.0</maven-checkstyle-plugin.version>
-    <maven-enforcer-plugin.version>3.0.0</maven-enforcer-plugin.version>
-    <maven-javadoc-plugin.version>3.12.0</maven-javadoc-plugin.version>
-    <maven-project-info-reports-plugin.version>3.1.2</maven-project-info-reports-plugin.version>
-    <maven-shade-plugin.version>3.6.0</maven-shade-plugin.version>
-    <maven-site-plugin.version>3.12.1</maven-site-plugin.version>
     <metrics-core.version>3.1.0</metrics-core.version>
     <mockito-core.version>4.8.1</mockito-core.version>
     <netty.version>4.1.130.Final</netty.version>
@@ -778,9 +769,9 @@
         <scope>test</scope>
       </dependency>
       <dependency>
-       <groupId>com.google.protobuf</groupId>
-       <artifactId>protobuf-java</artifactId>
-       <version>${protobuf.version}</version>
+        <groupId>com.google.protobuf</groupId>
+        <artifactId>protobuf-java</artifactId>
+        <version>${protobuf.version}</version>
       </dependency>
       <dependency>
         <groupId>com.google.guava</groupId>
@@ -795,7 +786,7 @@
       <dependency>
         <groupId>com.sun.jersey</groupId>
         <artifactId>jersey-client</artifactId>
-       <version>${jersey.version}</version>
+        <version>${jersey.version}</version>
       </dependency>
       <dependency>
         <groupId>com.sun.jersey</groupId>
@@ -851,11 +842,6 @@
       <plugins>
         <plugin>
           <groupId>org.apache.maven.plugins</groupId>
-          <artifactId>maven-dependency-plugin</artifactId>
-          <version>${dependency-maven-plugin.version}</version>
-        </plugin>
-        <plugin>
-          <groupId>org.apache.maven.plugins</groupId>
           <artifactId>maven-jar-plugin</artifactId>
           <executions>
             <execution>
@@ -887,9 +873,9 @@
         <plugin>
           <groupId>org.apache.maven.plugins</groupId>
           <artifactId>maven-javadoc-plugin</artifactId>
-          <version>${maven-javadoc-plugin.version}</version>
           <configuration>
             <doclint>none</doclint>
+            <docfilessubdirs>true</docfilessubdirs>
           </configuration>
         </plugin>
         <plugin>
@@ -975,7 +961,6 @@
         <plugin>
           <groupId>org.apache.maven.plugins</groupId>
           <artifactId>maven-checkstyle-plugin</artifactId>
-          <version>${maven-checkstyle-plugin.version}</version>
           <dependencies>
             <dependency>
               <groupId>org.apache.tez</groupId>
@@ -1099,18 +1084,18 @@
             </lifecycleMappingMetadata>
           </configuration>
         </plugin>
-         <plugin>
+        <plugin>
           <groupId>ro.isdc.wro4j</groupId>
           <artifactId>wro4j-maven-plugin</artifactId>
           <version>${wro4j-maven-plugin.version}</version>
-            <dependencies>
-              <!-- TODO: Remove this dependency after upgrading wro4j-maven-plugin to 1.8.1 or later. -->
-              <dependency>
-                <groupId>org.mockito</groupId>
-                <artifactId>mockito-core</artifactId>
-                <version>2.18.0</version>
-              </dependency>
-            </dependencies>
+          <dependencies>
+            <!-- TODO: Remove this dependency after upgrading wro4j-maven-plugin to 1.8.1 or later. -->
+            <dependency>
+              <groupId>org.mockito</groupId>
+              <artifactId>mockito-core</artifactId>
+              <version>2.18.0</version>
+            </dependency>
+          </dependencies>
         </plugin>
       </plugins>
     </pluginManagement>
@@ -1119,7 +1104,6 @@
       <plugin>
         <groupId>org.apache.maven.plugins</groupId>
         <artifactId>maven-enforcer-plugin</artifactId>
-        <version>${maven-enforcer-plugin.version}</version>
         <dependencies>
           <dependency>
             <groupId>de.skuzzle.enforcer</groupId>
@@ -1128,22 +1112,6 @@
           </dependency>
         </dependencies>
         <executions>
-          <execution>
-            <id>clean</id>
-            <goals>
-              <goal>enforce</goal>
-            </goals>
-            <configuration>
-              <rules>
-                <requireMavenVersion>
-                  <version>[3.6.3,)</version>
-                </requireMavenVersion>
-                <requireJavaVersion>
-                  <version>[${maven.compiler.target},)</version>
-                </requireJavaVersion>
-              </rules>
-            </configuration>
-          </execution>
           <execution>
             <id>banned-illegal-imports</id>
             <phase>process-sources</phase>
@@ -1169,32 +1137,12 @@
         <artifactId>apache-rat-plugin</artifactId>
       </plugin>
       <plugin>
-        <groupId>org.apache.maven.plugins</groupId>
-        <artifactId>maven-deploy-plugin</artifactId>
-      </plugin>
-      <plugin>
-        <groupId>org.apache.maven.plugins</groupId>
-        <artifactId>maven-gpg-plugin</artifactId>
-      </plugin>
-      <plugin>
         <groupId>org.codehaus.mojo</groupId>
         <artifactId>buildnumber-maven-plugin</artifactId>
       </plugin>
       <plugin>
-        <groupId>org.apache.maven.plugins</groupId>
-        <artifactId>maven-jar-plugin</artifactId>
-      </plugin>
-      <plugin>
         <groupId>org.codehaus.mojo</groupId>
         <artifactId>build-helper-maven-plugin</artifactId>
-      </plugin>
-      <plugin>
-        <groupId>com.github.spotbugs</groupId>
-        <artifactId>spotbugs-maven-plugin</artifactId>
-        <configuration>
-          <excludeFilterFile>${basedir}/findbugs-exclude.xml</excludeFilterFile>
-          <failOnError>false</failOnError>
-        </configuration>
       </plugin>
       <plugin>
         <groupId>com.diffplug.spotless</groupId>
@@ -1210,39 +1158,19 @@
         </executions>
       </plugin>
       <plugin>
-       <!-- OWASP's dependency-check plugin will scan the third party
+        <!-- OWASP's dependency-check plugin will scan the third party
             dependencies of this project for known CVEs (security
             vulnerabilities against them). It will produce a report
             in target/dependency-check-report.html. To invoke, run
             'mvn dependency-check:aggregate'
        -->
-       <groupId>org.owasp</groupId>
-       <artifactId>dependency-check-maven</artifactId>
-     </plugin>
-   </plugins>
+        <groupId>org.owasp</groupId>
+        <artifactId>dependency-check-maven</artifactId>
+      </plugin>
+    </plugins>
   </build>
 
   <profiles>
-    <profile>
-      <id>sign</id>
-      <build>
-        <plugins>
-          <plugin>
-            <groupId>org.apache.maven.plugins</groupId>
-            <artifactId>maven-gpg-plugin</artifactId>
-            <executions>
-              <execution>
-                <id>sign-artifacts</id>
-                <phase>verify</phase>
-                <goals>
-                  <goal>sign</goal>
-                </goals>
-              </execution>
-            </executions>
-          </plugin>
-        </plugins>
-      </build>
-    </profile>
     <profile>
       <id>jacoco</id>
       <activation>
@@ -1303,47 +1231,6 @@
       </build>
     </profile>
     <profile>
-      <id>sources</id>
-      <build>
-        <plugins>
-          <plugin>
-            <groupId>org.apache.maven.plugins</groupId>
-            <artifactId>maven-source-plugin</artifactId>
-            <executions>
-              <execution>
-                <id>attach-sources</id>
-                <goals>
-                  <goal>jar</goal>
-                </goals>
-              </execution>
-            </executions>
-          </plugin>
-        </plugins>
-      </build>
-    </profile>
-    <profile>
-      <id>javadoc</id>
-      <build>
-        <plugins>
-          <plugin>
-            <groupId>org.apache.maven.plugins</groupId>
-            <artifactId>maven-javadoc-plugin</artifactId>
-            <configuration>
-              <docfilessubdirs>true</docfilessubdirs>
-            </configuration>
-            <executions>
-              <execution>
-                <id>attach-javadocs</id>
-                <goals>
-                  <goal>jar</goal>
-                </goals>
-              </execution>
-            </executions>
-          </plugin>
-        </plugins>
-      </build>
-    </profile>
-    <profile>
       <id>test-patch</id>
       <activation>
         <activeByDefault>false</activeByDefault>
@@ -1363,21 +1250,6 @@
           </plugin>
         </plugins>
       </build>
-    </profile>
-    <profile>
-      <id>jdk1.8</id>
-      <activation>
-        <jdk>1.8</jdk>
-      </activation>
-      <dependencies>
-        <dependency>
-          <groupId>jdk.tools</groupId>
-          <artifactId>jdk.tools</artifactId>
-          <version>${jdk.tools.version}</version>
-          <scope>system</scope>
-          <systemPath>${java.home}/../lib/tools.jar</systemPath>
-        </dependency>
-      </dependencies>
     </profile>
 
     <profile>
