@@ -21,6 +21,7 @@ package org.apache.tez.analyzer;
 
 import java.io.IOException;
 import java.nio.charset.StandardCharsets;
+import java.nio.file.AccessDeniedException;
 import java.nio.file.FileAlreadyExistsException;
 import java.nio.file.Files;
 import java.nio.file.Path;
@@ -32,9 +33,7 @@ import org.junit.rules.TemporaryFolder;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-/**
- * Unit tests for {@link CSVResult#dumpToFile(String)} (validation and atomic create).
- */
+
 public class TestCSVResult {
 
   @Rule
@@ -60,7 +59,7 @@ public class TestCSVResult {
        result.dumpToFile(out.toString());
        Assert.fail("Expected FileAlreadyExistsException when output file already exists");
      } catch (FileAlreadyExistsException e) {
-       // CREATE_NEW must fail if path already exists (atomic exclusive create)
+       Assert.assertTrue("expected File Already Exist Exception",!e.getMessage().equals(out.toString()));
      }
    }
 
@@ -103,4 +102,25 @@ public class TestCSVResult {
      result.dumpToFile(out.toString());
      Assert.assertEquals("h\nr\n", new String(Files.readAllBytes(out), StandardCharsets.UTF_8));
    }
+
+  @Test
+  public void testDumpToFileNoWritePermissionRelativePath() throws Exception {
+    Path dir = tmpDir.newFolder("noWriteDir").toPath();
+    dir.toFile().setWritable(false);
+    Path out = dir.resolve("out.csv");
+    String relativePath = dir + "/../noWriteDir/out.csv";
+    CSVResult result = new CSVResult(new String[] { "h" });
+
+    try {
+      result.dumpToFile(relativePath);
+      Assert.fail("Expected AccessDeniedException due to no write permission");
+    } catch (AccessDeniedException e) {
+      Assert.assertTrue(
+          "Expected permission related error",
+          e.getMessage() == null || !e.getMessage().equals(out.toString())
+      );
+    } finally {
+      dir.toFile().setWritable(true);
+    }
+  }
 }
