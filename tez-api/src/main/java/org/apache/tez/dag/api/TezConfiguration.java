@@ -1234,6 +1234,9 @@ public class TezConfiguration extends Configuration {
       TEZ_TASK_PREFIX + "scale.memory.non-concurrent-inputs.enabled";
   public static final boolean TEZ_TASK_SCALE_MEMORY_NON_CONCURRENT_INPUTS_ENABLED_DEFAULT = false;
 
+  @ConfigurationScope(Scope.AM)
+  public static final String TEZ_AM_CLUSTER_ID = TEZ_AM_PREFIX + "cluster-id";
+
   @Private
   @Unstable
   /**
@@ -2346,7 +2349,7 @@ public class TezConfiguration extends Configuration {
   @ConfigurationScope(Scope.AM)
   @ConfigurationProperty
   public static final String TEZ_AM_REGISTRY_NAMESPACE = TEZ_AM_PREFIX + "registry.namespace";
-  public static final String TEZ_AM_REGISTRY_NAMESPACE_DEFAULT = "/tez_am/server";
+  public static final String TEZ_AM_REGISTRY_NAMESPACE_DEFAULT = "/tez-am";
 
   /**
    * Boolean value. Whether to enable compute groups, see further details in ZkConfig.
@@ -2404,4 +2407,12 @@ public class TezConfiguration extends Configuration {
   @ConfigurationScope(Scope.AM)
   @ConfigurationProperty
   public static final String TEZ_AM_STANDALONE_CONFS = TEZ_AM_PREFIX + "standalone.confs";
+
+  /**
+   * String value. Namespace in ZooKeeper registry for the TezChild
+   */
+  @ConfigurationScope(Scope.VERTEX)
+  @ConfigurationProperty
+  public static final String TEZ_TASK_REGISTRY_NAMESPACE = TEZ_TASK_PREFIX + "registry.namespace";
+  public static final String TEZ_TASK_REGISTRY_NAMESPACE_DEFAULT = "/tez-worker";
 }

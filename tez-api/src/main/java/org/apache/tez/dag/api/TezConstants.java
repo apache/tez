@@ -101,6 +101,8 @@ public final class TezConstants {
   //Arbitrary opaque ID to identify AM instances from AMRegistryClient
   public static final String TEZ_AM_UUID = "TEZ_AM_UUID";
 
+  public static final String ZK_NAMESPACE_PREFIX = "/tez-external-sessions";
+
   private static final String TEZ_AM_SERVICE_PLUGIN_NAME_YARN_CONTAINERS = "TezYarn";
   private static final String TEZ_AM_SERVICE_PLUGIN_NAME_IN_AM = "TezUber";
   public static final String TEZ_AM_EXTERNAL_ID = "TEZ_AM_EXTERNAL_ID";

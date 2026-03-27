@@ -18,19 +18,15 @@
 # under the License.
 #
 
-set -xeou pipefail
+set -euo pipefail
 
-: "${TEZ_COMPONENT:="AM"}"
+# Default number of worker nodes to spin up
+NUM_WORKERS=${1:-2}
 
-echo "--> Starting Tez Component: $TEZ_COMPONENT"
+echo "Starting Tez cluster via docker-compose..."
 
-if [[ "$TEZ_COMPONENT" == "AM" ]]; then
-    echo "--> Routing to Tez AM Entrypoint"
-    exec /am-entrypoint.sh "$@"
-elif [[ "$TEZ_COMPONENT" == "WORKER" ]]; then
-    echo "--> Routing to Tez Worker Entrypoint"
-    exec /worker-entrypoint.sh "$@"
-else
-    echo "Error: Unknown TEZ_COMPONENT '$TEZ_COMPONENT'. Must be 'AM' or 'WORKER'."
-    exit 1
-fi
+# Run docker-compose up, scaling the tez-worker service to the desired number
+docker-compose up -d --scale tez-worker="${NUM_WORKERS}"
+
+echo "Tez cluster started successfully with ${NUM_WORKERS} worker container(s)."
+echo "You can check the logs via: docker-compose logs -f tez-am"
