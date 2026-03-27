@@ -47,9 +47,8 @@ RUN set -ex; \
 
 # Set necessary environment variables
 ENV TEZ_HOME=/opt/tez \
-    TEZ_CONF_DIR=/opt/tez/conf
-
-ENV TEZ_CLIENT_VERSION=$TEZ_VERSION
+    TEZ_CONF_DIR=/opt/tez/conf \
+    TEZ_CLIENT_VERSION=$TEZ_VERSION
 
 ENV PATH=$TEZ_HOME/bin:$PATH
 
@@ -57,15 +56,15 @@ COPY --from=env --chown=tez /opt/tez $TEZ_HOME
 
 RUN mkdir -p $TEZ_CONF_DIR && chown tez:tez $TEZ_CONF_DIR
 
-COPY --chown=tez am-entrypoint.sh /
+COPY --chown=tez entrypoint.sh am-entrypoint.sh child-entrypoint.sh /
 COPY --chown=tez conf $TEZ_CONF_DIR
 
 # Create Extension Point Directory
 RUN mkdir -p /opt/tez/plugins && chown tez:tez /opt/tez/plugins && chmod 755 /opt/tez/plugins
 
-RUN chmod +x /am-entrypoint.sh
+RUN chmod +x /entrypoint.sh /am-entrypoint.sh /child-entrypoint.sh
 
 USER tez
 WORKDIR $TEZ_HOME
 
-ENTRYPOINT ["/am-entrypoint.sh"]
+ENTRYPOINT ["/entrypoint.sh"]
