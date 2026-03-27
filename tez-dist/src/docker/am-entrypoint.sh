@@ -18,9 +18,9 @@
 
 set -xeou pipefail
 
-################################################
-# 1. Mocking DAGAppMaster#main() env variables #
-################################################
+#############################################
+# Mocking DAGAppMaster#main() env variables #
+#############################################
 
 : "${USER:="tez"}"
 : "${LOCAL_DIRS:="/tmp"}"
@@ -70,12 +70,6 @@ CLASSPATH="${CLASSPATH}:${TEZ_HOME}/*:${TEZ_HOME}/lib/*"
 #############
 # Execution #
 #############
-TEZ_DAG_JAR=$(find "$TEZ_HOME" -maxdepth 1 -name "tez-dag-*.jar" ! -name "*-tests.jar" | head -n 1)
-
-if [ -z "$TEZ_DAG_JAR" ]; then
-    echo "Error: Could not find tez-dag-*.jar in $TEZ_HOME"
-    exit 1
-fi
 
 echo "--> Starting DAGAppMaster..."
 
