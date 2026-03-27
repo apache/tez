@@ -25,6 +25,7 @@ import java.io.OutputStreamWriter;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Path;
+import java.nio.file.Paths;
 import java.nio.file.StandardOpenOption;
 import java.util.Arrays;
 import java.util.Collections;
@@ -71,7 +72,7 @@ public class CSVResult implements Result {
     return Iterators.unmodifiableIterator(recordsList.iterator());
   }
 
-  @SuppressWarnings({ "rawtypes", "unchecked" })
+  @SuppressWarnings({"rawtypes", "unchecked"})
   public void sort(Comparator comparator) {
     Collections.sort(recordsList, comparator);
   }
@@ -80,15 +81,18 @@ public class CSVResult implements Result {
     this.comments = comments;
   }
 
-  @Override public String toJson() throws TezException {
+  @Override
+  public String toJson() throws TezException {
     return "";
   }
 
-  @Override public String getComments() {
+  @Override
+  public String getComments() {
     return comments;
   }
 
-  @Override public String toString() {
+  @Override
+  public String toString() {
     return "CSVResult{" +
         "headers=" + Arrays.toString(headers) +
         ", recordsList=" + recordsList +
@@ -124,15 +128,21 @@ public class CSVResult implements Result {
 
   private static File validateOutputFile(String fileName) throws IOException {
     if (fileName == null || fileName.trim().isEmpty()) {
-      throw new IllegalArgumentException("fileName must not be null or empty");
+      throw new IllegalArgumentException("File name must not be null or empty");
     }
 
-    File target = new File(fileName).getCanonicalFile();
-    File parent = target.getParentFile();
+    Path baseDir = Paths.get(System.getProperty("user.dir")).toAbsolutePath().normalize();
+    Path targetPath = Paths.get(fileName).toAbsolutePath().normalize();
 
-    if (parent == null || !parent.isDirectory()) {
+    if (!targetPath.startsWith(baseDir)) {
+      throw new IOException("Path escapes the allowed base directory. Path: " + targetPath + ", Base: " + baseDir);
+    }
+
+    Path parent = targetPath.getParent();
+    if (parent == null || !Files.isDirectory(parent)) {
       throw new IOException("Parent directory does not exist: " + parent);
     }
-    return target;
+
+    return targetPath.toFile();
   }
 }

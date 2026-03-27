@@ -18,89 +18,119 @@
 
 package org.apache.tez.analyzer;
 
-
 import java.io.IOException;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.FileAlreadyExistsException;
 import java.nio.file.Files;
 import java.nio.file.Path;
+import java.nio.file.Paths;
 
+import org.junit.After;
 import org.junit.Assert;
-import org.junit.Rule;
+import org.junit.Before;
 import org.junit.Test;
-import org.junit.rules.TemporaryFolder;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 
-/**
- * Unit tests for {@link CSVResult#dumpToFile(String)} (validation and atomic create).
- */
 public class TestCSVResult {
 
-  @Rule
-  public TemporaryFolder tmpDir = new TemporaryFolder();
-  private static final Logger LOG = LoggerFactory.getLogger(TestCSVResult.class);
+  private Path testDir;
+
+  @Before
+  public void setUp() throws IOException {
+    testDir = Paths.get(System.getProperty("user.dir") + "/test");
+    Files.createDirectories(testDir);
+  }
+
+  @After
+  public void tearDown() throws IOException {
+    if (Files.exists(testDir)) {
+      Files.walk(testDir)
+          .sorted(java.util.Comparator.reverseOrder())
+          .forEach(path -> path.toFile().delete());
+    }
+  }
 
   @Test
   public void testDumpToFileWritesContent() throws Exception {
-    Path out = tmpDir.newFolder().toPath().resolve("out.csv");
-    CSVResult result = new CSVResult(new String[] { "h1", "h2" });
-    result.addRecord(new String[] { "a", "b" });
+    Path dir = Files.createDirectories(testDir.resolve("test1"));
+    Path out = dir.resolve("out.csv");
+
+    CSVResult result = new CSVResult(new String[]{"h1", "h2"});
+    result.addRecord(new String[]{"a", "b"});
     result.dumpToFile(out.toString());
-    LOG.info("output file path is : {}", out.getFileName() );
-    String content = new String(Files.readAllBytes(out), StandardCharsets.UTF_8);
+
+    String content = Files.readString(out, StandardCharsets.UTF_8);
     Assert.assertEquals("h1,h2\na,b\n", content);
   }
 
-   @Test
-   public void testDumpToFileRejectsExistingFile() throws Exception {
-     Path out = tmpDir.newFile("existing.csv").toPath();
-     CSVResult result = new CSVResult(new String[] { "x" });
-     try {
-       result.dumpToFile(out.toString());
-       Assert.fail("Expected FileAlreadyExistsException when output file already exists");
-     } catch (FileAlreadyExistsException e) {
-       // CREATE_NEW must fail if path already exists (atomic exclusive create)
-     }
-   }
+  @Test
+  public void testDumpToFileRejectsExistingFile() throws Exception {
+    Path out = testDir.resolve("existing.csv");
+    Files.createFile(out);
 
-   @Test
-   public void testDumpToFileRejectsMissingParentDir() throws Exception {
-     Path missingParent = tmpDir.getRoot().toPath().resolve("no-such-dir");
-     Path out = missingParent.resolve("out.csv");
-     CSVResult result = new CSVResult(new String[] { "x" });
-     try {
-       result.dumpToFile(out.toString());
-       Assert.fail("Expected IOException when parent directory does not exist");
-     } catch (IOException e) {
-       Assert.assertTrue(e.getMessage().contains("Parent directory does not exist"));
-     }
-   }
+    CSVResult result = new CSVResult(new String[]{"x"});
 
-   @Test(expected = IllegalArgumentException.class)
-   public void testDumpToFileRejectsNullFileName() throws Exception {
-     new CSVResult(new String[] { "x" }).dumpToFile(null);
-   }
+    try {
+      result.dumpToFile(out.toString());
+      Assert.fail("Expected FileAlreadyExistsException when output file already exists");
+    } catch (FileAlreadyExistsException e) {
+      Assert.assertTrue(e.getMessage().contains(out.toString()));
+    }
+  }
 
-   @Test(expected = IllegalArgumentException.class)
-   public void testDumpToFileRejectsEmptyFileName() throws Exception {
-     new CSVResult(new String[] { "x" }).dumpToFile("");
-   }
+  @Test
+  public void testDumpToFileRejectsMissingParentDir() throws Exception {
+    Path missingParent = testDir.resolve("no-such-dir");
+    Path out = missingParent.resolve("out.csv");
 
-   @Test(expected = IllegalArgumentException.class)
-   public void testDumpToFileRejectsBlankFileName() throws Exception {
-     new CSVResult(new String[] { "x" }).dumpToFile("   ");
-   }
+    CSVResult result = new CSVResult(new String[]{"x"});
 
-   @Test
-   public void testDumpToFileNestedDirectory() throws Exception {
-     Path base = tmpDir.newFolder().toPath();
-     Path nested = base.resolve("a").resolve("b");
-     Files.createDirectories(nested);
-     Path out = nested.resolve("nested.csv");
-     CSVResult result = new CSVResult(new String[] { "h" });
-     result.addRecord(new String[] { "r" });
-     result.dumpToFile(out.toString());
-     Assert.assertEquals("h\nr\n", new String(Files.readAllBytes(out), StandardCharsets.UTF_8));
-   }
+    try {
+      result.dumpToFile(out.toString());
+      Assert.fail("Expected IOException when parent directory does not exist");
+    } catch (IOException e) {
+      Assert.assertTrue(e.getMessage().contains("Parent directory does not exist"));
+    }
+  }
+
+  @Test(expected = IllegalArgumentException.class)
+  public void testDumpToFileRejectsNullFileName() throws Exception {
+    new CSVResult(new String[]{"x"}).dumpToFile(null);
+  }
+
+  @Test(expected = IllegalArgumentException.class)
+  public void testDumpToFileRejectsEmptyFileName() throws Exception {
+    new CSVResult(new String[]{"x"}).dumpToFile("");
+  }
+
+  @Test(expected = IllegalArgumentException.class)
+  public void testDumpToFileRejectsBlankFileName() throws Exception {
+    new CSVResult(new String[]{"x"}).dumpToFile("   ");
+  }
+
+  @Test
+  public void testDumpToFileNestedDirectory() throws Exception {
+    Path nested = testDir.resolve("a").resolve("b");
+    Files.createDirectories(nested);
+
+    Path out = nested.resolve("nested.csv");
+
+    CSVResult result = new CSVResult(new String[]{"h"});
+    result.addRecord(new String[]{"r"});
+    result.dumpToFile(out.toString());
+
+    Assert.assertEquals("h\nr\n", Files.readString(out, StandardCharsets.UTF_8));
+  }
+
+  @Test
+  public void testDumpToFileNoWriteUpwardDirPath() throws Exception {
+    String relativePath = testDir + "/../../out.csv";
+    CSVResult result = new CSVResult(new String[]{"h"});
+
+    try {
+      result.dumpToFile(relativePath);
+      Assert.fail("Expected IOException due to moving upwards from pwd");
+    } catch (IOException e) {
+      Assert.assertTrue(e.getMessage().contains(Paths.get(relativePath).toAbsolutePath().normalize().toString()));
+    }
+  }
 }
