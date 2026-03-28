@@ -25,7 +25,7 @@ REPO=
 usage() {
   cat <<EOF 1>&2
 Usage: $0 [-h] [-tez <Tez version>] [-repo <Docker repo>]
-Build the Apache Tez AM Docker image
+Build the Apache Tez (AM and CHILD) Docker image
 -help                Display help
 -tez                 Build image with the specified Tez version
 -repo                Docker repository
@@ -59,8 +59,8 @@ SCRIPT_DIR=$(
   pwd
 )
 
-DIST_DIR=${DIST_DIR:-"$SCRIPT_DIR/../../.."}
-PROJECT_ROOT=${PROJECT_ROOT:-"$SCRIPT_DIR/../../../.."}
+DIST_DIR=${DIST_DIR:-"$SCRIPT_DIR/../../"}
+PROJECT_ROOT=${PROJECT_ROOT:-"$SCRIPT_DIR/../../../"}
 
 REPO=${REPO:-apache}
 WORK_DIR="$(mktemp -d)"
@@ -86,17 +86,19 @@ fi
 # -------------------------------------------------------------------------
 # BUILD CONTEXT PREPARATION
 # -------------------------------------------------------------------------
-cp -R "$SCRIPT_DIR/conf" "$WORK_DIR/" 2>/dev/null || mkdir -p "$WORK_DIR/conf"
+cp -R "$SCRIPT_DIR/conf" "$WORK_DIR/"
+cp "$SCRIPT_DIR/entrypoint.sh" "$WORK_DIR/"
 cp "$SCRIPT_DIR/am-entrypoint.sh" "$WORK_DIR/"
-cp "$SCRIPT_DIR/Dockerfile.am" "$WORK_DIR/"
+cp "$SCRIPT_DIR/child-entrypoint.sh" "$WORK_DIR/"
+cp "$SCRIPT_DIR/Dockerfile" "$WORK_DIR/"
 
 echo "Building Docker image..."
 docker build \
   "$WORK_DIR" \
-  -f "$WORK_DIR/Dockerfile.am" \
-  -t "$REPO/tez-am:$TEZ_VERSION" \
+  -f "$WORK_DIR/Dockerfile" \
+  -t "$REPO/tez:$TEZ_VERSION" \
   --build-arg "BUILD_ENV=unarchive" \
   --build-arg "TEZ_VERSION=$TEZ_VERSION"
 
 rm -r "${WORK_DIR}"
-echo "Docker image $REPO/tez-am:$TEZ_VERSION built successfully."
+echo "Docker image $REPO/tez:$TEZ_VERSION built successfully."

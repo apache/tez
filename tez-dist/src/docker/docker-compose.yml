@@ -96,7 +96,7 @@ services:
       "
 
   tez-am:
-    image: apache/tez-am:${TEZ_VERSION:-1.0.0-SNAPSHOT}
+    image: apache/tez:${TEZ_VERSION:-1.0.0-SNAPSHOT}
     container_name: tez-am
     hostname: tez-am
     networks:
@@ -126,6 +126,20 @@ services:
       datanode:
         condition: service_started
 
+  tez-child:
+    image: apache/tez:${TEZ_VERSION:-1.0.0-SNAPSHOT}
+    container_name: tez-child
+    hostname: tez-child
+    networks:
+      - hadoop-network
+    env_file:
+      - ./child.env
+    depends_on:
+      tez-am:
+        condition: service_started
+    # Example command for a manual launch (requires valid AM connection info)
+    command: ["tez-am", "10001", "container_12345", "token_abc", "1"]
+
 networks:
   hadoop-network:
     name: hadoop-network
@@ -142,3 +156,4 @@ volumes:
     name: zookeeper_datalog
   zookeeper_logs:
     name: zookeeper_logs
+
