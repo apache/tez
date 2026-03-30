@@ -20,10 +20,13 @@ package org.apache.tez.analyzer;
 
 import java.io.BufferedWriter;
 import java.io.File;
-import java.io.FileOutputStream;
 import java.io.IOException;
 import java.io.OutputStreamWriter;
-import java.nio.charset.Charset;
+import java.nio.charset.StandardCharsets;
+import java.nio.file.Files;
+import java.nio.file.Path;
+import java.nio.file.Paths;
+import java.nio.file.StandardOpenOption;
 import java.util.Arrays;
 import java.util.Collections;
 import java.util.Comparator;
@@ -69,7 +72,7 @@ public class CSVResult implements Result {
     return Iterators.unmodifiableIterator(recordsList.iterator());
   }
 
-  @SuppressWarnings({ "rawtypes", "unchecked" })
+  @SuppressWarnings({"rawtypes", "unchecked"})
   public void sort(Comparator comparator) {
     Collections.sort(recordsList, comparator);
   }
@@ -78,46 +81,68 @@ public class CSVResult implements Result {
     this.comments = comments;
   }
 
-  @Override public String toJson() throws TezException {
+  @Override
+  public String toJson() throws TezException {
     return "";
   }
 
-  @Override public String getComments() {
+  @Override
+  public String getComments() {
     return comments;
   }
 
-  @Override public String toString() {
+  @Override
+  public String toString() {
     return "CSVResult{" +
         "headers=" + Arrays.toString(headers) +
         ", recordsList=" + recordsList +
         '}';
   }
 
-  //For testing
   public void dumpToFile(String fileName) throws IOException {
-    OutputStreamWriter writer = new OutputStreamWriter(
-        new FileOutputStream(new File(fileName)),
-        Charset.forName("UTF-8").newEncoder());
-    BufferedWriter bw = new BufferedWriter(writer);
-    bw.write(Joiner.on(",").join(headers));
-    bw.newLine();
-    for (String[] record : recordsList) {
+    File target = validateOutputFile(fileName);
+    Path targetPath = target.toPath();
 
-      if (record.length != headers.length) {
-        continue; //LOG error msg?
-      }
-
-      StringBuilder sb = new StringBuilder();
-      for(int i=0;i<record.length;i++) {
-        sb.append(!Strings.isNullOrEmpty(record[i]) ? record[i] : " ");
-        if (i < record.length - 1) {
-          sb.append(",");
-        }
-      }
-      bw.write(sb.toString());
+    try (BufferedWriter bw = new BufferedWriter(
+        new OutputStreamWriter(
+            Files.newOutputStream(targetPath, StandardOpenOption.CREATE_NEW, StandardOpenOption.WRITE),
+            StandardCharsets.UTF_8))) {
+      bw.write(Joiner.on(",").join(headers));
       bw.newLine();
+      for (String[] record : recordsList) {
+        if (record.length != headers.length) {
+          continue;
+        }
+        StringBuilder sb = new StringBuilder();
+        for (int i = 0; i < record.length; i++) {
+          sb.append(!Strings.isNullOrEmpty(record[i]) ? record[i] : " ");
+          if (i < record.length - 1) {
+            sb.append(",");
+          }
+        }
+        bw.write(sb.toString());
+        bw.newLine();
+      }
     }
-    bw.flush();
-    bw.close();
+  }
+
+  private static File validateOutputFile(String fileName) throws IOException {
+    if (fileName == null || fileName.trim().isEmpty()) {
+      throw new IllegalArgumentException("File name must not be null or empty");
+    }
+
+    Path baseDir = Paths.get(System.getProperty("user.dir")).toAbsolutePath().normalize();
+    Path targetPath = Paths.get(fileName).toAbsolutePath().normalize();
+
+    if (!targetPath.startsWith(baseDir)) {
+      throw new IOException("Path escapes the allowed base directory. Path: " + targetPath + ", Base: " + baseDir);
+    }
+
+    Path parent = targetPath.getParent();
+    if (parent == null || !Files.isDirectory(parent)) {
+      throw new IOException("Parent directory does not exist: " + parent);
+    }
+
+    return targetPath.toFile();
   }
 }
