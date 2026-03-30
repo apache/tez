@@ -53,6 +53,10 @@ import org.apache.tez.runtime.library.api.KeyValueWriter;
 import org.apache.tez.runtime.library.api.KeyValuesReader;
 import org.apache.tez.runtime.library.conf.OrderedPartitionedKVEdgeConfig;
 import org.apache.tez.runtime.library.partitioner.HashPartitioner;
+import org.apache.tez.serviceplugins.api.ContainerLauncherDescriptor;
+import org.apache.tez.serviceplugins.api.ServicePluginsDescriptor;
+import org.apache.tez.serviceplugins.api.TaskCommunicatorDescriptor;
+import org.apache.tez.serviceplugins.api.TaskSchedulerDescriptor;
 import org.apache.zookeeper.KeeperException.NoNodeException;
 
 import org.slf4j.Logger;
@@ -79,8 +83,26 @@ public class ExternalAmWordCount {
     LOG.info(
         "Initializing TezClient to connect to External AM via ZooKeeper quorum at {}", ZK_ADDRESS);
 
+    ServicePluginsDescriptor servicePluginsDescriptor =
+        ServicePluginsDescriptor.create(
+            new TaskSchedulerDescriptor[] {
+              TaskSchedulerDescriptor.create(
+                  "zk_scheduler", "org.apache.tez.dag.app.rm.ZookeeperTaskScheduler")
+            },
+            new ContainerLauncherDescriptor[] {
+              ContainerLauncherDescriptor.create(
+                  "zk_launcher", "org.apache.tez.dag.app.launcher.NoOpContainerLauncher")
+            },
+            new TaskCommunicatorDescriptor[] {
+              TaskCommunicatorDescriptor.create(
+                  "zk_comm", "org.apache.tez.dag.app.TezTaskCommunicatorImpl")
+            });
+
     final TezClient tezClient =
-        TezClient.newBuilder("ExternalAmWordCount", tezConf).setIsSession(true).build();
+        TezClient.newBuilder("ExternalAmWordCount", tezConf)
+            .setIsSession(true)
+            .setServicePluginDescriptor(servicePluginsDescriptor)
+            .build();
 
     try {
       LOG.info("Querying ZooKeeper quorum to discover an active Tez AM session");

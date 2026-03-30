@@ -63,7 +63,7 @@ public class ZkAMRegistry implements AMRegistry {
   public void init(Configuration conf) {
     zkConfig = new ZkConfig(conf);
     this.client = zkConfig.createCuratorFramework();
-    this.namespace = zkConfig.getZkNamespace();
+    this.namespace = zkConfig.getZkAMNamespace();
     LOG.info("ZkAMRegistry initialized");
   }
 

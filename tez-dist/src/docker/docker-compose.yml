@@ -103,6 +103,7 @@ services:
       - hadoop-network
     ports:
       - "10001:10001"
+      - "12000:12000"
       # - "5005:5005" # Uncomment for remote debugging
     env_file:
       - ./am.env
@@ -132,6 +133,7 @@ services:
     hostname: tez-child
     networks:
       - hadoop-network
+    restart: always
     # ports:
     #   - "5006:5006"
     env_file:
@@ -139,8 +141,6 @@ services:
     depends_on:
       tez-am:
         condition: service_started
-    # Example command for a manual launch (requires valid AM connection info)
-    command: ["tez-am", "10001", "container_12345", "token_abc", "1"]
 
 networks:
   hadoop-network:

@@ -39,6 +39,8 @@ import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.locks.Lock;
 import java.util.concurrent.locks.ReadWriteLock;
 import java.util.concurrent.locks.ReentrantReadWriteLock;
+import java.util.function.Function;
+import java.util.function.Supplier;
 
 import javax.annotation.Nullable;
 
@@ -1127,6 +1129,32 @@ public class VertexImpl implements org.apache.tez.dag.app.dag.Vertex, EventHandl
       if (execContext.getTaskCommName() != null) {
         taskCommName = execContext.getTaskCommName();
       }
+    }
+
+    if (!isLocal) {
+      taskSchedulerName =
+          resolveFallbackName(
+              taskSchedulerName,
+              "Task scheduler",
+              "scheduler",
+              appContext::getTaskScheduerIdentifier,
+              () -> appContext.getTaskSchedulerName(0));
+
+      containerLauncherName =
+          resolveFallbackName(
+              containerLauncherName,
+              "Container launcher",
+              "launcher",
+              appContext::getContainerLauncherIdentifier,
+              () -> appContext.getContainerLauncherName(0));
+
+      taskCommName =
+          resolveFallbackName(
+              taskCommName,
+              "Task communicator",
+              "communicator",
+              appContext::getTaskCommunicatorIdentifier,
+              () -> appContext.getTaskCommunicatorName(0));
     }
 
     try {
@@ -5021,5 +5049,28 @@ public class VertexImpl implements org.apache.tez.dag.app.dag.Vertex, EventHandl
     VertexShuffleDataDeletionContext vShuffleDeletionContext = new VertexShuffleDataDeletionContext(deletionHeight);
     vShuffleDeletionContext.setSpannedVertices(this);
     this.vShuffleDeletionContext = vShuffleDeletionContext;
+  }
+
+  /** Helper method to resolve plugin fallback configurations. */
+  private String resolveFallbackName(
+      String currentName,
+      String logPrefix,
+      String logSuffix,
+      Function<String, Integer> identifierProvider,
+      Supplier<String> fallbackProvider) {
+
+    if (identifierProvider.apply(currentName) == null) {
+      String fallback = fallbackProvider.get();
+      if (fallback != null) {
+        LOG.info(
+            "{} {} not found, using default {} {} at index 0",
+            logPrefix,
+            currentName,
+            logSuffix,
+            fallback);
+        return fallback;
+      }
+    }
+    return currentName;
   }
 }
