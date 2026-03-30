@@ -40,7 +40,7 @@
 
   <property>
     <name>tez.local.mode</name>
-    <value>true</value>
+    <value>false</value>
   </property>
 
   <!-- Tez AM should not timeout in ZK Mode -->
@@ -53,6 +53,62 @@
   <property>
     <name>dfs.client.use.datanode.hostname</name>
     <value>true</value>
+  </property>
+
+  <!-- 1. Disable Idle Container Release -->
+  <!-- Setting these to -1 tells the AM's TaskScheduler never to time out and release an idle container -->
+  <property>
+    <name>tez.am.container.idle.release-timeout-min.millis</name>
+    <value>21600000</value>
+  </property>
+
+  <property>
+    <name>tez.am.container.idle.release-timeout-max.millis</name>
+    <value>21600000</value>
+  </property>
+
+  <!-- 2. Force Container Reuse -->
+  <!-- Ensures that after a task finishes, the TezChild loops back to ask for another task -->
+  <property>
+    <name>tez.am.container.reuse.enabled</name>
+    <value>true</value>
+  </property>
+
+  <!-- 3. Disable Locality-based Container Kills -->
+  <!-- Ensures the AM doesn't kill your container just because a task requested data on a specific rack/node that doesn't match the Docker container -->
+  <property>
+    <name>tez.am.container.reuse.non-local-fallback.enabled</name>
+    <value>true</value>
+  </property>
+
+  <property>
+    <name>tez.am.container.reuse.rack-fallback.enabled</name>
+    <value>true</value>
+  </property>
+
+  <property>
+    <name>tez.task.get-task.sleep.interval-ms.max</name>
+    <value>900000</value>
+  </property>
+
+  <property>
+    <name>tez.am.task.am.port-range</name>
+    <value>12000-12000</value>
+  </property>
+
+  <property>
+    <name>ipc.client.connect.max.retries</name>
+    <value>50</value> <!-- Retry 50 times before giving up -->
+  </property>
+
+  <property>
+    <name>ipc.client.connect.retry.interval</name>
+    <value>20000</value> <!-- Wait 20 seconds between retries -->
+  </property>
+
+  <property>
+    <name>tez.am.cluster-id</name>
+    <value>tez-standalone-cluster</value>
   </property>
 
 </configuration>

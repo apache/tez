@@ -44,7 +44,8 @@ public class ZkConfig {
   public final static String DEFAULT_COMPUTE_GROUP_NAME = "default-compute";
 
   private final String zkQuorum;
-  private final String zkNamespace;
+  private final String zkAMNamespace;
+  private final String zkTaskNameSpace;
   private final int curatorBackoffSleepMs;
   private final int curatorMaxRetries;
   private final int sessionTimeoutMs;
@@ -54,27 +55,42 @@ public class ZkConfig {
     zkQuorum = conf.get(TezConfiguration.TEZ_AM_ZOOKEEPER_QUORUM);
     Preconditions.checkArgument(!Strings.isNullOrEmpty(zkQuorum), "zkQuorum cannot be null or empty");
 
-    String fullZkNamespace = ZK_NAMESPACE_PREFIX;
+    String fullZkAMNamespace = ZK_NAMESPACE_PREFIX;
 
-    String namespace = conf.get(TezConfiguration.TEZ_AM_REGISTRY_NAMESPACE,
+    String amNamespace = conf.get(TezConfiguration.TEZ_AM_REGISTRY_NAMESPACE,
         TezConfiguration.TEZ_AM_REGISTRY_NAMESPACE_DEFAULT);
-    Preconditions.checkArgument(!Strings.isNullOrEmpty(namespace), "namespace cannot be null or empty");
+    Preconditions.checkArgument(!Strings.isNullOrEmpty(amNamespace), "namespace cannot be null or empty");
 
-    fullZkNamespace = appendNamespace(fullZkNamespace, namespace);
+    fullZkAMNamespace = appendNamespace(fullZkAMNamespace, amNamespace);
+
+    String fullZkTaskNameSpace = ZK_NAMESPACE_PREFIX;
+
+    String taskNamespace = conf.get(TezConfiguration.TEZ_TASK_REGISTRY_NAMESPACE,
+        TezConfiguration.TEZ_TASK_REGISTRY_NAMESPACE_DEFAULT);
+    Preconditions.checkArgument(!Strings.isNullOrEmpty(taskNamespace), "taskNamespace cannot be null or empty");
+
+    fullZkTaskNameSpace = appendNamespace(fullZkTaskNameSpace, taskNamespace);
 
     boolean enableComputeGroups = conf.getBoolean(TezConfiguration.TEZ_AM_REGISTRY_ENABLE_COMPUTE_GROUPS,
         TezConfiguration.TEZ_AM_REGISTRY_ENABLE_COMPUTE_GROUPS_DEFAULT);
     if (enableComputeGroups) {
       final String subNamespace = System.getenv(COMPUTE_GROUP_NAME_ENV);
       if (subNamespace != null && !subNamespace.isEmpty()) {
-        fullZkNamespace = appendNamespace(fullZkNamespace, subNamespace);
-        LOG.info("Compute groups enabled: subNamespace: {} fullZkNamespace: {}", subNamespace, fullZkNamespace);
+        fullZkAMNamespace = appendNamespace(fullZkAMNamespace, subNamespace);
+        fullZkTaskNameSpace = appendNamespace(fullZkTaskNameSpace, subNamespace);
+        LOG.info(
+            "Compute groups enabled: subNamespace: {} fullZkNamespace: {} fullZkTaskNameSpace: {}",
+            subNamespace,
+            fullZkAMNamespace,
+            fullZkTaskNameSpace);
       }
     } else {
-      LOG.info("Compute groups disabled: fullZkNamespace: {}", fullZkNamespace);
+      LOG.info("Compute groups disabled: fullZkNamespace: {} fullZkTaskNameSpace: {}", fullZkAMNamespace, fullZkTaskNameSpace);
     }
-    zkNamespace = fullZkNamespace;
-    LOG.info("Using ZK namespace: {}", fullZkNamespace);
+    zkAMNamespace = fullZkAMNamespace;
+    zkTaskNameSpace = fullZkTaskNameSpace;
+    LOG.info("Using ZK namespace: {}", fullZkAMNamespace);
+    LOG.info("Using ZK task namespace: {}", fullZkTaskNameSpace);
 
     curatorBackoffSleepMs = Math.toIntExact(conf.getTimeDuration(TezConfiguration.TEZ_AM_CURATOR_BACKOFF_SLEEP,
         TezConfiguration.TEZ_AM_CURATOR_BACKOFF_SLEEP_DEFAULT, TimeUnit.MILLISECONDS));
@@ -90,8 +106,12 @@ public class ZkConfig {
     return zkQuorum;
   }
 
-  public String getZkNamespace() {
-    return zkNamespace;
+  public String getZkAMNamespace() {
+    return zkAMNamespace;
+  }
+
+  public String getZkTaskNameSpace() {
+    return zkTaskNameSpace;
   }
 
   public int getCuratorBackoffSleepMs() {

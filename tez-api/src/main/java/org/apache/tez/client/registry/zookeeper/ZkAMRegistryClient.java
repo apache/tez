@@ -130,7 +130,7 @@ public final class ZkAMRegistryClient extends AMRegistryClient {
   public void start() throws Exception {
     ZkConfig zkConf = new ZkConfig(this.conf);
     client = zkConf.createCuratorFramework();
-    cache = new TreeCache(client, zkConf.getZkNamespace());
+    cache = new TreeCache(client, zkConf.getZkAMNamespace());
     client.start();
     client.blockUntilConnected();
     cache.start();
