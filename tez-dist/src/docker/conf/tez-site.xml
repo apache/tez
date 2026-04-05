@@ -111,4 +111,9 @@
     <value>tez-standalone-cluster</value>
   </property>
 
+  <property>
+    <name>tez.runtime.optimize.local.fetch</name>
+    <value>true</value>
+  </property>
+
 </configuration>

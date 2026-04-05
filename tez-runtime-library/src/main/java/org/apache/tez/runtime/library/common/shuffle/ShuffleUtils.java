@@ -317,6 +317,9 @@ public final class ShuffleUtils {
 
     if (!sendEmptyPartitionDetails || outputGenerated) {
       String host = context.getExecutionContext().getHostName();
+      if (host == null) {
+        host = "localhost";
+      }
       ByteBuffer shuffleMetadata = context
           .getServiceProviderMetaData(auxiliaryService);
       int shufflePort = ShuffleUtils.deserializeShuffleProviderMetaData(shuffleMetadata);

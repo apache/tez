@@ -16,7 +16,6 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-
 package org.apache.tez.dag.app.launcher;
 
 import org.apache.tez.serviceplugins.api.ContainerLaunchRequest;
