@@ -105,6 +105,9 @@ services:
       - "10001:10001"
       - "12000:12000"
       # - "5005:5005" # Uncomment for remote debugging
+    volumes:
+      - tez_shared_data:/data
+      - tez_shared_tmp:/tmp
     env_file:
       - ./am.env
       # Already define TEZ_CUSTOM_CONF_DIR in the env file,
@@ -127,15 +130,30 @@ services:
       datanode:
         condition: service_started
 
-  tez-child:
+  tez-child-1:
     image: apache/tez:${TEZ_VERSION:-1.0.0-SNAPSHOT}
-    container_name: tez-child
-    hostname: tez-child
+    container_name: tez-child-1
+    hostname: tez-child-1
     networks:
       - hadoop-network
-    restart: always
-    # ports:
-    #   - "5006:5006"
+    volumes:
+      - tez_shared_data:/data
+      - tez_shared_tmp:/tmp
+    env_file:
+      - ./child.env
+    depends_on:
+      tez-am:
+        condition: service_started
+
+  tez-child-2:
+    image: apache/tez:${TEZ_VERSION:-1.0.0-SNAPSHOT}
+    container_name: tez-child-2
+    hostname: tez-child-2
+    networks:
+      - hadoop-network
+    volumes:
+      - tez_shared_data:/data
+      - tez_shared_tmp:/tmp
     env_file:
       - ./child.env
     depends_on:
@@ -158,3 +176,7 @@ volumes:
     name: zookeeper_datalog
   zookeeper_logs:
     name: zookeeper_logs
+  tez_shared_data:
+    name: tez_shared_data
+  tez_shared_tmp:
+    name: tez_shared_tmp

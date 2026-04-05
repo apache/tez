@@ -180,7 +180,7 @@ class FetcherOrderedGrouped extends CallableWithNdc<Void> {
   @VisibleForTesting
   protected void fetchNext() throws InterruptedException, IOException {
     try {
-      if (localDiskFetchEnabled && mapHost.getHost().equals(localShuffleHost) && mapHost.getPort() == localShufflePort) {
+      if (localDiskFetchEnabled) {
         setupLocalDiskFetch(mapHost);
       } else {
         // Shuffle
