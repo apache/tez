@@ -50,6 +50,7 @@ import org.apache.hadoop.yarn.api.records.timeline.TimelineEntity;
 import org.apache.hadoop.yarn.api.records.timeline.TimelineEvent;
 import org.apache.hadoop.yarn.conf.YarnConfiguration;
 import org.apache.tez.client.TezClient;
+import org.apache.tez.common.ATSConstants;
 import org.apache.tez.common.ReflectionUtils;
 import org.apache.tez.common.security.DAGAccessControls;
 import org.apache.tez.dag.api.DAG;
@@ -151,15 +152,15 @@ public class TestATSHistoryWithACLs {
   private <K> K getTimelineData(String url, Class<K> clazz) {
     Client client = ClientBuilder.newClient();
     WebTarget target = client.target(url);
-
     Response response = target.request(MediaType.APPLICATION_JSON).get();
     assertEquals(200, response.getStatus());
     assertTrue(MediaType.APPLICATION_JSON_TYPE.isCompatible(response.getMediaType()));
-
     String entityStr = response.readEntity(String.class);
     try {
-      JSONObject entity = new JSONObject(entityStr);
-      K converted = convertJSONObjectToTimelineObject(entity, clazz);
+      JSONObject jsonObject = new JSONObject(entityStr);
+      // Handle the nesting introduced by Jersey 2/Jackson
+      JSONObject effectiveJson = jsonObject.has("domain") ? jsonObject.getJSONObject("domain") : jsonObject;
+      K converted = convertJSONObjectToTimelineObject(effectiveJson, clazz);
       assertNotNull(converted);
       return converted;
     } catch (JSONException e) {
@@ -181,9 +182,9 @@ public class TestATSHistoryWithACLs {
       return (K) domain;
     } else if (clazz == TimelineEntity.class) {
       TimelineEntity entity = new TimelineEntity();
-      entity.setEntityId(jsonObj.getString("entity"));
-      entity.setEntityType(jsonObj.getString("entitytype"));
-      entity.setDomainId(jsonObj.getString("domain"));
+      entity.setEntityId(jsonObj.getString(ATSConstants.ENTITY_ID));
+      entity.setEntityType(jsonObj.getString(ATSConstants.ENTITY_TYPE));
+      entity.setDomainId(jsonObj.getString(ATSConstants.DOMAIN_ID));
       entity.setEvents(getEventsFromJSON(jsonObj));
       return (K) entity;
     } else {
@@ -197,7 +198,7 @@ public class TestATSHistoryWithACLs {
     JSONArray arrEvents = jsonObj.getJSONArray("events");
     for (int i = 0; i < arrEvents.length(); i++) {
       TimelineEvent event = new TimelineEvent();
-      event.setEventType(((JSONObject) arrEvents.get(i)).getString("eventtype"));
+      event.setEventType(((JSONObject) arrEvents.get(i)).getString(ATSConstants.EVENT_TYPE));
       events.add(event);
     }
     return events;

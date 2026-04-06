@@ -27,15 +27,16 @@ public class ATSConstants {
 
   /* Top level keys */
   public static final String ENTITIES = "entities";
-  public static final String ENTITY = "entity";
-  public static final String ENTITY_TYPE = "entitytype";
+  public static final String ENTITY_ID = "entityId";
+  public static final String ENTITY_TYPE = "entityType";
   public static final String EVENTS = "events";
-  public static final String EVENT_TYPE = "eventtype";
+  public static final String EVENT_TYPE = "eventType";
   public static final String TIMESTAMP = "ts";
-  public static final String EVENT_INFO = "eventinfo";
+  public static final String EVENT_INFO = "eventInfo";
   public static final String RELATED_ENTITIES = "relatedEntities";
-  public static final String PRIMARY_FILTERS = "primaryfilters";
-  public static final String OTHER_INFO = "otherinfo";
+  public static final String PRIMARY_FILTERS = "primaryFilters";
+  public static final String OTHER_INFO = "otherInfo";
+  public static final String DOMAIN_ID = "domainId";
 
   /* Section for related entities */
   public static final String APPLICATION_ID = "applicationId";

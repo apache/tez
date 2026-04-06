@@ -268,10 +268,10 @@ public class ATSImportTool extends Configured implements Tool {
 
       //Set the last item in entities as the fromId
       url = baseUrl + "&fromId="
-          + entities.getJSONObject(entities.length() - 1).getString(Constants.ENTITY);
+          + entities.getJSONObject(entities.length() - 1).getString(Constants.ENTITY_ID);
 
-      String firstItem = entities.getJSONObject(0).getString(Constants.ENTITY);
-      String lastItem = entities.getJSONObject(entities.length() - 1).getString(Constants.ENTITY);
+      String firstItem = entities.getJSONObject(0).getString(Constants.ENTITY_ID);
+      String lastItem = entities.getJSONObject(entities.length() - 1).getString(Constants.ENTITY_ID);
       LOG.info("Downloaded={}, First item={}, LastItem={}, new url={}", downloadedCount,
           firstItem, lastItem, url);
     }

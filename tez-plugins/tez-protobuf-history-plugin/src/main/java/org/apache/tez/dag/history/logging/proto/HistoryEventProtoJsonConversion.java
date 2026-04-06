@@ -115,7 +115,7 @@ public final class HistoryEventProtoJsonConversion {
 
   private static JSONObject convertDAGRecoveredEvent(HistoryEventProto event) throws JSONException {
     JSONObject jsonObject = new JSONObject();
-    jsonObject.put(ATSConstants.ENTITY, event.getDagId());
+    jsonObject.put(ATSConstants.ENTITY_ID, event.getDagId());
     jsonObject.put(ATSConstants.ENTITY_TYPE, EntityTypes.TEZ_DAG_ID.name());
 
     // Related Entities not needed as should have been done in
@@ -142,7 +142,7 @@ public final class HistoryEventProtoJsonConversion {
 
   private static JSONObject convertAppLaunchedEvent(HistoryEventProto event) throws JSONException {
     JSONObject jsonObject = new JSONObject();
-    jsonObject.put(ATSConstants.ENTITY, "tez_" + event.getAppId().toString());
+    jsonObject.put(ATSConstants.ENTITY_ID, "tez_" + event.getAppId().toString());
     jsonObject.put(ATSConstants.ENTITY_TYPE, EntityTypes.TEZ_APPLICATION.name());
 
     // Other info to tag with Tez App
@@ -157,16 +157,16 @@ public final class HistoryEventProtoJsonConversion {
 
   private static JSONObject convertAMLaunchedEvent(HistoryEventProto event) throws JSONException {
     JSONObject jsonObject = new JSONObject();
-    jsonObject.put(ATSConstants.ENTITY, "tez_" + event.getAppAttemptId().toString());
+    jsonObject.put(ATSConstants.ENTITY_ID, "tez_" + event.getAppAttemptId().toString());
     jsonObject.put(ATSConstants.ENTITY_TYPE, EntityTypes.TEZ_APPLICATION_ATTEMPT.name());
 
     // Related Entities
     JSONArray relatedEntities = new JSONArray();
     JSONObject appEntity = new JSONObject();
-    appEntity.put(ATSConstants.ENTITY, event.getAppId().toString());
+    appEntity.put(ATSConstants.ENTITY_ID, event.getAppId().toString());
     appEntity.put(ATSConstants.ENTITY_TYPE, ATSConstants.APPLICATION_ID);
     JSONObject appAttemptEntity = new JSONObject();
-    appAttemptEntity.put(ATSConstants.ENTITY, event.getAppAttemptId().toString());
+    appAttemptEntity.put(ATSConstants.ENTITY_ID, event.getAppAttemptId().toString());
     appAttemptEntity.put(ATSConstants.ENTITY_TYPE, ATSConstants.APPLICATION_ATTEMPT_ID);
     relatedEntities.put(appEntity);
     relatedEntities.put(appAttemptEntity);
@@ -192,16 +192,16 @@ public final class HistoryEventProtoJsonConversion {
 
   private static JSONObject convertAMStartedEvent(HistoryEventProto event) throws JSONException {
     JSONObject jsonObject = new JSONObject();
-    jsonObject.put(ATSConstants.ENTITY, "tez_" + event.getAppAttemptId().toString());
+    jsonObject.put(ATSConstants.ENTITY_ID, "tez_" + event.getAppAttemptId().toString());
     jsonObject.put(ATSConstants.ENTITY_TYPE, EntityTypes.TEZ_APPLICATION_ATTEMPT.name());
 
     // Related Entities
     JSONArray relatedEntities = new JSONArray();
     JSONObject appEntity = new JSONObject();
-    appEntity.put(ATSConstants.ENTITY, event.getAppId().toString());
+    appEntity.put(ATSConstants.ENTITY_ID, event.getAppId().toString());
     appEntity.put(ATSConstants.ENTITY_TYPE, ATSConstants.APPLICATION_ID);
     JSONObject appAttemptEntity = new JSONObject();
-    appAttemptEntity.put(ATSConstants.ENTITY, event.getAppAttemptId().toString());
+    appAttemptEntity.put(ATSConstants.ENTITY_ID, event.getAppAttemptId().toString());
     appAttemptEntity.put(ATSConstants.ENTITY_TYPE, ATSConstants.APPLICATION_ATTEMPT_ID);
     relatedEntities.put(appEntity);
     relatedEntities.put(appAttemptEntity);
@@ -222,17 +222,17 @@ public final class HistoryEventProtoJsonConversion {
   private static JSONObject convertContainerLaunchedEvent(HistoryEventProto event)
       throws JSONException {
     JSONObject jsonObject = new JSONObject();
-    jsonObject.put(ATSConstants.ENTITY,
+    jsonObject.put(ATSConstants.ENTITY_ID,
         "tez_" + getDataValueByKey(event, ATSConstants.CONTAINER_ID));
     jsonObject.put(ATSConstants.ENTITY_TYPE, EntityTypes.TEZ_CONTAINER_ID.name());
 
     JSONArray relatedEntities = new JSONArray();
     JSONObject appAttemptEntity = new JSONObject();
-    appAttemptEntity.put(ATSConstants.ENTITY, event.getAppAttemptId().toString());
+    appAttemptEntity.put(ATSConstants.ENTITY_ID, event.getAppAttemptId().toString());
     appAttemptEntity.put(ATSConstants.ENTITY_TYPE, EntityTypes.TEZ_APPLICATION_ATTEMPT.name());
 
     JSONObject containerEntity = new JSONObject();
-    containerEntity.put(ATSConstants.ENTITY, getDataValueByKey(event, ATSConstants.CONTAINER_ID));
+    containerEntity.put(ATSConstants.ENTITY_ID, getDataValueByKey(event, ATSConstants.CONTAINER_ID));
     containerEntity.put(ATSConstants.ENTITY_TYPE, ATSConstants.CONTAINER_ID);
 
     relatedEntities.put(appAttemptEntity);
@@ -258,17 +258,17 @@ public final class HistoryEventProtoJsonConversion {
       throws JSONException {
     // structure is identical to ContainerLaunchedEvent
     JSONObject jsonObject = new JSONObject();
-    jsonObject.put(ATSConstants.ENTITY,
+    jsonObject.put(ATSConstants.ENTITY_ID,
         "tez_" + getDataValueByKey(event, ATSConstants.CONTAINER_ID));
     jsonObject.put(ATSConstants.ENTITY_TYPE, EntityTypes.TEZ_CONTAINER_ID.name());
 
     JSONArray relatedEntities = new JSONArray();
     JSONObject appAttemptEntity = new JSONObject();
-    appAttemptEntity.put(ATSConstants.ENTITY, event.getAppAttemptId().toString());
+    appAttemptEntity.put(ATSConstants.ENTITY_ID, event.getAppAttemptId().toString());
     appAttemptEntity.put(ATSConstants.ENTITY_TYPE, EntityTypes.TEZ_APPLICATION_ATTEMPT.name());
 
     JSONObject containerEntity = new JSONObject();
-    containerEntity.put(ATSConstants.ENTITY, getDataValueByKey(event, ATSConstants.CONTAINER_ID));
+    containerEntity.put(ATSConstants.ENTITY_ID, getDataValueByKey(event, ATSConstants.CONTAINER_ID));
     containerEntity.put(ATSConstants.ENTITY_TYPE, ATSConstants.CONTAINER_ID);
 
     relatedEntities.put(appAttemptEntity);
@@ -297,7 +297,7 @@ public final class HistoryEventProtoJsonConversion {
 
   private static JSONObject convertDAGFinishedEvent(HistoryEventProto event) throws JSONException {
     JSONObject jsonObject = new JSONObject();
-    jsonObject.put(ATSConstants.ENTITY, event.getDagId());
+    jsonObject.put(ATSConstants.ENTITY_ID, event.getDagId());
     jsonObject.put(ATSConstants.ENTITY_TYPE, EntityTypes.TEZ_DAG_ID.name());
 
     // Related Entities not needed as should have been done in
@@ -341,7 +341,7 @@ public final class HistoryEventProtoJsonConversion {
   private static JSONObject convertDAGInitializedEvent(HistoryEventProto event)
       throws JSONException {
     JSONObject jsonObject = new JSONObject();
-    jsonObject.put(ATSConstants.ENTITY, event.getDagId());
+    jsonObject.put(ATSConstants.ENTITY_ID, event.getDagId());
     jsonObject.put(ATSConstants.ENTITY_TYPE, EntityTypes.TEZ_DAG_ID.name());
 
     // Related Entities not needed as should have been done in
@@ -364,7 +364,7 @@ public final class HistoryEventProtoJsonConversion {
 
   private static JSONObject convertDAGStartedEvent(HistoryEventProto event) throws JSONException {
     JSONObject jsonObject = new JSONObject();
-    jsonObject.put(ATSConstants.ENTITY, event.getDagId());
+    jsonObject.put(ATSConstants.ENTITY_ID, event.getDagId());
     jsonObject.put(ATSConstants.ENTITY_TYPE, EntityTypes.TEZ_DAG_ID.name());
 
     // Related Entities not needed as should have been done in
@@ -384,25 +384,25 @@ public final class HistoryEventProtoJsonConversion {
 
   private static JSONObject convertDAGSubmittedEvent(HistoryEventProto event) throws JSONException {
     JSONObject jsonObject = new JSONObject();
-    jsonObject.put(ATSConstants.ENTITY, event.getDagId());
+    jsonObject.put(ATSConstants.ENTITY_ID, event.getDagId());
     jsonObject.put(ATSConstants.ENTITY_TYPE, EntityTypes.TEZ_DAG_ID.name());
 
     // Related Entities
     JSONArray relatedEntities = new JSONArray();
     JSONObject tezAppEntity = new JSONObject();
-    tezAppEntity.put(ATSConstants.ENTITY, "tez_" + event.getAppId().toString());
+    tezAppEntity.put(ATSConstants.ENTITY_ID, "tez_" + event.getAppId().toString());
     tezAppEntity.put(ATSConstants.ENTITY_TYPE, EntityTypes.TEZ_APPLICATION.name());
     JSONObject tezAppAttemptEntity = new JSONObject();
-    tezAppAttemptEntity.put(ATSConstants.ENTITY, "tez_" + event.getAppAttemptId().toString());
+    tezAppAttemptEntity.put(ATSConstants.ENTITY_ID, "tez_" + event.getAppAttemptId().toString());
     tezAppAttemptEntity.put(ATSConstants.ENTITY_TYPE, EntityTypes.TEZ_APPLICATION_ATTEMPT.name());
     JSONObject appEntity = new JSONObject();
-    appEntity.put(ATSConstants.ENTITY, event.getAppId().toString());
+    appEntity.put(ATSConstants.ENTITY_ID, event.getAppId().toString());
     appEntity.put(ATSConstants.ENTITY_TYPE, ATSConstants.APPLICATION_ID);
     JSONObject appAttemptEntity = new JSONObject();
-    appAttemptEntity.put(ATSConstants.ENTITY, event.getAppAttemptId().toString());
+    appAttemptEntity.put(ATSConstants.ENTITY_ID, event.getAppAttemptId().toString());
     appAttemptEntity.put(ATSConstants.ENTITY_TYPE, ATSConstants.APPLICATION_ATTEMPT_ID);
     JSONObject userEntity = new JSONObject();
-    userEntity.put(ATSConstants.ENTITY, event.getUser());
+    userEntity.put(ATSConstants.ENTITY_ID, event.getUser());
     userEntity.put(ATSConstants.ENTITY_TYPE, ATSConstants.USER);
 
     relatedEntities.put(tezAppEntity);
@@ -452,7 +452,7 @@ public final class HistoryEventProtoJsonConversion {
   private static JSONObject convertTaskAttemptFinishedEvent(HistoryEventProto event)
       throws JSONException {
     JSONObject jsonObject = new JSONObject();
-    jsonObject.put(ATSConstants.ENTITY, event.getTaskAttemptId());
+    jsonObject.put(ATSConstants.ENTITY_ID, event.getTaskAttemptId());
     jsonObject.put(ATSConstants.ENTITY_TYPE, EntityTypes.TEZ_TASK_ATTEMPT_ID.name());
 
     // Events
@@ -503,21 +503,21 @@ public final class HistoryEventProtoJsonConversion {
   private static JSONObject convertTaskAttemptStartedEvent(HistoryEventProto event)
       throws JSONException {
     JSONObject jsonObject = new JSONObject();
-    jsonObject.put(ATSConstants.ENTITY, event.getTaskAttemptId());
+    jsonObject.put(ATSConstants.ENTITY_ID, event.getTaskAttemptId());
     jsonObject.put(ATSConstants.ENTITY_TYPE, EntityTypes.TEZ_TASK_ATTEMPT_ID.name());
 
     // Related entities
     JSONArray relatedEntities = new JSONArray();
     JSONObject nodeEntity = new JSONObject();
-    nodeEntity.put(ATSConstants.ENTITY, getDataValueByKey(event, ATSConstants.NODE_ID));
+    nodeEntity.put(ATSConstants.ENTITY_ID, getDataValueByKey(event, ATSConstants.NODE_ID));
     nodeEntity.put(ATSConstants.ENTITY_TYPE, ATSConstants.NODE_ID);
 
     JSONObject containerEntity = new JSONObject();
-    containerEntity.put(ATSConstants.ENTITY, getDataValueByKey(event, ATSConstants.CONTAINER_ID));
+    containerEntity.put(ATSConstants.ENTITY_ID, getDataValueByKey(event, ATSConstants.CONTAINER_ID));
     containerEntity.put(ATSConstants.ENTITY_TYPE, ATSConstants.CONTAINER_ID);
 
     JSONObject taskEntity = new JSONObject();
-    taskEntity.put(ATSConstants.ENTITY, event.getTaskAttemptId());
+    taskEntity.put(ATSConstants.ENTITY_ID, event.getTaskAttemptId());
     taskEntity.put(ATSConstants.ENTITY_TYPE, EntityTypes.TEZ_TASK_ID.name());
 
     relatedEntities.put(nodeEntity);
@@ -546,7 +546,7 @@ public final class HistoryEventProtoJsonConversion {
 
   private static JSONObject convertTaskFinishedEvent(HistoryEventProto event) throws JSONException {
     JSONObject jsonObject = new JSONObject();
-    jsonObject.put(ATSConstants.ENTITY, event.getTaskId());
+    jsonObject.put(ATSConstants.ENTITY_ID, event.getTaskId());
     jsonObject.put(ATSConstants.ENTITY_TYPE, EntityTypes.TEZ_TASK_ID.name());
 
     // Events
@@ -577,13 +577,13 @@ public final class HistoryEventProtoJsonConversion {
 
   private static JSONObject convertTaskStartedEvent(HistoryEventProto event) throws JSONException {
     JSONObject jsonObject = new JSONObject();
-    jsonObject.put(ATSConstants.ENTITY, event.getTaskId());
+    jsonObject.put(ATSConstants.ENTITY_ID, event.getTaskId());
     jsonObject.put(ATSConstants.ENTITY_TYPE, EntityTypes.TEZ_TASK_ID.name());
 
     // Related entities
     JSONArray relatedEntities = new JSONArray();
     JSONObject vertexEntity = new JSONObject();
-    vertexEntity.put(ATSConstants.ENTITY, event.getVertexId());
+    vertexEntity.put(ATSConstants.ENTITY_ID, event.getVertexId());
     vertexEntity.put(ATSConstants.ENTITY_TYPE, EntityTypes.TEZ_VERTEX_ID.name());
     relatedEntities.put(vertexEntity);
     jsonObject.put(ATSConstants.RELATED_ENTITIES, relatedEntities);
@@ -610,7 +610,7 @@ public final class HistoryEventProtoJsonConversion {
   private static JSONObject convertVertexFinishedEvent(HistoryEventProto event)
       throws JSONException {
     JSONObject jsonObject = new JSONObject();
-    jsonObject.put(ATSConstants.ENTITY, event.getVertexId());
+    jsonObject.put(ATSConstants.ENTITY_ID, event.getVertexId());
     jsonObject.put(ATSConstants.ENTITY_TYPE, EntityTypes.TEZ_VERTEX_ID.name());
 
     // Events
@@ -653,7 +653,7 @@ public final class HistoryEventProtoJsonConversion {
   private static JSONObject convertVertexReconfigureDoneEvent(HistoryEventProto event)
       throws JSONException {
     JSONObject jsonObject = new JSONObject();
-    jsonObject.put(ATSConstants.ENTITY, event.getVertexId());
+    jsonObject.put(ATSConstants.ENTITY_ID, event.getVertexId());
     jsonObject.put(ATSConstants.ENTITY_TYPE, EntityTypes.TEZ_VERTEX_ID.name());
 
     // Events
@@ -681,13 +681,13 @@ public final class HistoryEventProtoJsonConversion {
   private static JSONObject convertVertexInitializedEvent(HistoryEventProto event)
       throws JSONException {
     JSONObject jsonObject = new JSONObject();
-    jsonObject.put(ATSConstants.ENTITY, event.getVertexId());
+    jsonObject.put(ATSConstants.ENTITY_ID, event.getVertexId());
     jsonObject.put(ATSConstants.ENTITY_TYPE, EntityTypes.TEZ_VERTEX_ID.name());
 
     // Related entities
     JSONArray relatedEntities = new JSONArray();
     JSONObject vertexEntity = new JSONObject();
-    vertexEntity.put(ATSConstants.ENTITY, event.getDagId());
+    vertexEntity.put(ATSConstants.ENTITY_ID, event.getDagId());
     vertexEntity.put(ATSConstants.ENTITY_TYPE, EntityTypes.TEZ_DAG_ID.name());
     relatedEntities.put(vertexEntity);
     jsonObject.put(ATSConstants.RELATED_ENTITIES, relatedEntities);
@@ -720,13 +720,13 @@ public final class HistoryEventProtoJsonConversion {
   private static JSONObject convertVertexStartedEvent(HistoryEventProto event)
       throws JSONException {
     JSONObject jsonObject = new JSONObject();
-    jsonObject.put(ATSConstants.ENTITY, event.getVertexId());
+    jsonObject.put(ATSConstants.ENTITY_ID, event.getVertexId());
     jsonObject.put(ATSConstants.ENTITY_TYPE, EntityTypes.TEZ_VERTEX_ID.name());
 
     // Related entities
     JSONArray relatedEntities = new JSONArray();
     JSONObject vertexEntity = new JSONObject();
-    vertexEntity.put(ATSConstants.ENTITY, event.getDagId());
+    vertexEntity.put(ATSConstants.ENTITY_ID, event.getDagId());
     vertexEntity.put(ATSConstants.ENTITY_TYPE, EntityTypes.TEZ_DAG_ID.name());
     relatedEntities.put(vertexEntity);
     jsonObject.put(ATSConstants.RELATED_ENTITIES, relatedEntities);

@@ -231,7 +231,7 @@ public class TestHistoryEventJsonConversion {
 
     JSONObject jsonObject = HistoryEventJsonConversion.convertToJson(event);
     Assert.assertNotNull(jsonObject);
-    Assert.assertEquals(vId.toString(), jsonObject.getString(ATSConstants.ENTITY));
+    Assert.assertEquals(vId.toString(), jsonObject.getString(ATSConstants.ENTITY_ID));
     Assert.assertEquals(ATSConstants.TEZ_VERTEX_ID, jsonObject.get(ATSConstants.ENTITY_TYPE));
 
     JSONArray events = jsonObject.getJSONArray(ATSConstants.EVENTS);
