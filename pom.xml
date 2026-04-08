@@ -76,7 +76,7 @@
     <plexus-velocity.version>2.3.0</plexus-velocity.version>
     <frontend-maven-plugin.version>1.15.0</frontend-maven-plugin.version>
     <guava.version>32.0.1-jre</guava.version>
-    <hadoop.version>3.4.2</hadoop.version>
+    <hadoop.version>3.5.0</hadoop.version>
     <jersey.version>1.19.4</jersey.version>
     <jettison.version>1.5.4</jettison.version>
     <jsr305.version>3.0.0</jsr305.version>
