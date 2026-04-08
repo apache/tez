@@ -157,9 +157,6 @@ public final class TimelineReaderFactory {
     @Override
     public Client getHttpClient() throws IOException {
       Authenticator authenticator;
-      UserGroupInformation ugi = UserGroupInformation.getCurrentUser();
-      UserGroupInformation realUgi = ugi.getRealUser();
-      String doAsUser;
       ClientConfig clientConfig = new ClientConfig().register(JacksonFeature.class);
       ConnectionConfigurator connectionConfigurator = getNewConnectionConf(useHttps,
               connTimeout, sslFactory);
@@ -170,13 +167,6 @@ public final class TimelineReaderFactory {
       } catch (TezException e) {
         throw new IOException("Failed to get authenticator", e);
       }
-
-      if (realUgi != null) {
-        doAsUser = ugi.getShortUserName();
-      } else {
-        doAsUser = null;
-      }
-
       return ClientBuilder.newClient(clientConfig);
     }
 
