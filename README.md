@@ -15,18 +15,227 @@
 Apache Tez
 ==========
 
-Apache Tez is a generic data-processing pipeline engine envisioned as a low-level engine for higher abstractions
-such as Apache Hadoop Map-Reduce, Apache Pig, Apache Hive etc.
+Apache Tez is a generic data-processing pipeline engine envisioned as a
+low-level engine for higher abstractions such as Apache Hadoop Map-Reduce,
+Apache Pig, Apache Hive etc.
 
 At its heart, tez is very simple and has just two components:
 
-*   The data-processing pipeline engine where-in one can plug-in input, processing and output implementations to 
-    perform arbitrary data-processing. Every 'task' in tez has the following:
-   -   Input to consume key/value pairs from.
-   -   Processor to process them.
-   -   Output to collect the processed key/value pairs.
+* The data-processing pipeline engine where-in one can plug-in input,
+    processing and output implementations to perform arbitrary data-processing.
+    Every 'task' in tez has the following:
 
+* Input to consume key/value pairs from.
+* Processor to process them.
+* Output to collect the processed key/value pairs.
 
-*  A master for the data-processing application, where-by one can put together arbitrary data-processing 'tasks' 
-   described above into a task-DAG to process data as desired. 
+* A master for the data-processing application, where-by one can put together
+   arbitrary data-processing 'tasks' described above into a task-DAG to process
+   data as desired.
    The generic master is implemented as a Apache Hadoop YARN ApplicationMaster.
+
+Building Tez
+------------
+
+For instructions on how to contribute to Tez, refer to:
+[Tez Wiki - How to Contribute](https://cwiki.apache.org/confluence/display/TEZ)
+
+Requirements
+------------
+
+* JDK 21+
+* Maven 3.6.3 or later
+* spotbugs 4.9.3 or later (if running spotbugs)
+* ProtocolBuffer 3.25.5
+* Internet connection for first build (to fetch all dependencies)
+* Hadoop 3.x
+
+Maven Modules
+-------------
+
+* **tez** (Main Tez project)
+  * **tez-api**: Tez API
+  * **tez-common**: Tez common
+  * **tez-runtime-internals**: Tez runtime internals
+  * **tez-runtime-library**: Tez runtime library
+  * **tez-mapreduce**: Tez mapreduce
+  * **tez-dag**: Tez dag
+  * **tez-examples**: Tez examples
+  * **tez-plugins**: Tez plugins
+  * **tez-tests**: Tez tests and additional test examples
+  * **tez-dist**: Tez dist
+  * **tez-ui**: Tez web user interface
+
+Maven Build Goals
+-----------------
+
+* Clean: `mvn clean`
+* Compile: `mvn compile`
+* Run tests: `mvn test`
+* Create JAR: `mvn package`
+* Run spotbugs: `mvn compile spotbugs:spotbugs`
+* Run checkstyle: `mvn compile checkstyle:checkstyle`
+* Install JAR in M2 cache: `mvn install`
+* Deploy JAR to Maven repo: `mvn deploy`
+* Run jacoco: `mvn test -Pjacoco`
+* Run Rat: `mvn apache-rat:check`
+* Build javadocs: `mvn javadoc:javadoc`
+* Build distribution: `mvn package -Dhadoop.version=3.4.2`
+* Visualize state machines: `mvn compile -Pvisualize -DskipTests=true`
+
+Build Options
+-------------
+
+* Use `-Dpackage.format` to create distributions with a format other than
+   .tar.gz (mvn-assembly-plugin formats).
+* Use `-Dhadoop.version` to specify the version of Hadoop to build Tez against.
+* Use `-Dprotoc.path` to specify the path to `protoc`.
+* Use `-Dallow.root.build` to root build `tez-ui` components.
+
+Test Options
+------------
+
+* Use `-DskipTests` to skip tests when running Maven goals like `package`,
+   `install`, `deploy`, or `verify`.
+* Specific tests: `-Dtest=<TESTCLASSNAME>,<TESTCLASSNAME#METHODNAME>,....`
+* Exclude tests: `-Dtest.exclude=<TESTCLASSNAME>`
+* Exclude pattern:
+   `-Dtest.exclude.pattern=**/<TESTCLASSNAME1>.java,**/<TESTCLASSNAME2>.java`
+
+Building against a Specific Version of Hadoop
+----------------------------------------------
+
+Tez runs on top of Apache Hadoop YARN and requires Hadoop 3.x.
+
+By default, it can be compiled against other compatible Hadoop versions by
+specifying `hadoop.version`:
+
+```bash
+mvn package -Dhadoop.version=3.4.2
+```
+
+To skip tests and Javadocs:
+
+```bash
+mvn package -Dhadoop.version=3.4.2 -DskipTests -Dmaven.javadoc.skip=true
+```
+
+For recent versions of Hadoop (which do not bundle AWS and Azure by default),
+you can bundle AWS-S3 or Azure support:
+
+```bash
+mvn package -Dhadoop.version=3.4.2 -Paws -Pazure
+```
+
+Tez also has shims to provide version-specific implementations for various APIs.
+For more details, refer to
+[Hadoop Shims](https://cwiki.apache.org/confluence/display/TEZ/HadoopShims).
+
+UI Build Issues
+---------------
+
+In case of issues with the UI build, please clean the UI cache:
+
+```bash
+mvn clean -PcleanUICache
+```
+
+Issue with PhantomJS on building in PowerPC
+-------------------------------------------
+
+Official PhantomJS binaries were not available for the Power platform. If the
+build fails on PPC, try installing PhantomJS manually and rerun. Refer to
+[PhantomJS README](https://github.com/ibmsoe/phantomjs-1/blob/v2.1.1-ppc64/README.md)
+and install it globally.
+
+Skip UI Build
+-------------
+
+To skip the UI build, use the `noui` profile:
+
+```bash
+mvn clean install -DskipTests -Pnoui
+```
+
+Maven will still include the `tez-ui` project, but all related plugins will be
+skipped.
+
+Protocol Buffer Compiler
+------------------------
+
+The version of the Protocol Buffer compiler (`protoc`) can be defined
+on-the-fly:
+
+```bash
+mvn clean install -DskipTests -pl ./tez-api -Dprotobuf.version=3.25.5
+```
+
+The default version is defined in the root `pom.xml`.
+
+If you have multiple versions of `protoc`, set the `PROTOC_PATH` environment
+variable to point to the desired binary. If not defined, the embedded `protoc`
+compiler corresponding to `${protobuf.version}` will be used.
+
+Alternatively, specify the path during the build:
+
+```bash
+mvn package -DskipTests -Dprotoc.path=/usr/local/bin/protoc
+```
+
+Building the Docs
+-----------------
+
+Build a local copy of the Apache Tez website:
+
+```bash
+cd docs
+mvn site
+```
+
+Building Components Separately
+------------------------------
+
+If you are building a submodule directory, dependencies will be resolved from
+the Maven cache or remote repositories. Alternatively, run
+`mvn install -DskipTests` from the Tez top level once and then work from the
+submodule.
+
+Visualize State Machines
+------------------------
+
+Use `-Pvisualize` to generate a Graphviz file (`Tez.gv`) representing state
+transitions:
+
+```bash
+mvn compile -Pvisualize -DskipTests=true
+```
+
+Optional parameters:
+
+* `-Dtez.dag.state.classes=<comma-separated list of classes>`
+    (Default: DAG, Vertex, Task, TaskAttempt)
+* `-Dtez.graphviz.title` (Default: Tez)
+* `-Dtez.graphviz.output.file` (Default: Tez.gv)
+
+Example for `DAGImpl`:
+
+```bash
+mvn compile -Pvisualize \
+  -Dtez.dag.state.classes=org.apache.tez.dag.app.dag.impl.DAGImpl \
+  -DskipTests=true
+```
+
+Convert the `.gv` file to an image:
+
+```bash
+dot -Tpng -o Tez.png Tez.gv
+```
+
+Building Contrib Tools
+----------------------
+
+Use `-Ptools` to build tools under `tez-tools`:
+
+```bash
+mvn package -Ptools
+```
