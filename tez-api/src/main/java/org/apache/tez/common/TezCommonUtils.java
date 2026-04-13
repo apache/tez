@@ -47,6 +47,7 @@ import org.apache.hadoop.security.token.Token;
 import org.apache.hadoop.yarn.api.records.LocalResource;
 import org.apache.tez.client.TezClient;
 import org.apache.tez.common.security.JobTokenIdentifier;
+import org.apache.tez.common.security.JobTokenSecretManager;
 import org.apache.tez.dag.api.TezConfiguration;
 import org.apache.tez.dag.api.TezConstants;
 import org.apache.tez.dag.api.TezUncheckedException;
@@ -65,6 +66,14 @@ public final class TezCommonUtils {
   private static final Logger LOG = LoggerFactory.getLogger(TezClient.class);
 
   public static final String TEZ_SYSTEM_SUB_DIR = ".tez";
+
+  public static JobTokenSecretManager createJobTokenSecretManager(Configuration conf) {
+    String clusterId = conf.get(TezConfiguration.TEZ_AM_CLUSTER_ID);
+    if (clusterId != null) {
+      return new JobTokenSecretManager(JobTokenSecretManager.createSecretKey(clusterId.getBytes()), conf);
+    }
+    return new JobTokenSecretManager(conf);
+  }
 
   private TezCommonUtils() {}
 

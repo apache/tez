@@ -20,6 +20,8 @@ package org.apache.tez.dag.app;
 
 
 
+import static org.apache.tez.frameworkplugins.FrameworkMode.STANDALONE_ZOOKEEPER;
+
 import java.io.File;
 import java.io.FileInputStream;
 import java.io.FileNotFoundException;
@@ -130,6 +132,8 @@ import org.apache.tez.dag.api.records.DAGProtos;
 import org.apache.tez.dag.api.records.DAGProtos.AMPluginDescriptorProto;
 import org.apache.tez.dag.api.records.DAGProtos.DAGPlan;
 import org.apache.tez.dag.api.records.DAGProtos.PlanLocalResourcesProto;
+import org.apache.tez.dag.api.records.DAGProtos.TezEntityDescriptorProto;
+import org.apache.tez.dag.api.records.DAGProtos.TezNamedEntityDescriptorProto;
 import org.apache.tez.dag.api.records.DAGProtos.VertexPlan;
 import org.apache.tez.dag.app.RecoveryParser.DAGRecoveryData;
 import org.apache.tez.dag.app.dag.DAG;
@@ -514,7 +518,7 @@ public class DAGAppMaster extends AbstractService {
     containerHeartbeatHandler = createContainerHeartbeatHandler(context, conf);
     addIfService(containerHeartbeatHandler, true);
 
-    jobTokenSecretManager = new JobTokenSecretManager(amConf);
+    jobTokenSecretManager = TezCommonUtils.createJobTokenSecretManager(amConf);
 
     sessionToken = frameworkService.getAMExtensions().getSessionToken(
       appAttemptID, jobTokenSecretManager, amCredentials);
@@ -2467,6 +2471,49 @@ public class DAGAppMaster extends AbstractService {
       AMPluginDescriptorProto amPluginDescriptorProto = null;
       if (confProto.hasAmPluginDescriptor()) {
         amPluginDescriptorProto = confProto.getAmPluginDescriptor();
+      }
+
+      String frameworkMode = System.getenv(TezConstants.TEZ_FRAMEWORK_MODE);
+      if (STANDALONE_ZOOKEEPER.name().equalsIgnoreCase(frameworkMode)) {
+        LOG.info("External AM: Injecting Standalone ZK Service Plugins dynamically");
+
+        TezEntityDescriptorProto schedulerEntity =
+            TezEntityDescriptorProto.newBuilder()
+                .setClassName("org.apache.tez.dag.app.rm.ZookeeperTaskScheduler")
+                .build();
+        TezNamedEntityDescriptorProto schedulerNamed =
+            TezNamedEntityDescriptorProto.newBuilder()
+                .setName("zk_scheduler")
+                .setEntityDescriptor(schedulerEntity)
+                .build();
+
+        TezEntityDescriptorProto launcherEntity =
+            TezEntityDescriptorProto.newBuilder()
+                .setClassName("org.apache.tez.dag.app.launcher.NoOpContainerLauncher")
+                .build();
+        TezNamedEntityDescriptorProto launcherNamed =
+            TezNamedEntityDescriptorProto.newBuilder()
+                .setName("zk_launcher")
+                .setEntityDescriptor(launcherEntity)
+                .build();
+
+        TezEntityDescriptorProto commEntity =
+            TezEntityDescriptorProto.newBuilder()
+                .setClassName("org.apache.tez.dag.app.TezTaskCommunicatorImpl")
+                .build();
+        TezNamedEntityDescriptorProto commNamed =
+            TezNamedEntityDescriptorProto.newBuilder()
+                .setName("zk_communicator")
+                .setEntityDescriptor(commEntity)
+                .build();
+
+        amPluginDescriptorProto =
+            AMPluginDescriptorProto.newBuilder()
+                .setContainersEnabled(false)
+                .addTaskSchedulers(schedulerNamed)
+                .addContainerLaunchers(launcherNamed)
+                .addTaskCommunicators(commNamed)
+                .build();
       }
 
       UserGroupInformation.setConfiguration(conf);

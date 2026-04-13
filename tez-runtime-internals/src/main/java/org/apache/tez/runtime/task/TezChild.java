@@ -18,6 +18,9 @@
 
 package org.apache.tez.runtime.task;
 
+
+import static org.apache.tez.frameworkplugins.FrameworkMode.STANDALONE_ZOOKEEPER;
+
 import java.io.IOException;
 import java.net.InetSocketAddress;
 import java.net.URI;
@@ -33,13 +36,17 @@ import java.util.concurrent.ExecutionException;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.FutureTask;
+import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicLong;
 
 import javax.annotation.Nullable;
 
+import org.apache.curator.framework.CuratorFramework;
+import org.apache.curator.framework.CuratorFrameworkFactory;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.fs.FileSystem;
+import org.apache.hadoop.io.Text;
 import org.apache.hadoop.ipc.CallerContext;
 import org.apache.hadoop.ipc.RPC;
 import org.apache.hadoop.net.NetUtils;
@@ -51,6 +58,9 @@ import org.apache.hadoop.yarn.YarnUncaughtExceptionHandler;
 import org.apache.hadoop.yarn.api.ApplicationConstants;
 import org.apache.hadoop.yarn.api.ApplicationConstants.Environment;
 import org.apache.log4j.helpers.ThreadLocalMap;
+import org.apache.tez.client.registry.AMRecord;
+import org.apache.tez.client.registry.zookeeper.ZkAMRegistryClient;
+import org.apache.tez.client.registry.zookeeper.ZkConfig;
 import org.apache.tez.common.ContainerContext;
 import org.apache.tez.common.ContainerTask;
 import org.apache.tez.common.Preconditions;
@@ -66,6 +76,7 @@ import org.apache.tez.common.counters.Limits;
 import org.apache.tez.common.security.JobTokenIdentifier;
 import org.apache.tez.common.security.TokenCache;
 import org.apache.tez.dag.api.TezConfiguration;
+import org.apache.tez.dag.api.TezConstants;
 import org.apache.tez.dag.api.TezException;
 import org.apache.tez.dag.api.records.DAGProtos;
 import org.apache.tez.dag.records.TezTaskAttemptID;
@@ -80,6 +91,7 @@ import org.apache.tez.runtime.hook.TezTaskAttemptHook;
 import org.apache.tez.runtime.internals.api.TaskReporterInterface;
 import org.apache.tez.util.LoggingUtils;
 import org.apache.tez.util.TezRuntimeShutdownHandler;
+import org.apache.zookeeper.CreateMode;
 
 import com.google.common.base.Function;
 import com.google.common.collect.HashMultimap;
@@ -132,6 +144,8 @@ public class TezChild {
   private final HadoopShim hadoopShim;
   private final TezExecutors sharedExecutor;
   private ThreadLocalMap mdcContext;
+
+  private static CuratorFramework zkWorkerClient;
 
   public TezChild(Configuration conf, String host, int port, String containerIdentifier,
       String tokenIdentifier, int appAttemptNumber, String workingDir, String[] localDirs,
@@ -517,45 +531,112 @@ public class TezChild {
         hadoopShim);
   }
 
-  public static void main(String[] args) throws IOException, InterruptedException, TezException {
+  public static void main(String[] args) throws Exception {
     TezClassLoader.setupTezClassLoader();
     final Configuration defaultConf = new Configuration();
 
+    String frameworkMode = System.getenv(TezConstants.TEZ_FRAMEWORK_MODE);
+
+    String host, appId, tokenIdentifier, containerIdentifier;
+    int port, attemptNumber;
+    Credentials credentials = new Credentials();
+
+    if (STANDALONE_ZOOKEEPER.name().equalsIgnoreCase(frameworkMode)) {
+      DAGProtos.ConfigurationProto confProtoBefore = TezUtilsInternal.loadConfProtoFromText();
+      TezUtilsInternal.addUserSpecifiedTezConfiguration(
+          defaultConf, confProtoBefore.getConfKeyValuesList());
+
+      ZkAMRegistryClient registry = ZkAMRegistryClient.getClient(defaultConf);
+      registry.start();
+
+      // TODO: Expose retry counter and sleep time as config — in ZKconfig or TezConfig?
+      while (!registry.isInitialized()) {
+        TimeUnit.SECONDS.sleep(5);
+      }
+
+      List<AMRecord> records = registry.getAllRecords();
+      if (records.isEmpty()) {
+        throw new RuntimeException("No AM found in ZooKeeper registry");
+      }
+      // TODO: Should we always get the first or there should be some sophisticated logic?
+      AMRecord amRecord = records.getFirst();
+
+      host = amRecord.getHostName();
+      String portRange =
+          defaultConf.getTrimmed(TezConfiguration.TEZ_AM_TASK_AM_PORT_RANGE, "12000-12000");
+      port = Integer.parseInt(portRange.split("[-,]")[0]);
+
+      appId = amRecord.getApplicationId().toString();
+      tokenIdentifier = appId;
+      attemptNumber = 1;
+
+      String baseContainerId = appId.replace("application_", "container_");
+      int randomSeq = (int) (Math.random() * 900000) + 100000;
+      containerIdentifier = baseContainerId + "_01_" + randomSeq;
+
+      String zkQuorum = defaultConf.get(TezConfiguration.TEZ_AM_ZOOKEEPER_QUORUM);
+      ZkConfig zkconfig = new ZkConfig(defaultConf);
+      zkWorkerClient = CuratorFrameworkFactory.newClient(zkQuorum, zkconfig.getRetryPolicy());
+      zkWorkerClient.start();
+
+      // Create Ephemeral node representing this worker
+      String workerPath = zkconfig.getZkTaskNameSpace() + "/" + appId + "/" + containerIdentifier;
+      zkWorkerClient
+          .create()
+          .creatingParentsIfNeeded()
+          .withMode(CreateMode.EPHEMERAL)
+          .forPath(workerPath, host.getBytes(java.nio.charset.StandardCharsets.UTF_8));
+
+      LOG.info("Registered TezChild Worker in ZK at path: {}", workerPath);
+
+      // FIX: Deterministic token
+      JobTokenIdentifier identifier = new JobTokenIdentifier(new Text(appId));
+      Token<JobTokenIdentifier> sessionToken =
+          new Token<>(identifier, TezCommonUtils.createJobTokenSecretManager(defaultConf));
+      credentials.addToken(new Text("SessionToken"), sessionToken);
+
+      LOG.info("ZK Mode: Discovered AM {} at {}:{}", appId, host, port);
+
+    } else {
+      assert args.length == 5;
+      host = args[0];
+      port = Integer.parseInt(args[1]);
+      containerIdentifier = args[2];
+      tokenIdentifier = args[3];
+      attemptNumber = Integer.parseInt(args[4]);
+
+      DAGProtos.ConfigurationProto confProto =
+          TezUtilsInternal.readUserSpecifiedTezConfiguration(System.getenv(Environment.PWD.name()));
+      TezUtilsInternal.addUserSpecifiedTezConfiguration(
+          defaultConf, confProto.getConfKeyValuesList());
+    }
     Thread.setDefaultUncaughtExceptionHandler(new YarnUncaughtExceptionHandler());
     final String pid = System.getenv().get("JVM_PID");
+    String[] localDirs =
+        TezCommonUtils.getTrimmedStrings(System.getenv(Environment.LOCAL_DIRS.name()));
 
-
-    assert args.length == 5;
-    String host = args[0];
-    int port = Integer.parseInt(args[1]);
-    final String containerIdentifier = args[2];
-    final String tokenIdentifier = args[3];
-    final int attemptNumber = Integer.parseInt(args[4]);
-    final String[] localDirs = TezCommonUtils.getTrimmedStrings(System.getenv(Environment.LOCAL_DIRS
-        .name()));
-    CallerContext.setCurrent(new CallerContext.Builder("tez_"+tokenIdentifier).build());
-    LOG.info("TezChild starting with PID=" + pid + ", containerIdentifier=" + containerIdentifier);
+    CallerContext.setCurrent(new CallerContext.Builder("tez_" + tokenIdentifier).build());
+    LOG.info("TezChild starting with PID={}, containerIdentifier={}", pid, containerIdentifier);
     if (LOG.isDebugEnabled()) {
-      LOG.debug("Info from cmd line: AM-host: " + host + " AM-port: " + port
-          + " containerIdentifier: " + containerIdentifier + " appAttemptNumber: " + attemptNumber
-          + " tokenIdentifier: " + tokenIdentifier);
+      LOG.debug(
+          "Info from cmd line: AM-host: {} AM-port: {} containerIdentifier: {} appAttemptNumber: {} tokenIdentifier: {}",
+          host,
+          port,
+          containerIdentifier,
+          attemptNumber,
+          tokenIdentifier);
+      credentials = UserGroupInformation.getCurrentUser().getCredentials();
     }
 
     // Security framework already loaded the tokens into current ugi
-    DAGProtos.ConfigurationProto confProto =
-        TezUtilsInternal.readUserSpecifiedTezConfiguration(System.getenv(Environment.PWD.name()));
-    TezUtilsInternal.addUserSpecifiedTezConfiguration(defaultConf, confProto.getConfKeyValuesList());
     UserGroupInformation.setConfiguration(defaultConf);
-    Credentials credentials = UserGroupInformation.getCurrentUser().getCredentials();
 
     HadoopShim hadoopShim = new HadoopShimsLoader(defaultConf).getHadoopShim();
 
     // log the system properties
     if (LOG.isInfoEnabled()) {
       String systemPropsToLog = TezCommonUtils.getSystemPropertiesToLog(defaultConf);
-      if (systemPropsToLog != null) {
-        LOG.info(systemPropsToLog);
-      }
+      LOG.info(systemPropsToLog);
     }
 
     TezChild tezChild = newTezChild(defaultConf, host, port, containerIdentifier,

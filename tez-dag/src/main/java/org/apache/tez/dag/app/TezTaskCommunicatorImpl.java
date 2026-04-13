@@ -411,11 +411,12 @@ public class TezTaskCommunicatorImpl extends TaskCommunicator {
       if (getContext().isKnownContainer(containerId)) {
         LOG.info("Container with id: " + containerId
             + " is valid, but no longer registered, and will be killed");
+        task = TASK_FOR_INVALID_JVM;
       } else {
         LOG.info("Container with id: " + containerId
-            + " is invalid and will be killed");
+            + " is not yet registered, asking it to wait");
+        task = null;
       }
-      task = TASK_FOR_INVALID_JVM;
     } else {
       synchronized (containerInfo) {
         getContext().containerAlive(containerId);

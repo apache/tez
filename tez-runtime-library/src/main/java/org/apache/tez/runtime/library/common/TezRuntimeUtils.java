@@ -271,6 +271,9 @@ public final class TezRuntimeUtils {
 
   public static int deserializeShuffleProviderMetaData(ByteBuffer meta)
       throws IOException {
+    if (meta == null) {
+      return 0;
+    }
     try (DataInputByteBuffer in = new DataInputByteBuffer()) {
       in.reset(meta);
       return in.readInt();
