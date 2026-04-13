@@ -90,7 +90,7 @@
     <protobuf.version>3.25.5</protobuf.version>
     <protoc-jar-maven-plugin.version>3.11.4</protoc-jar-maven-plugin.version>
     <protoc.path>${env.PROTOC_PATH}</protoc.path>
-    <restrict-imports.enforcer.version>2.0.0</restrict-imports.enforcer.version>
+    <restrict-imports.enforcer.version>3.0.0</restrict-imports.enforcer.version>
     <roaringbitmap.version>1.2.1</roaringbitmap.version>
     <scm.url>scm:git:https://gitbox.apache.org/repos/asf/tez.git</scm.url>
     <servlet-api.version>3.1.0</servlet-api.version>
