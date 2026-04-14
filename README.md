@@ -184,7 +184,7 @@ Optional parameters:
 * `-Dtez.dag.state.classes=<comma-separated list of classes>`
     (Default: DAG, Vertex, Task, TaskAttempt)
 * `-Dtez.graphviz.title` (Default: Tez)
-* `-Dtez.graphviz.output.file` (Default: Tez.gv)
+* `-Dtez.graphviz.output.file` (Default: `tez-dag/target/Tez.gv`)
 
 Example for `DAGImpl`:
 
@@ -197,7 +197,7 @@ mvn compile -Pvisualize \
 Convert the `.gv` file to an image:
 
 ```bash
-dot -Tpng -o Tez.png Tez.gv
+dot -Tpng -o Tez.png tez-dag/target/Tez.gv
 ```
 
 Building Contrib Tools
