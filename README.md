@@ -1,23 +1,26 @@
 <!--
-  Licensed under the Apache License, Version 2.0 (the "License");
-  you may not use this file except in compliance with the License.
-  You may obtain a copy of the License at
+  Licensed to the Apache Software Foundation (ASF) under one
+  or more contributor license agreements.  See the NOTICE file
+  distributed with this work for additional information
+  regarding copyright ownership.  The ASF licenses this file
+  to you under the Apache License, Version 2.0 (the
+  "License"); you may not use this file except in compliance
+  with the License.  You may obtain a copy of the License at
 
-    http://www.apache.org/licenses/LICENSE-2.0
+      http://www.apache.org/licenses/LICENSE-2.0
 
   Unless required by applicable law or agreed to in writing, software
   distributed under the License is distributed on an "AS IS" BASIS,
   WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
   See the License for the specific language governing permissions and
-  limitations under the License. See accompanying LICENSE file.
+  limitations under the License.
 -->
 
 Apache Tez
 ==========
 
 Apache Tez is a generic data-processing pipeline engine envisioned as a
-low-level engine for higher abstractions such as Apache Hadoop Map-Reduce,
-Apache Pig, Apache Hive etc.
+low-level engine for higher abstractions such as Apache Hive, Apache Pig etc.
 
 At its heart, tez is very simple and has just two components:
 
@@ -44,27 +47,10 @@ Requirements
 ------------
 
 * JDK 21+
-* Maven 3.6.3 or later
+* Maven 3.9.14 or later
 * spotbugs 4.9.3 or later (if running spotbugs)
 * ProtocolBuffer 3.25.5
-* Internet connection for first build (to fetch all dependencies)
 * Hadoop 3.x
-
-Maven Modules
--------------
-
-* **tez** (Main Tez project)
-  * **tez-api**: Tez API
-  * **tez-common**: Tez common
-  * **tez-runtime-internals**: Tez runtime internals
-  * **tez-runtime-library**: Tez runtime library
-  * **tez-mapreduce**: Tez mapreduce
-  * **tez-dag**: Tez dag
-  * **tez-examples**: Tez examples
-  * **tez-plugins**: Tez plugins
-  * **tez-tests**: Tez tests and additional test examples
-  * **tez-dist**: Tez dist
-  * **tez-ui**: Tez web user interface
 
 Maven Build Goals
 -----------------
@@ -92,16 +78,6 @@ Build Options
 * Use `-Dprotoc.path` to specify the path to `protoc`.
 * Use `-Dallow.root.build` to root build `tez-ui` components.
 
-Test Options
-------------
-
-* Use `-DskipTests` to skip tests when running Maven goals like `package`,
-   `install`, `deploy`, or `verify`.
-* Specific tests: `-Dtest=<TESTCLASSNAME>,<TESTCLASSNAME#METHODNAME>,....`
-* Exclude tests: `-Dtest.exclude=<TESTCLASSNAME>`
-* Exclude pattern:
-   `-Dtest.exclude.pattern=**/<TESTCLASSNAME1>.java,**/<TESTCLASSNAME2>.java`
-
 Building against a Specific Version of Hadoop
 ----------------------------------------------
 
@@ -112,12 +88,6 @@ specifying `hadoop.version`:
 
 ```bash
 mvn package -Dhadoop.version=3.4.2
-```
-
-To skip tests and Javadocs:
-
-```bash
-mvn package -Dhadoop.version=3.4.2 -DskipTests -Dmaven.javadoc.skip=true
 ```
 
 For recent versions of Hadoop (which do not bundle AWS and Azure by default),
@@ -131,34 +101,34 @@ Tez also has shims to provide version-specific implementations for various APIs.
 For more details, refer to
 [Hadoop Shims](https://cwiki.apache.org/confluence/display/TEZ/HadoopShims).
 
-UI Build Issues
----------------
+Tez UI
+------
 
-In case of issues with the UI build, please clean the UI cache:
+* **UI Build Issues**
 
-```bash
-mvn clean -PcleanUICache
-```
+  In case of issues with the UI build, please clean the UI cache:
 
-Issue with PhantomJS on building in PowerPC
--------------------------------------------
+  ```bash
+  mvn clean -PcleanUICache
+  ```
 
-Official PhantomJS binaries were not available for the Power platform. If the
-build fails on PPC, try installing PhantomJS manually and rerun. Refer to
-[PhantomJS README](https://github.com/ibmsoe/phantomjs-1/blob/v2.1.1-ppc64/README.md)
-and install it globally.
+* **Skip UI Build**
 
-Skip UI Build
--------------
+  To skip the UI build, use the `noui` profile:
 
-To skip the UI build, use the `noui` profile:
+  ```bash
+  mvn clean install -DskipTests -Pnoui
+  ```
 
-```bash
-mvn clean install -DskipTests -Pnoui
-```
+  Maven will still include the `tez-ui` project, but all related plugins will be
+  skipped.
 
-Maven will still include the `tez-ui` project, but all related plugins will be
-skipped.
+* **Issue with PhantomJS on building in PowerPC**
+
+  Official PhantomJS binaries were not available for the Power platform. If the
+  build fails on PPC, try installing PhantomJS manually and rerun. Refer to
+  [PhantomJS README](https://github.com/ibmsoe/phantomjs-1/blob/v2.1.1-ppc64/README.md)
+  and install it globally.
 
 Protocol Buffer Compiler
 ------------------------
@@ -188,8 +158,7 @@ Building the Docs
 Build a local copy of the Apache Tez website:
 
 ```bash
-cd docs
-mvn site
+mvn site -pl docs
 ```
 
 Building Components Separately
