@@ -26,7 +26,6 @@ import java.util.concurrent.atomic.AtomicLong;
 import java.util.concurrent.locks.Condition;
 import java.util.concurrent.locks.ReentrantLock;
 
-import org.apache.hadoop.ipc.ProtocolSignature;
 import org.apache.hadoop.yarn.api.records.ApplicationAttemptId;
 import org.apache.hadoop.yarn.api.records.ApplicationId;
 import org.apache.hadoop.yarn.api.records.ContainerId;
@@ -463,17 +462,6 @@ public final class TaskExecutionTestHelpers {
       } finally {
         umbilicalLock.unlock();
       }
-    }
-
-    @Override
-    public long getProtocolVersion(String protocol, long clientVersion) {
-      return 0;
-    }
-
-    @Override
-    public ProtocolSignature getProtocolSignature(String protocol, long clientVersion,
-                                                  int clientMethodsHash) {
-      return null;
     }
 
     @Override

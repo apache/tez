@@ -25,13 +25,14 @@ import java.util.concurrent.ConcurrentMap;
 import org.apache.hadoop.classification.InterfaceAudience;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.fs.CommonConfigurationKeysPublic;
-import org.apache.hadoop.ipc.ProtocolSignature;
+import org.apache.hadoop.ipc.ProtobufRpcEngine2;
 import org.apache.hadoop.ipc.RPC;
 import org.apache.hadoop.ipc.Server;
 import org.apache.hadoop.net.NetUtils;
 import org.apache.hadoop.security.Credentials;
 import org.apache.hadoop.security.authorize.PolicyProvider;
 import org.apache.hadoop.security.token.Token;
+import org.apache.hadoop.thirdparty.protobuf.BlockingService;
 import org.apache.hadoop.yarn.api.records.ContainerId;
 import org.apache.hadoop.yarn.api.records.LocalResource;
 import org.apache.hadoop.yarn.util.ConverterUtils;
@@ -53,6 +54,9 @@ import org.apache.tez.dag.records.TezTaskAttemptID;
 import org.apache.tez.runtime.api.impl.TaskSpec;
 import org.apache.tez.runtime.api.impl.TezHeartbeatRequest;
 import org.apache.tez.runtime.api.impl.TezHeartbeatResponse;
+import org.apache.tez.runtime.internals.protocolPB.TezTaskUmbilicalProtocolBlockingPB;
+import org.apache.tez.runtime.internals.protocolPB.TezTaskUmbilicalProtocolPBServerImpl;
+import org.apache.tez.runtime.internals.protocolPB.TezTaskUmbilicalProtocolProtos;
 import org.apache.tez.serviceplugins.api.ContainerEndReason;
 import org.apache.tez.serviceplugins.api.TaskAttemptEndReason;
 import org.apache.tez.serviceplugins.api.TaskCommunicator;
@@ -150,11 +154,19 @@ public class TezTaskCommunicatorImpl extends TaskCommunicator {
       JobTokenSecretManager jobTokenSecretManager = new JobTokenSecretManager(conf);
       jobTokenSecretManager.addTokenForJob(tokenIdentifier, sessionToken);
 
+      RPC.setProtocolEngine(
+          conf, TezTaskUmbilicalProtocolBlockingPB.class, ProtobufRpcEngine2.class);
+      TezTaskUmbilicalProtocolBlockingPB service =
+          new TezTaskUmbilicalProtocolPBServerImpl(taskUmbilical);
+      BlockingService umbilicalService =
+          TezTaskUmbilicalProtocolProtos.TezTaskUmbilicalProtocol.newReflectiveBlockingService(
+              service);
+
       server = new RPC.Builder(conf)
-          .setProtocol(TezTaskUmbilicalProtocol.class)
+          .setProtocol(TezTaskUmbilicalProtocolBlockingPB.class)
           .setBindAddress("0.0.0.0")
           .setPort(0)
-          .setInstance(taskUmbilical)
+          .setInstance(umbilicalService)
           .setNumHandlers(
               conf.getInt(TezConfiguration.TEZ_AM_TASK_LISTENER_THREAD_COUNT,
                   TezConfiguration.TEZ_AM_TASK_LISTENER_THREAD_COUNT_DEFAULT))
@@ -386,21 +398,6 @@ public class TezTaskCommunicatorImpl extends TaskCommunicator {
       containerInfo.lastResponse = response;
       containerInfo.usedMemory = request.getUsedMemory();
       return response;
-    }
-
-
-    // TODO Remove this method once we move to the Protobuf RPC engine
-    @Override
-    public long getProtocolVersion(String protocol, long clientVersion) throws IOException {
-      return versionID;
-    }
-
-    // TODO Remove this method once we move to the Protobuf RPC engine
-    @Override
-    public ProtocolSignature getProtocolSignature(String protocol, long clientVersion,
-                                                  int clientMethodsHash) throws IOException {
-      return ProtocolSignature.getProtocolSignature(this, protocol,
-          clientVersion, clientMethodsHash);
     }
   }
 

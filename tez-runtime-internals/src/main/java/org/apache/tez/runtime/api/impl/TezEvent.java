@@ -118,6 +118,14 @@ public class TezEvent implements Writable {
     return event;
   }
 
+  public void setEvent(Event event) {
+    this.event = event;
+  }
+
+  public void setEventType(EventType eventType) {
+    this.eventType = eventType;
+  }
+
   public void setEventReceivedTime(long eventReceivedTime) { // TODO save
     this.eventReceivedTime = eventReceivedTime;
   }
