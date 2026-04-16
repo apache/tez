@@ -77,6 +77,7 @@
     <frontend-maven-plugin.version>1.15.0</frontend-maven-plugin.version>
     <guava.version>32.0.1-jre</guava.version>
     <hadoop.version>3.4.2</hadoop.version>
+    <hadoop-thirdparty.version>1.4.0</hadoop-thirdparty.version>
     <jersey.version>1.19.4</jersey.version>
     <jettison.version>1.5.4</jettison.version>
     <jsr305.version>3.0.0</jsr305.version>
@@ -101,6 +102,7 @@
     <test.log.dir>${project.build.directory}/logs</test.log.dir>
     <wro4j-maven-plugin.version>1.7.9</wro4j-maven-plugin.version>
     <maven.javadoc.skip>true</maven.javadoc.skip> <!-- enabled only in relevant modules separately -->
+    <maven-replacer-plugin.version>1.5.3</maven-replacer-plugin.version>
   </properties>
   <scm>
     <connection>${scm.url}</connection>
@@ -774,6 +776,11 @@
         <version>${protobuf.version}</version>
       </dependency>
       <dependency>
+        <groupId>org.apache.hadoop.thirdparty</groupId>
+        <artifactId>hadoop-shaded-protobuf_3_25</artifactId>
+        <version>${hadoop-thirdparty.version}</version>
+      </dependency>
+      <dependency>
         <groupId>com.google.guava</groupId>
         <artifactId>guava</artifactId>
         <version>${guava.version}</version>
@@ -1099,6 +1106,51 @@
               <version>2.18.0</version>
             </dependency>
           </dependencies>
+        </plugin>
+        <plugin>
+          <groupId>com.google.code.maven-replacer-plugin</groupId>
+          <artifactId>replacer</artifactId>
+          <version>${maven-replacer-plugin.version}</version>
+          <executions>
+            <execution>
+              <id>replace-generated-sources</id>
+              <phase>generate-sources</phase>
+              <goals>
+                <goal>replace</goal>
+              </goals>
+              <configuration>
+                <basedir>${project.basedir}</basedir>
+                <includes>
+                  <include>target/generated-sources/**/*.java</include>
+                </includes>
+                <replacements>
+                  <replacement>
+                    <token>([^\.])com.google.protobuf</token>
+                    <value>$1org.apache.hadoop.thirdparty.protobuf</value>
+                  </replacement>
+                </replacements>
+              </configuration>
+            </execution>
+            <execution>
+              <id>replace-generated-test-sources</id>
+              <phase>generate-sources</phase>
+              <goals>
+                <goal>replace</goal>
+              </goals>
+              <configuration>
+                <basedir>${project.basedir}</basedir>
+                <includes>
+                  <include>target/generated-test-sources/**/*.java</include>
+                </includes>
+                <replacements>
+                  <replacement>
+                    <token>([^\.])com.google.protobuf</token>
+                    <value>$1org.apache.hadoop.thirdparty.protobuf</value>
+                  </replacement>
+                </replacements>
+              </configuration>
+            </execution>
+          </executions>
         </plugin>
       </plugins>
     </pluginManagement>
