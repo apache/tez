@@ -22,10 +22,9 @@ import java.io.FileNotFoundException;
 import java.io.IOException;
 
 import org.apache.hadoop.ipc.RemoteException;
+import org.apache.hadoop.thirdparty.protobuf.ServiceException;
 import org.apache.tez.dag.api.SessionNotRunning;
 import org.apache.tez.dag.api.TezException;
-
-import com.google.protobuf.ServiceException;
 
 import org.junit.Assert;
 import org.junit.Test;

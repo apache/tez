@@ -18,11 +18,10 @@
 
 package org.apache.tez.dag.utils;
 
+import org.apache.hadoop.thirdparty.protobuf.ByteString;
 import org.apache.tez.dag.history.HistoryEventType;
 import org.apache.tez.dag.records.TezDAGID;
 import org.apache.tez.dag.recovery.records.RecoveryProtos;
-
-import com.google.protobuf.ByteString;
 
 public final class ProtoUtils {
 
