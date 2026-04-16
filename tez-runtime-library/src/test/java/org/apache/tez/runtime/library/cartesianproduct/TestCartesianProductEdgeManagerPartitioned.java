@@ -28,12 +28,11 @@ import static org.mockito.Mockito.when;
 import java.nio.ByteBuffer;
 import java.util.Map;
 
+import org.apache.hadoop.thirdparty.protobuf.ByteString;
 import org.apache.tez.dag.api.EdgeManagerPluginContext;
 import org.apache.tez.dag.api.EdgeManagerPluginOnDemand.CompositeEventRouteMetadata;
 import org.apache.tez.dag.api.EdgeManagerPluginOnDemand.EventRouteMetadata;
 import org.apache.tez.dag.api.UserPayload;
-
-import com.google.protobuf.ByteString;
 
 import org.junit.Before;
 import org.junit.Test;

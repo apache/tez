@@ -20,8 +20,8 @@ package org.apache.tez.dag.history;
 
 import java.io.IOException;
 
-import com.google.protobuf.CodedInputStream;
-import com.google.protobuf.CodedOutputStream;
+import org.apache.hadoop.thirdparty.protobuf.CodedInputStream;
+import org.apache.hadoop.thirdparty.protobuf.CodedOutputStream;
 
 public interface HistoryEvent {
 

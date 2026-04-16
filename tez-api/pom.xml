@@ -82,8 +82,8 @@
      <artifactId>commons-collections4</artifactId>
     </dependency>
     <dependency>
-     <groupId>com.google.protobuf</groupId>
-     <artifactId>protobuf-java</artifactId>
+     <groupId>org.apache.hadoop.thirdparty</groupId>
+     <artifactId>hadoop-shaded-protobuf_3_25</artifactId>
     </dependency>
     <dependency>
      <groupId>junit</groupId>
@@ -182,6 +182,10 @@
             </configuration>
           </execution>
         </executions>
+      </plugin>
+      <plugin>
+        <groupId>com.google.code.maven-replacer-plugin</groupId>
+        <artifactId>replacer</artifactId>
       </plugin>
     </plugins>
   </build>

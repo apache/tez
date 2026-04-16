@@ -24,6 +24,8 @@ import java.util.List;
 
 import org.apache.commons.codec.binary.Base64;
 import org.apache.hadoop.conf.Configuration;
+import org.apache.hadoop.thirdparty.protobuf.CodedInputStream;
+import org.apache.hadoop.thirdparty.protobuf.CodedOutputStream;
 import org.apache.tez.common.Preconditions;
 import org.apache.tez.common.ReflectionUtils;
 import org.apache.tez.dag.api.TezReflectionException;
@@ -44,9 +46,6 @@ import org.apache.tez.dag.history.events.VertexStartedEvent;
 import org.apache.tez.dag.history.recovery.RecoveryService;
 import org.apache.tez.dag.records.TezDAGID;
 import org.apache.tez.test.RecoveryServiceWithEventHandlingHook.SimpleShutdownCondition.TIMING;
-
-import com.google.protobuf.CodedInputStream;
-import com.google.protobuf.CodedOutputStream;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;

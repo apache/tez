@@ -65,6 +65,7 @@ import org.apache.hadoop.io.Text;
 import org.apache.hadoop.io.Writable;
 import org.apache.hadoop.io.compress.CompressionCodec;
 import org.apache.hadoop.io.compress.DefaultCodec;
+import org.apache.hadoop.thirdparty.protobuf.ByteString;
 import org.apache.hadoop.yarn.api.records.ApplicationId;
 import org.apache.tez.common.TezCommonUtils;
 import org.apache.tez.common.TezRuntimeFrameworkConfigs;
@@ -96,7 +97,6 @@ import org.apache.tez.runtime.library.utils.DATA_RANGE_IN_MB;
 import com.google.common.collect.LinkedListMultimap;
 import com.google.common.collect.Multimap;
 import com.google.common.collect.Sets;
-import com.google.protobuf.ByteString;
 
 import org.junit.After;
 import org.junit.Before;
