@@ -96,7 +96,7 @@ services:
       "
 
   tez-am:
-    image: apache/tez-am:${TEZ_VERSION:-1.0.0-SNAPSHOT}
+    image: apache/tez:${TEZ_VERSION:-1.0.0-SNAPSHOT}
     container_name: tez-am
     hostname: tez-am
     networks:
