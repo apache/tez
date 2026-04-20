@@ -25,7 +25,7 @@ REPO=
 usage() {
   cat <<EOF 1>&2
 Usage: $0 [-h] [-tez <Tez version>] [-repo <Docker repo>]
-Build the Apache Tez (AM and CHILD) Docker image
+Build the Apache Tez (AM) Docker image
 -help                Display help
 -tez                 Build image with the specified Tez version
 -repo                Docker repository
@@ -89,7 +89,6 @@ fi
 cp -R "$SCRIPT_DIR/conf" "$WORK_DIR/"
 cp "$SCRIPT_DIR/entrypoint.sh" "$WORK_DIR/"
 cp "$SCRIPT_DIR/am-entrypoint.sh" "$WORK_DIR/"
-cp "$SCRIPT_DIR/child-entrypoint.sh" "$WORK_DIR/"
 cp "$SCRIPT_DIR/Dockerfile" "$WORK_DIR/"
 
 echo "Building Docker image..."

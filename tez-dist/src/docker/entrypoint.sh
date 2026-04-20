@@ -25,10 +25,7 @@ echo "--> Starting Tez Component: $TEZ_COMPONENT"
 if [[ "$TEZ_COMPONENT" == "AM" ]]; then
     echo "--> Routing to Tez AM Entrypoint"
     exec /am-entrypoint.sh "$@"
-elif [[ "$TEZ_COMPONENT" == "CHILD" ]]; then
-    echo "--> Routing to Tez Child Entrypoint"
-    exec /child-entrypoint.sh "$@"
 else
-    echo "Error: Unknown TEZ_COMPONENT '$TEZ_COMPONENT'. Must be 'AM' or 'CHILD'."
+    echo "Error: Unknown TEZ_COMPONENT '$TEZ_COMPONENT'. Must be 'AM'"
     exit 1
 fi

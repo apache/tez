@@ -19,8 +19,8 @@
 # Apache Tez Docker
 
 This directory contains a unified Docker implementation for running TezAM
-and TezChild process from a single container image. Based on
-`TEZ_COMPONENT` environment variable the entrypoint is dynamically selected
+process from a single container image. Based on `TEZ_COMPONENT`
+environment variable the entrypoint is dynamically selected
 
 1. Building the docker image:
 
@@ -78,28 +78,9 @@ and TezChild process from a single container image. Based on
      `-e TEZ_FRAMEWORK_MODE=STANDALONE_ZOOKEEPER` and `-e TEZ_COMPONENT=AM`
      to the `docker run` command.
 
-   **Running the Tez Child:**
-
-   The child container requires specific arguments (`<am-host> <am-port>
-   <container-id> <token-id> <attempt-number>`) to connect back to the
-   Application Master.
-
-   Assuming your AM is running on `localhost` port `10001`, and the AM
-   assigned the container ID `container_1703023223000_0001_01_000001`:
-
-   ```bash
-   docker run --rm \
-       --network host \
-       --env-file tez-dist/src/docker/child.env \
-       --name tez-child \
-       --hostname localhost \
-       apache/tez:1.0.0-SNAPSHOT \
-       localhost 10001 container_1703023223000_0001_01_000001 dummy_token_abc 1
-   ```
-
 4. Debugging the Tez containers:
-   Uncomment the `JAVA_TOOL_OPTIONS` in `am.env` (or `child.env` for
-   port 5006) and expose the debug port using `-p` flag:
+   Uncomment the `JAVA_TOOL_OPTIONS` in `am.env` and expose the debug port
+   using `-p` flag:
 
    ```bash
    docker run --rm \
@@ -112,9 +93,8 @@ and TezChild process from a single container image. Based on
 
 5. To override the tez-site.xml in docker image use:
 
-   * Set the `TEZ_CUSTOM_CONF_DIR` environment variable in `am.env` /
-     `child.env` or via the `docker run` command (e.g.,
-     `/opt/tez/custom-conf`).
+   * Set the `TEZ_CUSTOM_CONF_DIR` environment variable in `am.env` or via
+     the `docker run` command (e.g., `/opt/tez/custom-conf`).
 
    ```bash
    export TEZ_SITE_PATH=$(pwd)/tez-dist/src/docker/conf/tez-site.xml
@@ -160,8 +140,6 @@ and TezChild process from a single container image. Based on
    * **tez-am:** It automatically waits for Zookeeper and HDFS to
      be healthy before starting up.
 
-   * **tez-child:**  TBD
-
    **To start the full cluster:**
 
    ```bash
@@ -187,8 +165,8 @@ and TezChild process from a single container image. Based on
    * Create a directory `tez-plugins` and add all required jars.
 
    * Uncomment the following lines in docker compose under the `tez-am`
-     and `tez-child` services to mount this directory as a volume to
-     `/opt/tez/plugins` in the docker container.
+     services to mount this directory as a volume to `/opt/tez/plugins`
+     in the docker container.
 
      ```yaml
      volumes:

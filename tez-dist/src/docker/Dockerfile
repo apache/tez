@@ -56,13 +56,13 @@ COPY --from=env --chown=tez /opt/tez $TEZ_HOME
 
 RUN mkdir -p $TEZ_CONF_DIR && chown tez:tez $TEZ_CONF_DIR
 
-COPY --chown=tez entrypoint.sh am-entrypoint.sh child-entrypoint.sh /
+COPY --chown=tez entrypoint.sh am-entrypoint.sh /
 COPY --chown=tez conf $TEZ_CONF_DIR
 
 # Create Extension Point Directory
 RUN mkdir -p /opt/tez/plugins && chown tez:tez /opt/tez/plugins && chmod 755 /opt/tez/plugins
 
-RUN chmod +x /entrypoint.sh /am-entrypoint.sh /child-entrypoint.sh
+RUN chmod +x /entrypoint.sh /am-entrypoint.sh
 
 USER tez
 WORKDIR $TEZ_HOME
