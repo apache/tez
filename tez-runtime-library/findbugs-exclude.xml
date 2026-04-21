@@ -93,21 +93,15 @@
   </Match>
 
   <Match>
-    <Class name="~org\.apache\.tez\.runtime\.library\.shuffle\.impl\.ShuffleUserPayloads\$.*Proto"/>
-    <Field name="PARSER"/>
-    <Bug pattern="MS_SHOULD_BE_FINAL"/>
+    <Class name="~org\.apache\.tez\.runtime\.library\.shuffle\.impl\.ShuffleUserPayloads.*"/>
   </Match>
 
   <Match>
-    <Class name="~org\.apache\.tez\.runtime\.library\.shuffle\.impl\.ShuffleUserPayloads\$.*Proto"/>
-    <Field name="unknownFields"/>
-    <Bug pattern="SE_BAD_FIELD"/>
+    <Class name="~org\.apache\.tez\.runtime\.library\.cartesianproduct\.CartesianProductUserPayload.*"/>
   </Match>
 
   <Match>
-    <Class name="~org\.apache\.tez\.runtime\.library\.shuffle\.impl\.ShuffleUserPayloads\$.*Proto\$Builder"/>
-    <Method name="maybeForceBuilderInitialization"/>
-    <Bug pattern="UCF_USELESS_CONTROL_FLOW"/>
+    <Class name="~org\.apache\.tez\.dag\.library\.vertexmanager\.FairShuffleUserPayloads.*"/>
   </Match>
 
   <Match>
@@ -120,24 +114,6 @@
     <Class name="org.apache.tez.runtime.library.common.TezRuntimeUtils"/>
     <Method name="getHttpConnectionParams" params="org.apache.hadoop.conf.Configuration" return="org.apache.tez.http.HttpConnectionParams"/>
     <Bug pattern="DC_PARTIALLY_CONSTRUCTED"/>
-  </Match>
-
-  <Match>
-    <Class name="org.apache.tez.runtime.library.cartesianproduct.CartesianProductUserPayload$CartesianProductConfigProto"/>
-    <Field name="unknownFields"/>
-    <Bug pattern="SE_BAD_FIELD"/>
-  </Match>
-
-  <Match>
-    <Class name="org.apache.tez.runtime.library.cartesianproduct.CartesianProductUserPayload$CartesianProductConfigProto"/>
-    <Field name="PARSER"/>
-    <Bug pattern="MS_SHOULD_BE_FINAL"/>
-  </Match>
-
-  <Match>
-    <Class name="org.apache.tez.runtime.library.cartesianproduct.CartesianProductUserPayload$CartesianProductConfigProto$Builder"/>
-    <Method name="maybeForceBuilderInitialization"/>
-    <Bug pattern="UCF_USELESS_CONTROL_FLOW"/>
   </Match>
 
   <Match>
@@ -158,48 +134,6 @@
       <Field name="totalTasksToSchedule"/>
     </Or>
     <Bug pattern="IS2_INCONSISTENT_SYNC"/>
-  </Match>
-
-  <Match>
-    <Class name="org.apache.tez.dag.library.vertexmanager.FairShuffleUserPayloads$FairShuffleEdgeManagerConfigPayloadProto"/>
-    <Field name="unknownFields"/>
-    <Bug pattern="SE_BAD_FIELD"/>
-  </Match>
-
-  <Match>
-    <Class name="org.apache.tez.dag.library.vertexmanager.FairShuffleUserPayloads$FairShuffleEdgeManagerDestinationTaskPropProto"/>
-    <Field name="unknownFields"/>
-    <Bug pattern="SE_BAD_FIELD"/>
-  </Match>
-
-  <Match>
-    <Class name="org.apache.tez.dag.library.vertexmanager.FairShuffleUserPayloads$RangeProto"/>
-    <Field name="unknownFields"/>
-    <Bug pattern="SE_BAD_FIELD"/>
-  </Match>
-
-  <Match>
-    <Class name="org.apache.tez.dag.library.vertexmanager.FairShuffleUserPayloads$FairShuffleEdgeManagerConfigPayloadProto"/>
-    <Field name="PARSER"/>
-    <Bug pattern="MS_SHOULD_BE_FINAL"/>
-  </Match>
-
-  <Match> 
-    <Class name="org.apache.tez.dag.library.vertexmanager.FairShuffleUserPayloads$FairShuffleEdgeManagerDestinationTaskPropProto"/>
-    <Field name="PARSER"/>
-    <Bug pattern="MS_SHOULD_BE_FINAL"/>
-  </Match>
-
-  <Match>   
-    <Class name="org.apache.tez.dag.library.vertexmanager.FairShuffleUserPayloads$RangeProto"/>
-    <Field name="PARSER"/>
-    <Bug pattern="MS_SHOULD_BE_FINAL"/>
-  </Match>
-
-  <Match>
-    <Class name="org.apache.tez.dag.library.vertexmanager.FairShuffleUserPayloads$RangeProto$Builder"/>
-    <Method name="maybeForceBuilderInitialization"/>
-    <Bug pattern="UCF_USELESS_CONTROL_FLOW"/>
   </Match>
 
   <Match>

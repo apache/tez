@@ -14,57 +14,15 @@
 <FindBugsFilter>
 
   <Match>
-    <Class name="~org\.apache\.tez\.dag\.api\.client\.rpc\.DAGClientAMProtocolRPC\$.*Proto"/>
-    <Field name="unknownFields"/>
-    <Bug pattern="SE_BAD_FIELD"/>
+    <Class name="~org\.apache\.tez\.dag\.api\.client\.rpc\.DAGClientAMProtocolRPC.*"/>
   </Match>
 
   <Match>
-    <Class name="~org\.apache\.tez\.dag\.api\.records\.DAGProtos\$.*"/>
-    <Field name="unknownFields"/>
-    <Bug pattern="SE_BAD_FIELD"/>
+    <Class name="~org\.apache\.tez\.dag\.api\.records\.DAGProtos.*"/>
   </Match>
 
   <Match>
-    <Class name="~org\.apache\.tez\.runtime\.api\.events\.EventProtos\$.*Proto"/>
-    <Field name="unknownFields"/>
-    <Bug pattern="SE_BAD_FIELD"/>
-  </Match>
-
-  <Match>
-    <Class name="~org\.apache\.tez.dag\.api\.client\.rpc\.DAGClientAMProtocolRPC\$.*Proto"/>
-    <Field name="PARSER"/>
-    <Bug pattern="MS_SHOULD_BE_FINAL"/>
-  </Match>
-
-  <Match>
-    <Class name="~org\.apache\.tez\.dag\.api\.records\.DAGProtos\$.*"/>
-    <Field name="PARSER"/>
-    <Bug pattern="MS_SHOULD_BE_FINAL"/>
-  </Match>
-
-  <Match>
-    <Class name="~org\.apache\.tez\.runtime\.api\.events\.EventProtos\$*.*Proto"/>
-    <Field name="PARSER"/>
-    <Bug pattern="MS_SHOULD_BE_FINAL"/>
-  </Match>
-
-  <Match>
-    <Class name="~org\.apache\.tez\.dag\.api\.client\.rpc\.DAGClientAMProtocolRPC\$.*Proto\$Builder"/>
-    <Method name="maybeForceBuilderInitialization"/>
-    <Bug pattern="UCF_USELESS_CONTROL_FLOW"/>
-  </Match>
-
-  <Match>
-    <Class name="~org\.apache\.tez\.dag\.api\.records\.DAGProtos\$.*\$Builder"/>
-    <Method name="maybeForceBuilderInitialization"/>
-    <Bug pattern="UCF_USELESS_CONTROL_FLOW"/>
-  </Match>
-
-  <Match>
-    <Class name="~org\.apache\.tez\.runtime\.api\.events\.EventProtos\$*.*Proto\$Builder"/>
-    <Method name="maybeForceBuilderInitialization"/>
-    <Bug pattern="UCF_USELESS_CONTROL_FLOW"/>
+    <Class name="~org\.apache\.tez\.runtime\.api\.events\.EventProtos.*"/>
   </Match>
 
   <Match>

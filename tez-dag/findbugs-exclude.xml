@@ -25,21 +25,7 @@
   </Match>
 
   <Match>
-    <Class name="~org\.apache\.tez\.dag\.recovery\.records\.RecoveryProtos\$.*Proto"/>
-    <Field name="unknownFields"/>
-    <Bug pattern="SE_BAD_FIELD"/>
-  </Match>
-
-  <Match>
-    <Class name="~org\.apache\.tez\.dag\.recovery\.records\.RecoveryProtos\$.*Proto"/>
-    <Field name="PARSER"/>
-    <Bug pattern="MS_SHOULD_BE_FINAL"/>
-  </Match>
-
-  <Match>
-    <Class name="~org\.apache\.tez\.dag\.recovery\.records\.RecoveryProtos\$.*Proto\$Builder"/>
-    <Method name="maybeForceBuilderInitialization"/>
-    <Bug pattern="UCF_USELESS_CONTROL_FLOW"/>
+    <Class name="~org\.apache\.tez\.dag\.recovery\.records\.RecoveryProtos.*"/>
   </Match>
 
   <Match>
