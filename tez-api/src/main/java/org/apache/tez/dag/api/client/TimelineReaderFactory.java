@@ -35,6 +35,7 @@ import javax.ws.rs.client.ClientBuilder;
 import org.apache.hadoop.classification.InterfaceAudience;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.security.UserGroupInformation;
+import org.apache.hadoop.security.authentication.client.AuthenticatedURL;
 import org.apache.hadoop.security.authentication.client.Authenticator;
 import org.apache.hadoop.security.authentication.client.ConnectionConfigurator;
 import org.apache.hadoop.security.ssl.SSLFactory;
@@ -44,6 +45,8 @@ import org.apache.tez.dag.api.TezException;
 import com.google.common.annotations.VisibleForTesting;
 
 import org.glassfish.jersey.client.ClientConfig;
+import org.glassfish.jersey.client.HttpUrlConnectorProvider;
+import org.glassfish.jersey.client.HttpUrlConnectorProvider.ConnectionFactory;
 import org.glassfish.jersey.jackson.JacksonFeature;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -167,6 +170,18 @@ public final class TimelineReaderFactory {
       } catch (TezException e) {
         throw new IOException("Failed to get authenticator", e);
       }
+
+      ConnectionFactory factory = url -> {
+        try {
+          return new AuthenticatedURL(authenticator)
+                    .openConnection(url, new AuthenticatedURL.Token());
+        } catch (Exception e) {
+          throw new IOException("Hadoop Authentication failed", e);
+        }
+      };
+
+      HttpUrlConnectorProvider connectorProvider = new HttpUrlConnectorProvider().connectionFactory(factory);
+      clientConfig.connectorProvider(connectorProvider);
       return ClientBuilder.newClient(clientConfig);
     }
 
