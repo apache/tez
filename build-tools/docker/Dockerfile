@@ -189,7 +189,7 @@ ENV SPOTBUGS_HOME /opt/spotbugs
 # Install Maven 3.9.14
 ######
 RUN mkdir -p /opt/maven \
-    && curl -L -s -S https://dlcdn.apache.org/maven/maven-3/3.9.14/binaries/apache-maven-3.9.14-bin.tar.gz \
+    && curl -L -s -S https://archive.apache.org/dist/maven/maven-3/3.9.14/binaries/apache-maven-3.9.14-bin.tar.gz \
       -o /opt/maven.tar.gz \
     && tar xzf /opt/maven.tar.gz --strip-components 1 -C /opt/maven \
     && ln -s /opt/maven/bin/mvn /usr/bin/mvn \
