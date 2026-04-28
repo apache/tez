@@ -10,4 +10,3 @@
 .settings
 pom.xml.versionsBackup
 target
-tez-dist/src/docker/cache/

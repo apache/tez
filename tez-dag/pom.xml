@@ -30,7 +30,7 @@
     org.apache.tez.dag.app.rm.node.AMNodeImpl,
     org.apache.tez.dag.app.rm.container.AMContainerImpl</tez.dag.state.classes>
     <tez.graphviz.title>Tez</tez.graphviz.title>
-    <tez.graphviz.output.file>Tez.gv</tez.graphviz.output.file>
+    <tez.graphviz.output.file>${project.build.directory}/Tez.gv</tez.graphviz.output.file>
   </properties>
   <artifactId>tez-dag</artifactId>
 
