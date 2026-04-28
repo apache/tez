@@ -13,15 +13,23 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
+---
 name: Build CI with different platforms/configs
 
-on:
+'on':
   push:
     branches:
       - 'master'
   pull_request:
     branches:
       - 'master'
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+permissions:
+  contents: read
 
 jobs:
   build:
@@ -31,8 +39,12 @@ jobs:
         os: [ubuntu-latest, macos-latest]
     runs-on: ${{ matrix.os }}
     steps:
-      - uses: actions/checkout@v2
-      - uses: actions/setup-java@v1
+      - uses: actions/checkout@v6
+      - uses: actions/setup-java@v5
         with:
           java-version: ${{ matrix.java-version }}
-      - run: mvn clean install -DskipTests -Dmaven.javadoc.skip=true
+          distribution: 'temurin'
+      - name: Build with Maven
+        run: >
+          mvn --batch-mode --no-transfer-progress clean install
+          -DskipTests -Dmaven.javadoc.skip=true
