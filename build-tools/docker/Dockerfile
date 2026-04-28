@@ -139,10 +139,10 @@ RUN curl -sSL \
 FROM tezbase AS buf
 SHELL ["/bin/bash", "-o", "pipefail", "-c"]
 RUN curl -sSL \
-      https://github.com/bufbuild/buf/releases/download/v0.21.0/buf-Linux-x86_64.tar.gz \
+      https://github.com/bufbuild/buf/releases/download/v1.68.2/buf-Linux-x86_64.tar.gz \
       -o buf.tar.gz \
     && shasum -a 256 buf.tar.gz \
-    | awk '$1!="95aba62ac0ecc5a9120cc58c65cdcc85038633a816bddfe8398c5ae3b32803f1" {exit(1)}' \
+    | awk '$1!="557ea42d00458466e3421bd1cf5781d882a95b0c1c0e54efffc326fdf9993d02" {exit(1)}' \
     && tar -xzf buf.tar.gz -C /usr/local --strip-components 1 \
     && rm buf.tar.gz
 
