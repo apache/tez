@@ -151,6 +151,48 @@ public class TestAM {
     tezSession.stop();
   }
 
+  @Test(timeout = 60000)
+  public void testTaskWebUIService() throws TezException, IOException, InterruptedException {
+    SleepProcessorConfig spConf = new SleepProcessorConfig(1);
+
+    DAG dag = DAG.create("TezSleepProcessor");
+    Vertex vertex = Vertex.create("SleepVertex",
+        ProcessorDescriptor.create(SleepProcessor.class.getName()).setUserPayload(spConf.toUserPayload()), 1,
+        Resource.newInstance(1024, 1));
+    dag.addVertex(vertex);
+
+    TezConfiguration tezConf = new TezConfiguration(tezCluster.getConfig());
+    tezConf.setBoolean(TezConfiguration.TEZ_TASK_WEBSERVICE_ENABLE, true);
+    String tezTaskWebUIServicePort = "50051";
+    tezConf.set(TezConfiguration.TEZ_TASK_WEBSERVICE_PORT_RANGE, tezTaskWebUIServicePort);
+
+    TezClient tezSession = TezClient.create("TezSleepProcessor", tezConf, false);
+    tezSession.start();
+
+    DAGClient dagClient = tezSession.submitDAG(dag);
+
+    DAGStatus dagStatus = dagClient.getDAGStatus(null);
+    while (!dagStatus.isCompleted()) {
+      Thread.sleep(500L);
+      dagStatus = dagClient.getDAGStatus(null);
+    }
+
+    // host: this is a unit test, we can assume that task container runs on the same host as the am
+    // port: we expect it to be what we configured
+    String amWebUIAddress = dagClient.getWebUIAddress();
+    URL amWebUIAddressUrl = new URL(amWebUIAddress);
+    URL taskWebUIAddress = new URL(amWebUIAddressUrl.getProtocol(), amWebUIAddressUrl.getHost(),
+        Integer.parseInt(tezTaskWebUIServicePort), "");
+
+    LOG.info("TezTask webUI address: " + taskWebUIAddress);
+
+    checkAddress(taskWebUIAddress + "/jmx");
+    checkAddress(taskWebUIAddress + "/conf");
+    checkAddress(taskWebUIAddress + "/stacks");
+
+    tezSession.stop();
+  }
+
   private void checkAddress(String url) {
     checkAddress(url, 200);
   }
