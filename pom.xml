@@ -1029,7 +1029,19 @@
               <removeUnusedImports/>
               <trimTrailingWhitespace/>
               <endWithNewline/>
+              <licenseHeader>
+                <file>${maven.multiModuleProjectDirectory}/dev-support/spotless/license.java</file>
+              </licenseHeader>
             </java>
+            <pom>
+              <includes>
+                <include>pom.xml</include>
+              </includes>
+              <licenseHeader>
+                <file>${maven.multiModuleProjectDirectory}/dev-support/spotless/license.xml</file>
+                <delimiter>^&lt;project|^&lt;configuration|^&lt;Configuration|^&lt;extensions|^&lt;component</delimiter>
+              </licenseHeader>
+            </pom>
           </configuration>
         </plugin>
         <plugin>
