@@ -59,7 +59,7 @@
 
     <!--dependency versions in alphabetical order-->
     <asynchttpclient.version>2.12.4</asynchttpclient.version>
-    <bouncycastle.version>1.79</bouncycastle.version>
+    <bouncycastle.version>1.84</bouncycastle.version>
     <build-helper-maven-plugin.version>1.8</build-helper-maven-plugin.version>
     <buildnumber-maven-plugin.version>1.1</buildnumber-maven-plugin.version>
     <checkstyle.version>13.3.0</checkstyle.version>
