@@ -38,6 +38,8 @@ import org.apache.hadoop.classification.InterfaceAudience.Private;
 import org.apache.hadoop.fs.Path;
 import org.apache.hadoop.io.DataInputByteBuffer;
 import org.apache.hadoop.security.Credentials;
+import org.apache.hadoop.thirdparty.protobuf.ByteString;
+import org.apache.hadoop.thirdparty.protobuf.ByteString.Output;
 import org.apache.hadoop.yarn.api.records.LocalResource;
 import org.apache.hadoop.yarn.api.records.LocalResourceType;
 import org.apache.hadoop.yarn.api.records.LocalResourceVisibility;
@@ -86,8 +88,6 @@ import org.apache.tez.dag.api.records.DAGProtos.VertexLocationHintProto;
 import org.apache.tez.serviceplugins.api.ServicePluginsDescriptor;
 
 import com.google.common.collect.Lists;
-import com.google.protobuf.ByteString;
-import com.google.protobuf.ByteString.Output;
 
 @Private
 public final class DagTypeConverters {

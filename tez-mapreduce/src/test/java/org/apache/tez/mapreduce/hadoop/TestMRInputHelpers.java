@@ -41,13 +41,12 @@ import org.apache.hadoop.mapreduce.JobID;
 import org.apache.hadoop.mapreduce.lib.input.TextInputFormat;
 import org.apache.hadoop.mapreduce.split.JobSplit;
 import org.apache.hadoop.mapreduce.split.SplitMetaInfoReader;
+import org.apache.hadoop.thirdparty.protobuf.ByteString;
 import org.apache.hadoop.yarn.api.records.LocalResource;
 import org.apache.tez.dag.api.DataSourceDescriptor;
 import org.apache.tez.dag.api.TaskLocationHint;
 import org.apache.tez.mapreduce.protos.MRRuntimeProtos.MRSplitProto;
 import org.apache.tez.runtime.api.events.InputDataInformationEvent;
-
-import com.google.protobuf.ByteString;
 
 import org.junit.After;
 import org.junit.Assert;

@@ -34,10 +34,9 @@ import org.apache.hadoop.fs.FileSystem;
 import org.apache.hadoop.fs.Path;
 import org.apache.hadoop.fs.RemoteIterator;
 import org.apache.hadoop.fs.permission.FsPermission;
+import org.apache.hadoop.thirdparty.protobuf.MessageLite;
+import org.apache.hadoop.thirdparty.protobuf.Parser;
 import org.apache.hadoop.yarn.util.Clock;
-
-import com.google.protobuf.MessageLite;
-import com.google.protobuf.Parser;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;

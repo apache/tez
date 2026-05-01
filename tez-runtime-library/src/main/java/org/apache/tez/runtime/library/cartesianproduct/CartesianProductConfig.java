@@ -27,14 +27,14 @@ import java.util.List;
 import java.util.Map;
 
 import org.apache.hadoop.classification.InterfaceStability.Evolving;
+import org.apache.hadoop.thirdparty.protobuf.ByteString;
+import org.apache.hadoop.thirdparty.protobuf.InvalidProtocolBufferException;
 import org.apache.tez.common.Preconditions;
 import org.apache.tez.dag.api.TezConfiguration;
 import org.apache.tez.dag.api.UserPayload;
 
 import com.google.common.annotations.VisibleForTesting;
 import com.google.common.primitives.Ints;
-import com.google.protobuf.ByteString;
-import com.google.protobuf.InvalidProtocolBufferException;
 
 /**
  * <class>CartesianProductConfig</class> is used to configure both

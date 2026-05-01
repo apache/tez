@@ -42,6 +42,9 @@ import org.apache.hadoop.classification.InterfaceAudience.Private;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.security.Credentials;
 import org.apache.hadoop.security.SecurityUtil;
+import org.apache.hadoop.thirdparty.protobuf.ByteString;
+import org.apache.hadoop.thirdparty.protobuf.Descriptors;
+import org.apache.hadoop.thirdparty.protobuf.TextFormat;
 import org.apache.hadoop.util.StringUtils;
 import org.apache.hadoop.yarn.api.records.ApplicationId;
 import org.apache.log4j.Appender;
@@ -63,10 +66,6 @@ import org.apache.tez.hadoop.shim.HadoopShim;
 import org.apache.tez.serviceplugins.api.ServicePluginsDescriptor;
 import org.apache.tez.serviceplugins.api.TaskAttemptEndReason;
 import org.apache.tez.util.StopWatch;
-
-import com.google.protobuf.ByteString;
-import com.google.protobuf.Descriptors;
-import com.google.protobuf.TextFormat;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;

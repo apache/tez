@@ -55,6 +55,8 @@ import org.apache.hadoop.fs.FileSystem;
 import org.apache.hadoop.fs.Path;
 import org.apache.hadoop.security.Credentials;
 import org.apache.hadoop.security.UserGroupInformation;
+import org.apache.hadoop.thirdparty.protobuf.RpcController;
+import org.apache.hadoop.thirdparty.protobuf.ServiceException;
 import org.apache.hadoop.util.Time;
 import org.apache.hadoop.yarn.api.records.ApplicationId;
 import org.apache.hadoop.yarn.api.records.ApplicationReport;
@@ -96,8 +98,6 @@ import org.apache.tez.dag.api.records.DAGProtos.ProgressProto;
 import org.apache.tez.serviceplugins.api.ServicePluginsDescriptor;
 
 import com.google.common.collect.Maps;
-import com.google.protobuf.RpcController;
-import com.google.protobuf.ServiceException;
 
 import org.hamcrest.CoreMatchers;
 import org.junit.Assert;

@@ -36,6 +36,7 @@ import java.util.Map;
 
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.io.DataOutputBuffer;
+import org.apache.hadoop.thirdparty.protobuf.ByteString;
 import org.apache.tez.common.ReflectionUtils;
 import org.apache.tez.common.TezCommonUtils;
 import org.apache.tez.common.TezUtils;
@@ -59,8 +60,6 @@ import org.apache.tez.runtime.api.VertexIdentifier;
 import org.apache.tez.runtime.api.events.VertexManagerEvent;
 import org.apache.tez.runtime.library.common.shuffle.ShuffleUtils;
 import org.apache.tez.runtime.library.shuffle.impl.ShuffleUserPayloads.VertexManagerEventPayloadProto;
-
-import com.google.protobuf.ByteString;
 
 import org.mockito.invocation.InvocationOnMock;
 import org.mockito.stubbing.Answer;

@@ -31,6 +31,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Queue;
 
+import org.apache.hadoop.thirdparty.protobuf.ByteString;
 import org.apache.tez.dag.api.EdgeProperty;
 import org.apache.tez.dag.api.UserPayload;
 import org.apache.tez.dag.api.VertexManagerPluginContext;
@@ -44,7 +45,6 @@ import org.apache.tez.runtime.library.utils.Grouper;
 
 import com.google.common.math.LongMath;
 import com.google.common.primitives.Ints;
-import com.google.protobuf.ByteString;
 
 import org.roaringbitmap.RoaringBitmap;
 import org.slf4j.Logger;
