@@ -119,6 +119,7 @@ public class CriticalPathAnalyzer extends TezAnalyzerBase implements Analyzer {
 
   public CriticalPathAnalyzer(Configuration conf) {
     super(conf);
+    this.configProperties.add(DRAW_SVG);
   }
 
   @Override

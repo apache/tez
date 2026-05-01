@@ -59,6 +59,7 @@ public class VertexLevelCriticalPathAnalyzer extends TezAnalyzerBase implements 
     super(config);
     this.csvResult = new CSVResult(headers);
     this.dotFileLocation = config.get(DOT_FILE_DIR, DOT_FILE_DIR_DEFAULT);
+    this.configProperties.add(DOT_FILE_DIR);
   }
 
   @Override public void analyze(DagInfo dagInfo) throws TezException {
