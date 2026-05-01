@@ -102,7 +102,7 @@ public class DagInfo extends BaseInfo {
     Preconditions.checkArgument(jsonObject.getString(Constants.ENTITY_TYPE).equalsIgnoreCase
         (Constants.TEZ_DAG_ID));
 
-    dagId = StringInterner.intern(jsonObject.getString(Constants.ENTITY));
+    dagId = StringInterner.intern(jsonObject.getString(Constants.ENTITY_ID));
 
     //Parse additional Info
     JSONObject otherInfoNode = jsonObject.getJSONObject(Constants.OTHER_INFO);
