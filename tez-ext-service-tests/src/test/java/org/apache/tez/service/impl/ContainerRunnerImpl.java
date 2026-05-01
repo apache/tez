@@ -34,6 +34,7 @@ import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.fs.FileSystem;
 import org.apache.hadoop.fs.Path;
 import org.apache.hadoop.io.DataInputBuffer;
+import org.apache.hadoop.ipc.ProtobufRpcEngine2;
 import org.apache.hadoop.ipc.RPC;
 import org.apache.hadoop.net.NetUtils;
 import org.apache.hadoop.security.Credentials;
@@ -57,6 +58,8 @@ import org.apache.tez.runtime.api.ExecutionContext;
 import org.apache.tez.runtime.api.impl.ExecutionContextImpl;
 import org.apache.tez.runtime.api.impl.TaskSpec;
 import org.apache.tez.runtime.common.objectregistry.ObjectRegistryImpl;
+import org.apache.tez.runtime.internals.protocolPB.TezTaskUmbilicalProtocolBlockingPB;
+import org.apache.tez.runtime.internals.protocolPB.TezTaskUmbilicalProtocolPBClientImpl;
 import org.apache.tez.runtime.task.TaskReporter;
 import org.apache.tez.runtime.task.TaskRunner2Result;
 import org.apache.tez.runtime.task.TezChild;
@@ -439,13 +442,20 @@ public class ContainerRunnerImpl extends AbstractService implements ContainerRun
           NetUtils.createSocketAddrForHost(request.getAmHost(), request.getAmPort());
       SecurityUtil.setTokenService(jobToken, address);
       taskOwner.addToken(jobToken);
-      umbilical = taskOwner.doAs(new PrivilegedExceptionAction<TezTaskUmbilicalProtocol>() {
-        @Override
-        public TezTaskUmbilicalProtocol run() throws Exception {
-          return RPC.getProxy(TezTaskUmbilicalProtocol.class,
-              TezTaskUmbilicalProtocol.versionID, address, conf);
-        }
-      });
+      umbilical =
+          taskOwner.doAs(
+              (PrivilegedExceptionAction<TezTaskUmbilicalProtocol>)
+                  () -> {
+                    RPC.setProtocolEngine(
+                        conf, TezTaskUmbilicalProtocolBlockingPB.class, ProtobufRpcEngine2.class);
+                    TezTaskUmbilicalProtocolBlockingPB proxy =
+                        RPC.getProxy(
+                            TezTaskUmbilicalProtocolBlockingPB.class,
+                            RPC.getProtocolVersion(TezTaskUmbilicalProtocolBlockingPB.class),
+                            address,
+                            conf);
+                    return new TezTaskUmbilicalProtocolPBClientImpl(proxy);
+                  });
       // TODO Stop reading this on each request.
       taskReporter = new TaskReporter(
           umbilical,

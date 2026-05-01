@@ -75,8 +75,8 @@
       <artifactId>hadoop-yarn-common</artifactId>
     </dependency>
     <dependency>
-     <groupId>com.google.protobuf</groupId>
-     <artifactId>protobuf-java</artifactId>
+      <groupId>org.apache.hadoop.thirdparty</groupId>
+      <artifactId>hadoop-shaded-protobuf_3_25</artifactId>
     </dependency>
     <dependency>
       <groupId>com.google.guava</groupId>
@@ -119,6 +119,9 @@
               <inputDirectories>
                 <include>${basedir}/src/main/proto</include>
               </inputDirectories>
+              <includeDirectories>
+                <include>${basedir}/../tez-api/src/main/proto</include>
+              </includeDirectories>
               <outputTargets>
                 <outputTarget>
                   <outputDirectory>${project.build.directory}/generated-sources/java</outputDirectory>
@@ -127,6 +130,10 @@
             </configuration>
           </execution>
         </executions>
+      </plugin>
+      <plugin>
+        <groupId>com.google.code.maven-replacer-plugin</groupId>
+        <artifactId>replacer</artifactId>
       </plugin>
     </plugins>
   </build>

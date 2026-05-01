@@ -28,6 +28,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 
+import org.apache.hadoop.thirdparty.protobuf.ByteString;
 import org.apache.tez.common.Preconditions;
 import org.apache.tez.dag.api.EdgeManagerPluginDescriptor;
 import org.apache.tez.dag.api.EdgeProperty;
@@ -41,7 +42,6 @@ import org.apache.tez.runtime.api.TaskAttemptIdentifier;
 import org.apache.tez.runtime.api.events.VertexManagerEvent;
 
 import com.google.common.annotations.VisibleForTesting;
-import com.google.protobuf.ByteString;
 
 /**
  * This VM wrap a real vertex manager implementation object. It choose whether it's partitioned or

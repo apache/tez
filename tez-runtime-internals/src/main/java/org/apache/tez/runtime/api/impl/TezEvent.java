@@ -27,6 +27,9 @@ import java.io.OutputStream;
 
 import org.apache.hadoop.io.DataInputBuffer;
 import org.apache.hadoop.io.Writable;
+import org.apache.hadoop.thirdparty.protobuf.AbstractMessage;
+import org.apache.hadoop.thirdparty.protobuf.CodedInputStream;
+import org.apache.hadoop.thirdparty.protobuf.CodedOutputStream;
 import org.apache.tez.common.ProtoConverters;
 import org.apache.tez.common.TezConverterUtils;
 import org.apache.tez.dag.api.TezUncheckedException;
@@ -55,10 +58,6 @@ import org.apache.tez.runtime.api.events.VertexManagerEvent;
 import org.apache.tez.runtime.internals.api.events.SystemEventProtos.TaskAttemptCompletedEventProto;
 import org.apache.tez.runtime.internals.api.events.SystemEventProtos.TaskAttemptFailedEventProto;
 import org.apache.tez.runtime.internals.api.events.SystemEventProtos.TaskAttemptKilledEventProto;
-
-import com.google.protobuf.AbstractMessage;
-import com.google.protobuf.CodedInputStream;
-import com.google.protobuf.CodedOutputStream;
 
 public class TezEvent implements Writable {
 
@@ -117,6 +116,14 @@ public class TezEvent implements Writable {
 
   public Event getEvent() {
     return event;
+  }
+
+  public void setEvent(Event event) {
+    this.event = event;
+  }
+
+  public void setEventType(EventType eventType) {
+    this.eventType = eventType;
   }
 
   public void setEventReceivedTime(long eventReceivedTime) { // TODO save

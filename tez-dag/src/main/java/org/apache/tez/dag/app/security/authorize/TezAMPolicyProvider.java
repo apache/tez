@@ -21,9 +21,9 @@ import org.apache.hadoop.classification.InterfaceAudience;
 import org.apache.hadoop.classification.InterfaceStability;
 import org.apache.hadoop.security.authorize.PolicyProvider;
 import org.apache.hadoop.security.authorize.Service;
-import org.apache.tez.common.TezTaskUmbilicalProtocol;
 import org.apache.tez.dag.api.TezConstants;
 import org.apache.tez.dag.api.client.rpc.DAGClientAMProtocolBlockingPB;
+import org.apache.tez.runtime.internals.protocolPB.TezTaskUmbilicalProtocolBlockingPB;
 
 /**
  * {@link PolicyProvider} for YARN Tez client protocols.
@@ -36,7 +36,7 @@ public class TezAMPolicyProvider extends PolicyProvider {
       new Service[] {
     new Service(
         TezConstants.TEZ_AM_SECURITY_SERVICE_AUTHORIZATION_TASK_UMBILICAL,
-          TezTaskUmbilicalProtocol.class),
+          TezTaskUmbilicalProtocolBlockingPB.class),
     new Service(
     	TezConstants.TEZ_AM_SECURITY_SERVICE_AUTHORIZATION_CLIENT,
           DAGClientAMProtocolBlockingPB.class)

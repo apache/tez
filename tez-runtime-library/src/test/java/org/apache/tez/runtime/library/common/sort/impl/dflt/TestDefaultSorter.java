@@ -47,6 +47,7 @@ import org.apache.hadoop.fs.Path;
 import org.apache.hadoop.io.DataOutputBuffer;
 import org.apache.hadoop.io.NullWritable;
 import org.apache.hadoop.io.Text;
+import org.apache.hadoop.thirdparty.protobuf.ByteString;
 import org.apache.tez.common.TezCommonUtils;
 import org.apache.tez.common.TezRuntimeFrameworkConfigs;
 import org.apache.tez.common.TezUtils;
@@ -75,8 +76,6 @@ import org.apache.tez.runtime.library.conf.OrderedPartitionedKVOutputConfig.Sort
 import org.apache.tez.runtime.library.partitioner.HashPartitioner;
 import org.apache.tez.runtime.library.shuffle.impl.ShuffleUserPayloads;
 import org.apache.tez.util.StringInterner;
-
-import com.google.protobuf.ByteString;
 
 import org.junit.After;
 import org.junit.AfterClass;
