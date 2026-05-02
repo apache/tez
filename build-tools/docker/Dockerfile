@@ -88,8 +88,7 @@ RUN apt-get -q update && apt-get -q install --no-install-recommends -y \
 # statically linked, so this is perfectly safe.
 ###
 # hadolint ignore=DL3008
-RUN add-apt-repository -y ppa:longsleep/golang-backports \
-    && apt-get -q update \
+RUN apt-get -q update \
     && apt-get -q install --no-install-recommends -y golang-go \
     && apt-get clean \
     && rm -rf /var/lib/apt/lists/*
