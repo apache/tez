@@ -24,20 +24,107 @@
 #
 ###############
 
-FROM ubuntu:noble AS tezbase
+# === DEPENDENCY VERSIONS & HASHES ===
+ARG ALPINE_VERSION="3.23.4"
+ARG PROTOBUF_VERSION="25.5"
+ARG SHELLCHECK_VERSION="0.11.0"
+ARG SHELLCHECK_SHA="7c80e0a8fe92dd73096b99f1e0aad9dcda119b69b8087445785a9c7c1b57dff882d3480bad6fef777b215f98785e1233a28a474420fc3819085138081953e58a"
+ARG HADOLINT_VERSION="2.14.0"
+ARG HADOLINT_SHA="5ffd7ed8f27894941a82f06229ed0dc75814eeb985d224d4fc3c7cf516f31cc7e6cc2d57348d4026084ac622c765e63c8274fdc6c36c0de03c4a5dda8f4ebf6f"
+ARG BUF_VERSION="1.68.2"
+ARG BUF_SHA="557ea42d00458466e3421bd1cf5781d882a95b0c1c0e54efffc326fdf9993d02"
+ARG SPOTBUGS_VERSION="4.9.3"
+ARG MAVEN_VERSION="3.9.15"
+ARG ASTROID_VERSION="4.0.3"
+ARG PYLINT_VERSION="4.0.4"
+ARG CODESPELL_VERSION="2.4.1"
+ARG YAMLLINT_VERSION="1.38.0"
+ARG JSHINT_VERSION="2.13.6"
+ARG MARKDOWNLINT_VERSION="0.46.0"
+
+#############################################################
+# PARALLEL DOWNLOAD STAGES (using lightweight Alpine image) #
+#############################################################
+
+#########################
+# Fetch Google Protobuf #
+#########################
+FROM alpine:${ALPINE_VERSION} AS protobuf
+ARG PROTOBUF_VERSION
+# hadolint ignore=DL3018
+RUN apk add --no-cache curl unzip \
+    && mkdir -p /opt/protobuf \
+    && curl -L -s -S https://github.com/protocolbuffers/protobuf/releases/download/v${PROTOBUF_VERSION}/protoc-${PROTOBUF_VERSION}-linux-x86_64.zip -o /opt/protoc.zip \
+    && unzip -q /opt/protoc.zip -d /opt/protobuf \
+    && rm /opt/protoc.zip
+
+########################################
+# Fetch shellcheck (shell script lint) #
+########################################
+FROM alpine:${ALPINE_VERSION} AS shellcheck
+ARG SHELLCHECK_VERSION
+ARG SHELLCHECK_SHA
+SHELL ["/bin/ash", "-o", "pipefail", "-c"]
+# hadolint ignore=DL3018
+RUN apk add --no-cache curl tar xz \
+    && curl -sSL https://github.com/koalaman/shellcheck/releases/download/v${SHELLCHECK_VERSION}/shellcheck-v${SHELLCHECK_VERSION}.linux.x86_64.tar.xz | tar --strip-components 1 --wildcards -xJf - '*/shellcheck' \
+    && chmod a+rx shellcheck \
+    && mv shellcheck /bin/shellcheck \
+    && echo "${SHELLCHECK_SHA}  /bin/shellcheck" | sha512sum -c -
+
+####################################
+# Fetch hadolint (dockerfile lint) #
+####################################
+FROM alpine:${ALPINE_VERSION} AS hadolint
+ARG HADOLINT_VERSION
+ARG HADOLINT_SHA
+SHELL ["/bin/ash", "-o", "pipefail", "-c"]
+# hadolint ignore=DL3018
+RUN apk add --no-cache curl \
+    && curl -sSL https://github.com/hadolint/hadolint/releases/download/v${HADOLINT_VERSION}/hadolint-Linux-x86_64 -o /bin/hadolint \
+    && chmod a+rx /bin/hadolint \
+    && echo "${HADOLINT_SHA}  /bin/hadolint" | sha512sum -c -
+
+#############################
+# Fetch buf (protobuf lint) #
+#############################
+FROM alpine:${ALPINE_VERSION} AS buf
+ARG BUF_VERSION
+ARG BUF_SHA
+SHELL ["/bin/ash", "-o", "pipefail", "-c"]
+# hadolint ignore=DL3018
+RUN apk add --no-cache curl tar \
+    && curl -sSL https://github.com/bufbuild/buf/releases/download/v${BUF_VERSION}/buf-Linux-x86_64.tar.gz -o buf.tar.gz \
+    && echo "${BUF_SHA}  buf.tar.gz" | sha256sum -c - \
+    && tar -xzf buf.tar.gz -C /usr/local --strip-components 1 \
+    && rm buf.tar.gz
+
+####################
+# MAIN BUILD STAGE #
+####################
+
+# Switching to eclipse-temurin to resolves cross-platform amd64/arm64 architecture issues
+FROM eclipse-temurin:21-jdk-noble AS tezbase
 
 WORKDIR /root
 SHELL ["/bin/bash", "-o", "pipefail", "-c"]
 
-ENV DEBIAN_FRONTEND noninteractive
-ENV DEBCONF_TERSE true
+ENV DEBIAN_FRONTEND=noninteractive
+ENV DEBCONF_TERSE=true
 
-######
-# Install some basic Apache Yetus requirements
-# some git repos need ssh-client so do it too
-# Adding libffi-dev for all the programming languages
-# that take advantage of it.
-######
+# Re-declare arguments needed in the final stage
+ARG SPOTBUGS_VERSION
+ARG MAVEN_VERSION
+ARG ASTROID_VERSION
+ARG PYLINT_VERSION
+ARG CODESPELL_VERSION
+ARG YAMLLINT_VERSION
+ARG JSHINT_VERSION
+ARG MARKDOWNLINT_VERSION
+
+##############################################
+# Install OS dependencies and C/C++ compiler #
+##############################################
 # hadolint ignore=DL3008
 RUN apt-get -q update && apt-get -q install --no-install-recommends -y \
     apt-transport-https \
@@ -58,148 +145,45 @@ RUN apt-get -q update && apt-get -q install --no-install-recommends -y \
     ssh-client \
     unzip \
     xz-utils \
+    g++ \
+    gcc \
+    libc-dev \
     && apt-get clean \
     && rm -rf /var/lib/apt/lists/*
 
-###
-# Set the locale
-###
+##################
+# Set the locale #
+##################
 RUN locale-gen en_US.UTF-8
-ENV LANG en_US.UTF-8
-ENV LANGUAGE en_US:en
-ENV LC_ALL en_US.UTF-8
+ENV LANG=en_US.UTF-8
+ENV LANGUAGE=en_US:en
+ENV LC_ALL=en_US.UTF-8
 
-####
-# Install GNU C/C++ (everything generally needs this)
-####
-# hadolint ignore=DL3008
-RUN apt-get -q update && apt-get -q install --no-install-recommends -y \
-        g++ \
-        gcc \
-        libc-dev \
-    && apt-get clean \
-    && rm -rf /var/lib/apt/lists/*
-
-###
-# Install golang as part of base so we can do each
-# helper utility in parallel. go bins are typically
-# statically linked, so this is perfectly safe.
-###
-# hadolint ignore=DL3008
-RUN add-apt-repository -y ppa:longsleep/golang-backports \
-    && apt-get -q update \
-    && apt-get -q install --no-install-recommends -y golang-go \
-    && apt-get clean \
-    && rm -rf /var/lib/apt/lists/*
-
-############
-# Fetch all of the non-conflicting bits in parallel
-#############
-
-######
-# Install Google Protobuf 3.25.5
-######
-FROM tezbase AS protobuf
-SHELL ["/bin/bash", "-o", "pipefail", "-c"]
-RUN mkdir -p /opt/protobuf \
-    && curl -L -s -S \
-       https://github.com/protocolbuffers/protobuf/releases/download/v25.5/protoc-25.5-linux-x86_64.zip \
-       -o /opt/protoc.zip \
-    && unzip -q /opt/protoc.zip -d /opt/protobuf \
-    && rm /opt/protoc.zip
-
-####
-# Install shellcheck (shell script lint)
-####
-FROM tezbase AS shellcheck
-SHELL ["/bin/bash", "-o", "pipefail", "-c"]
-RUN curl -sSL \
-    https://github.com/koalaman/shellcheck/releases/download/v0.7.1/shellcheck-v0.7.1.linux.x86_64.tar.xz \
-        | tar --strip-components 1 --wildcards -xJf - '*/shellcheck' \
-    && chmod a+rx shellcheck \
-    && mv shellcheck /bin/shellcheck \
-    && shasum -a 512 /bin/shellcheck \
-    | awk '$1!="aae813283d49f18f95a205dca1c5184267d07534a08abc952ebea1958fee06f8a0207373b6770a083079ba875458ea9da443f2b9910a50dcd93b935048bc14f5" {exit(1)}'
-
-####
-# Install hadolint (dockerfile lint)
-####
-FROM tezbase AS hadolint
-SHELL ["/bin/bash", "-o", "pipefail", "-c"]
-RUN curl -sSL \
-        https://github.com/hadolint/hadolint/releases/download/v1.18.0/hadolint-Linux-x86_64 \
-        -o /bin/hadolint \
-    && chmod a+rx /bin/hadolint \
-    && shasum -a 512 /bin/hadolint \
-    | awk '$1!="df27253d374c143a606483b07a26234ac7b4bca40b4eba53e79609c81aa70146e7d5c145f90dcec71d6d1aad1048b7d9d2de68d92284f48a735d04d19c5c5559" {exit(1)}'
-
-####
-# Install buf (protobuf lint)
-####
-FROM tezbase AS buf
-SHELL ["/bin/bash", "-o", "pipefail", "-c"]
-RUN curl -sSL \
-      https://github.com/bufbuild/buf/releases/download/v1.68.2/buf-Linux-x86_64.tar.gz \
-      -o buf.tar.gz \
-    && shasum -a 256 buf.tar.gz \
-    | awk '$1!="557ea42d00458466e3421bd1cf5781d882a95b0c1c0e54efffc326fdf9993d02" {exit(1)}' \
-    && tar -xzf buf.tar.gz -C /usr/local --strip-components 1 \
-    && rm buf.tar.gz
-
-########
-#
-#
-# Content that needs to be installed in order due to packages...
-#
-#
-########
-
-FROM tezbase
-SHELL ["/bin/bash", "-o", "pipefail", "-c"]
-
-####
-# Install java (first, since we want to dicate what form of Java)
-####
-
-####
-# OpenJDK 21
-# hadolint ignore=DL3008
-RUN apt-get -q update \
-    && DEBIAN_FRONTEND=noninteractive apt-get install --no-install-recommends -y openjdk-21-jdk \
-    && apt-get clean && rm -rf /var/lib/apt/lists/*
-
-# Set JAVA_HOME and PATH environment variables
-ENV JAVA_HOME=/usr/lib/jvm/java-21-openjdk-amd64
-ENV PATH="${JAVA_HOME}/bin:${PATH}"
-
-# Set the default Java version using update-alternatives
-RUN update-alternatives --install /usr/bin/java java /usr/lib/jvm/java-21-openjdk-amd64/bin/java 1
-
-#######
-# Install SpotBugs 4.9.3
-#######
+####################
+# Install SpotBugs #
+####################
 RUN mkdir -p /opt/spotbugs \
-    && curl -L -s -S https://github.com/spotbugs/spotbugs/releases/download/4.9.3/spotbugs-4.9.3.tgz \
+    && curl -L -s -S https://github.com/spotbugs/spotbugs/releases/download/${SPOTBUGS_VERSION}/spotbugs-${SPOTBUGS_VERSION}.tgz \
       -o /opt/spotbugs.tgz \
     && tar xzf /opt/spotbugs.tgz --strip-components 1 -C /opt/spotbugs \
     && chmod +x /opt/spotbugs/bin/*
-ENV SPOTBUGS_HOME /opt/spotbugs
+ENV SPOTBUGS_HOME=/opt/spotbugs
 
-######
-# Install Maven 3.9.14
-######
+#################
+# Install Maven #
+#################
 RUN mkdir -p /opt/maven \
-    && curl -L -s -S https://archive.apache.org/dist/maven/maven-3/3.9.14/binaries/apache-maven-3.9.14-bin.tar.gz \
+    && curl -L -s -S https://archive.apache.org/dist/maven/maven-3/${MAVEN_VERSION}/binaries/apache-maven-${MAVEN_VERSION}-bin.tar.gz \
       -o /opt/maven.tar.gz \
     && tar xzf /opt/maven.tar.gz --strip-components 1 -C /opt/maven \
     && ln -s /opt/maven/bin/mvn /usr/bin/mvn \
     && rm /opt/maven.tar.gz
-ENV MAVEN_HOME /opt/maven
+ENV MAVEN_HOME=/opt/maven
 
-######
-# Install python3 and pylint4
-# astroid and pylint go hand-in-hand.  Upgrade both at the same time.
-######
+######################################################################
+# Install python3 and pylint4                                        #
+# astroid and pylint go hand-in-hand. Upgrade both at the same time. #
+######################################################################
 # hadolint ignore=DL3008,DL3013
 RUN apt-get -q update && apt-get -q install --no-install-recommends -y \
         python3 \
@@ -208,12 +192,10 @@ RUN apt-get -q update && apt-get -q install --no-install-recommends -y \
         python3-cryptography \
         python3-dateutil \
         python3-dev \
-        python3-dev \
         python3-isort \
         python3-dockerpty \
         python3-nacl \
         python3-pyrsistent \
-        python3-setuptools \
         python3-setuptools \
         python3-singledispatch \
         python3-six \
@@ -225,39 +207,37 @@ RUN apt-get -q update && apt-get -q install --no-install-recommends -y \
     && curl -sSL https://bootstrap.pypa.io/get-pip.py -o /tmp/get-pip.py \
     && python3 /tmp/get-pip.py --break-system-packages \
     && rm /usr/local/bin/pip /tmp/get-pip.py \
-    && pip3 install --break-system-packages -v \
-        astroid==4.0.3 \
-        codespell==2.4.1 \
-        pylint==4.0.4 \
-        yamllint==1.38.0 \
-    && rm -rf /root/.cache \
-    && mv /usr/local/bin/pylint /usr/local/bin/pylint4
-RUN ln -s /usr/local/bin/pylint4 /usr/local/bin/pylint
-RUN ln -s /usr/local/bin/pip3 /usr/local/bin/pip
+    && pip3 install --no-cache-dir --break-system-packages -v \
+        astroid==${ASTROID_VERSION} \
+        codespell==${CODESPELL_VERSION} \
+        pylint==${PYLINT_VERSION} \
+        yamllint==${YAMLLINT_VERSION} \
+    && mv /usr/local/bin/pylint /usr/local/bin/pylint4 \
+    && ln -s /usr/local/bin/pylint4 /usr/local/bin/pylint \
+    && ln -s /usr/local/bin/pip3 /usr/local/bin/pip
 
-###
-# Install npm and JSHint
-###
+##########################
+# Install npm and JSHint #
+##########################
 # hadolint ignore=DL3008
 RUN apt-get update && apt-get install --no-install-recommends -y nodejs npm \
     && npm install -g \
-        jshint@2.13.6 \
-        markdownlint-cli@0.46.0 \
+        jshint@${JSHINT_VERSION} \
+        markdownlint-cli@${MARKDOWNLINT_VERSION} \
     && apt-get clean \
     && rm -rf /var/lib/apt/lists/* /root/.npm
 
-#####
-# Now all the stuff that was built in parallel
-#####
-
+################################
+# Copy over parallel downloads #
+################################
 COPY --from=shellcheck /bin/shellcheck /bin/shellcheck
 COPY --from=hadolint /bin/hadolint /bin/hadolint
 COPY --from=buf /usr/local/bin/buf /usr/local/bin/buf
 COPY --from=protobuf /opt/protobuf /opt/protobuf
 
-ENV PROTOBUF_HOME /opt/protobuf
-ENV PROTOC_PATH /opt/protobuf/bin/protoc
-ENV PATH "${PATH}:/opt/protobuf/bin"
+ENV PROTOBUF_HOME=/opt/protobuf
+ENV PROTOC_PATH=/opt/protobuf/bin/protoc
+ENV PATH="${PATH}:/opt/protobuf/bin"
 
 ####
 # YETUS CUT HERE
