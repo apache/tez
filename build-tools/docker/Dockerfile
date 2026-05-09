@@ -112,7 +112,7 @@ SHELL ["/bin/bash", "-o", "pipefail", "-c"]
 ENV DEBIAN_FRONTEND=noninteractive
 ENV DEBCONF_TERSE=true
 
-# Re-declare arguments needed in the final stage
+# Redeclare arguments needed in the final stage
 ARG SPOTBUGS_VERSION
 ARG MAVEN_VERSION
 ARG ASTROID_VERSION
