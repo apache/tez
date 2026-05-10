@@ -13,38 +13,6 @@
 -->
 <FindBugsFilter>
   <Match>
-    <Class name="~org\.apache\.tez\.dag\.history\.logging\.proto\.HistoryLoggerProtos\$KVPair"/>
-    <Field name="unknownFields"/>
-    <Bug pattern="SE_BAD_FIELD"/>
-  </Match>
-
-  <Match>
-    <Class name="~org\.apache\.tez\.dag\.history\.logging\.proto\.HistoryLoggerProtos\$.*Proto"/>
-    <Field name="unknownFields"/>
-    <Bug pattern="SE_BAD_FIELD"/>
-  </Match>
-
-  <Match>
-    <Class name="~org\.apache\.tez\.dag\.history\.logging\.proto\.HistoryLoggerProtos\$KVPair"/>
-    <Field name="PARSER"/>
-    <Bug pattern="MS_SHOULD_BE_FINAL"/>
-  </Match>
-
-  <Match>
-    <Class name="~org\.apache\.tez\.dag\.history\.logging\.proto\.HistoryLoggerProtos\$.*Proto"/>
-    <Field name="PARSER"/>
-    <Bug pattern="MS_SHOULD_BE_FINAL"/>
-  </Match>
-
-  <Match>
-    <Class name="~org\.apache\.tez\.dag\.history\.logging\.proto\.HistoryLoggerProtos\$KVPair\$Builder"/>
-    <Method name="maybeForceBuilderInitialization"/>
-    <Bug pattern="UCF_USELESS_CONTROL_FLOW"/>
-  </Match>
-
-  <Match>
-    <Class name="~org\.apache\.tez\.dag\.history\.logging\.proto\.HistoryLoggerProtos\$.*Proto\$Builder"/>
-    <Method name="maybeForceBuilderInitialization"/>
-    <Bug pattern="UCF_USELESS_CONTROL_FLOW"/>
+    <Class name="~org\.apache\.tez\.dag\.history\.logging\.proto\.HistoryLoggerProtos.*"/>
   </Match>
 </FindBugsFilter>
