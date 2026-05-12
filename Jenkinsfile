@@ -23,188 +23,163 @@ pipeline {
 
     options {
         buildDiscarder(logRotator(numToKeepStr: '5'))
-        timeout (time: 20, unit: 'HOURS')
+        timeout(time: 8, unit: 'HOURS')
         timestamps()
         checkoutToSubdirectory('src')
-    }
-
-    environment {
-        SOURCEDIR = 'src'
-        // will also need to change notification section below
-        PATCHDIR = 'out'
-        DOCKERFILE = "${SOURCEDIR}/build-tools/docker/Dockerfile"
-        YETUS='yetus'
-        // Branch or tag name.  Yetus release tags are 'rel/X.Y.Z'
-        YETUS_VERSION='rel/0.15.1'
-
+        // Ensure only one build runs per PR at a time
+        disableConcurrentBuilds(abortPrevious: true)
     }
 
     parameters {
         string(name: 'JIRA_ISSUE_KEY',
                defaultValue: '',
-               description: 'The JIRA issue that has a patch needing pre-commit testing. Example: HADOOP-1234')
+               description: 'The JIRA issue to comment on. Example: TEZ-1234')
+    }
+
+    environment {
+        SOURCEDIR = 'src'
+        YETUSDIR = 'yetus'
+        PATCHDIR = 'out'
+        DOCKERFILE = "${SOURCEDIR}/build-tools/docker/Dockerfile"
+
+        // Credentials IDs
+        GITHUB_CRED_ID = 'apache-tez-at-github.com'
+        JIRA_CRED_ID = 'tez-ci'
+
+        // Yetus version
+        YETUS_VERSION = 'rel/0.15.1'
     }
 
     stages {
-        stage ('install yetus') {
+        stage('Install Yetus') {
             steps {
-                dir("${WORKSPACE}/${YETUS}") {
+                dir("${WORKSPACE}/${env.YETUSDIR}") {
                     checkout([
                         $class: 'GitSCM',
                         branches: [[name: "${env.YETUS_VERSION}"]],
-                        userRemoteConfigs: [[ url: 'https://github.com/apache/yetus']]]
+                        userRemoteConfigs: [[url: 'https://github.com/apache/yetus']]]
                     )
                 }
             }
         }
 
-        stage ('precommit-run') {
+        stage('Yetus Analysis') {
             steps {
-                withCredentials(
-                    [usernamePassword(credentialsId: 'apache-tez-at-github.com',
-                                        passwordVariable: 'GITHUB_TOKEN',
-                                        usernameVariable: 'GITHUB_USER'),
-                                        usernamePassword(credentialsId: 'tez-ci',
-                                        passwordVariable: 'JIRA_PASSWORD',
-                                        usernameVariable: 'JIRA_USER')]) {
-                        sh '''#!/usr/bin/env bash
+                withCredentials([
+                    usernamePassword(credentialsId: env.GITHUB_CRED_ID, passwordVariable: 'GITHUB_TOKEN', usernameVariable: 'GITHUB_USER'),
+                    usernamePassword(credentialsId: env.JIRA_CRED_ID, passwordVariable: 'JIRA_PASSWORD', usernameVariable: 'JIRA_USER')
+                ]) {
+                    sh '''#!/usr/bin/env bash
+                    set -e
 
-                        set -e
+                    TESTPATCHBIN="${WORKSPACE}/${YETUSDIR}/precommit/src/main/shell/test-patch.sh"
 
-                        TESTPATCHBIN="${WORKSPACE}/${YETUS}/precommit/src/main/shell/test-patch.sh"
+                    rm -rf "${WORKSPACE}/${PATCHDIR}"
+                    mkdir -p "${WORKSPACE}/${PATCHDIR}"
 
-                        # this must be clean for every run
-                        if [[ -d "${WORKSPACE}/${PATCHDIR}" ]]; then
-                          rm -rf "${WORKSPACE}/${PATCHDIR}"
-                        fi
-                        mkdir -p "${WORKSPACE}/${PATCHDIR}"
+                    cd "${WORKSPACE}/${SOURCEDIR}"
+                    # Ensure origin/master is available for diffing
+                    git fetch origin master || true
+                    git diff origin/master...HEAD > "${WORKSPACE}/${PATCHDIR}/local-pr.patch"
+                    cd "${WORKSPACE}"
 
-                        # if given a JIRA issue, process it. If CHANGE_URL is set
-                        # (e.g., Github Branch Source plugin), process it.
-                        # otherwise exit, because we don't want Hadoop to do a
-                        # full build.  We wouldn't normally do this check for smaller
-                        # projects. :)
-                        if [[ -n "${JIRA_ISSUE_KEY}" ]]; then
-                            YETUS_ARGS+=("${JIRA_ISSUE_KEY}")
-                        elif [[ -z "${CHANGE_URL}" ]]; then
-                            echo "Full build skipped" > "${WORKSPACE}/${PATCHDIR}/report.html"
-                            exit 0
-                        fi
+                    YETUS_ARGS=()
 
-                        YETUS_ARGS+=("--patch-dir=${WORKSPACE}/${PATCHDIR}")
+                    # 1. Target Issue/PR
+                    # Pass the Jira issue or use the local patch for GitHub PRs
+                    if [[ -n "${JIRA_ISSUE_KEY}" ]]; then
+                        YETUS_ARGS+=("${JIRA_ISSUE_KEY}")
+                    elif [[ -n "${CHANGE_ID}" ]]; then
+                        echo "Processing PR: ${CHANGE_ID} using local patch"
+                    else
+                        echo "No PR or JIRA key provided. Skipping Yetus."
+                        exit 0
+                    fi
 
-                        # where the source is located
-                        YETUS_ARGS+=("--basedir=${WORKSPACE}/${SOURCEDIR}")
+                    # 2. Core Paths & Project
+                    # Set the base directory, patch output directory, and project name
+                    YETUS_ARGS+=("--patch-dir=${WORKSPACE}/${PATCHDIR}")
+                    YETUS_ARGS+=("--basedir=${WORKSPACE}/${SOURCEDIR}")
+                    YETUS_ARGS+=("--project=tez")
 
-                        # our project defaults come from a personality file
-                        YETUS_ARGS+=("--project=tez")
+                    # 3. Docker & Environment
+                    # Run tests inside Docker, allowing dirty workspace (since Jenkins handles the checkout)
+                    YETUS_ARGS+=("--docker")
+                    YETUS_ARGS+=("--dockerfile=${DOCKERFILE}")
+                    YETUS_ARGS+=("--java-home=/opt/java/openjdk")
+                    YETUS_ARGS+=("--dirty-workspace")
+                    YETUS_ARGS+=("--build-url-artifacts=artifact/out")
 
-                        # lots of different output formats
-                        YETUS_ARGS+=("--brief-report-file=${WORKSPACE}/${PATCHDIR}/brief.txt")
-                        YETUS_ARGS+=("--console-report-file=${WORKSPACE}/${PATCHDIR}/console.txt")
-                        YETUS_ARGS+=("--html-report-file=${WORKSPACE}/${PATCHDIR}/report.html")
+                    # 4. Plugins & Personality
+                    # Load all plugins eagerly and provide the custom Tez personality file.
+                    # Note: We copy the personality to PATCHDIR because Yetus' robot mode cleans untracked files in the workspace.
+                    cp "${WORKSPACE}/${SOURCEDIR}/dev-support/tez-personality.sh" "${WORKSPACE}/${PATCHDIR}/tez-personality.sh"
+                    YETUS_ARGS+=("--plugins=all")
+                    YETUS_ARGS+=("--personality=${WORKSPACE}/${PATCHDIR}/tez-personality.sh")
+                    YETUS_ARGS+=("--mvn-custom-repos")
+                    YETUS_ARGS+=("--tests-filter=checkstyle")
+                    YETUS_ARGS+=("--archive-list=checkstyle-errors.xml,spotbugsXml.xml")
+                    YETUS_ARGS+=("--reapermode=kill")
+                    YETUS_ARGS+=("--sentinel")
 
-                        # enable writing back to Github
-                        YETUS_ARGS+=(--github-token="${GITHUB_TOKEN}")
+                    # 5. Reporting & GitHub Integration
+                    # Configure report output files and pass the GitHub token for PR commenting
+                    YETUS_ARGS+=("--github-token=${GITHUB_TOKEN}")
+                    YETUS_ARGS+=("--github-write-comment")
+                    YETUS_ARGS+=("--github-use-emoji-vote")
+                    YETUS_ARGS+=("--html-report-file=${WORKSPACE}/${PATCHDIR}/report.html")
+                    YETUS_ARGS+=("--console-report-file=${WORKSPACE}/${PATCHDIR}/console.txt")
+                    YETUS_ARGS+=("--brief-report-file=${WORKSPACE}/${PATCHDIR}/brief.txt")
 
-                        # auto-kill any surefire stragglers during unit test runs
-                        YETUS_ARGS+=("--reapermode=kill")
-
-                        # set relatively high limits for ASF machines
-                        # changing these to higher values may cause problems
-                        # with other jobs on systemd-enabled machines
-                        YETUS_ARGS+=("--proclimit=5500")
-                        YETUS_ARGS+=("--dockermemlimit=20g")
-
-                        # -1 spotbugs issues that show up prior to the patch being applied
-                        # YETUS_ARGS+=("--spotbugs-strict-precheck")
-                        # rsync these files back into the archive dir
-                        YETUS_ARGS+=("--archive-list=checkstyle-errors.xml,spotbugsXml.xml")
-
-                        # URL for user-side presentation in reports and such to our artifacts
-                        # (needs to match the archive bits below)
-                        YETUS_ARGS+=("--build-url-artifacts=artifact/out")
-
-                        # plugins to enable
-                        YETUS_ARGS+=("--plugins=all")
-
-                        # use Hadoop's bundled shelldocs
-                        YETUS_ARGS+=("--shelldocs=${WORKSPACE}/${SOURCEDIR}/dev-support/bin/shelldocs")
-
-                        # don't let these tests cause -1s because we aren't really paying that
-                        # much attention to them
-                        YETUS_ARGS+=("--tests-filter=checkstyle")
-
-                        # run in docker mode and specifically point to our
-                        # Dockerfile since we don't want to use the auto-pulled version.
-                        YETUS_ARGS+=("--docker")
-                        YETUS_ARGS+=("--dockerfile=${DOCKERFILE}")
-                        YETUS_ARGS+=("--mvn-custom-repos")
-
-                        # effectively treat dev-suport as a custom maven module
-                        YETUS_ARGS+=("--skip-dirs=dev-support")
-
-                        # help keep the ASF boxes clean
-                        YETUS_ARGS+=("--sentinel")
-
-                        # test with Java 21 eclipse-temurin docker image path
-                        YETUS_ARGS+=("--java-home=/opt/java/openjdk")
-                        YETUS_ARGS+=("--debug")
-
-                        # write Yetus report as GitHub comment (YETUS-1102)
-                        YETUS_ARGS+=("--github-write-comment")
-                        YETUS_ARGS+=("--github-use-emoji-vote")
-
-                        "${TESTPATCHBIN}" "${YETUS_ARGS[@]}"
-                        '''
+                    echo "Running Yetus with local patch overriding GitHub..."
+                    "${TESTPATCHBIN}" "${YETUS_ARGS[@]}" "${WORKSPACE}/${PATCHDIR}/local-pr.patch"
+                    '''
                 }
             }
         }
-
     }
 
     post {
         always {
-          script {
-            // Yetus output
-            archiveArtifacts "${env.PATCHDIR}/**"
-            // Publish the HTML report so that it can be looked at
-            // Has to be relative to WORKSPACE.
-            publishHTML (target: [
-                          allowMissing: true,
-                          keepAll: true,
-                          alwaysLinkToLastBuild: true,
-                          // Has to be relative to WORKSPACE
-                          reportDir: "${env.PATCHDIR}",
-                          reportFiles: 'report.html',
-                          reportName: 'Yetus Report'
-            ])
-            // Publish JUnit results
-            try {
-                junit "${env.SOURCEDIR}/**/target/surefire-reports/*.xml"
-            } catch(e) {
-                echo 'junit processing: ' + e.toString()
-            }
-          }
-        }
-
-        // Jenkins pipeline jobs fill slaves on PRs without this :(
-        cleanup() {
             script {
                 sh '''
-                    # See YETUS-764
-                    if [ -f "${WORKSPACE}/${PATCHDIR}/pidfile.txt" ]; then
-                      echo "test-patch process appears to still be running: killing"
-                      kill `cat "${WORKSPACE}/${PATCHDIR}/pidfile.txt"` || true
-                      sleep 10
-                    fi
-                    if [ -f "${WORKSPACE}/${PATCHDIR}/cidfile.txt" ]; then
-                      echo "test-patch container appears to still be running: killing"
-                      docker kill `cat "${WORKSPACE}/${PATCHDIR}/cidfile.txt"` || true
-                    fi
-                    # See HADOOP-13951
-                    chmod -R u+rxw "${WORKSPACE}"
-                    '''
+                    # Fix permissions before attempting to read/zip directories created by root Docker processes
+                    echo "Cleaning up workspace permissions to prevent HADOOP-13951 and unzipping errors..."
+                    chmod -R u+rxw "${WORKSPACE}" || true
+
+                    # Zip test logs for easier debugging and storage efficiency
+                    cd "${SOURCEDIR}" || exit 0
+                    find . -type d -name "surefire-reports" | while read -r dir; do
+                        rel_path=$(echo "${dir#./}" | tr '/' '_')
+                        zip -r -q "../${PATCHDIR}/test-logs-${rel_path}.zip" "${dir}" || true
+                    done
+                '''
+
+                dir(env.SOURCEDIR) {
+                    // Safely publish junit results
+                    junit testResults: "**/target/surefire-reports/*.xml", allowEmptyResults: true
+                }
+
+                // Archive Yetus output, reports, and zipped test logs
+                archiveArtifacts artifacts: "${env.PATCHDIR}/**", allowEmptyArchive: true
+
+                // Publish Yetus HTML report to Jenkins UI sidebar only if it exists
+                if (fileExists("${env.PATCHDIR}/report.html")) {
+                    publishHTML(target: [
+                        allowMissing: true,
+                        alwaysLinkToLastBuild: true,
+                        keepAll: true,
+                        reportDir: "${env.PATCHDIR}",
+                        reportFiles: 'report.html',
+                        reportName: 'Yetus Report'
+                    ])
+                }
+            }
+        }
+
+        cleanup {
+            script {
+                // Wipe the workspace to prevent Jenkins agent disk exhaustion
                 deleteDir()
             }
         }
