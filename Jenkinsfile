@@ -86,7 +86,6 @@ pipeline {
                     YETUS_ARGS=()
 
                     # 1. Target Issue/PR
-                    # Pass the Jira issue or use the local patch for GitHub PRs
                     if [[ -n "${JIRA_ISSUE_KEY}" ]]; then
                         YETUS_ARGS+=("${JIRA_ISSUE_KEY}")
                     elif [[ -n "${CHANGE_ID}" ]]; then
@@ -97,22 +96,18 @@ pipeline {
                     fi
 
                     # 2. Core Paths & Project
-                    # Set the base directory, patch output directory, and project name
                     YETUS_ARGS+=("--patch-dir=${WORKSPACE}/${PATCHDIR}")
                     YETUS_ARGS+=("--basedir=${WORKSPACE}/${SOURCEDIR}")
                     YETUS_ARGS+=("--project=tez")
 
                     # 3. Docker & Environment
-                    # Run tests inside Docker, allowing dirty workspace (since Jenkins handles the checkout)
                     YETUS_ARGS+=("--docker")
                     YETUS_ARGS+=("--dockerfile=${DOCKERFILE}")
                     YETUS_ARGS+=("--java-home=/opt/java/openjdk")
-                    YETUS_ARGS+=("--dirty-workspace")
                     YETUS_ARGS+=("--build-url-artifacts=artifact/out")
 
                     # 4. Plugins & Personality
-                    # Load all plugins eagerly and provide the custom Tez personality file.
-                    # Note: We copy the personality to PATCHDIR because Yetus' robot mode cleans untracked files in the workspace.
+                    # Copy personality to PATCHDIR to avoid deletion by Yetus' robot mode
                     cp "${WORKSPACE}/${SOURCEDIR}/dev-support/tez-personality.sh" "${WORKSPACE}/${PATCHDIR}/tez-personality.sh"
                     YETUS_ARGS+=("--plugins=all")
                     YETUS_ARGS+=("--personality=${WORKSPACE}/${PATCHDIR}/tez-personality.sh")
@@ -123,7 +118,6 @@ pipeline {
                     YETUS_ARGS+=("--sentinel")
 
                     # 5. Reporting & GitHub Integration
-                    # Configure report output files and pass the GitHub token for PR commenting
                     YETUS_ARGS+=("--github-token=${GITHUB_TOKEN}")
                     YETUS_ARGS+=("--github-write-comment")
                     YETUS_ARGS+=("--github-use-emoji-vote")

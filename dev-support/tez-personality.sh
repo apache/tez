@@ -39,11 +39,15 @@ function personality_globals
   # shellcheck disable=SC2034
   MAVEN_OPTS="${MAVEN_OPTS:-"-Xmx4g -XX:+UseG1GC"}"
 
-  # Default Yetus settings for Tez
+  # Default Yetus settings
   # shellcheck disable=SC2034
-  DOCKERMEMLIMIT=20g
+  DOCKER_MEMORY="20g"
   # shellcheck disable=SC2034
-  PROCLIMIT=5500
+  PROC_LIMIT=5500
+
+  # Force-enable core verification plugins
+  add_test compile
+  add_test unit
 }
 
 ## @description  Module selection
@@ -61,12 +65,16 @@ function personality_modules
 
   clear_personality_queue
 
-  extra="-Ptest-patch"
+  extra="-Ptools"
 
-  # Always run these tests on the root module to ensure everything is covered
-  if [[ ${testtype} == unit || ${testtype} == compile || ${testtype} == mvninstall ]]; then
-    yetus_debug "Forcing root module and fail-at-end for ${testtype}"
-    extra="${extra} -fae"
+  # Apply strict linting profile for all phases except unit tests
+  if [[ ${testtype} != "unit" ]]; then
+    extra="${extra} -Ptest-patch"
+  fi
+
+  # Execute core compilation and unit tests globally (project root)
+  if [[ ${testtype} == unit || ${testtype} == compile ]]; then
+    yetus_debug "Forcing root module for ${testtype}"
     MODULES=(.)
   fi
 
@@ -84,20 +92,21 @@ function personality_modules
 ## @audience     private
 ## @stability    evolving
 ## @replaceable  no
-function tez_file_filter
+function personality_file_filter
 {
   local filename=$1
 
   yetus_debug "Tez file filter: ${filename}"
 
-  # Unconditionally add compile and unit tests to ensure full build/UT on every PR as requested
-  add_test compile
-  add_test unit
-
-  if [[ ${filename} =~ \.java$ ]]; then
+  if [[ ${filename} =~ \.java$ || ${filename} =~ \.proto$ || ${filename} =~ pom\.xml$ ]]; then
     add_test javac
     add_test spotbugs
     add_test checkstyle
+    add_test javadoc
+  fi
+
+  if [[ ${filename} =~ findbugs-exclude\.xml$ ]]; then
+    add_test spotbugs
   fi
 
   if [[ ${filename} =~ \.sh$ ]] || [[ ${filename} =~ Jenkinsfile ]]; then
