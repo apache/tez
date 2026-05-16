@@ -22,28 +22,19 @@ personality_plugins "all"
 ## @audience     private
 ## @stability    evolving
 ## @replaceable  no
-function personality_globals
-{
-  # shellcheck disable=SC2034
-  PROJECT_NAME=tez
-  # shellcheck disable=SC2034
-  BUILDTOOL=maven
-  # shellcheck disable=SC2034
-  PATCH_BRANCH_DEFAULT=master
-  # shellcheck disable=SC2034
-  JIRA_ISSUE_RE='^TEZ-[0-9]+$'
-  # shellcheck disable=SC2034
-  GITHUB_REPO="apache/tez"
+function personality_globals {
+  export PROJECT_NAME=tez
+  export BUILDTOOL=maven
+  export PATCH_BRANCH_DEFAULT=master
+  export JIRA_ISSUE_RE='^TEZ-[0-9]+$'
+  export GITHUB_REPO="apache/tez"
 
   # Increase memory for maven
-  # shellcheck disable=SC2034
-  MAVEN_OPTS="${MAVEN_OPTS:-"-Xmx4g -XX:+UseG1GC"}"
+  export MAVEN_OPTS="${MAVEN_OPTS:-"-Xmx4g -XX:+UseG1GC"}"
 
   # Default Yetus settings
-  # shellcheck disable=SC2034
-  DOCKER_MEMORY="20g"
-  # shellcheck disable=SC2034
-  PROC_LIMIT=5500
+  export DOCKER_MEMORY="20g"
+  export PROC_LIMIT=5500
 
   # Force-enable core verification plugins
   add_test compile
@@ -54,37 +45,35 @@ function personality_globals
 ## @audience     private
 ## @stability    evolving
 ## @replaceable  no
-function personality_modules
-{
+function personality_modules {
   local repostatus=$1
   local testtype=$2
-  local extra=""
+  local extra=()
   local MODULES=("${CHANGED_MODULES[@]}")
 
   yetus_debug "Personality: ${repostatus} ${testtype}"
 
   clear_personality_queue
 
-  extra="-Ptools"
+  extra=("-Ptools")
 
   # Apply strict linting profile for all phases except unit tests
   if [[ ${testtype} != "unit" ]]; then
-    extra="${extra} -Ptest-patch"
+    extra+=("-Ptest-patch")
   fi
 
   # Execute core compilation and unit tests globally (project root)
-  if [[ ${testtype} == unit || ${testtype} == compile ]]; then
+  if [[ ${testtype} == "unit" || ${testtype} == "compile" ]]; then
     yetus_debug "Forcing root module for ${testtype}"
     MODULES=(.)
   fi
 
-  if [[ ${testtype} == spotbugs ]]; then
-    extra="${extra} -Pspotbugs"
+  if [[ ${testtype} == "spotbugs" ]]; then
+    extra+=("-Pspotbugs")
   fi
 
   for module in "${MODULES[@]}"; do
-    # shellcheck disable=SC2086
-    personality_enqueue_module ${module} ${extra}
+    personality_enqueue_module "${module}" "${extra[@]}"
   done
 }
 
@@ -92,8 +81,7 @@ function personality_modules
 ## @audience     private
 ## @stability    evolving
 ## @replaceable  no
-function personality_file_filter
-{
+function personality_file_filter {
   local filename=$1
 
   yetus_debug "Tez file filter: ${filename}"
