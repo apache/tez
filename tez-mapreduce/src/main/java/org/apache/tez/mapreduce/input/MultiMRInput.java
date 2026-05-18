@@ -35,6 +35,7 @@ import org.apache.hadoop.classification.InterfaceStability.Evolving;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.mapred.JobConf;
 import org.apache.hadoop.mapreduce.InputSplit;
+import org.apache.hadoop.thirdparty.protobuf.ByteString;
 import org.apache.tez.common.Preconditions;
 import org.apache.tez.common.counters.TaskCounter;
 import org.apache.tez.mapreduce.input.base.MRInputBase;
@@ -51,7 +52,6 @@ import org.apache.tez.runtime.library.api.KeyValueReader;
 
 import com.google.common.base.Function;
 import com.google.common.collect.Lists;
-import com.google.protobuf.ByteString;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;

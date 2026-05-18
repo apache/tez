@@ -20,10 +20,13 @@ import java.util.concurrent.atomic.AtomicReference;
 
 import org.apache.hadoop.classification.InterfaceAudience;
 import org.apache.hadoop.conf.Configuration;
-import org.apache.hadoop.ipc.ProtobufRpcEngine;
+import org.apache.hadoop.ipc.ProtobufRpcEngine2;
 import org.apache.hadoop.ipc.RPC;
 import org.apache.hadoop.net.NetUtils;
 import org.apache.hadoop.service.AbstractService;
+import org.apache.hadoop.thirdparty.protobuf.BlockingService;
+import org.apache.hadoop.thirdparty.protobuf.RpcController;
+import org.apache.hadoop.thirdparty.protobuf.ServiceException;
 import org.apache.tez.dag.api.TezException;
 import org.apache.tez.service.ContainerRunner;
 import org.apache.tez.service.TezTestServiceProtocolBlockingPB;
@@ -34,9 +37,6 @@ import org.apache.tez.test.service.rpc.TezTestServiceProtocolProtos.SubmitWorkRe
 import org.apache.tez.test.service.rpc.TezTestServiceProtocolProtos.SubmitWorkResponseProto;
 
 import com.google.common.annotations.VisibleForTesting;
-import com.google.protobuf.BlockingService;
-import com.google.protobuf.RpcController;
-import com.google.protobuf.ServiceException;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -123,7 +123,7 @@ public class TezTestServiceProtocolServerImpl extends AbstractService
   private RPC.Server createServer(Class<?> pbProtocol, InetSocketAddress addr, Configuration conf,
                                   int numHandlers, BlockingService blockingService) throws
       IOException {
-    RPC.setProtocolEngine(conf, pbProtocol, ProtobufRpcEngine.class);
+    RPC.setProtocolEngine(conf, pbProtocol, ProtobufRpcEngine2.class);
     RPC.Server server = new RPC.Builder(conf)
         .setProtocol(pbProtocol)
         .setInstance(blockingService)
