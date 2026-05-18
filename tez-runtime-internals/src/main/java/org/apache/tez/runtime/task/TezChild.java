@@ -41,6 +41,7 @@ import javax.annotation.Nullable;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.fs.FileSystem;
 import org.apache.hadoop.ipc.CallerContext;
+import org.apache.hadoop.ipc.ProtobufRpcEngine2;
 import org.apache.hadoop.ipc.RPC;
 import org.apache.hadoop.net.NetUtils;
 import org.apache.hadoop.security.Credentials;
@@ -78,6 +79,8 @@ import org.apache.tez.runtime.api.impl.ExecutionContextImpl;
 import org.apache.tez.runtime.common.objectregistry.ObjectRegistryImpl;
 import org.apache.tez.runtime.hook.TezTaskAttemptHook;
 import org.apache.tez.runtime.internals.api.TaskReporterInterface;
+import org.apache.tez.runtime.internals.protocolPB.TezTaskUmbilicalProtocolBlockingPB;
+import org.apache.tez.runtime.internals.protocolPB.TezTaskUmbilicalProtocolPBClientImpl;
 import org.apache.tez.util.LoggingUtils;
 import org.apache.tez.util.TezRuntimeShutdownHandler;
 
@@ -196,13 +199,22 @@ public class TezChild {
       final InetSocketAddress address = NetUtils.createSocketAddrForHost(host, port);
       SecurityUtil.setTokenService(jobToken, address);
       taskOwner.addToken(jobToken);
-      this.umbilical = taskOwner.doAs(new PrivilegedExceptionAction<TezTaskUmbilicalProtocol>() {
-        @Override
-        public TezTaskUmbilicalProtocol run() throws Exception {
-          return RPC.getProxy(TezTaskUmbilicalProtocol.class,
-              TezTaskUmbilicalProtocol.versionID, address, defaultConf);
-        }
-      });
+      this.umbilical =
+          taskOwner.doAs(
+              (PrivilegedExceptionAction<TezTaskUmbilicalProtocol>)
+                  () -> {
+                    RPC.setProtocolEngine(
+                        defaultConf,
+                        TezTaskUmbilicalProtocolBlockingPB.class,
+                        ProtobufRpcEngine2.class);
+                    TezTaskUmbilicalProtocolBlockingPB proxy =
+                        RPC.getProxy(
+                            TezTaskUmbilicalProtocolBlockingPB.class,
+                            RPC.getProtocolVersion(TezTaskUmbilicalProtocolBlockingPB.class),
+                            address,
+                            defaultConf);
+                    return new TezTaskUmbilicalProtocolPBClientImpl(proxy);
+                  });
       ownUmbilical = true;
     } else {
       this.umbilical = umbilical;

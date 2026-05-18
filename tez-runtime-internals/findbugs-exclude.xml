@@ -44,6 +44,10 @@
   </Match>
 
   <Match>
+    <Class name="~org\.apache\.tez\.runtime\.internals\.protocolPB\.TezTaskUmbilicalProtocolProtos.*" />
+  </Match>
+
+  <Match>
     <Class name="org.apache.tez.runtime.RuntimeTask"/>
     <Field name="fatalErrorMessage"/>
     <Bug pattern="URF_UNREAD_PUBLIC_OR_PROTECTED_FIELD"/>
