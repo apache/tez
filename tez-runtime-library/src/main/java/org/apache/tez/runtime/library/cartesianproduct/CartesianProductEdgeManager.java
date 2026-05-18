@@ -21,12 +21,12 @@ import static org.apache.tez.runtime.library.cartesianproduct.CartesianProductUs
 
 import javax.annotation.Nullable;
 
+import org.apache.hadoop.thirdparty.protobuf.ByteString;
 import org.apache.tez.common.Preconditions;
 import org.apache.tez.dag.api.EdgeManagerPluginContext;
 import org.apache.tez.dag.api.EdgeManagerPluginOnDemand;
 
 import com.google.common.annotations.VisibleForTesting;
-import com.google.protobuf.ByteString;
 
 /**
  * This EM wrap a real edge manager implementation object. It choose whether it's partitioned or
