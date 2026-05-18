@@ -76,6 +76,8 @@ public class ShuffleTimeAnalyzer extends TezAnalyzerBase implements Analyzer {
     realWorkDoneRatio = config.getFloat
         (REAL_WORK_DONE_RATIO, REAL_WORK_DONE_RATIO_DEFAULT);
     minShuffleRecords = config.getLong(MIN_SHUFFLE_RECORDS, MIN_SHUFFLE_RECORDS_DEFAULT);
+    this.configProperties.add(REAL_WORK_DONE_RATIO);
+    this.configProperties.add(MIN_SHUFFLE_RECORDS);
   }
 
   @Override
