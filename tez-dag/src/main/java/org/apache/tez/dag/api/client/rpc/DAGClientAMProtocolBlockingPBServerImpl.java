@@ -20,6 +20,7 @@ package org.apache.tez.dag.api.client.rpc;
 
 import java.io.IOException;
 import java.security.AccessControlException;
+import java.security.PrivilegedExceptionAction;
 import java.util.List;
 import java.util.Map;
 
@@ -57,18 +58,33 @@ import org.apache.tez.dag.api.records.DAGProtos.DAGPlan;
 import com.google.protobuf.CodedInputStream;
 import com.google.protobuf.RpcController;
 import com.google.protobuf.ServiceException;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 public class DAGClientAMProtocolBlockingPBServerImpl implements DAGClientAMProtocolBlockingPB {
+
+  private static final Logger LOG = LoggerFactory.getLogger(DAGClientAMProtocolBlockingPBServerImpl.class);
 
   DAGClientHandler real;
   final FileSystem stagingFs;
 
+  UserGroupInformation amUGI = null;
+  UserGroupInformation rpcUGI = null;
+
   public DAGClientAMProtocolBlockingPBServerImpl(DAGClientHandler real, FileSystem stagingFs) {
     this.real = real;
     this.stagingFs = stagingFs;
+    try{
+      amUGI = UserGroupInformation.getCurrentUser();
+    } catch (IOException e) {
+      //We do not throw exception because maybe this will not be used if there is no big request
+      LOG.error("Exception while getting current user", e);
+    }
   }
 
   private UserGroupInformation getRPCUser() throws ServiceException {
+    //should always be null exception reflect in unit test
+    if (rpcUGI != null) return rpcUGI;
     try {
       return UserGroupInformation.getCurrentUser();
     } catch (IOException e) {
@@ -166,18 +182,24 @@ public class DAGClientAMProtocolBlockingPBServerImpl implements DAGClientAMProto
     real.updateLastHeartbeatTime();
     try{
       if (request.hasSerializedRequestPath()) {
-        // need to deserialize large request from hdfs
+        //Here we will check userGroupInformation to see if its null, should NEVER happened but in case happened
+        //we will use RPC user instead to do best effort try (May still fail but no other choice)
+        UserGroupInformation userToReadHDFS = amUGI == null? user : amUGI;
         Path requestPath = new Path(request.getSerializedRequestPath());
-        FileSystem fs = requestPath.getFileSystem(stagingFs.getConf());
-        try (FSDataInputStream fsDataInputStream = fs.open(requestPath)) {
-          CodedInputStream in =
-              CodedInputStream.newInstance(fsDataInputStream);
-          in.setSizeLimit(Integer.MAX_VALUE);
-          request = SubmitDAGRequestProto.parseFrom(in);
-        } catch (IOException e) {
-          throw wrapException(e);
-        }
+        LOG.debug("Using the user {} to get the DAG plan from HDFS", userToReadHDFS);
+
+        request = userToReadHDFS.doAs((PrivilegedExceptionAction<SubmitDAGRequestProto>) () -> {
+          FileSystem fs = requestPath.getFileSystem(stagingFs.getConf());
+          try (FSDataInputStream fsDataInputStream = fs.open(requestPath)) {
+            CodedInputStream in = CodedInputStream.newInstance(fsDataInputStream);
+            in.setSizeLimit(Integer.MAX_VALUE);
+            return SubmitDAGRequestProto.parseFrom(in);
+          } catch (IOException e) {
+            throw wrapException(e);
+          }
+        });
       }
+
       DAGPlan dagPlan = request.getDAGPlan();
       Map<String, LocalResource> additionalResources = null;
       if (request.hasAdditionalAmResources()) {
@@ -187,6 +209,9 @@ public class DAGClientAMProtocolBlockingPBServerImpl implements DAGClientAMProto
       String dagId = real.submitDAG(dagPlan, additionalResources);
       return SubmitDAGResponseProto.newBuilder().setDagId(dagId).build();
     } catch(IOException | TezException e) {
+      throw wrapException(e);
+    } catch (InterruptedException e){
+      Thread.currentThread().interrupt();
       throw wrapException(e);
     }
   }
