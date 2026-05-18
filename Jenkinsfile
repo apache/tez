@@ -85,6 +85,9 @@ pipeline {
 
                     YETUS_ARGS=()
 
+                    # Uncomment the following line to enable Yetus debugging
+                    # YETUS_ARGS+=("--debug")
+
                     # 1. Target Issue/PR
                     if [[ -n "${JIRA_ISSUE_KEY}" ]]; then
                         YETUS_ARGS+=("${JIRA_ISSUE_KEY}")
@@ -109,7 +112,11 @@ pipeline {
                     # 4. Plugins & Personality
                     # Copy personality to PATCHDIR to avoid deletion by Yetus' robot mode
                     cp "${WORKSPACE}/${SOURCEDIR}/dev-support/tez-personality.sh" "${WORKSPACE}/${PATCHDIR}/tez-personality.sh"
-                    YETUS_ARGS+=("--plugins=all")
+
+                    # Disable mvninstall Yetus plugin as Github Actions is already running
+                    # The maven install phase
+                    YETUS_ARGS+=("--plugins=all,-mvninstall")
+
                     YETUS_ARGS+=("--personality=${WORKSPACE}/${PATCHDIR}/tez-personality.sh")
                     YETUS_ARGS+=("--mvn-custom-repos")
                     YETUS_ARGS+=("--tests-filter=checkstyle")
