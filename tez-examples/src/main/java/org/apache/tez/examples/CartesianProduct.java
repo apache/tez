@@ -54,6 +54,7 @@ import org.apache.tez.runtime.library.cartesianproduct.CartesianProductEdgeManag
 import org.apache.tez.runtime.library.cartesianproduct.CartesianProductVertexManager;
 import org.apache.tez.runtime.library.conf.UnorderedKVEdgeConfig;
 import org.apache.tez.runtime.library.conf.UnorderedPartitionedKVEdgeConfig;
+import org.apache.tez.runtime.library.partitioner.HashPartitioner;
 import org.apache.tez.runtime.library.processor.SimpleProcessor;
 
 import org.slf4j.Logger;
@@ -192,8 +193,8 @@ public class CartesianProduct extends TezExampleBase {
           IntWritable.class.getName(), CustomPartitioner.class.getName()).build();
       cpEdgeProperty = cpEdgeConf.createDefaultCustomEdgeProperty(cpEdgeManager);
     } else {
-      UnorderedKVEdgeConfig edgeConf =
-        UnorderedKVEdgeConfig.newBuilder(Text.class.getName(), IntWritable.class.getName()).build();
+      UnorderedPartitionedKVEdgeConfig edgeConf = UnorderedPartitionedKVEdgeConfig.newBuilder(Text.class.getName(),
+          IntWritable.class.getName(), HashPartitioner.class.getName()).build();
       cpEdgeProperty = edgeConf.createDefaultCustomEdgeProperty(cpEdgeManager);
     }
 
