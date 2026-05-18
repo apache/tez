@@ -59,7 +59,7 @@ function personality_modules {
 
   # Apply strict linting profile for all phases except unit tests
   if [[ ${testtype} != "unit" ]]; then
-    extra+=("-Ptest-patch")
+    extra+=("-Pstrict-warnings")
   fi
 
   # Execute core compilation and unit tests globally (project root)

@@ -1234,7 +1234,7 @@
       </build>
     </profile>
     <profile>
-      <id>test-patch</id>
+      <id>strict-warnings</id>
       <activation>
         <activeByDefault>false</activeByDefault>
       </activation>
