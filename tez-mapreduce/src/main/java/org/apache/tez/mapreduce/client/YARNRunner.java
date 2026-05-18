@@ -28,6 +28,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
 import java.util.TreeMap;
+import java.util.concurrent.ConcurrentHashMap;
 
 import org.apache.hadoop.classification.InterfaceAudience.LimitedPrivate;
 import org.apache.hadoop.classification.InterfaceAudience.Private;
@@ -141,6 +142,8 @@ public class YARNRunner implements ClientProtocol {
   private final TezConfiguration tezConf;
   private MRTezClient tezClient;
   private MRDAGClient dagClient;
+  /** Map from JobID to DAGClient for jobs submitted by this runner (used for counters and status). */
+  private final Map<JobID, MRDAGClient> dagClientMap = new ConcurrentHashMap<JobID, MRDAGClient>();
 
   /**
    * Yarn runner incapsulates the client interface of
@@ -640,6 +643,7 @@ public class YARNRunner implements ClientProtocol {
       tezClient = new MRTezClient("MapReduce", dagAMConf, false, jobLocalResources, ts);
       tezClient.start();
       dagClient = new MRDAGClient(tezClient.submitDAGApplication(appId, dag));
+      dagClientMap.put(jobId, dagClient);
       tezClient.stop();
     } catch (TezException e) {
       throw new IOException(e);
@@ -687,7 +691,8 @@ public class YARNRunner implements ClientProtocol {
   @Override
   public Counters getJobCounters(JobID arg0) throws IOException,
       InterruptedException {
-    return clientCache.getClient(arg0).getJobCounters(arg0);
+    MRDAGClient dagClientForJob = dagClientMap.get(arg0);
+    return clientCache.getClient(arg0, dagClientForJob).getJobCounters(arg0);
   }
 
   @Override
@@ -700,10 +705,14 @@ public class YARNRunner implements ClientProtocol {
       InterruptedException {
     String user = UserGroupInformation.getCurrentUser().getShortUserName();
     String jobFile = MRApps.getJobFile(conf, user, jobID);
+    MRDAGClient clientForJob = dagClientMap.get(jobID);
+    if (clientForJob == null) {
+      clientForJob = dagClient;
+    }
     DAGStatus dagStatus;
     try {
-      dagStatus = dagClient.getDAGStatus(null);
-      return new DAGJobStatus(dagClient.getApplicationReport(), dagStatus, jobFile);
+      dagStatus = clientForJob.getDAGStatus(null);
+      return new DAGJobStatus(clientForJob.getApplicationReport(), dagStatus, jobFile);
     } catch (TezException e) {
       throw new IOException(e);
     }
