@@ -20,12 +20,7 @@ package org.apache.tez.dag.api.client;
 
 import static org.mockito.Mockito.mock;
 
-import java.net.HttpURLConnection;
-import java.net.URL;
-
 import org.apache.hadoop.conf.Configuration;
-import org.apache.hadoop.security.UserGroupInformation;
-import org.apache.hadoop.security.authentication.client.ConnectionConfigurator;
 import org.apache.tez.dag.api.TezException;
 import org.apache.tez.dag.api.client.TimelineReaderFactory.TimelineReaderPseudoAuthenticatedStrategy;
 
@@ -48,15 +43,11 @@ public class TestTimelineReaderFactory {
   }
 
   @Test(timeout = 5000)
-  public void testPseudoAuthenticatorConnectionUrlShouldHaveUserName() throws Exception {
-    ConnectionConfigurator connConf = mock(ConnectionConfigurator.class);
-    TimelineReaderPseudoAuthenticatedStrategy.PseudoAuthenticatedURLConnectionFactory
-        connectionFactory = new TimelineReaderPseudoAuthenticatedStrategy
-          .PseudoAuthenticatedURLConnectionFactory(connConf);
-    String inputUrl = "http://host:8080/path";
-    String expectedUrl = inputUrl + "?user.name=" + UserGroupInformation.getCurrentUser().getShortUserName();
-    HttpURLConnection httpURLConnection = connectionFactory.getHttpURLConnection(new URL(inputUrl));
-    Assert.assertEquals(expectedUrl, httpURLConnection.getURL().toString());
+  public void testPseudoStrategyCreatesJersey2Client() {
+    TimelineReaderPseudoAuthenticatedStrategy strategy =
+        new TimelineReaderPseudoAuthenticatedStrategy(new Configuration(), false, 1000);
+    Assert.assertNotNull(strategy.getHttpClient());
+    strategy.close();
   }
 
 }

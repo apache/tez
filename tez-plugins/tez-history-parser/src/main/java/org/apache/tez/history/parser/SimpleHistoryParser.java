@@ -179,7 +179,7 @@ public class SimpleHistoryParser extends BaseParser {
       if (relatedEntities == null) {
         //This can happen when CONTAINER_EXITED abruptly. (e.g Container failed, exitCode=1)
         LOG.debug("entity {} did not have related entities",
-            jsonObject.optJSONObject(Constants.ENTITY));
+            jsonObject.optJSONObject(Constants.ENTITY_ID));
       } else {
         JSONObject subJsonObject = relatedEntities.optJSONObject(0);
         if (subJsonObject != null) {
@@ -187,7 +187,7 @@ public class SimpleHistoryParser extends BaseParser {
           if (!Strings.isNullOrEmpty(nodeId) && nodeId.equalsIgnoreCase(Constants.NODE_ID)) {
             //populate it in otherInfo
             JSONObject otherInfo = jsonObject.optJSONObject(Constants.OTHER_INFO);
-            String nodeIdVal = subJsonObject.optString(Constants.ENTITY);
+            String nodeIdVal = subJsonObject.optString(Constants.ENTITY_ID);
             if (otherInfo != null && nodeIdVal != null) {
               otherInfo.put(Constants.NODE_ID, nodeIdVal);
             }
@@ -201,7 +201,7 @@ public class SimpleHistoryParser extends BaseParser {
               .equalsIgnoreCase(Constants.CONTAINER_ID)) {
             //populate it in otherInfo
             JSONObject otherInfo = jsonObject.optJSONObject(Constants.OTHER_INFO);
-            String containerIdVal = subJsonObject.optString(Constants.ENTITY);
+            String containerIdVal = subJsonObject.optString(Constants.ENTITY_ID);
             if (otherInfo != null && containerIdVal != null) {
               otherInfo.put(Constants.CONTAINER_ID, containerIdVal);
             }
@@ -224,7 +224,7 @@ public class SimpleHistoryParser extends BaseParser {
     while (source.hasNext()) {
       JSONObject jsonObject = source.next();
 
-      String entity = jsonObject.getString(Constants.ENTITY);
+      String entity = jsonObject.getString(Constants.ENTITY_ID);
       String entityType = jsonObject.getString(Constants.ENTITY_TYPE);
       switch (entityType) {
       case Constants.TEZ_DAG_ID:
@@ -254,7 +254,7 @@ public class SimpleHistoryParser extends BaseParser {
             JSONObject subEntity = relatedEntities.getJSONObject(i);
             String subEntityType = subEntity.optString(Constants.ENTITY_TYPE);
             if (subEntityType != null && subEntityType.equals(Constants.USER)) {
-              userName = subEntity.getString(Constants.ENTITY);
+              userName = subEntity.getString(Constants.ENTITY_ID);
               break;
             }
           }

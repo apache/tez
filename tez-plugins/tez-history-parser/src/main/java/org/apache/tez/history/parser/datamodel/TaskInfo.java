@@ -73,7 +73,7 @@ public class TaskInfo extends BaseInfo {
         jsonObject.getString(Constants.ENTITY_TYPE).equalsIgnoreCase
             (Constants.TEZ_TASK_ID));
 
-    taskId = StringInterner.intern(jsonObject.optString(Constants.ENTITY));
+    taskId = StringInterner.intern(jsonObject.optString(Constants.ENTITY_ID));
 
     //Parse additional Info
     final JSONObject otherInfoNode = jsonObject.getJSONObject(Constants.OTHER_INFO);

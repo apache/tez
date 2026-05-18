@@ -76,11 +76,12 @@
     <plexus-velocity.version>2.3.0</plexus-velocity.version>
     <frontend-maven-plugin.version>1.15.0</frontend-maven-plugin.version>
     <guava.version>32.0.1-jre</guava.version>
-    <hadoop.version>3.4.2</hadoop.version>
-    <jersey.version>1.19.4</jersey.version>
+    <hadoop.version>3.5.0</hadoop.version>
+    <jersey.version>2.46</jersey.version>
     <jettison.version>1.5.4</jettison.version>
     <jsr305.version>3.0.0</jsr305.version>
     <junit.version>4.13.2</junit.version>
+    <junit.jupiter.version>5.9.3</junit.jupiter.version>
     <leveldbjni-all.version>1.8</leveldbjni-all.version>
     <lifecycle-mapping.version>1.0.0</lifecycle-mapping.version>
     <metrics-core.version>3.1.0</metrics-core.version>
@@ -324,14 +325,6 @@
             <artifactId>commons-logging-api</artifactId>
           </exclusion>
           <exclusion>
-            <groupId>com.sun.jersey</groupId>
-            <artifactId>jersey-core</artifactId>
-          </exclusion>
-          <exclusion>
-            <groupId>com.sun.jersey</groupId>
-            <artifactId>jersey-server</artifactId>
-          </exclusion>
-          <exclusion>
             <groupId>org.eclipse.jdt</groupId>
             <artifactId>core</artifactId>
           </exclusion>
@@ -407,14 +400,6 @@
           <exclusion>
             <groupId>commons-logging</groupId>
             <artifactId>commons-logging-api</artifactId>
-          </exclusion>
-          <exclusion>
-            <groupId>com.sun.jersey</groupId>
-            <artifactId>jersey-core</artifactId>
-          </exclusion>
-          <exclusion>
-            <groupId>com.sun.jersey</groupId>
-            <artifactId>jersey-server</artifactId>
           </exclusion>
           <exclusion>
             <groupId>io.netty</groupId>
@@ -769,6 +754,18 @@
         <scope>test</scope>
       </dependency>
       <dependency>
+        <groupId>org.junit.jupiter</groupId>
+        <artifactId>junit-jupiter-api</artifactId>
+        <version>${junit.jupiter.version}</version>
+        <scope>test</scope>
+      </dependency>
+      <dependency>
+        <groupId>org.junit.vintage</groupId>
+        <artifactId>junit-vintage-engine</artifactId>
+        <version>${junit.jupiter.version}</version>
+        <scope>test</scope>
+      </dependency>
+      <dependency>
         <groupId>com.google.protobuf</groupId>
         <artifactId>protobuf-java</artifactId>
         <version>${protobuf.version}</version>
@@ -784,13 +781,13 @@
         <version>${jettison.version}</version>
       </dependency>
       <dependency>
-        <groupId>com.sun.jersey</groupId>
+        <groupId>org.glassfish.jersey.core</groupId>
         <artifactId>jersey-client</artifactId>
         <version>${jersey.version}</version>
       </dependency>
       <dependency>
-        <groupId>com.sun.jersey</groupId>
-        <artifactId>jersey-json</artifactId>
+        <groupId>org.glassfish.jersey.media</groupId>
+        <artifactId>jersey-media-json-jackson</artifactId>
         <version>${jersey.version}</version>
       </dependency>
       <!-- BouncyCastle should be in default scope to make their way to tez.tar.gz since Hadoop 3.4.1 -->

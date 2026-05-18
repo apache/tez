@@ -31,7 +31,11 @@ import java.util.Collections;
 import java.util.List;
 import java.util.Random;
 
+import javax.ws.rs.client.Client;
+import javax.ws.rs.client.ClientBuilder;
+import javax.ws.rs.client.WebTarget;
 import javax.ws.rs.core.MediaType;
+import javax.ws.rs.core.Response;
 
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.fs.FileSystem;
@@ -46,6 +50,7 @@ import org.apache.hadoop.yarn.api.records.timeline.TimelineEntity;
 import org.apache.hadoop.yarn.api.records.timeline.TimelineEvent;
 import org.apache.hadoop.yarn.conf.YarnConfiguration;
 import org.apache.tez.client.TezClient;
+import org.apache.tez.common.ATSConstants;
 import org.apache.tez.common.ReflectionUtils;
 import org.apache.tez.common.security.DAGAccessControls;
 import org.apache.tez.dag.api.DAG;
@@ -66,9 +71,6 @@ import org.apache.tez.runtime.library.processor.SleepProcessor.SleepProcessorCon
 import org.apache.tez.tests.MiniTezClusterWithTimeline;
 
 import com.google.common.collect.Sets;
-import com.sun.jersey.api.client.Client;
-import com.sun.jersey.api.client.ClientResponse;
-import com.sun.jersey.api.client.WebResource;
 
 import org.codehaus.jettison.json.JSONArray;
 import org.codehaus.jettison.json.JSONException;
@@ -148,23 +150,25 @@ public class TestATSHistoryWithACLs {
 
   // To be replaced after Timeline has java APIs for domains
   private <K> K getTimelineData(String url, Class<K> clazz) {
-    Client client = new Client();
-    WebResource resource = client.resource(url);
-
-    ClientResponse response = resource.accept(MediaType.APPLICATION_JSON)
-        .get(ClientResponse.class);
+    Client client = ClientBuilder.newClient();
+    WebTarget target = client.target(url);
+    Response response = target.request(MediaType.APPLICATION_JSON).get();
     assertEquals(200, response.getStatus());
-    assertTrue(MediaType.APPLICATION_JSON_TYPE.isCompatible(response.getType()));
-
-    JSONObject entity = response.getEntity(JSONObject.class);
-    K converted = null;
+    assertTrue(MediaType.APPLICATION_JSON_TYPE.isCompatible(response.getMediaType()));
+    String entityStr = response.readEntity(String.class);
     try {
-      converted = convertJSONObjectToTimelineObject(entity, clazz);
+      JSONObject jsonObject = new JSONObject(entityStr);
+      // Handle the nesting introduced by Jersey 2/Jackson
+      JSONObject effectiveJson = jsonObject.has("domain") ? jsonObject.getJSONObject("domain") : jsonObject;
+      K converted = convertJSONObjectToTimelineObject(effectiveJson, clazz);
+      assertNotNull(converted);
+      return converted;
     } catch (JSONException e) {
       throw new RuntimeException(e);
+    } finally {
+      response.close();
+      client.close();
     }
-    assertNotNull(converted);
-    return converted;
   }
 
   private <K> K convertJSONObjectToTimelineObject(JSONObject jsonObj, Class<K> clazz) throws JSONException {
@@ -178,9 +182,9 @@ public class TestATSHistoryWithACLs {
       return (K) domain;
     } else if (clazz == TimelineEntity.class) {
       TimelineEntity entity = new TimelineEntity();
-      entity.setEntityId(jsonObj.getString("entity"));
-      entity.setEntityType(jsonObj.getString("entitytype"));
-      entity.setDomainId(jsonObj.getString("domain"));
+      entity.setEntityId(jsonObj.getString(ATSConstants.ENTITY_ID));
+      entity.setEntityType(jsonObj.getString(ATSConstants.ENTITY_TYPE));
+      entity.setDomainId(jsonObj.getString(ATSConstants.DOMAIN_ID));
       entity.setEvents(getEventsFromJSON(jsonObj));
       return (K) entity;
     } else {
@@ -194,7 +198,7 @@ public class TestATSHistoryWithACLs {
     JSONArray arrEvents = jsonObj.getJSONArray("events");
     for (int i = 0; i < arrEvents.length(); i++) {
       TimelineEvent event = new TimelineEvent();
-      event.setEventType(((JSONObject) arrEvents.get(i)).getString("eventtype"));
+      event.setEventType(((JSONObject) arrEvents.get(i)).getString(ATSConstants.EVENT_TYPE));
       events.add(event);
     }
     return events;
@@ -453,12 +457,12 @@ public class TestATSHistoryWithACLs {
     historyLoggingService.handle(new DAGHistoryEvent(tezDAGID, submittedEvent));
     Thread.sleep(1000l);
     String url = "http://" + timelineAddress + "/ws/v1/timeline/TEZ_DAG_ID/"+event.getDAGID();
-    Client client = new Client();
-    WebResource resource = client.resource(url);
-
-    ClientResponse response = resource.accept(MediaType.APPLICATION_JSON)
-        .get(ClientResponse.class);
+    Client client = ClientBuilder.newClient();
+    WebTarget target = client.target(url);
+    Response response = target.request(MediaType.APPLICATION_JSON).get();
     assertEquals(404, response.getStatus());
+    response.close();
+    client.close();
   }
 
   /**
@@ -498,17 +502,18 @@ public class TestATSHistoryWithACLs {
     historyLoggingService.handle(new DAGHistoryEvent(tezDAGID, submittedEvent));
     Thread.sleep(1000l);
     String url = "http://" + timelineAddress + "/ws/v1/timeline/TEZ_DAG_ID/"+event.getDAGID();
-    Client client = new Client();
-    WebResource resource = client.resource(url);
-
-    ClientResponse response = resource.accept(MediaType.APPLICATION_JSON)
-        .get(ClientResponse.class);
+    Client client = ClientBuilder.newClient();
+    WebTarget target = client.target(url);
+    Response response = target.request(MediaType.APPLICATION_JSON).get();
     assertEquals(200, response.getStatus());
-    assertTrue(MediaType.APPLICATION_JSON_TYPE.isCompatible(response.getType()));
-    JSONObject entityJson = response.getEntity(JSONObject.class);
+    assertTrue(MediaType.APPLICATION_JSON_TYPE.isCompatible(response.getMediaType()));
+    String entityStr = response.readEntity(String.class);
+    JSONObject entityJson = new JSONObject(entityStr);
     TimelineEntity entity = convertJSONObjectToTimelineObject(entityJson, TimelineEntity.class);
     assertEquals(entity.getEntityType(), "TEZ_DAG_ID");
     assertEquals(entity.getEvents().get(0).getEventType(), HistoryEventType.DAG_SUBMITTED.toString());
+    response.close();
+    client.close();
   }
 
   private static final String atsHistoryACLManagerClassName =
