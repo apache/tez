@@ -69,6 +69,16 @@ function personality_modules {
     MODULES=(.)
   fi
 
+  # Stream unit test logs live to the Jenkins console to debug infinite deadlocks
+  if [[ ${testtype} == "unit" && ${repostatus} == "patch" ]]; then
+    yetus_debug "Starting background tail for patch unit tests"
+    touch "${PATCH_DIR}/patch-unit-root.txt"
+    tail -f "${PATCH_DIR}/patch-unit-root.txt" &
+    export TAIL_PID=$!
+    # Trap to ensure tail is killed when Yetus finishes
+    trap 'kill ${TAIL_PID} 2>/dev/null || true' EXIT
+  fi
+
   if [[ ${testtype} == "spotbugs" ]]; then
     extra+=("-Pspotbugs")
   fi

@@ -23,7 +23,7 @@ pipeline {
 
     options {
         buildDiscarder(logRotator(numToKeepStr: '5'))
-        timeout(time: 8, unit: 'HOURS')
+        timeout(time: 5, unit: 'HOURS')
         timestamps()
         checkoutToSubdirectory('src')
         // Ensure only one build runs per PR at a time
@@ -130,9 +130,10 @@ pipeline {
                     YETUS_ARGS+=("--brief-report-file=${WORKSPACE}/${PATCHDIR}/brief.txt")
 
                     echo "Running Yetus with local patch overriding GitHub..."
+
                     "${TESTPATCHBIN}" "${YETUS_ARGS[@]}" "${WORKSPACE}/${PATCHDIR}/local-pr.patch"
                     '''
-                }
+                   }
             }
         }
     }
