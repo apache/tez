@@ -70,7 +70,6 @@ pipeline {
                     usernamePassword(credentialsId: env.JIRA_CRED_ID, passwordVariable: 'JIRA_PASSWORD', usernameVariable: 'JIRA_USER')
                 ]) {
                     sh '''#!/usr/bin/env bash
-                    set -e
 
                     TESTPATCHBIN="${WORKSPACE}/${YETUSDIR}/precommit/src/main/shell/test-patch.sh"
 
@@ -113,9 +112,7 @@ pipeline {
                     # Copy personality to PATCHDIR to avoid deletion by Yetus' robot mode
                     cp "${WORKSPACE}/${SOURCEDIR}/dev-support/tez-personality.sh" "${WORKSPACE}/${PATCHDIR}/tez-personality.sh"
 
-                    # Disable mvninstall Yetus plugin as Github Actions is already running
-                    # The maven install phase
-                    YETUS_ARGS+=("--plugins=all,-mvninstall")
+                    YETUS_ARGS+=("--plugins=all")
 
                     YETUS_ARGS+=("--personality=${WORKSPACE}/${PATCHDIR}/tez-personality.sh")
                     YETUS_ARGS+=("--mvn-custom-repos")

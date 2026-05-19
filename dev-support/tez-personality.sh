@@ -55,13 +55,14 @@ function personality_modules {
 
   extra=("-Ptools")
 
-  # Apply strict linting profile for all phases except unit tests
-  if [[ ${testtype} != "unit" ]]; then
+  # Apply strict linting profile only during the explicit compile phase.
+  # Yetus ignores warnings during mvninstall, and unit tests are too slow with strict linting.
+  if [[ ${testtype} == "compile" ]]; then
     extra+=("-Pstrict-warnings")
   fi
 
-  # Execute core compilation and unit tests globally (project root)
-  if [[ ${testtype} == "unit" || ${testtype} == "compile" ]]; then
+  # Execute core compilation, unit tests, and install globally (project root)
+  if [[ ${testtype} == "unit" || ${testtype} == "compile" || ${testtype} == "mvninstall" ]]; then
     yetus_debug "Forcing root module for ${testtype}"
     MODULES=(.)
   fi
