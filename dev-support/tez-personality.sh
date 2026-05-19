@@ -16,6 +16,8 @@
 
 # Apache Yetus personality for Apache Tez
 
+personality_plugins "all"
+
 ## @description  Globals for this personality
 ## @audience     private
 ## @stability    evolving
@@ -58,7 +60,7 @@ function personality_modules {
   # Apply strict linting profile only during the explicit compile phase.
   # Yetus ignores warnings during mvninstall, and unit tests are too slow with strict linting.
   if [[ ${testtype} == "compile" ]]; then
-    extra+=("-Pstrict-warnings")
+    extra+=("-Ptest-patch")
   fi
 
   # Execute core compilation, unit tests, and install globally (project root)
