@@ -278,14 +278,14 @@ public class ATSImportTool extends Configured implements Tool {
   }
 
   private void logErrorMessage(Response response) {
-    LOG.error("Response status={}", Integer.toString(response.getStatus()));
+    LOG.info("Response status={}", Integer.toString(response.getStatus()));
     try {
       String entity = response.readEntity(String.class);
       if (entity != null) {
-        LOG.error(entity);
+        LOG.info("Response entity={}", entity);
       }
     } catch (Exception ignore) {
-      // ignore
+        LOG.debug("Failed to read error response entity", ignore);
     }
   }
 

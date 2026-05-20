@@ -158,8 +158,21 @@ public class TestATSHistoryWithACLs {
     String entityStr = response.readEntity(String.class);
     try {
       JSONObject jsonObject = new JSONObject(entityStr);
+      JSONObject effectiveJson;
       // Handle the nesting introduced by Jersey 2/Jackson
-      JSONObject effectiveJson = jsonObject.has("domain") ? jsonObject.getJSONObject("domain") : jsonObject;
+      if (clazz == TimelineDomain.class) {
+        // TimelineDomain is annotated @XmlRootElement(name="domain"), Jersey 2/Jackson wraps it
+        effectiveJson = jsonObject.has("domain")
+            ? jsonObject.getJSONObject("domain")
+            : jsonObject;
+      } else if (clazz == TimelineEntity.class) {
+        // TimelineEntity is annotated @XmlRootElement(name="entity"), Jersey 2/Jackson wrap it
+        effectiveJson = jsonObject.has("entity")
+            ? jsonObject.getJSONObject("entity")
+            : jsonObject;
+      } else {
+        throw new RuntimeException("Unsupported class for JSON conversion: " + clazz);
+      }
       K converted = convertJSONObjectToTimelineObject(effectiveJson, clazz);
       assertNotNull(converted);
       return converted;
