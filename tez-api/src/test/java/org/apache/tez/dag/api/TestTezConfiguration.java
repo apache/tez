@@ -18,53 +18,60 @@
  */
 package org.apache.tez.dag.api;
 
-import static org.junit.Assert.assertTrue;
-import static org.junit.Assert.fail;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertNotNull;
+import static org.junit.jupiter.api.Assertions.assertNull;
+import static org.junit.jupiter.api.Assertions.fail;
 
 import java.lang.reflect.Field;
 import java.util.HashSet;
 import java.util.Set;
+import java.util.concurrent.TimeUnit;
 
 import org.apache.hadoop.conf.Configuration;
 
-import org.junit.Assert;
-import org.junit.Test;
+import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.Timeout;
 
 public class TestTezConfiguration {
 
   private static final String expectedValue = "tez.tar.gz";
 
-  @Test(timeout = 5000)
+  @Test
+  @Timeout(value = 5000, unit = TimeUnit.MILLISECONDS)
   public void testConstruction() {
     TezConfiguration tezConf1 = new TezConfiguration();
-    Assert.assertEquals(expectedValue, tezConf1.get(TezConfiguration.TEZ_LIB_URIS));
+    assertEquals(expectedValue, tezConf1.get(TezConfiguration.TEZ_LIB_URIS));
 
     Configuration tezConf2 = new Configuration(true);
-    Assert.assertNull(tezConf2.get(TezConfiguration.TEZ_LIB_URIS));
+    assertNull(tezConf2.get(TezConfiguration.TEZ_LIB_URIS));
 
     TezConfiguration tezConf3 = new TezConfiguration(new Configuration());
-    Assert.assertEquals(expectedValue, tezConf3.get(TezConfiguration.TEZ_LIB_URIS));
+    assertEquals(expectedValue, tezConf3.get(TezConfiguration.TEZ_LIB_URIS));
 
     TezConfiguration tezConf4 = new TezConfiguration(false);
-    Assert.assertNull(tezConf4.get(TezConfiguration.TEZ_LIB_URIS));
+    assertNull(tezConf4.get(TezConfiguration.TEZ_LIB_URIS));
 
     Configuration tezConf5 = new Configuration(true);
-    Assert.assertNull(tezConf5.get(TezConfiguration.TEZ_LIB_URIS));
+    assertNull(tezConf5.get(TezConfiguration.TEZ_LIB_URIS));
   }
 
-  @Test(timeout = 5000)
+  @Test
+  @Timeout(value = 5000, unit = TimeUnit.MILLISECONDS)
   public void testKeySet() throws IllegalAccessException {
     Class<?> c = TezConfiguration.class;
     Set<String> expectedKeys = new HashSet<String>();
     for (Field f : c.getFields()) {
-      if (!f.getName().endsWith("DEFAULT") && f.getType() == String.class
+      if (!f.getName().endsWith("DEFAULT")
+          && f.getType() == String.class
           && !f.getName().equals("TEZ_SITE_XML")) {
-        String value = (String)f.get(null);
+        String value = (String) f.get(null);
         // not prefix
         if (!value.endsWith(".")) {
           expectedKeys.add((String) f.get(null));
-          Assert.assertNotNull("field " + f.getName() + " do not have annotation of ConfigurationScope.",
-              f.getAnnotation(ConfigurationScope.class));
+          assertNotNull(
+              f.getAnnotation(ConfigurationScope.class),
+              "field " + f.getName() + " do not have annotation of ConfigurationScope.");
         }
       }
     }
@@ -75,6 +82,6 @@ public class TestTezConfiguration {
         fail("Found unexpected key: " + key + " in key set");
       }
     }
-    assertTrue("Missing keys in key set: " + expectedKeys, expectedKeys.size() == 0);
+    assertEquals(0, expectedKeys.size(), "Missing keys in key set: " + expectedKeys);
   }
 }

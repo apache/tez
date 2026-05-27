@@ -18,8 +18,8 @@
  */
 package org.apache.tez.dag.app.dag;
 
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.fail;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.fail;
 import static org.mockito.Mockito.any;
 import static org.mockito.Mockito.doReturn;
 import static org.mockito.Mockito.mock;
@@ -30,6 +30,7 @@ import static org.mockito.Mockito.verify;
 import java.util.EnumSet;
 import java.util.Iterator;
 import java.util.List;
+import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicInteger;
 
 import org.apache.tez.dag.api.TezUncheckedException;
@@ -41,8 +42,8 @@ import org.apache.tez.dag.records.TezVertexID;
 
 import com.google.common.collect.Lists;
 
-import org.junit.Assert;
-import org.junit.Test;
+import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.Timeout;
 import org.mockito.ArgumentCaptor;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -102,7 +103,8 @@ public class TestStateChangeNotifier {
     }
   }
 
-  @Test(timeout = 5000)
+  @Test
+  @Timeout(value = 5000, unit = TimeUnit.MILLISECONDS)
   public void testEventsOnRegistration() {
     TezDAGID dagId = TezDAGID.getInstance("1", 1, 1);
     Vertex v1 = createMockVertex(dagId, 1);
@@ -146,7 +148,7 @@ public class TestStateChangeNotifier {
     tracker.reset();
     VertexStateUpdateListener mockListener2 = mock(VertexStateUpdateListener.class);
     tracker.registerForVertexUpdates(v2.getName(), null, mockListener2);
-    Assert.assertEquals(0, tracker.totalCount.get()); // there should no be any event sent out
+    assertEquals(0, tracker.totalCount.get()); // there should no be any event sent out
     verify(mockListener2, never()).onStateUpdated(any());
 
     // Vertex has notified about parallelism update only
@@ -158,7 +160,8 @@ public class TestStateChangeNotifier {
         argumentCaptor.getValue().getVertexState());
   }
 
-  @Test(timeout = 5000)
+  @Test
+  @Timeout(value = 5000, unit = TimeUnit.MILLISECONDS)
   public void testSimpleStateUpdates() {
     TezDAGID dagId = TezDAGID.getInstance("1", 1, 1);
     Vertex v1 = createMockVertex(dagId, 1);
@@ -193,7 +196,8 @@ public class TestStateChangeNotifier {
     }
   }
 
-  @Test(timeout = 5000)
+  @Test
+  @Timeout(value = 5000, unit = TimeUnit.MILLISECONDS)
   public void testDuplicateRegistration() {
     TezDAGID dagId = TezDAGID.getInstance("1", 1, 1);
     Vertex v1 = createMockVertex(dagId, 1);
@@ -211,7 +215,8 @@ public class TestStateChangeNotifier {
     }
   }
 
-  @Test(timeout = 5000)
+  @Test
+  @Timeout(value = 5000, unit = TimeUnit.MILLISECONDS)
   public void testSpecificStateUpdates() {
     TezDAGID dagId = TezDAGID.getInstance("1", 1, 1);
     Vertex v1 = createMockVertex(dagId, 1);
@@ -253,7 +258,8 @@ public class TestStateChangeNotifier {
     }
   }
 
-  @Test(timeout = 5000)
+  @Test
+  @Timeout(value = 5000, unit = TimeUnit.MILLISECONDS)
   public void testUnregister() {
     TezDAGID dagId = TezDAGID.getInstance("1", 1, 1);
     Vertex v1 = createMockVertex(dagId, 1);

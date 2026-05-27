@@ -18,10 +18,12 @@
  */
 package org.apache.tez.runtime.library.common.shuffle.orderedgrouped;
 
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertFalse;
-import static org.junit.Assert.assertNotEquals;
-import static org.junit.Assert.assertTrue;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertNotEquals;
+import static org.junit.jupiter.api.Assertions.assertNull;
+import static org.junit.jupiter.api.Assertions.assertTrue;
+import static org.junit.jupiter.api.Assertions.fail;
 import static org.mockito.Mockito.atLeastOnce;
 import static org.mockito.Mockito.doReturn;
 import static org.mockito.Mockito.mock;
@@ -34,6 +36,7 @@ import java.io.IOException;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.UUID;
+import java.util.concurrent.TimeUnit;
 
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.fs.FSDataOutputStream;
@@ -55,10 +58,10 @@ import org.apache.tez.runtime.library.common.sort.impl.TezIndexRecord;
 
 import com.google.common.collect.Sets;
 
-import org.junit.After;
-import org.junit.Assert;
-import org.junit.Before;
-import org.junit.Test;
+import org.junit.jupiter.api.AfterEach;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.Timeout;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -86,13 +89,14 @@ public class TestMergeManager {
     }
   }
 
-  @Before
-  @After
+  @BeforeEach
+  @AfterEach
   public void cleanup() throws IOException {
     localFs.delete(workDir, true);
   }
 
-  @Test(timeout = 10000)
+  @Test
+  @Timeout(value = 10000, unit = TimeUnit.MILLISECONDS)
   public void testConfigs() throws IOException {
     long maxTaskMem = 8192 * 1024 * 1024l;
 
@@ -100,59 +104,59 @@ public class TestMergeManager {
     Configuration conf = new TezConfiguration(defaultConf);
     conf.setFloat(TezRuntimeConfiguration.TEZ_RUNTIME_SHUFFLE_FETCH_BUFFER_PERCENT, 0.8f);
     conf.setFloat(TezRuntimeConfiguration.TEZ_RUNTIME_INPUT_POST_MERGE_BUFFER_PERCENT, 0.5f);
-    Assert.assertTrue(MergeManager.getInitialMemoryRequirement(conf, maxTaskMem) == 6871947776l);
+    assertEquals(6871947776l, MergeManager.getInitialMemoryRequirement(conf, maxTaskMem));
 
     conf.setFloat(TezRuntimeConfiguration.TEZ_RUNTIME_SHUFFLE_FETCH_BUFFER_PERCENT, 0.5f);
     conf.setFloat(TezRuntimeConfiguration.TEZ_RUNTIME_INPUT_POST_MERGE_BUFFER_PERCENT, 0.5f);
-    Assert.assertTrue(MergeManager.getInitialMemoryRequirement(conf, maxTaskMem) > Integer.MAX_VALUE);
+    assertTrue(MergeManager.getInitialMemoryRequirement(conf, maxTaskMem) > Integer.MAX_VALUE);
 
     conf.setFloat(TezRuntimeConfiguration.TEZ_RUNTIME_SHUFFLE_FETCH_BUFFER_PERCENT, 0.4f);
     conf.setFloat(TezRuntimeConfiguration.TEZ_RUNTIME_INPUT_POST_MERGE_BUFFER_PERCENT, 0.9f);
-    Assert.assertTrue(MergeManager.getInitialMemoryRequirement(conf, maxTaskMem) > Integer.MAX_VALUE);
+    assertTrue(MergeManager.getInitialMemoryRequirement(conf, maxTaskMem) > Integer.MAX_VALUE);
 
     conf.setFloat(TezRuntimeConfiguration.TEZ_RUNTIME_SHUFFLE_FETCH_BUFFER_PERCENT, 0.1f);
     conf.setFloat(TezRuntimeConfiguration.TEZ_RUNTIME_INPUT_POST_MERGE_BUFFER_PERCENT, 0.1f);
-    Assert.assertTrue(MergeManager.getInitialMemoryRequirement(conf, maxTaskMem) < Integer.MAX_VALUE);
+    assertTrue(MergeManager.getInitialMemoryRequirement(conf, maxTaskMem) < Integer.MAX_VALUE);
 
     try {
       conf.setFloat(TezRuntimeConfiguration.TEZ_RUNTIME_SHUFFLE_FETCH_BUFFER_PERCENT, 2.4f);
       MergeManager.getInitialMemoryRequirement(conf, maxTaskMem);
-      Assert.fail("Should have thrown wrong buffer percent configuration exception");
+      fail("Should have thrown wrong buffer percent configuration exception");
     } catch(IllegalArgumentException ie) {
     }
 
     try {
       conf.setFloat(TezRuntimeConfiguration.TEZ_RUNTIME_SHUFFLE_FETCH_BUFFER_PERCENT, -2.4f);
       MergeManager.getInitialMemoryRequirement(conf, maxTaskMem);
-      Assert.fail("Should have thrown wrong buffer percent configuration exception");
+      fail("Should have thrown wrong buffer percent configuration exception");
     } catch(IllegalArgumentException ie) {
     }
 
     try {
       conf.setFloat(TezRuntimeConfiguration.TEZ_RUNTIME_INPUT_POST_MERGE_BUFFER_PERCENT, 1.4f);
       MergeManager.getInitialMemoryRequirement(conf, maxTaskMem);
-      Assert.fail("Should have thrown wrong post merge buffer percent configuration exception");
+      fail("Should have thrown wrong post merge buffer percent configuration exception");
     } catch(IllegalArgumentException ie) {
     }
 
     try {
       conf.setFloat(TezRuntimeConfiguration.TEZ_RUNTIME_INPUT_POST_MERGE_BUFFER_PERCENT, -1.4f);
       MergeManager.getInitialMemoryRequirement(conf, maxTaskMem);
-      Assert.fail("Should have thrown wrong post merge buffer percent configuration exception");
+      fail("Should have thrown wrong post merge buffer percent configuration exception");
     } catch(IllegalArgumentException ie) {
     }
 
     try {
       conf.setFloat(TezRuntimeConfiguration.TEZ_RUNTIME_SHUFFLE_FETCH_BUFFER_PERCENT, 1.4f);
       MergeManager.getInitialMemoryRequirement(conf, maxTaskMem);
-      Assert.fail("Should have thrown wrong shuffle fetch buffer percent configuration exception");
+      fail("Should have thrown wrong shuffle fetch buffer percent configuration exception");
     } catch(IllegalArgumentException ie) {
     }
 
     try {
       conf.setFloat(TezRuntimeConfiguration.TEZ_RUNTIME_SHUFFLE_FETCH_BUFFER_PERCENT, -1.4f);
       MergeManager.getInitialMemoryRequirement(conf, maxTaskMem);
-      Assert.fail("Should have thrown wrong shuffle fetch buffer percent configuration exception");
+      fail("Should have thrown wrong shuffle fetch buffer percent configuration exception");
     } catch(IllegalArgumentException ie) {
     }
 
@@ -168,16 +172,17 @@ public class TestMergeManager {
     MergeManager mergeManager =
         new MergeManager(conf, localFs, localDirAllocator, t0inputContext, null, null, null, null,
             t0exceptionReporter, initialMemoryAvailable, null, false, -1);
-    Assert.assertTrue(mergeManager.postMergeMemLimit > Integer.MAX_VALUE);
+    assertTrue(mergeManager.postMergeMemLimit > Integer.MAX_VALUE);
 
     initialMemoryAvailable = 200 * 1024 * 1024l; //initial mem < memlimit
     mergeManager =
         new MergeManager(conf, localFs, localDirAllocator, t0inputContext, null, null, null, null,
             t0exceptionReporter, initialMemoryAvailable, null, false, -1);
-    Assert.assertTrue(mergeManager.postMergeMemLimit == initialMemoryAvailable);
+    assertEquals(mergeManager.postMergeMemLimit, initialMemoryAvailable);
   }
 
-  @Test(timeout = 10000)
+  @Test
+  @Timeout(value = 10000, unit = TimeUnit.MILLISECONDS)
   public void testReservationAccounting() throws IOException {
     Configuration conf = new TezConfiguration(defaultConf);
     FileSystem localFs = FileSystem.getLocal(conf);
@@ -203,7 +208,8 @@ public class TestMergeManager {
     assertEquals(0, mergeManager.getCommitMemory());
   }
 
-  @Test(timeout=20000)
+  @Test
+  @Timeout(value = 20000, unit = TimeUnit.MILLISECONDS)
   public void testIntermediateMemoryMergeAccounting() throws Exception {
     Configuration conf = new TezConfiguration(defaultConf);
     conf.setBoolean(TezRuntimeConfiguration.TEZ_RUNTIME_COMPRESS, false);
@@ -387,10 +393,11 @@ public class TestMergeManager {
     mo4.commit();
 
     mergeManager.close(true);
-    Assert.assertTrue(dummyCodec.createInputStreamCalled > 0);
+    assertTrue(dummyCodec.createInputStreamCalled > 0);
   }
 
-  @Test(timeout = 60000l)
+  @Test
+  @org.junit.jupiter.api.Timeout(value = 60000, unit = java.util.concurrent.TimeUnit.MILLISECONDS)
   public void testIntermediateMemoryMerge() throws Throwable {
     Configuration conf = new TezConfiguration(defaultConf);
     conf.setBoolean(TezRuntimeConfiguration.TEZ_RUNTIME_COMPRESS, false);
@@ -699,8 +706,8 @@ public class TestMergeManager {
     //Check if inMemorySegment has got the MapOutput back for merging later
     assertEquals(numberOfMapOutputs, mergeManager.inMemoryMapOutputs.size());
 
-    Assert.assertNull(mergeManager.close(false));
-    Assert.assertFalse(mergeManager.isMergeComplete());
+    assertNull(mergeManager.close(false));
+    assertFalse(mergeManager.isMergeComplete());
   }
 
   private byte[] generateDataBySize(Configuration conf, int rawLen, InputAttemptIdentifier inputAttemptIdentifier) throws IOException {
@@ -783,13 +790,15 @@ public class TestMergeManager {
     }
   }
 
-  @Test(timeout = 10000)
+  @Test
+  @Timeout(value = 10000, unit = TimeUnit.MILLISECONDS)
   public void testLocalDiskMergeMultipleTasks() throws IOException, InterruptedException {
     testLocalDiskMergeMultipleTasks(false);
     testLocalDiskMergeMultipleTasks(true);
   }
 
-  @Test(timeout = 10000)
+  @Test
+  @Timeout(value = 10000, unit = TimeUnit.MILLISECONDS)
   public void testOnDiskMergerFilenames() throws IOException, InterruptedException {
     Configuration conf = new TezConfiguration(defaultConf);
     conf.setBoolean(TezRuntimeConfiguration.TEZ_RUNTIME_COMPRESS, false);
@@ -847,7 +856,7 @@ public class TestMergeManager {
     mergeManager.onDiskMapOutputs.clear();
 
     mergeManager.onDiskMerger.merge(mergeFiles);
-    Assert.assertEquals(1, mergeManager.onDiskMapOutputs.size());
+    assertEquals(1, mergeManager.onDiskMapOutputs.size());
 
     FileChunk fcMerged1 = mergeManager.onDiskMapOutputs.iterator().next();
     Path m1Path = fcMerged1.getPath();
@@ -871,7 +880,7 @@ public class TestMergeManager {
     mergeManager.onDiskMapOutputs.clear();
 
     mergeManager.onDiskMerger.merge(mergeFiles);
-    Assert.assertEquals(1, mergeManager.onDiskMapOutputs.size());
+    assertEquals(1, mergeManager.onDiskMapOutputs.size());
 
     FileChunk fcMerged2 = mergeManager.onDiskMapOutputs.iterator().next();
     Path m2Path = fcMerged2.getPath();
@@ -901,7 +910,7 @@ public class TestMergeManager {
     mergeManager.onDiskMapOutputs.clear();
 
     mergeManager.onDiskMerger.merge(mergeFiles);
-    Assert.assertEquals(1, mergeManager.onDiskMapOutputs.size());
+    assertEquals(1, mergeManager.onDiskMapOutputs.size());
 
     FileChunk fcMerged3 = mergeManager.onDiskMapOutputs.iterator().next();
     Path m3Path = fcMerged3.getPath();
@@ -1027,7 +1036,7 @@ public class TestMergeManager {
 
     if (!interruptInMiddle) {
       t0mergeManager.onDiskMerger.merge(t0MergeFiles);
-      Assert.assertEquals(1, t0mergeManager.onDiskMapOutputs.size());
+      assertEquals(1, t0mergeManager.onDiskMapOutputs.size());
     } else {
 
       //Start Interrupting thread
@@ -1042,7 +1051,7 @@ public class TestMergeManager {
       //Will be interrupted in the middle by interruptingThread.
       t0mergeManager.onDiskMerger.startMerge(Sets.newHashSet(t0MergeFiles));
       t0mergeManager.onDiskMerger.waitForMerge();
-      Assert.assertNotEquals(1, t0mergeManager.onDiskMapOutputs.size());
+      assertNotEquals(1, t0mergeManager.onDiskMapOutputs.size());
     }
 
     if (!interruptInMiddle) {
@@ -1056,14 +1065,14 @@ public class TestMergeManager {
       t1MergeFiles.addAll(t1mergeManager.onDiskMapOutputs);
       t1mergeManager.onDiskMapOutputs.clear();
       t1mergeManager.onDiskMerger.merge(t1MergeFiles);
-      Assert.assertEquals(1, t1mergeManager.onDiskMapOutputs.size());
+      assertEquals(1, t1mergeManager.onDiskMapOutputs.size());
 
-      Assert.assertNotEquals(t0mergeManager.onDiskMapOutputs.iterator().next().getPath(),
+      assertNotEquals(t0mergeManager.onDiskMapOutputs.iterator().next().getPath(),
           t1mergeManager.onDiskMapOutputs.iterator().next().getPath());
 
-      Assert.assertTrue(t0mergeManager.onDiskMapOutputs.iterator().next().getPath().toString()
+      assertTrue(t0mergeManager.onDiskMapOutputs.iterator().next().getPath().toString()
           .contains(t0inputContext.getUniqueIdentifier()));
-      Assert.assertTrue(t1mergeManager.onDiskMapOutputs.iterator().next().getPath().toString()
+      assertTrue(t1mergeManager.onDiskMapOutputs.iterator().next().getPath().toString()
           .contains(t1inputContext.getUniqueIdentifier()));
     }
   }

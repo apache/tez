@@ -19,10 +19,12 @@
 package org.apache.tez.auxservices;
 
 import static io.netty.buffer.Unpooled.wrappedBuffer;
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertTrue;
-import static org.junit.Assert.fail;
-import static org.junit.Assume.assumeTrue;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertNotNull;
+import static org.junit.jupiter.api.Assertions.assertTrue;
+import static org.junit.jupiter.api.Assertions.fail;
+import static org.junit.jupiter.api.Assumptions.assumeTrue;
 import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.Mockito.any;
 import static org.mockito.Mockito.doAnswer;
@@ -46,6 +48,7 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 import java.util.Random;
+import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.stream.Collectors;
 import java.util.stream.IntStream;
@@ -74,6 +77,8 @@ import org.apache.hadoop.yarn.server.api.ApplicationInitializationContext;
 import org.apache.hadoop.yarn.server.api.ApplicationTerminationContext;
 import org.apache.hadoop.yarn.server.api.AuxiliaryLocalPathHandler;
 import org.apache.hadoop.yarn.server.records.Version;
+import org.apache.tez.auxservices.ShuffleHandler.ReduceMapFileCount;
+import org.apache.tez.auxservices.ShuffleHandler.TimeoutHandler;
 import org.apache.tez.common.security.JobTokenIdentifier;
 import org.apache.tez.common.security.JobTokenSecretManager;
 import org.apache.tez.dag.api.TezConfiguration;
@@ -95,14 +100,16 @@ import io.netty.channel.socket.SocketChannel;
 import io.netty.handler.codec.http.DefaultFullHttpRequest;
 import io.netty.handler.codec.http.FullHttpRequest;
 import io.netty.handler.codec.http.HttpHeaders;
+import io.netty.handler.codec.http.HttpHeaders.Names;
+import io.netty.handler.codec.http.HttpHeaders.Values;
 import io.netty.handler.codec.http.HttpMethod;
 import io.netty.handler.codec.http.HttpRequest;
 import io.netty.handler.codec.http.HttpResponse;
 import io.netty.handler.codec.http.HttpResponseStatus;
 import io.netty.handler.codec.http.HttpVersion;
 
-import org.junit.Assert;
-import org.junit.Test;
+import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.Timeout;
 import org.mockito.invocation.InvocationOnMock;
 import org.mockito.stubbing.Answer;
 import org.slf4j.Logger;
@@ -266,7 +273,8 @@ public class TestShuffleHandler {
    *
    * @throws Exception exception
    */
-  @Test (timeout = 10000)
+  @Test
+  @Timeout(value = 10000, unit = TimeUnit.MILLISECONDS)
   public void testSerializeMeta()  throws Exception {
     assertEquals(1, ShuffleHandler.deserializeMetaData(
         ShuffleHandler.serializeMetaData(1)));
@@ -281,7 +289,8 @@ public class TestShuffleHandler {
    *
    * @throws Exception exception
    */
-  @Test (timeout = 10000)
+  @Test
+  @Timeout(value = 10000, unit = TimeUnit.MILLISECONDS)
   public void testShuffleMetrics() throws Exception {
     MetricsSystem ms = new MetricsSystemImpl();
     ShuffleHandler sh = new ShuffleHandler(ms);
@@ -319,7 +328,8 @@ public class TestShuffleHandler {
    *
    * @throws Exception exception.
    */
-  @Test (timeout = 10000)
+  @Test
+  @Timeout(value = 10000, unit = TimeUnit.MILLISECONDS)
   public void testClientClosesConnection() throws Exception {
     final AtomicBoolean failureEncountered = new AtomicBoolean(false);
     Configuration conf = getInitialConf();
@@ -400,15 +410,14 @@ public class TestShuffleHandler {
         ShuffleHeader.DEFAULT_HTTP_HEADER_VERSION);
     conn.connect();
     DataInputStream input = new DataInputStream(conn.getInputStream());
-    Assert.assertEquals(HttpURLConnection.HTTP_OK, conn.getResponseCode());
-    Assert.assertEquals("close", conn.getHeaderField(HttpHeaders.Names.CONNECTION));
+    assertEquals(HttpURLConnection.HTTP_OK, conn.getResponseCode());
+    assertEquals("close", conn.getHeaderField(HttpHeaders.Names.CONNECTION));
     ShuffleHeader header = new ShuffleHeader();
     header.readFields(input);
     input.close();
 
     shuffleHandler.close();
-    Assert.assertTrue("sendError called when client closed connection",
-        !failureEncountered.get());
+    assertFalse(failureEncountered.get(), "sendError called when client closed connection");
   }
 
   static class LastSocketAddress {
@@ -421,7 +430,8 @@ public class TestShuffleHandler {
     }
   }
 
-  @Test(timeout = 10000)
+  @Test
+  @Timeout(value = 10000, unit = TimeUnit.MILLISECONDS)
   public void testKeepAlive() throws Exception {
     final AtomicBoolean failureEncountered = new AtomicBoolean(false);
     Configuration conf = getInitialConf();
@@ -529,11 +539,11 @@ public class TestShuffleHandler {
       ShuffleHeader.DEFAULT_HTTP_HEADER_VERSION);
     conn.connect();
     DataInputStream input = new DataInputStream(conn.getInputStream());
-    Assert.assertEquals(HttpHeaders.Values.KEEP_ALIVE,
-      conn.getHeaderField(HttpHeaders.Names.CONNECTION));
-    Assert.assertEquals("timeout=1",
-      conn.getHeaderField(HttpHeaders.Values.KEEP_ALIVE));
-    Assert.assertEquals(HttpURLConnection.HTTP_OK, conn.getResponseCode());
+    assertEquals(Values.KEEP_ALIVE,
+      conn.getHeaderField(Names.CONNECTION));
+    assertEquals("timeout=1",
+      conn.getHeaderField(Values.KEEP_ALIVE));
+    assertEquals(HttpURLConnection.HTTP_OK, conn.getResponseCode());
     ShuffleHeader header = new ShuffleHeader();
     header.readFields(input);
     byte[] buffer = new byte[1024];
@@ -552,19 +562,19 @@ public class TestShuffleHandler {
       ShuffleHeader.DEFAULT_HTTP_HEADER_VERSION);
     conn.connect();
     input = new DataInputStream(conn.getInputStream());
-    Assert.assertEquals(HttpHeaders.Values.KEEP_ALIVE,
-      conn.getHeaderField(HttpHeaders.Names.CONNECTION));
-    Assert.assertEquals("timeout=1",
-      conn.getHeaderField(HttpHeaders.Values.KEEP_ALIVE));
-    Assert.assertEquals(HttpURLConnection.HTTP_OK, conn.getResponseCode());
+    assertEquals(Values.KEEP_ALIVE,
+      conn.getHeaderField(Names.CONNECTION));
+    assertEquals("timeout=1",
+      conn.getHeaderField(Values.KEEP_ALIVE));
+    assertEquals(HttpURLConnection.HTTP_OK, conn.getResponseCode());
     header = new ShuffleHeader();
     header.readFields(input);
     input.close();
     SocketAddress secondAddress = lastSocketAddress.getSocketAddress();
-    Assert.assertNotNull("Initial shuffle address should not be null", firstAddress);
-    Assert.assertNotNull("Keep-Alive shuffle address should not be null", secondAddress);
-    Assert.assertEquals("Initial shuffle address and keep-alive shuffle "
-        + "address should be the same", firstAddress, secondAddress);
+    assertNotNull(firstAddress, "Initial shuffle address should not be null");
+    assertNotNull(secondAddress, "Keep-Alive shuffle address should not be null");
+    assertEquals(firstAddress, secondAddress, "Initial shuffle address and keep-alive shuffle "
+        + "address should be the same");
     shuffleHandler.close();
   }
 
@@ -598,8 +608,7 @@ public class TestShuffleHandler {
           ShuffleHeader.DEFAULT_HTTP_HEADER_VERSION);
       conn.connect();
       conn.getInputStream();
-      Assert.assertTrue("socket should be set KEEP_ALIVE",
-          shuffleHandler.isSocketKeepAlive());
+      assertTrue(shuffleHandler.isSocketKeepAlive(), "socket should be set KEEP_ALIVE");
     } finally {
       if (conn != null) {
         conn.disconnect();
@@ -614,7 +623,8 @@ public class TestShuffleHandler {
    *
    * @throws Exception exception
    */
-  @Test (timeout = 10000)
+  @Test
+  @Timeout(value = 10000, unit = TimeUnit.MILLISECONDS)
   public void testIncompatibleShuffleVersion() throws Exception {
     final int failureNum = 3;
     Configuration conf = getInitialConf();
@@ -634,7 +644,7 @@ public class TestShuffleHandler {
       conn.setRequestProperty(ShuffleHeader.HTTP_HEADER_VERSION,
           i == 1 ? "1.0.0" : "1.0.1");
       conn.connect();
-      Assert.assertEquals(
+      assertEquals(
           HttpURLConnection.HTTP_BAD_REQUEST, conn.getResponseCode());
     }
 
@@ -646,7 +656,8 @@ public class TestShuffleHandler {
    *
    * @throws Exception exception
    */
-  @Test (timeout = 10000)
+  @Test
+  @Timeout(value = 10000, unit = TimeUnit.MILLISECONDS)
   public void testMaxConnections() throws Exception {
 
     Configuration conf = getInitialConf();
@@ -731,21 +742,21 @@ public class TestShuffleHandler {
     //Ensure first connections are okay
     conns[0].getInputStream();
     int rc = conns[0].getResponseCode();
-    Assert.assertEquals(HttpURLConnection.HTTP_OK, rc);
+    assertEquals(HttpURLConnection.HTTP_OK, rc);
 
     conns[1].getInputStream();
     rc = conns[1].getResponseCode();
-    Assert.assertEquals(HttpURLConnection.HTTP_OK, rc);
+    assertEquals(HttpURLConnection.HTTP_OK, rc);
 
     // This connection should be closed because it to above the limit
     try {
       conns[2].getInputStream();
       rc = conns[2].getResponseCode();
-      Assert.fail("Expected a SocketException");
+      fail("Expected a SocketException");
     } catch (SocketException se) {
       LOG.info("Expected - connection should not be open");
     } catch (Exception e) {
-      Assert.fail("Expected a SocketException");
+      fail("Expected a SocketException");
     }
 
     shuffleHandler.close();
@@ -754,7 +765,8 @@ public class TestShuffleHandler {
   /**
    * Validate the ranged fetch works as expected
    */
-  @Test(timeout = 10000)
+  @Test
+  @Timeout(value = 10000, unit = TimeUnit.MILLISECONDS)
   public void testRangedFetch() throws IOException {
     Configuration conf = getInitialConf();
     conf.setInt(ShuffleHandler.MAX_SHUFFLE_CONNECTIONS, 3);
@@ -806,8 +818,8 @@ public class TestShuffleHandler {
         for (int i = 0; i < partitionCount; i++) {
           ShuffleHeader header = new ShuffleHeader();
           header.readFields(is);
-          Assert.assertEquals("Incorrect map id", "attempt_12345_1_m_1_0", header.getMapId());
-          Assert.assertEquals("Incorrect reduce id", i, header.getPartition());
+          assertEquals("attempt_12345_1_m_1_0", header.getMapId(), "Incorrect map id");
+          assertEquals(i, header.getPartition(), "Incorrect reduce id");
           headers.add(header);
         }
         for (ShuffleHeader header: headers) {
@@ -817,9 +829,9 @@ public class TestShuffleHandler {
         succeeded = true;
         // Read one more byte to force EOF
         is.readByte();
-        Assert.fail("More fetch bytes that expected in stream");
+        fail("More fetch bytes that expected in stream");
       } catch (EOFException e) {
-        Assert.assertTrue("Failed to copy ranged fetch", succeeded);
+        assertTrue(succeeded, "Failed to copy ranged fetch");
       }
 
     } finally {
@@ -831,7 +843,8 @@ public class TestShuffleHandler {
   /**
    * Validate the ranged fetch works as expected for different amount of map attempts and reduce ranges.
    */
-  @Test(timeout = 30000)
+  @Test
+  @Timeout(value = 30000, unit = TimeUnit.MILLISECONDS)
   public void testRangedFetchMultipleAttempts() throws IOException {
     runMultiAttemptMultiRangeShuffleTest(/*attemptRange*/1, /*reduceRange*/1);
     runMultiAttemptMultiRangeShuffleTest(/*attemptRange*/5, /*reduceRange*/1);
@@ -901,22 +914,22 @@ public class TestShuffleHandler {
           for (int i = reducerIdStart; i <= reducerIdEnd; i++) {
             ShuffleHeader header = new ShuffleHeader();
             header.readFields(is);
-            Assert.assertEquals("Incorrect map id", attempt, header.getMapId());
-            Assert.assertEquals("Incorrect reduce id", i, header.getPartition());
+            assertEquals(attempt, header.getMapId(), "Incorrect map id");
+            assertEquals(i, header.getPartition(), "Incorrect reduce id");
             headers.add(header);
           }
           for (ShuffleHeader header : headers) {
             byte[] bytes = new byte[(int) header.getCompressedLength()];
             is.read(bytes);
-            Assert.assertEquals(TEST_PARTITION_DATA_STRING, new String(bytes));
+            assertEquals(TEST_PARTITION_DATA_STRING, new String(bytes));
           }
         }
         succeeded = true;
         // Read one more byte to force EOF
         is.readByte();
-        Assert.fail("More fetch bytes that expected in stream");
+        fail("More fetch bytes that expected in stream");
       } catch (EOFException e) {
-        Assert.assertTrue("Failed to copy ranged fetch", succeeded);
+        assertTrue(succeeded, "Failed to copy ranged fetch");
       }
 
     } finally {
@@ -931,7 +944,8 @@ public class TestShuffleHandler {
    *
    * @throws Exception exception
    */
-  @Test(timeout = 100000)
+  @Test
+  @Timeout(value = 100000, unit = TimeUnit.MILLISECONDS)
   public void testMapFileAccess() throws IOException {
     // This will run only in NativeIO is enabled as SecureIOUtils need it
     assumeTrue(NativeIO.isAvailable());
@@ -991,7 +1005,7 @@ public class TestShuffleHandler {
       String message =
           "Owner '" + owner + "' for path " + fileMap.get(0).getAbsolutePath()
               + " did not match expected owner '" + user + "'";
-      Assert.assertTrue((new String(byteArr)).contains(message));
+      assertTrue((new String(byteArr)).contains(message));
     } finally {
       shuffleHandler.close();
       FileUtil.fullyDelete(TEST_DIR);
@@ -1079,7 +1093,7 @@ public class TestShuffleHandler {
 
       // verify we are authorized to shuffle
       int rc = getShuffleResponseCode(shuffle, jt);
-      Assert.assertEquals(HttpURLConnection.HTTP_OK, rc);
+      assertEquals(HttpURLConnection.HTTP_OK, rc);
 
       // emulate shuffle handler restart
       shuffle.close();
@@ -1090,12 +1104,12 @@ public class TestShuffleHandler {
 
       // verify we are still authorized to shuffle to the old application
       rc = getShuffleResponseCode(shuffle, jt);
-      Assert.assertEquals(HttpURLConnection.HTTP_OK, rc);
+      assertEquals(HttpURLConnection.HTTP_OK, rc);
 
       // shutdown app and verify access is lost
       shuffle.stopApplication(new ApplicationTerminationContext(appId));
       rc = getShuffleResponseCode(shuffle, jt);
-      Assert.assertEquals(HttpURLConnection.HTTP_UNAUTHORIZED, rc);
+      assertEquals(HttpURLConnection.HTTP_UNAUTHORIZED, rc);
 
       // emulate shuffle handler restart
       shuffle.close();
@@ -1106,7 +1120,7 @@ public class TestShuffleHandler {
 
       // verify we still don't have access
       rc = getShuffleResponseCode(shuffle, jt);
-      Assert.assertEquals(HttpURLConnection.HTTP_UNAUTHORIZED, rc);
+      assertEquals(HttpURLConnection.HTTP_UNAUTHORIZED, rc);
     } finally {
       if (shuffle != null) {
         shuffle.close();
@@ -1145,7 +1159,7 @@ public class TestShuffleHandler {
 
       // verify we are authorized to shuffle
       int rc = getShuffleResponseCode(shuffle, jt);
-      Assert.assertEquals(HttpURLConnection.HTTP_OK, rc);
+      assertEquals(HttpURLConnection.HTTP_OK, rc);
 
       // emulate shuffle handler restart
       shuffle.close();
@@ -1156,15 +1170,15 @@ public class TestShuffleHandler {
 
       // verify we are still authorized to shuffle to the old application
       rc = getShuffleResponseCode(shuffle, jt);
-      Assert.assertEquals(HttpURLConnection.HTTP_OK, rc);
+      assertEquals(HttpURLConnection.HTTP_OK, rc);
       Version version = Version.newInstance(1, 0);
-      Assert.assertEquals(version, shuffle.getCurrentVersion());
+      assertEquals(version, shuffle.getCurrentVersion());
 
       // emulate shuffle handler restart with compatible version
       Version version11 = Version.newInstance(1, 1);
       // update version info before close shuffle
       shuffle.storeVersion(version11);
-      Assert.assertEquals(version11, shuffle.loadVersion());
+      assertEquals(version11, shuffle.loadVersion());
       shuffle.close();
       shuffle = new ShuffleHandler();
       shuffle.setRecoveryPath(new Path(tmpDir.toString()));
@@ -1172,15 +1186,15 @@ public class TestShuffleHandler {
       shuffle.start();
       // shuffle version will be override by CURRENT_VERSION_INFO after restart
       // successfully.
-      Assert.assertEquals(version, shuffle.loadVersion());
+      assertEquals(version, shuffle.loadVersion());
       // verify we are still authorized to shuffle to the old application
       rc = getShuffleResponseCode(shuffle, jt);
-      Assert.assertEquals(HttpURLConnection.HTTP_OK, rc);
+      assertEquals(HttpURLConnection.HTTP_OK, rc);
 
       // emulate shuffle handler restart with incompatible version
       Version version21 = Version.newInstance(2, 1);
       shuffle.storeVersion(version21);
-      Assert.assertEquals(version21, shuffle.loadVersion());
+      assertEquals(version21, shuffle.loadVersion());
       shuffle.close();
       shuffle = new ShuffleHandler();
       shuffle.setRecoveryPath(new Path(tmpDir.toString()));
@@ -1188,10 +1202,9 @@ public class TestShuffleHandler {
 
       try {
         shuffle.start();
-        Assert.fail("Incompatible version, should expect fail here.");
+        fail("Incompatible version, should expect fail here.");
       } catch (ServiceStateException e) {
-        Assert.assertTrue("Exception message mismatch",
-        e.getMessage().contains("Incompatible version for state DB schema:"));
+        assertTrue(e.getMessage().contains("Incompatible version for state DB schema:"), "Exception message mismatch");
       }
 
     } finally {
@@ -1224,7 +1237,8 @@ public class TestShuffleHandler {
     return rc;
   }
 
-  @Test(timeout = 100000)
+  @Test
+  @Timeout(value = 100000, unit = TimeUnit.MILLISECONDS)
   public void testGetMapOutputInfo() throws Exception {
     final AtomicBoolean failureEncountered = new AtomicBoolean(false);
     Configuration conf = getInitialConf();
@@ -1321,15 +1335,15 @@ public class TestShuffleHandler {
       } catch (EOFException e) {
         // ignore
       }
-      Assert.assertEquals("sendError called due to shuffle error",
-          false, failureEncountered.get());
+      assertFalse(failureEncountered.get(), "sendError called due to shuffle error");
     } finally {
       shuffleHandler.close();
       FileUtil.fullyDelete(TEST_DIR);
     }
   }
 
-  @Test(timeout = 5000)
+  @Test
+  @Timeout(value = 5000, unit = TimeUnit.MILLISECONDS)
   public void testDagDelete() throws Exception {
     final AtomicBoolean failureEncountered = new AtomicBoolean(false);
     Configuration conf = getInitialConf();
@@ -1400,17 +1414,16 @@ public class TestShuffleHandler {
                   ShuffleHandler.USERCACHE, user,
                   ShuffleHandler.APPCACHE, appId.toString(),"dag_1/"});
       File dagDir = new File(dagDirStr);
-      Assert.assertTrue("Dag Directory does not exist!", dagDir.exists());
+      assertTrue(dagDir.exists(), "Dag Directory does not exist!");
       conn.connect();
       try {
         DataInputStream is = new DataInputStream(conn.getInputStream());
         is.close();
-        Assert.assertFalse("Dag Directory was not deleted!", dagDir.exists());
+        assertFalse(dagDir.exists(), "Dag Directory was not deleted!");
       } catch (EOFException e) {
         // ignore
       }
-      Assert.assertEquals("sendError called due to shuffle error",
-          false, failureEncountered.get());
+      assertFalse(failureEncountered.get(), "sendError called due to shuffle error");
     } finally {
       shuffleHandler.close();
       FileUtil.fullyDelete(TEST_DIR);
@@ -1433,7 +1446,7 @@ public class TestShuffleHandler {
     String vertexDirStr = StringUtils.join(Path.SEPARATOR, new String[] { TEST_DIR.getAbsolutePath(),
         ShuffleHandler.USERCACHE, user, ShuffleHandler.APPCACHE, appId.toString(), "dag_1/output/" + appAttemptId});
     File vertexDir = new File(vertexDirStr);
-    Assert.assertFalse("vertex directory should not be present", vertexDir.exists());
+    assertFalse(vertexDir.exists(), "vertex directory should not be present");
     createShuffleHandlerFiles(TEST_DIR, user, appId.toString(), appAttemptId,
             conf, fileMap);
     ShuffleHandler shuffleHandler = new ShuffleHandler() {
@@ -1486,12 +1499,12 @@ public class TestShuffleHandler {
               ShuffleHeader.DEFAULT_HTTP_HEADER_NAME);
       conn.setRequestProperty(ShuffleHeader.HTTP_HEADER_VERSION,
               ShuffleHeader.DEFAULT_HTTP_HEADER_VERSION);
-      Assert.assertTrue("Attempt Directory does not exist!", vertexDir.exists());
+      assertTrue(vertexDir.exists(), "Attempt Directory does not exist!");
       conn.connect();
       try {
         DataInputStream is = new DataInputStream(conn.getInputStream());
         is.close();
-        Assert.assertFalse("Vertex Directory was not deleted", vertexDir.exists());
+        assertFalse(vertexDir.exists(), "Vertex Directory was not deleted");
       } catch (EOFException e) {
         fail("Encountered Exception!" + e.getMessage());
       }
@@ -1501,7 +1514,8 @@ public class TestShuffleHandler {
     }
   }
 
-  @Test(timeout = 5000)
+  @Test
+  @Timeout(value = 5000, unit = TimeUnit.MILLISECONDS)
   public void testFailedTaskAttemptDelete() throws Exception {
     final ArrayList<Throwable> failures = new ArrayList<Throwable>(1);
     Configuration conf = getInitialConf();
@@ -1520,7 +1534,7 @@ public class TestShuffleHandler {
                             ShuffleHandler.USERCACHE, user,
                             ShuffleHandler.APPCACHE, appId.toString(), "dag_1/output/", appAttemptId});
     File taskAttemptDir = new File(taskAttemptDirStr);
-    Assert.assertFalse("Task Attempt Directory should not exist", taskAttemptDir.exists());
+    assertFalse(taskAttemptDir.exists(), "Task Attempt Directory should not exist");
     createShuffleHandlerFiles(TEST_DIR, user, appId.toString(), appAttemptId,
         conf, fileMap);
     ShuffleHandler shuffleHandler = new ShuffleHandler() {
@@ -1573,24 +1587,24 @@ public class TestShuffleHandler {
           ShuffleHeader.DEFAULT_HTTP_HEADER_NAME);
       conn.setRequestProperty(ShuffleHeader.HTTP_HEADER_VERSION,
           ShuffleHeader.DEFAULT_HTTP_HEADER_VERSION);
-      Assert.assertTrue("Task Attempt Directory does not exist!", taskAttemptDir.exists());
+      assertTrue(taskAttemptDir.exists(), "Task Attempt Directory does not exist!");
       conn.connect();
       try {
         DataInputStream is = new DataInputStream(conn.getInputStream());
         is.close();
-        Assert.assertFalse("Task Attempt file was not deleted!", taskAttemptDir.exists());
+        assertFalse(taskAttemptDir.exists(), "Task Attempt file was not deleted!");
       } catch (EOFException e) {
         // ignore
       }
-      Assert.assertEquals("sendError called due to shuffle error",
-          0, failures.size());
+      assertEquals(0, failures.size(), "sendError called due to shuffle error");
     } finally {
       shuffleHandler.close();
       FileUtil.fullyDelete(TEST_DIR);
     }
   }
 
-  @Test(timeout = 10000)
+  @Test
+  @Timeout(value = 10000, unit = TimeUnit.MILLISECONDS)
   public void testUnauthenticatedDeleteIsRejected() throws Exception {
     Configuration conf = getInitialConf();
     conf.setInt(ShuffleHandler.MAX_SHUFFLE_CONNECTIONS, 3);
@@ -1641,7 +1655,7 @@ public class TestShuffleHandler {
                   appAttemptId});
       File taskAttemptDir = new File(taskAttemptDirStr);
 
-      Assert.assertTrue("Dag Directory does not exist!", dagDir.exists());
+      assertTrue(dagDir.exists(), "Dag Directory does not exist!");
       HttpURLConnection conn = (HttpURLConnection) URI.create(baseUrl
           + "/mapOutput?dagAction=delete&job=job_12345_0001&dag=1").toURL().openConnection();
       conn.setRequestProperty(ShuffleHeader.HTTP_HEADER_NAME,
@@ -1649,11 +1663,13 @@ public class TestShuffleHandler {
       conn.setRequestProperty(ShuffleHeader.HTTP_HEADER_VERSION,
           ShuffleHeader.DEFAULT_HTTP_HEADER_VERSION);
       conn.connect();
-      Assert.assertEquals("Unauthenticated dag delete should return 401",
-          HttpURLConnection.HTTP_UNAUTHORIZED, conn.getResponseCode());
-      Assert.assertTrue(
-          "Dag Directory should NOT have been deleted after unauthenticated request",
-          dagDir.exists());
+      assertEquals(
+          HttpURLConnection.HTTP_UNAUTHORIZED,
+          conn.getResponseCode(),
+          "Unauthenticated dag delete should return 401");
+      assertTrue(
+          dagDir.exists(),
+          "Dag Directory should NOT have been deleted after unauthenticated request");
 
       conn = (HttpURLConnection) URI.create(baseUrl
           + "/mapOutput?vertexAction=delete&job=job_12345_0001&dag=1&vertex=00").toURL().openConnection();
@@ -1662,13 +1678,15 @@ public class TestShuffleHandler {
       conn.setRequestProperty(ShuffleHeader.HTTP_HEADER_VERSION,
           ShuffleHeader.DEFAULT_HTTP_HEADER_VERSION);
       conn.connect();
-      Assert.assertEquals("Unauthenticated vertex delete should return 401",
-          HttpURLConnection.HTTP_UNAUTHORIZED, conn.getResponseCode());
-      Assert.assertTrue(
-          "Dag Directory should NOT have been deleted after unauthenticated vertex delete request",
-          dagDir.exists());
+      assertEquals(
+          HttpURLConnection.HTTP_UNAUTHORIZED,
+          conn.getResponseCode(),
+          "Unauthenticated vertex delete should return 401");
+      assertTrue(
+          dagDir.exists(),
+          "Dag Directory should NOT have been deleted after unauthenticated vertex delete request");
 
-      Assert.assertTrue("Task Attempt Directory does not exist!", taskAttemptDir.exists());
+      assertTrue(taskAttemptDir.exists(), "Task Attempt Directory does not exist!");
       conn = (HttpURLConnection) URI.create(baseUrl
           + "/mapOutput?taskAttemptAction=delete&job=job_12345_0001&dag=1&map="
           + appAttemptId).toURL().openConnection();
@@ -1677,21 +1695,24 @@ public class TestShuffleHandler {
       conn.setRequestProperty(ShuffleHeader.HTTP_HEADER_VERSION,
           ShuffleHeader.DEFAULT_HTTP_HEADER_VERSION);
       conn.connect();
-      Assert.assertEquals("Unauthenticated task attempt delete should return 401",
-          HttpURLConnection.HTTP_UNAUTHORIZED, conn.getResponseCode());
-      Assert.assertTrue(
-          "Task Attempt Directory should NOT have been deleted after unauthenticated request",
-          taskAttemptDir.exists());
+      assertEquals(
+          HttpURLConnection.HTTP_UNAUTHORIZED,
+          conn.getResponseCode(),
+          "Unauthenticated task attempt delete should return 401");
+      assertTrue(
+          taskAttemptDir.exists(),
+          "Task Attempt Directory should NOT have been deleted after unauthenticated request");
     } finally {
       shuffleHandler.close();
       FileUtil.fullyDelete(TEST_DIR);
     }
   }
 
-  @Test(timeout = 4000)
+  @Test
+  @Timeout(value = 4000, unit = TimeUnit.MILLISECONDS)
   public void testSendMapCount() throws Exception {
-    final List<ShuffleHandler.ReduceMapFileCount> listenerList =
-        new ArrayList<ShuffleHandler.ReduceMapFileCount>();
+    final List<ReduceMapFileCount> listenerList =
+        new ArrayList<ReduceMapFileCount>();
 
     final ChannelHandlerContext mockCtx =
         mock(ChannelHandlerContext.class);
@@ -1702,8 +1723,8 @@ public class TestShuffleHandler {
     final FullHttpRequest httpRequest = createHttpRequest();
     final ChannelFuture mockFuture = createMockChannelFuture(mockCh,
         listenerList);
-    final ShuffleHandler.TimeoutHandler timerHandler =
-        new ShuffleHandler.TimeoutHandler();
+    final TimeoutHandler timerHandler =
+        new TimeoutHandler();
 
     // Mock Netty Channel Context and Channel behavior
     doReturn(mockCh).when(mockCtx).channel();
@@ -1720,14 +1741,12 @@ public class TestShuffleHandler {
     int maxOpenFiles =conf.getInt(ShuffleHandler.SHUFFLE_MAX_SESSION_OPEN_FILES,
         ShuffleHandler.DEFAULT_SHUFFLE_MAX_SESSION_OPEN_FILES);
     sh.getShuffle(conf).channelRead(mockCtx, httpRequest);
-    assertTrue("Number of Open files should not exceed the configured " +
-            "value!-Not Expected",
-        listenerList.size() <= maxOpenFiles);
+    assertTrue(listenerList.size() <= maxOpenFiles, "Number of Open files should not exceed the configured " +
+            "value!-Not Expected");
     while(!listenerList.isEmpty()) {
       listenerList.remove(0).operationComplete(mockFuture);
-      assertTrue("Number of Open files should not exceed the configured " +
-              "value!-Not Expected",
-          listenerList.size() <= maxOpenFiles);
+      assertTrue(listenerList.size() <= maxOpenFiles, "Number of Open files should not exceed the configured " +
+              "value!-Not Expected");
     }
     sh.close();
   }
@@ -1755,7 +1774,7 @@ public class TestShuffleHandler {
           httpConnectionParams, "testFetcher", shuffleHandler.secretManager);
 
       boolean connectSucceeded = httpConnection.connect();
-      Assert.assertTrue(connectSucceeded);
+      assertTrue(connectSucceeded);
 
       input = httpConnection.getInputStream();
       httpConnection.validate();
@@ -1764,12 +1783,12 @@ public class TestShuffleHandler {
       header.readFields(input);
 
       // message is encoded in the shuffle header, and can be checked by fetchers
-      Assert.assertEquals(
+      assertEquals(
           ShuffleHandlerError.DISK_ERROR_EXCEPTION + ": " + MockShuffleHandlerWithFatalDiskError.MESSAGE,
           header.getMapId());
-      Assert.assertEquals(-1, header.getCompressedLength());
-      Assert.assertEquals(-1, header.getUncompressedLength());
-      Assert.assertEquals(-1, header.getPartition());
+      assertEquals(-1, header.getCompressedLength());
+      assertEquals(-1, header.getUncompressedLength());
+      assertEquals(-1, header.getPartition());
     } finally {
       if (input != null) {
         input.close();
@@ -1817,7 +1836,7 @@ public class TestShuffleHandler {
     shuffleHandler.serviceInit(conf);
     try {
       shuffleHandler.serviceStart();
-      Assert.assertEquals(port, shuffleHandler.getPort());
+      assertEquals(port, shuffleHandler.getPort());
     } finally {
       shuffleHandler.close();
     }
@@ -1830,7 +1849,7 @@ public class TestShuffleHandler {
     shuffleHandler.serviceInit(conf);
     try {
       shuffleHandler.serviceStart();
-      Assert.assertTrue("ShuffleHandler should use a random chosen port", shuffleHandler.getPort() > 0);
+      assertTrue(shuffleHandler.getPort() > 0, "ShuffleHandler should use a random chosen port");
     } finally {
       shuffleHandler.close();
     }

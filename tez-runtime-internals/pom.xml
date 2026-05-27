@@ -86,9 +86,9 @@
       <groupId>com.google.guava</groupId>
       <artifactId>guava</artifactId>
     </dependency>
-     <dependency>
-      <groupId>junit</groupId>
-      <artifactId>junit</artifactId>
+    <dependency>
+      <groupId>org.junit.jupiter</groupId>
+      <artifactId>junit-jupiter</artifactId>
     </dependency>
     <dependency>
       <groupId>org.mockito</groupId>

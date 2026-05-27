@@ -18,7 +18,8 @@
  */
 package org.apache.tez.test;
 
-import static org.junit.Assert.*;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import java.io.IOException;
 import java.nio.ByteBuffer;
@@ -27,6 +28,7 @@ import java.util.EnumSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
+import java.util.concurrent.TimeUnit;
 
 import org.apache.commons.lang3.StringUtils;
 import org.apache.hadoop.conf.Configuration;
@@ -90,7 +92,8 @@ import org.apache.tez.test.dag.MultiAttemptDAG.NoOpInput;
 
 import com.google.common.collect.Lists;
 
-import org.junit.Test;
+import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.Timeout;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -216,7 +219,8 @@ public class TestExceptionPropagation {
    * @throws Exception
    *
    */
-  @Test(timeout = 600000)
+  @Test
+  @Timeout(value = 600000, unit = TimeUnit.MILLISECONDS)
   public void testExceptionPropagationSession() throws Exception {
     try {
       startSessionClient();
@@ -245,7 +249,8 @@ public class TestExceptionPropagation {
    *
    * @throws Exception
    */
-  @Test(timeout = 120000)
+  @Test
+  @Timeout(value = 120000, unit = TimeUnit.MILLISECONDS)
   public void testExceptionPropagationNonSession() throws Exception {
     try {
       startMiniTezCluster();

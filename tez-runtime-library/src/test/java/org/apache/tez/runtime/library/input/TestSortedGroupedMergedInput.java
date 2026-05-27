@@ -18,9 +18,10 @@
  */
 package org.apache.tez.runtime.library.input;
 
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertTrue;
-import static org.junit.Assert.fail;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertTrue;
+import static org.junit.jupiter.api.Assertions.fail;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
@@ -29,6 +30,7 @@ import java.io.IOException;
 import java.util.Iterator;
 import java.util.LinkedList;
 import java.util.List;
+import java.util.concurrent.TimeUnit;
 
 import org.apache.hadoop.io.RawComparator;
 import org.apache.tez.runtime.api.Event;
@@ -38,7 +40,8 @@ import org.apache.tez.runtime.api.Reader;
 import org.apache.tez.runtime.library.api.KeyValueReader;
 import org.apache.tez.runtime.library.api.KeyValuesReader;
 
-import org.junit.Test;
+import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.Timeout;
 
 public class TestSortedGroupedMergedInput {
 
@@ -46,7 +49,8 @@ public class TestSortedGroupedMergedInput {
     return mock(MergedInputContext.class);
   }
 
-  @Test(timeout = 5000)
+  @Test
+  @Timeout(value = 5000, unit = TimeUnit.MILLISECONDS)
   public void testSimple() throws Exception {
     SortedTestKeyValuesReader kvsReader1 = new SortedTestKeyValuesReader(new int[] { 1, 2, 3 },
         new int[][] { { 1, 1 }, { 2, 2 }, { 3, 3 } });
@@ -98,7 +102,8 @@ public class TestSortedGroupedMergedInput {
     }
   }
 
-  @Test(timeout = 5000)
+  @Test
+  @Timeout(value = 5000, unit = TimeUnit.MILLISECONDS)
   public void testSkippedKey() throws Exception {
 
 
@@ -144,7 +149,8 @@ public class TestSortedGroupedMergedInput {
     getNextFromFinishedReader(kvsReader);
   }
 
-  @Test(timeout = 5000)
+  @Test
+  @Timeout(value = 5000, unit = TimeUnit.MILLISECONDS)
   public void testPartialValuesSkip() throws Exception {
 
     SortedTestKeyValuesReader kvsReader1 = new SortedTestKeyValuesReader(new int[] { 1, 2, 3 },
@@ -191,7 +197,8 @@ public class TestSortedGroupedMergedInput {
     getNextFromFinishedReader(kvsReader);
   }
 
-  @Test(timeout = 5000)
+  @Test
+  @Timeout(value = 5000, unit = TimeUnit.MILLISECONDS)
   public void testOrdering() throws Exception {
 
     SortedTestKeyValuesReader kvsReader1 = new SortedTestKeyValuesReader(new int[] { 2, 4 },
@@ -243,7 +250,8 @@ public class TestSortedGroupedMergedInput {
     getNextFromFinishedReader(kvsReader);
   }
 
-  @Test(timeout = 5000)
+  @Test
+  @Timeout(value = 5000, unit = TimeUnit.MILLISECONDS)
   public void testSkippedKey2() throws Exception {
 
     SortedTestKeyValuesReader kvsReader1 = new SortedTestKeyValuesReader(new int[] { 2, 4 },
@@ -299,7 +307,8 @@ public class TestSortedGroupedMergedInput {
   }
 
   // Reads all values for a key, but doesn't trigger the last hasNext() call.
-  @Test(timeout = 5000)
+  @Test
+  @Timeout(value = 5000, unit = TimeUnit.MILLISECONDS)
   public void testSkippedKey3() throws Exception {
 
     SortedTestKeyValuesReader kvsReader1 = new SortedTestKeyValuesReader(new int[] { 1, 2, 3, 4 },
@@ -346,7 +355,8 @@ public class TestSortedGroupedMergedInput {
     getNextFromFinishedReader(kvsReader);
   }
 
-  @Test(timeout = 5000)
+  @Test
+  @Timeout(value = 5000, unit = TimeUnit.MILLISECONDS)
   public void testEmptySources() throws Exception {
 
     SortedTestKeyValuesReader kvsReader1 = new SortedTestKeyValuesReader(new int[] {},
@@ -370,11 +380,12 @@ public class TestSortedGroupedMergedInput {
     OrderedGroupedMergedKVInput input = new OrderedGroupedMergedKVInput(createMergedInputContext(), sInputs);
 
     KeyValuesReader kvsReader = input.getReader();
-    assertTrue(kvsReader.next() == false);
+    assertFalse(kvsReader.next());
     getNextFromFinishedReader(kvsReader);
   }
 
-  @Test(timeout = 5000)
+  @Test
+  @Timeout(value = 5000, unit = TimeUnit.MILLISECONDS)
   public void testSimpleConcatenatedMergedKeyValueInput() throws Exception {
 
     DummyInput sInput1 = new DummyInput(10);
@@ -395,13 +406,14 @@ public class TestSortedGroupedMergedInput {
       Integer key = (Integer) kvReader.getCurrentKey();
       Integer value = (Integer) kvReader.getCurrentValue();
     }
-    assertTrue(keyCount == 30);
+    assertEquals(30, keyCount);
     verify(mockContext, times(4)).notifyProgress(); // one for each reader change and one to exit
 
     getNextFromFinishedReader(kvReader);
   }
 
-  @Test(timeout = 5000)
+  @Test
+  @Timeout(value = 5000, unit = TimeUnit.MILLISECONDS)
   public void testSimpleConcatenatedMergedKeyValuesInput() throws Exception {
     SortedTestKeyValuesReader kvsReader1 = new SortedTestKeyValuesReader(new int[] { 1, 2, 3 },
         new int[][] { { 1, 1 }, { 2, 2 }, { 3, 3 } });

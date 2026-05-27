@@ -18,15 +18,20 @@
  */
 package org.apache.tez.runtime.library.common;
 
+import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertTrue;
+
 import java.util.HashSet;
 import java.util.Set;
+import java.util.concurrent.TimeUnit;
 
-import org.junit.Assert;
-import org.junit.Test;
+import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.Timeout;
 
 public class TestInputIdentifiers {
 
-  @Test(timeout = 5000)
+  @Test
+  @Timeout(value = 5000, unit = TimeUnit.MILLISECONDS)
   public void testInputAttemptIdentifier() {
     Set<InputAttemptIdentifier> set = new HashSet<InputAttemptIdentifier>();
     InputAttemptIdentifier i1 = new InputAttemptIdentifier(1, 1, InputAttemptIdentifier.PATH_PREFIX);
@@ -34,14 +39,15 @@ public class TestInputIdentifiers {
     InputAttemptIdentifier i3 = new InputAttemptIdentifier(1, 0, null);
     InputAttemptIdentifier i4 = new InputAttemptIdentifier(0, 1, null);
 
-    Assert.assertTrue(set.add(i1));
-    Assert.assertFalse(set.add(i1));
-    Assert.assertFalse(set.add(i2));
-    Assert.assertTrue(set.add(i3));
-    Assert.assertTrue(set.add(i4));
+    assertTrue(set.add(i1));
+    assertFalse(set.add(i1));
+    assertFalse(set.add(i2));
+    assertTrue(set.add(i3));
+    assertTrue(set.add(i4));
   }
 
-  @Test(timeout = 5000)
+  @Test
+  @Timeout(value = 5000, unit = TimeUnit.MILLISECONDS)
   public void testInputAttemptIdentifierIncludes() {
     InputAttemptIdentifier inputData0Attempt0 = new InputAttemptIdentifier(0, 0);
     InputAttemptIdentifier inputData1Attempt0 = new InputAttemptIdentifier(1, 0);
@@ -50,14 +56,14 @@ public class TestInputIdentifiers {
     InputAttemptIdentifier inputData1Attempt1 = new InputAttemptIdentifier(1, 1);
     CompositeInputAttemptIdentifier inputData12Attempt0 = new CompositeInputAttemptIdentifier(1, 0, null, 2);
 
-    Assert.assertTrue(inputData1Attempt0.includes(inputData1Attempt0));
-    Assert.assertFalse(inputData1Attempt0.includes(inputData2Attempt0));
-    Assert.assertFalse(inputData1Attempt0.includes(inputData1Attempt1));
+    assertTrue(inputData1Attempt0.includes(inputData1Attempt0));
+    assertFalse(inputData1Attempt0.includes(inputData2Attempt0));
+    assertFalse(inputData1Attempt0.includes(inputData1Attempt1));
 
-    Assert.assertFalse(inputData12Attempt0.includes(inputData0Attempt0));
-    Assert.assertTrue(inputData12Attempt0.includes(inputData1Attempt0));
-    Assert.assertTrue(inputData12Attempt0.includes(inputData2Attempt0));
-    Assert.assertFalse(inputData12Attempt0.includes(inputData3Attempt0));
-    Assert.assertFalse(inputData12Attempt0.includes(inputData1Attempt1));
+    assertFalse(inputData12Attempt0.includes(inputData0Attempt0));
+    assertTrue(inputData12Attempt0.includes(inputData1Attempt0));
+    assertTrue(inputData12Attempt0.includes(inputData2Attempt0));
+    assertFalse(inputData12Attempt0.includes(inputData3Attempt0));
+    assertFalse(inputData12Attempt0.includes(inputData1Attempt1));
   }
 }

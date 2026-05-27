@@ -18,11 +18,11 @@
  */
 package org.apache.tez.dag.app.launcher;
 
-
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertFalse;
-import static org.junit.Assert.assertTrue;
-import static org.junit.Assert.fail;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertInstanceOf;
+import static org.junit.jupiter.api.Assertions.assertTrue;
+import static org.junit.jupiter.api.Assertions.fail;
 import static org.mockito.Mockito.any;
 import static org.mockito.Mockito.doReturn;
 import static org.mockito.Mockito.doThrow;
@@ -40,6 +40,7 @@ import java.util.HashSet;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.Set;
+import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicInteger;
 
@@ -75,9 +76,10 @@ import org.apache.tez.serviceplugins.api.ServicePluginErrorDefaults;
 import org.apache.tez.serviceplugins.api.ServicePluginException;
 import org.apache.tez.serviceplugins.api.TaskCommunicatorDescriptor;
 
-import org.junit.After;
-import org.junit.Before;
-import org.junit.Test;
+import org.junit.jupiter.api.AfterEach;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.Timeout;
 import org.mockito.ArgumentCaptor;
 
 public class TestContainerLauncherManager {
@@ -85,13 +87,14 @@ public class TestContainerLauncherManager {
   private static final String DAG_NAME = "dagName";
   private static final int DAG_INDEX = 1;
 
-  @Before
-  @After
+  @BeforeEach
+  @AfterEach
   public void resetTest() {
     ContainerLaucherRouterForMultipleLauncherTest.reset();
   }
 
-  @Test(timeout = 5000)
+  @Test
+  @Timeout(value = 5000, unit = TimeUnit.MILLISECONDS)
   public void testNoLaunchersSpecified() throws IOException, TezException {
 
     AppContext appContext = mock(AppContext.class);
@@ -107,7 +110,8 @@ public class TestContainerLauncherManager {
     }
   }
 
-  @Test(timeout = 5000)
+  @Test
+  @Timeout(value = 5000, unit = TimeUnit.MILLISECONDS)
   public void testCustomLauncherSpecified() throws IOException, TezException {
     Configuration conf = new Configuration(false);
 
@@ -141,7 +145,8 @@ public class TestContainerLauncherManager {
     }
   }
 
-  @Test(timeout = 5000)
+  @Test
+  @Timeout(value = 5000, unit = TimeUnit.MILLISECONDS)
   public void testMultipleContainerLaunchers() throws IOException, TezException {
     Configuration conf = new Configuration(false);
     conf.set("testkey", "testvalue");
@@ -185,7 +190,8 @@ public class TestContainerLauncherManager {
     }
   }
 
-  @Test(timeout = 5000)
+  @Test
+  @Timeout(value = 5000, unit = TimeUnit.MILLISECONDS)
   public void testEventRouting() throws Exception {
     Configuration conf = new Configuration(false);
     UserPayload userPayload = TezUtils.createUserPayloadFromConf(conf);
@@ -292,7 +298,8 @@ public class TestContainerLauncherManager {
   }
 
   @SuppressWarnings({ "unchecked", "rawtypes" })
-  @Test(timeout = 5000)
+  @Test
+  @Timeout(value = 5000, unit = TimeUnit.MILLISECONDS)
   public void testReportFailureFromContainerLauncher() throws ServicePluginException, TezException {
     TezDAGID dagId = TezDAGID.getInstance(ApplicationId.newInstance(0, 0), DAG_INDEX);
     DAG dag = mock(DAG.class);
@@ -325,7 +332,7 @@ public class TestContainerLauncherManager {
       verify(eventHandler, times(1)).handle(argumentCaptor.capture());
 
       Event rawEvent = argumentCaptor.getValue();
-      assertTrue(rawEvent instanceof DAGAppMasterEventUserServiceFatalError);
+      assertInstanceOf(DAGAppMasterEventUserServiceFatalError.class, rawEvent);
       DAGAppMasterEventUserServiceFatalError event =
           (DAGAppMasterEventUserServiceFatalError) rawEvent;
       assertEquals(DAGAppMasterEventType.CONTAINER_LAUNCHER_SERVICE_FATAL_ERROR, event.getType());
@@ -347,7 +354,7 @@ public class TestContainerLauncherManager {
       containerLauncherManager.handle(stopRequestEvent);
       verify(eventHandler, times(1)).handle(argumentCaptor.capture());
       rawEvent = argumentCaptor.getValue();
-      assertTrue(rawEvent instanceof DAGEventTerminateDag);
+      assertInstanceOf(DAGEventTerminateDag.class, rawEvent);
       DAGEventTerminateDag killEvent = (DAGEventTerminateDag) rawEvent;
       assertTrue(killEvent.getDiagnosticInfo().contains("ReportError"));
       assertTrue(killEvent.getDiagnosticInfo()
@@ -359,7 +366,8 @@ public class TestContainerLauncherManager {
   }
 
   @SuppressWarnings("unchecked")
-  @Test(timeout = 5000)
+  @Test
+  @Timeout(value = 5000, unit = TimeUnit.MILLISECONDS)
   public void testContainerLauncherUserError() throws ServicePluginException {
 
     ContainerLauncher containerLauncher = mock(ContainerLauncher.class);
@@ -393,7 +401,7 @@ public class TestContainerLauncherManager {
       verify(eventHandler, times(1)).handle(argumentCaptor.capture());
 
       Event rawEvent = argumentCaptor.getValue();
-      assertTrue(rawEvent instanceof DAGAppMasterEventUserServiceFatalError);
+      assertInstanceOf(DAGAppMasterEventUserServiceFatalError.class, rawEvent);
       DAGAppMasterEventUserServiceFatalError event =
           (DAGAppMasterEventUserServiceFatalError) rawEvent;
       assertEquals(DAGAppMasterEventType.CONTAINER_LAUNCHER_SERVICE_FATAL_ERROR, event.getType());
@@ -416,7 +424,7 @@ public class TestContainerLauncherManager {
       containerLauncherManager.handle(stopRequestEvent);
       verify(eventHandler, times(1)).handle(argumentCaptor.capture());
       rawEvent = argumentCaptor.getValue();
-      assertTrue(rawEvent instanceof DAGAppMasterEventUserServiceFatalError);
+      assertInstanceOf(DAGAppMasterEventUserServiceFatalError.class, rawEvent);
       event = (DAGAppMasterEventUserServiceFatalError) rawEvent;
       assertTrue(event.getError().getMessage().contains("teststopexception"));
       assertTrue(event.getDiagnosticInfo().contains("stopping container"));
@@ -474,7 +482,7 @@ public class TestContainerLauncherManager {
                                               boolean isPureLocalMode) throws TezException {
       numContainerLaunchers.incrementAndGet();
       boolean added = containerLauncherIndices.add(containerLauncherIndex);
-      assertTrue("Cannot add multiple launchers with the same index", added);
+      assertTrue(added, "Cannot add multiple launchers with the same index");
       containerLauncherNames.add(containerLauncherDescriptor.getEntityName());
       containerLauncherContexts.add(containerLauncherContext);
       return super

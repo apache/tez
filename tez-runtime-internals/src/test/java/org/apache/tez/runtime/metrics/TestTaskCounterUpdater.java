@@ -18,13 +18,15 @@
  */
 package org.apache.tez.runtime.metrics;
 
+import static org.junit.jupiter.api.Assertions.assertNotNull;
+import static org.junit.jupiter.api.Assertions.assertTrue;
+
 import org.apache.hadoop.conf.Configuration;
 import org.apache.tez.common.counters.TaskCounter;
 import org.apache.tez.common.counters.TezCounter;
 import org.apache.tez.common.counters.TezCounters;
 
-import org.junit.Assert;
-import org.junit.Test;
+import org.junit.jupiter.api.Test;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -44,17 +46,18 @@ public class TestTaskCounterUpdater {
     TezCounter cpuCounter = assertCounter(counters, TaskCounter.CPU_MILLISECONDS);
 
     long oldVal = cpuCounter.getValue();
-    Assert.assertTrue(cpuCounter.getValue() > 0);
+    assertTrue(cpuCounter.getValue() > 0);
 
     updater.updateCounters();
     LOG.info("Counters (after second update): {}", counters);
-    Assert.assertTrue("Counter not updated, old=" + oldVal
-        + ", new=" + cpuCounter.getValue(), cpuCounter.getValue() > oldVal);
+    assertTrue(
+        cpuCounter.getValue() > oldVal,
+        "Counter not updated, old=" + oldVal + ", new=" + cpuCounter.getValue());
   }
 
   private TezCounter assertCounter(TezCounters counters, TaskCounter taskCounter) {
     TezCounter counter = counters.findCounter(taskCounter);
-    Assert.assertNotNull(counter);
+    assertNotNull(counter);
     return counter;
   }
 }

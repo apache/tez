@@ -18,11 +18,13 @@
  */
 package org.apache.tez.runtime.api.events;
 
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertNull;
+
 import java.nio.ByteBuffer;
 import java.nio.charset.StandardCharsets;
 
-import org.junit.Assert;
-import org.junit.Test;
+import org.junit.jupiter.api.Test;
 
 public class TestInputDataInformationEvent {
 
@@ -32,24 +34,24 @@ public class TestInputDataInformationEvent {
         InputDataInformationEvent.createWithSerializedPayload(0, ByteBuffer.wrap("payload1".getBytes()));
     // event created by createWithSerializedPayload should contain serialized payload
     // but not a path or a deserialized payload
-    Assert.assertEquals(
+    assertEquals(
         "payload1",
         StandardCharsets.UTF_8.decode(eventWithSerializedPayload.getUserPayload()).toString());
-    Assert.assertNull(eventWithSerializedPayload.getSerializedPath());
-    Assert.assertNull(eventWithSerializedPayload.getDeserializedUserPayload());
+    assertNull(eventWithSerializedPayload.getSerializedPath());
+    assertNull(eventWithSerializedPayload.getDeserializedUserPayload());
 
     InputDataInformationEvent eventWithObjectPayload = InputDataInformationEvent.createWithObjectPayload(0, "payload2");
     // event created by eventWithObjectPayload should contain a deserialized payload
     // but not a path or serialized payload
-    Assert.assertEquals("payload2", eventWithObjectPayload.getDeserializedUserPayload());
-    Assert.assertNull(eventWithObjectPayload.getSerializedPath());
-    Assert.assertNull(eventWithObjectPayload.getUserPayload());
+    assertEquals("payload2", eventWithObjectPayload.getDeserializedUserPayload());
+    assertNull(eventWithObjectPayload.getSerializedPath());
+    assertNull(eventWithObjectPayload.getUserPayload());
 
     InputDataInformationEvent eventWithPath = InputDataInformationEvent.createWithSerializedPath(0, "file://hello");
     // event created by createWithSerializedPath should contain a path
     // but neither serialized nor deserialized payload
-    Assert.assertEquals("file://hello", eventWithPath.getSerializedPath());
-    Assert.assertNull(eventWithPath.getUserPayload());
-    Assert.assertNull(eventWithPath.getDeserializedUserPayload());
+    assertEquals("file://hello", eventWithPath.getSerializedPath());
+    assertNull(eventWithPath.getUserPayload());
+    assertNull(eventWithPath.getDeserializedUserPayload());
   }
 }

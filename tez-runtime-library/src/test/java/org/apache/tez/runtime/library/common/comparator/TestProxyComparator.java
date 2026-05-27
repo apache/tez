@@ -18,15 +18,17 @@
  */
 package org.apache.tez.runtime.library.common.comparator;
 
-import static org.junit.Assert.assertTrue;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import java.nio.charset.Charset;
+import java.util.concurrent.TimeUnit;
 
 import org.apache.hadoop.io.BytesWritable;
 
-import org.junit.After;
-import org.junit.Before;
-import org.junit.Test;
+import org.junit.jupiter.api.AfterEach;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.Timeout;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -49,16 +51,17 @@ public class TestProxyComparator {
     bw.set(b, 0, b.length);
   }
 
-  @Before
+  @BeforeEach
   public void setUp() throws Exception {
   }
 
-  @After
+  @AfterEach
   public void cleanup() throws Exception {
   }
 
   @SuppressWarnings("unchecked")
-  @Test(timeout = 5000)
+  @Test
+  @Timeout(value = 5000, unit = TimeUnit.MILLISECONDS)
   public void testProxyComparator() {
     final ProxyComparator<BytesWritable> comparator = new TezBytesComparator();
     BytesWritable lhs = new BytesWritable();
@@ -70,12 +73,10 @@ public class TestProxyComparator {
         final int lproxy = comparator.getProxy(lhs);
         final int rproxy = comparator.getProxy(rhs);
         if (lproxy < rproxy) {
-          assertTrue(String.format("(%s) %d < (%s) %d", l, lproxy, r, rproxy),
-              comparator.compare(lhs, rhs) < 0);
+          assertTrue(comparator.compare(lhs, rhs) < 0, String.format("(%s) %d < (%s) %d", l, lproxy, r, rproxy));
         }
         if (lproxy > rproxy) {
-          assertTrue(String.format("(%s) %d > (%s) %d", l, lproxy, r, rproxy),
-              comparator.compare(lhs, rhs) > 0);
+          assertTrue(comparator.compare(lhs, rhs) > 0, String.format("(%s) %d > (%s) %d", l, lproxy, r, rproxy));
         }
       }
     }

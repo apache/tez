@@ -18,7 +18,6 @@
  */
 package org.apache.tez.service;
 
-
 import org.apache.tez.dag.api.TezException;
 import org.apache.tez.test.service.rpc.TezTestServiceProtocolProtos.RunContainerRequestProto;
 import org.apache.tez.test.service.rpc.TezTestServiceProtocolProtos.SubmitWorkRequestProto;

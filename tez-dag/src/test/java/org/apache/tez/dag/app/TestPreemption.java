@@ -18,7 +18,10 @@
  */
 package org.apache.tez.dag.app;
 
+import static org.junit.jupiter.api.Assertions.assertEquals;
+
 import java.io.IOException;
+import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicBoolean;
 
 import org.apache.hadoop.conf.Configuration;
@@ -46,8 +49,8 @@ import org.apache.tez.dag.records.TezTaskAttemptID;
 import org.apache.tez.dag.records.TezTaskID;
 import org.apache.tez.dag.records.TezVertexID;
 
-import org.junit.Assert;
-import org.junit.Test;
+import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.Timeout;
 
 public class TestPreemption {
 
@@ -85,7 +88,8 @@ public class TestPreemption {
     return dag;
   }
 
-  @Test (timeout = 5000)
+  @Test
+  @Timeout(value = 5000, unit = TimeUnit.MILLISECONDS)
   public void testPreemptionWithoutSession() throws Exception {
     System.out.println("TestPreemptionWithoutSession");
     TezConfiguration tezconf = new TezConfiguration(defaultConf);
@@ -113,18 +117,19 @@ public class TestPreemption {
     mockLauncher.startScheduling(true);
 
     dagClient.waitForCompletion();
-    Assert.assertEquals(DAGStatus.State.SUCCEEDED, dagClient.getDAGStatus(null).getState());
+    assertEquals(DAGStatus.State.SUCCEEDED, dagClient.getDAGStatus(null).getState());
 
     for (int i=0; i<=upToTaskVersion; ++i) {
       TezTaskAttemptID testTaId = TezTaskAttemptID.getInstance(TezTaskID.getInstance(vertexId, 0), i);
       TaskAttemptImpl taImpl = dagImpl.getTaskAttempt(testTaId);
-      Assert.assertEquals(TaskAttemptStateInternal.KILLED, taImpl.getInternalState());
+      assertEquals(TaskAttemptStateInternal.KILLED, taImpl.getInternalState());
     }
 
     tezClient.stop();
   }
 
-  @Test (timeout = 30000)
+  @Test
+  @Timeout(value = 30000, unit = TimeUnit.MILLISECONDS)
   public void testPreemptionWithSession() throws Exception {
     System.out.println("TestPreemptionWithSession");
     MockTezClient tezClient = createTezSession();
@@ -194,13 +199,13 @@ public class TestPreemption {
     mockLauncher.startScheduling(true);
 
     dagClient.waitForCompletion();
-    Assert.assertEquals(DAGStatus.State.SUCCEEDED, dagClient.getDAGStatus(null).getState());
+    assertEquals(DAGStatus.State.SUCCEEDED, dagClient.getDAGStatus(null).getState());
 
     for (int i=0; i<=upToTaskVersion; ++i) {
       TezTaskAttemptID testTaId = TezTaskAttemptID.getInstance(TezTaskID.getInstance(vertexId, 0), i);
       TaskAttemptImpl taImpl = dagImpl.getTaskAttempt(testTaId);
-      Assert.assertEquals(TaskAttemptStateInternal.KILLED, taImpl.getInternalState());
-      Assert.assertEquals(TaskAttemptTerminationCause.EXTERNAL_PREEMPTION, taImpl.getTerminationCause());
+      assertEquals(TaskAttemptStateInternal.KILLED, taImpl.getInternalState());
+      assertEquals(TaskAttemptTerminationCause.EXTERNAL_PREEMPTION, taImpl.getTerminationCause());
     }
 
     System.out.println("TestPreemption - Done running - " + info);

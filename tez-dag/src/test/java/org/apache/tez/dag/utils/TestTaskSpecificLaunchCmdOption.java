@@ -18,16 +18,18 @@
  */
 package org.apache.tez.dag.utils;
 
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertFalse;
-import static org.junit.Assert.assertTrue;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import java.util.Random;
+import java.util.concurrent.TimeUnit;
 
 import org.apache.hadoop.conf.Configuration;
 import org.apache.tez.dag.api.TezConfiguration;
 
-import org.junit.Test;
+import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.Timeout;
 
 public class TestTaskSpecificLaunchCmdOption {
   static Configuration conf = new Configuration();
@@ -43,7 +45,8 @@ public class TestTaskSpecificLaunchCmdOption {
   }
 
 
-  @Test(timeout = 5000)
+  @Test
+  @Timeout(value = 5000, unit = TimeUnit.MILLISECONDS)
   public void testTaskSpecificJavaOptions() {
     Random rnd = new Random();
     Configuration conf = new Configuration();
@@ -248,34 +251,36 @@ public class TestTaskSpecificLaunchCmdOption {
         rnd.nextInt(Integer.MAX_VALUE)));
   }
 
-  @Test(timeout = 5000)
+  @Test
+  @Timeout(value = 5000, unit = TimeUnit.MILLISECONDS)
   public void testConfigOptions() {
     Configuration conf = new Configuration();
     TaskSpecificLaunchCmdOption taskSpecificLaunchCmdOption = getOptions(conf, "", "");
     String optionStr = taskSpecificLaunchCmdOption.getTaskSpecificOption("", "", 0);
-    assertTrue(optionStr.trim().equals(""));
+    assertEquals("", optionStr.trim());
 
     taskSpecificLaunchCmdOption = getOptions(conf, "", "dir=__VERTEX_NAME__");
     optionStr = taskSpecificLaunchCmdOption.getTaskSpecificOption("", "Map 1", 0);
-    assertTrue(optionStr.equals("dir=Map1"));
+    assertEquals("dir=Map1", optionStr);
 
     taskSpecificLaunchCmdOption = getOptions(conf, "", "dir=__TASK_INDEX__");
     optionStr = taskSpecificLaunchCmdOption.getTaskSpecificOption("", "Map 1", 0);
-    assertTrue(optionStr.equals("dir=0"));
+    assertEquals("dir=0", optionStr);
 
     taskSpecificLaunchCmdOption = getOptions(conf, "v[1,3,4]", "dir=/tmp/__VERTEX_NAME__/__TASK_INDEX__");
     optionStr = taskSpecificLaunchCmdOption.getTaskSpecificOption("", "v", 1);
-    assertTrue(optionStr.equals("dir=/tmp/v/1"));
+    assertEquals("dir=/tmp/v/1", optionStr);
 
     optionStr = taskSpecificLaunchCmdOption.getTaskSpecificOption("", "v", 3);
-    assertTrue(optionStr.equals("dir=/tmp/v/3"));
+    assertEquals("dir=/tmp/v/3", optionStr);
 
     optionStr = taskSpecificLaunchCmdOption.getTaskSpecificOption("", "v", 4);
-    assertTrue(optionStr.equals("dir=/tmp/v/4"));
+    assertEquals("dir=/tmp/v/4", optionStr);
   }
 
 
-  @Test(timeout = 5000)
+  @Test
+  @Timeout(value = 5000, unit = TimeUnit.MILLISECONDS)
   public void testTaskSpecificLogOptions() {
     Configuration conf = new Configuration(false);
     conf.set(TezConfiguration.TEZ_TASK_SPECIFIC_LAUNCH_CMD_OPTS_LIST, "v1[0,2,5]");
@@ -299,7 +304,8 @@ public class TestTaskSpecificLaunchCmdOption {
     assertEquals(1, options.getTaskSpecificLogParams().length);
   }
 
-  @Test (timeout=5000)
+  @Test
+  @Timeout(value = 5000, unit = TimeUnit.MILLISECONDS)
   public void testTaskSpecificLogOptionsWithCommandOptions() {
     Configuration conf = new Configuration(false);
     conf.set(TezConfiguration.TEZ_TASK_SPECIFIC_LAUNCH_CMD_OPTS_LIST, "v1[0,2,5]");
@@ -311,6 +317,6 @@ public class TestTaskSpecificLaunchCmdOption {
     assertTrue(options.hasModifiedLogProperties());
     assertTrue(options.hasModifiedTaskLaunchOpts());
     String optionStr = options.getTaskSpecificOption("", "v", 0);
-    assertTrue(optionStr.equals("-Xmx128m"));
+    assertEquals("-Xmx128m", optionStr);
   }
 }

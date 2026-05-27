@@ -18,9 +18,13 @@
  */
 package org.apache.tez.dag.app.dag.impl;
 
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertFalse;
-import static org.junit.Assert.fail;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertInstanceOf;
+import static org.junit.jupiter.api.Assertions.assertNotEquals;
+import static org.junit.jupiter.api.Assertions.assertNull;
+import static org.junit.jupiter.api.Assertions.assertTrue;
+import static org.junit.jupiter.api.Assertions.fail;
 import static org.mockito.Mockito.RETURNS_DEEP_STUBS;
 import static org.mockito.Mockito.any;
 import static org.mockito.Mockito.anyInt;
@@ -43,6 +47,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import java.util.TreeSet;
+import java.util.concurrent.TimeUnit;
 
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.fs.FileStatus;
@@ -130,10 +135,10 @@ import org.apache.tez.serviceplugins.api.TaskCommunicator;
 
 import com.google.common.collect.Maps;
 
-import org.junit.Assert;
-import org.junit.Before;
-import org.junit.BeforeClass;
-import org.junit.Test;
+import org.junit.jupiter.api.BeforeAll;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.Timeout;
 import org.mockito.ArgumentCaptor;
 
 @SuppressWarnings({ "unchecked", "rawtypes" })
@@ -154,12 +159,12 @@ public class TestTaskAttempt {
   ServicePluginInfo servicePluginInfo = new ServicePluginInfo()
       .setContainerLauncherName(TezConstants.getTezYarnServicePluginName());
 
-  @BeforeClass
+  @BeforeAll
   public static void setup() {
     MockDNSToSwitchMapping.initializeMockRackResolver();
   }
 
-  @Before
+  @BeforeEach
   public void setupTest() {
     appCtx = mock(AppContext.class);
     when(appCtx.getAMConf()).thenReturn(new Configuration());
@@ -189,7 +194,8 @@ public class TestTaskAttempt {
     when(appContext.getNodeTracker()).thenReturn(nodeTracker);
   }
 
-  @Test(timeout = 5000)
+  @Test
+  @Timeout(value = 5000, unit = TimeUnit.MILLISECONDS)
   public void testLocalityRequest() {
     TaskAttemptImpl.ScheduleTaskattemptTransition sta =
         new TaskAttemptImpl.ScheduleTaskattemptTransition();
@@ -225,11 +231,12 @@ public class TestTaskAttempt {
     assertEquals(3, taImpl.taskHosts.size());
     for (int i = 0; i < 3; i++) {
       String host = ("host" + (i + 1));
-      assertEquals(host, true, taImpl.taskHosts.contains(host));
+      assertTrue(taImpl.taskHosts.contains(host), host);
     }
   }
 
-  @Test(timeout = 5000)
+  @Test
+  @Timeout(value = 5000, unit = TimeUnit.MILLISECONDS)
   public void testRetriesAtSamePriorityConfig() {
 
     // Override the test defaults to setup the config change
@@ -269,19 +276,20 @@ public class TestTaskAttempt {
     sta.transition(taImpl, sEvent);
     verify(eventHandler, times(1)).handle(arg.capture());
     AMSchedulerEventTALaunchRequest launchEvent = (AMSchedulerEventTALaunchRequest) arg.getValue();
-    Assert.assertEquals(2, launchEvent.getPriority());
-    Assert.assertEquals(1, launchEvent.getLocationHint().getHosts().size());
-    Assert.assertTrue(launchEvent.getLocationHint().getHosts().contains("host1"));
+    assertEquals(2, launchEvent.getPriority());
+    assertEquals(1, launchEvent.getLocationHint().getHosts().size());
+    assertTrue(launchEvent.getLocationHint().getHosts().contains("host1"));
 
     // Verify priority for a retried attempt is the same
     sta.transition(taImplReScheduled, sEvent);
     verify(eventHandler, times(2)).handle(arg.capture());
     launchEvent = (AMSchedulerEventTALaunchRequest) arg.getValue();
-    Assert.assertEquals(2, launchEvent.getPriority());
-    Assert.assertNull(launchEvent.getLocationHint());
+    assertEquals(2, launchEvent.getPriority());
+    assertNull(launchEvent.getLocationHint());
   }
 
-  @Test(timeout = 5000)
+  @Test
+  @Timeout(value = 5000, unit = TimeUnit.MILLISECONDS)
   public void testPriority() {
     TaskAttemptImpl.ScheduleTaskattemptTransition sta =
         new TaskAttemptImpl.ScheduleTaskattemptTransition();
@@ -307,36 +315,37 @@ public class TestTaskAttempt {
     sta.transition(taImpl, sEvent);
     verify(eventHandler, times(1)).handle(arg.capture());
     AMSchedulerEventTALaunchRequest launchEvent = (AMSchedulerEventTALaunchRequest)arg.getValue();
-    Assert.assertEquals(2, launchEvent.getPriority());
+    assertEquals(2, launchEvent.getPriority());
     sta.transition(taImplReScheduled, sEvent);
     verify(eventHandler, times(2)).handle(arg.capture());
     launchEvent = (AMSchedulerEventTALaunchRequest)arg.getValue();
-    Assert.assertEquals(1, launchEvent.getPriority());
+    assertEquals(1, launchEvent.getPriority());
 
     when(sEvent.getPriorityLowLimit()).thenReturn(6);
     when(sEvent.getPriorityHighLimit()).thenReturn(4);
     sta.transition(taImpl, sEvent);
     verify(eventHandler, times(3)).handle(arg.capture());
     launchEvent = (AMSchedulerEventTALaunchRequest)arg.getValue();
-    Assert.assertEquals(5, launchEvent.getPriority());
+    assertEquals(5, launchEvent.getPriority());
     sta.transition(taImplReScheduled, sEvent);
     verify(eventHandler, times(4)).handle(arg.capture());
     launchEvent = (AMSchedulerEventTALaunchRequest)arg.getValue();
-    Assert.assertEquals(4, launchEvent.getPriority());
+    assertEquals(4, launchEvent.getPriority());
 
     when(sEvent.getPriorityLowLimit()).thenReturn(5);
     when(sEvent.getPriorityHighLimit()).thenReturn(5);
     sta.transition(taImpl, sEvent);
     verify(eventHandler, times(5)).handle(arg.capture());
     launchEvent = (AMSchedulerEventTALaunchRequest)arg.getValue();
-    Assert.assertEquals(5, launchEvent.getPriority());
+    assertEquals(5, launchEvent.getPriority());
     sta.transition(taImplReScheduled, sEvent);
     verify(eventHandler, times(6)).handle(arg.capture());
     launchEvent = (AMSchedulerEventTALaunchRequest)arg.getValue();
-    Assert.assertEquals(5, launchEvent.getPriority());
+    assertEquals(5, launchEvent.getPriority());
   }
 
-  @Test(timeout = 5000)
+  @Test
+  @Timeout(value = 5000, unit = TimeUnit.MILLISECONDS)
   // Tests that an attempt is made to resolve the localized hosts to racks.
   // TODO Move to the client post TEZ-125.
   public void testHostResolveAttempt() throws Exception {
@@ -382,7 +391,8 @@ public class TestTaskAttempt {
     assertEquals(0, expected.size());
   }
 
-  @Test(timeout = 5000)
+  @Test
+  @Timeout(value = 5000, unit = TimeUnit.MILLISECONDS)
   // Ensure the dag does not go into an error state if a attempt kill is
   // received while STARTING
   public void testLaunchFailedWhileKilling() throws Exception {
@@ -426,9 +436,7 @@ public class TestTaskAttempt {
         TaskAttemptTerminationCause.TERMINATED_BY_CLIENT));
     assertEquals(TaskAttemptStateInternal.KILL_IN_PROGRESS, taImpl.getInternalState());
     taImpl.handle(new TaskAttemptEventTezEventUpdate(taImpl.getTaskAttemptID(), Collections.EMPTY_LIST));
-    assertFalse(
-        "InternalError occurred trying to handle TA_TEZ_EVENT_UPDATE in KILL_IN_PROGRESS state",
-        eventHandler.internalError);
+    assertFalse(eventHandler.internalError, "InternalError occurred trying to handle TA_TEZ_EVENT_UPDATE in KILL_IN_PROGRESS state");
     // At some KILLING state.
     taImpl.handle(new TaskAttemptEventKillRequest(taskAttemptID, null,
         TaskAttemptTerminationCause.TERMINATED_BY_CLIENT));
@@ -437,7 +445,8 @@ public class TestTaskAttempt {
     assertFalse(eventHandler.internalError);
   }
 
-  @Test(timeout = 5000)
+  @Test
+  @Timeout(value = 5000, unit = TimeUnit.MILLISECONDS)
   // Ensure ContainerTerminating and ContainerTerminated is handled correctly by
   // the TaskAttempt
   public void testContainerTerminationWhileRunning() throws Exception {
@@ -485,14 +494,11 @@ public class TestTaskAttempt {
 
     taImpl.handle(new TaskAttemptEventSchedule(taskAttemptID, 0, 0));
     taImpl.handle(new TaskAttemptEventSubmitted(taskAttemptID, contId));
-    assertEquals("Task attempt is not in the STARTING state", taImpl.getState(),
-        TaskAttemptState.STARTING);
-    assertEquals("Task attempt internal state is not at SUBMITTED", taImpl.getInternalState(),
-        TaskAttemptStateInternal.SUBMITTED);
+    assertEquals(taImpl.getState(), TaskAttemptState.STARTING, "Task attempt is not in the STARTING state");
+    assertEquals(taImpl.getInternalState(), TaskAttemptStateInternal.SUBMITTED, "Task attempt internal state is not at SUBMITTED");
     // At state STARTING.
     taImpl.handle(new TaskAttemptEventStartedRemotely(taskAttemptID));
-    assertEquals("Task attempt is not in the RUNNING state", taImpl.getState(),
-        TaskAttemptState.RUNNING);
+    assertEquals(taImpl.getState(), TaskAttemptState.RUNNING, "Task attempt is not in the RUNNING state");
     verify(mockHeartbeatHandler).register(taskAttemptID);
 
     int expectedEventsAtRunning = 5;
@@ -500,12 +506,9 @@ public class TestTaskAttempt {
 
     taImpl.handle(new TaskAttemptEventContainerTerminating(taskAttemptID,
         "Terminating", TaskAttemptTerminationCause.APPLICATION_ERROR));
-    assertFalse(
-        "InternalError occurred trying to handle TA_CONTAINER_TERMINATING",
-        eventHandler.internalError);
+    assertFalse(eventHandler.internalError, "InternalError occurred trying to handle TA_CONTAINER_TERMINATING");
     verify(mockHeartbeatHandler).unregister(taskAttemptID);
-    assertEquals("Task attempt is not in the  FAILED state", taImpl.getState(),
-        TaskAttemptState.FAILED);
+    assertEquals(taImpl.getState(), TaskAttemptState.FAILED, "Task attempt is not in the  FAILED state");
 
     assertEquals(1, taImpl.getDiagnostics().size());
     assertEquals("Terminating", taImpl.getDiagnostics().get(0));
@@ -543,7 +546,8 @@ public class TestTaskAttempt {
   }
 
 
-  @Test(timeout = 5000)
+  @Test
+  @Timeout(value = 5000, unit = TimeUnit.MILLISECONDS)
   // Ensure ContainerTerminated is handled correctly by the TaskAttempt
   public void testContainerTerminatedWhileRunning() throws Exception {
     ApplicationId appId = ApplicationId.newInstance(1, 2);
@@ -592,15 +596,12 @@ public class TestTaskAttempt {
     taImpl.handle(new TaskAttemptEventStartedRemotely(taskAttemptID));
     int expectedEventsAtRunning = 5;
     verify(eventHandler, times(expectedEventsAtRunning)).handle(arg.capture());
-    assertEquals("Task attempt is not in running state", taImpl.getState(),
-        TaskAttemptState.RUNNING);
+    assertEquals(taImpl.getState(), TaskAttemptState.RUNNING, "Task attempt is not in running state");
     verify(mockHeartbeatHandler).register(taskAttemptID);
 
     taImpl.handle(new TaskAttemptEventContainerTerminated(contId, taskAttemptID, "Terminated",
         TaskAttemptTerminationCause.CONTAINER_EXITED));
-    assertFalse(
-        "InternalError occurred trying to handle TA_CONTAINER_TERMINATED",
-        eventHandler.internalError);
+    assertFalse(eventHandler.internalError, "InternalError occurred trying to handle TA_CONTAINER_TERMINATED");
     verify(mockHeartbeatHandler).unregister(taskAttemptID);
     assertEquals("Terminated", taImpl.getDiagnostics().get(0));
     assertEquals(TaskAttemptTerminationCause.CONTAINER_EXITED, taImpl.getTerminationCause());
@@ -631,7 +632,8 @@ public class TestTaskAttempt {
     verify(eventHandler, times(expectedEventAfterTerminated)).handle(arg.capture());
   }
 
-  @Test(timeout = 5000)
+  @Test
+  @Timeout(value = 5000, unit = TimeUnit.MILLISECONDS)
   // Ensure ContainerTerminating and ContainerTerminated is handled correctly by
   // the TaskAttempt
   public void testContainerTerminatedAfterSuccess() throws Exception {
@@ -680,8 +682,7 @@ public class TestTaskAttempt {
     taImpl.handle(new TaskAttemptEventSchedule(taskAttemptID, 0, 0));
     taImpl.handle(new TaskAttemptEventSubmitted(taskAttemptID, contId));
     taImpl.handle(new TaskAttemptEventStartedRemotely(taskAttemptID));
-    assertEquals("Task attempt is not in the RUNNING state", taImpl.getState(),
-        TaskAttemptState.RUNNING);
+    assertEquals(taImpl.getState(), TaskAttemptState.RUNNING, "Task attempt is not in the RUNNING state");
     verify(mockHeartbeatHandler).register(taskAttemptID);
 
     int expectedEventsAtRunning = 5;
@@ -689,8 +690,7 @@ public class TestTaskAttempt {
 
     taImpl.handle(new TaskAttemptEvent(taskAttemptID, TaskAttemptEventType.TA_DONE));
 
-    assertEquals("Task attempt is not in the  SUCCEEDED state", taImpl.getState(),
-        TaskAttemptState.SUCCEEDED);
+    assertEquals(taImpl.getState(), TaskAttemptState.SUCCEEDED, "Task attempt is not in the  SUCCEEDED state");
     verify(mockHeartbeatHandler).unregister(taskAttemptID);
     assertEquals(0, taImpl.getDiagnostics().size());
 
@@ -722,7 +722,8 @@ public class TestTaskAttempt {
     assertEquals(TaskAttemptTerminationCause.UNKNOWN_ERROR, taImpl.getTerminationCause());
   }
 
-  @Test(timeout = 5000)
+  @Test
+  @Timeout(value = 5000, unit = TimeUnit.MILLISECONDS)
   public void testLastDataEventRecording() throws Exception {
     ApplicationId appId = ApplicationId.newInstance(1, 2);
     ApplicationAttemptId appAttemptId = ApplicationAttemptId.newInstance(
@@ -769,8 +770,7 @@ public class TestTaskAttempt {
     taImpl.handle(new TaskAttemptEventSchedule(taskAttemptID, 0, 0));
     taImpl.handle(new TaskAttemptEventSubmitted(taskAttemptID, contId));
     taImpl.handle(new TaskAttemptEventStartedRemotely(taskAttemptID));
-    assertEquals("Task attempt is not in the RUNNING state", taImpl.getState(),
-        TaskAttemptState.RUNNING);
+    assertEquals(taImpl.getState(), TaskAttemptState.RUNNING, "Task attempt is not in the RUNNING state");
 
     long ts1 = 1024;
     long ts2 = 2048;
@@ -807,7 +807,8 @@ public class TestTaskAttempt {
     assertEquals(mockId2, taImpl.lastDataEvents.get(1).getTaskAttemptId()); // over-write earlier value
   }
 
-  @Test(timeout = 5000)
+  @Test
+  @Timeout(value = 5000, unit = TimeUnit.MILLISECONDS)
   public void testFailure() throws Exception {
     ApplicationId appId = ApplicationId.newInstance(1, 2);
     ApplicationAttemptId appAttemptId = ApplicationAttemptId.newInstance(
@@ -855,8 +856,7 @@ public class TestTaskAttempt {
     taImpl.handle(new TaskAttemptEventSchedule(taskAttemptID, 0, 0));
     taImpl.handle(new TaskAttemptEventSubmitted(taskAttemptID, contId));
     taImpl.handle(new TaskAttemptEventStartedRemotely(taskAttemptID));
-    assertEquals("Task attempt is not in the RUNNING state", taImpl.getState(),
-        TaskAttemptState.RUNNING);
+    assertEquals(taImpl.getState(), TaskAttemptState.RUNNING, "Task attempt is not in the RUNNING state");
     verify(mockHeartbeatHandler).register(taskAttemptID);
 
     int expectedEventsAtRunning = 6;
@@ -871,8 +871,7 @@ public class TestTaskAttempt {
         TaskFailureType.NON_FATAL, "0",
         TaskAttemptTerminationCause.APPLICATION_ERROR));
 
-    assertEquals("Task attempt is not in the  FAIL_IN_PROGRESS state", taImpl.getInternalState(),
-        TaskAttemptStateInternal.FAIL_IN_PROGRESS);
+    assertEquals(taImpl.getInternalState(), TaskAttemptStateInternal.FAIL_IN_PROGRESS, "Task attempt is not in the  FAIL_IN_PROGRESS state");
     verify(mockHeartbeatHandler).unregister(taskAttemptID);
     assertEquals(1, taImpl.getDiagnostics().size());
     assertEquals("0", taImpl.getDiagnostics().get(0));
@@ -880,9 +879,7 @@ public class TestTaskAttempt {
 
     assertEquals(TaskAttemptStateInternal.FAIL_IN_PROGRESS, taImpl.getInternalState());
     taImpl.handle(new TaskAttemptEventTezEventUpdate(taImpl.getTaskAttemptID(), Collections.EMPTY_LIST));
-    assertFalse(
-        "InternalError occurred trying to handle TA_TEZ_EVENT_UPDATE in FAIL_IN_PROGRESS state",
-        eventHandler.internalError);
+    assertFalse(eventHandler.internalError, "InternalError occurred trying to handle TA_TEZ_EVENT_UPDATE in FAIL_IN_PROGRESS state");
 
     taImpl.handle(new TaskAttemptEventContainerTerminated(contId, taskAttemptID, "1",
         TaskAttemptTerminationCause.CONTAINER_EXITED));
@@ -914,7 +911,8 @@ public class TestTaskAttempt {
             expectedEventsAfterTerminating), SpeculatorEventTaskAttemptStatusUpdate.class, 2);
   }
 
-  @Test(timeout = 5000)
+  @Test
+  @Timeout(value = 5000, unit = TimeUnit.MILLISECONDS)
   public void testFailureFatalError() throws Exception {
     ApplicationId appId = ApplicationId.newInstance(1, 2);
     ApplicationAttemptId appAttemptId = ApplicationAttemptId.newInstance(
@@ -962,8 +960,7 @@ public class TestTaskAttempt {
     taImpl.handle(new TaskAttemptEventSchedule(taskAttemptID, 0, 0));
     taImpl.handle(new TaskAttemptEventSubmitted(taskAttemptID, contId));
     taImpl.handle(new TaskAttemptEventStartedRemotely(taskAttemptID));
-    assertEquals("Task attempt is not in the RUNNING state", taImpl.getState(),
-        TaskAttemptState.RUNNING);
+    assertEquals(taImpl.getState(), TaskAttemptState.RUNNING, "Task attempt is not in the RUNNING state");
     verify(mockHeartbeatHandler).register(taskAttemptID);
 
     int expectedEventsAtRunning = 6;
@@ -978,8 +975,7 @@ public class TestTaskAttempt {
         TaskFailureType.FATAL, "0",
         TaskAttemptTerminationCause.APPLICATION_ERROR));
 
-    assertEquals("Task attempt is not in the  FAIL_IN_PROGRESS state", taImpl.getInternalState(),
-        TaskAttemptStateInternal.FAIL_IN_PROGRESS);
+    assertEquals(taImpl.getInternalState(), TaskAttemptStateInternal.FAIL_IN_PROGRESS, "Task attempt is not in the  FAIL_IN_PROGRESS state");
     verify(mockHeartbeatHandler).unregister(taskAttemptID);
     assertEquals(1, taImpl.getDiagnostics().size());
     assertEquals("0", taImpl.getDiagnostics().get(0));
@@ -987,9 +983,7 @@ public class TestTaskAttempt {
 
     assertEquals(TaskAttemptStateInternal.FAIL_IN_PROGRESS, taImpl.getInternalState());
     taImpl.handle(new TaskAttemptEventTezEventUpdate(taImpl.getTaskAttemptID(), Collections.EMPTY_LIST));
-    assertFalse(
-        "InternalError occurred trying to handle TA_TEZ_EVENT_UPDATE in FAIL_IN_PROGRESS state",
-        eventHandler.internalError);
+    assertFalse(eventHandler.internalError, "InternalError occurred trying to handle TA_TEZ_EVENT_UPDATE in FAIL_IN_PROGRESS state");
 
     taImpl.handle(new TaskAttemptEventContainerTerminated(contId, taskAttemptID, "1",
         TaskAttemptTerminationCause.CONTAINER_EXITED));
@@ -1070,8 +1064,7 @@ public class TestTaskAttempt {
     taImpl.handle(new TaskAttemptEventSchedule(taskAttemptID, 0, 0));
     taImpl.handle(new TaskAttemptEventSubmitted(taskAttemptID, contId));
     taImpl.handle(new TaskAttemptEventStartedRemotely(taskAttemptID));
-    assertEquals("Task attempt is not in the RUNNING state", taImpl.getState(),
-        TaskAttemptState.RUNNING);
+    assertEquals(taImpl.getState(), TaskAttemptState.RUNNING, "Task attempt is not in the RUNNING state");
     verify(mockHeartbeatHandler).register(taskAttemptID);
 
     when(mockClock.getTime()).thenReturn(100l);
@@ -1085,14 +1078,14 @@ public class TestTaskAttempt {
       taImpl.handle(fEvent);
       fail("Should not fail since the timestamps do not differ by progress interval config");
     } else {
-      Assert.assertEquals("Task Attempt's internal state should be RUNNING!",
-          taImpl.getInternalState(), TaskAttemptStateInternal.RUNNING);
+      assertEquals(taImpl.getInternalState(), TaskAttemptStateInternal.RUNNING, "Task Attempt's internal state should be RUNNING!");
     }
     when(mockClock.getTime()).thenReturn(200l);
     taImpl.handle(new TaskAttemptEventStatusUpdate(
         taskAttemptID, new TaskStatusUpdateEvent(null, 0.1f, null, false)));
     verify(eventHandler, atLeast(1)).handle(arg.capture());
-    Assert.assertTrue("This should have been an attempt failed event!", arg.getValue() instanceof TaskAttemptEventAttemptFailed);
+    assertInstanceOf(TaskAttemptEventAttemptFailed.class, arg.getValue(),
+        "This should have been an attempt failed event!");
   }
 
   @Test
@@ -1140,7 +1133,7 @@ public class TestTaskAttempt {
     taImpl.handle(new TaskAttemptEventSchedule(taskAttemptID, 0, 0));
     taImpl.handle(new TaskAttemptEventSubmitted(taskAttemptID, contId));
     taImpl.handle(new TaskAttemptEventStartedRemotely(taskAttemptID));
-    assertEquals("Task attempt is not in the RUNNING state", taImpl.getState(), TaskAttemptState.RUNNING);
+    assertEquals(taImpl.getState(), TaskAttemptState.RUNNING, "Task attempt is not in the RUNNING state");
     verify(mockHeartbeatHandler).register(taskAttemptID);
 
     TezCounters counters = new TezCounters();
@@ -1160,7 +1153,8 @@ public class TestTaskAttempt {
     assertEquals(2, taImpl.getCounters().findCounter("group", "counter").getValue());
   }
 
-  @Test (timeout = 60000L)
+  @Test
+  @org.junit.jupiter.api.Timeout(value = 60000, unit = java.util.concurrent.TimeUnit.MILLISECONDS)
   public void testProgressAfterSubmit() throws Exception {
     ApplicationId appId = ApplicationId.newInstance(1, 2);
     ApplicationAttemptId appAttemptId = ApplicationAttemptId.newInstance(
@@ -1215,11 +1209,11 @@ public class TestTaskAttempt {
     if (arg.getValue() instanceof  TaskAttemptEvent) {
       taImpl.handle((TaskAttemptEvent) arg.getValue());
     }
-    Assert.assertEquals("Task Attempt's internal state should be SUBMITTED!",
-        taImpl.getInternalState(), TaskAttemptStateInternal.SUBMITTED);
+    assertEquals(taImpl.getInternalState(), TaskAttemptStateInternal.SUBMITTED, "Task Attempt's internal state should be SUBMITTED!");
   }
 
-  @Test (timeout = 5000)
+  @Test
+  @Timeout(value = 5000, unit = TimeUnit.MILLISECONDS)
   public void testNoProgressFail() throws Exception {
     ApplicationId appId = ApplicationId.newInstance(1, 2);
     ApplicationAttemptId appAttemptId = ApplicationAttemptId.newInstance(
@@ -1268,8 +1262,7 @@ public class TestTaskAttempt {
     taImpl.handle(new TaskAttemptEventSchedule(taskAttemptID, 0, 0));
     taImpl.handle(new TaskAttemptEventSubmitted(taskAttemptID, contId));
     taImpl.handle(new TaskAttemptEventStartedRemotely(taskAttemptID));
-    assertEquals("Task attempt is not in the RUNNING state", taImpl.getState(),
-        TaskAttemptState.RUNNING);
+    assertEquals(taImpl.getState(), TaskAttemptState.RUNNING, "Task attempt is not in the RUNNING state");
     verify(mockHeartbeatHandler).register(taskAttemptID);
 
     when(mockClock.getTime()).thenReturn(100l);
@@ -1300,14 +1293,14 @@ public class TestTaskAttempt {
     assertEquals(TaskFailureType.NON_FATAL, fEvent.getTaskFailureType());
     taImpl.handle(fEvent);
 
-    assertEquals("Task attempt is not in the  FAIL_IN_PROGRESS state", taImpl.getInternalState(),
-        TaskAttemptStateInternal.FAIL_IN_PROGRESS);
+    assertEquals(taImpl.getInternalState(), TaskAttemptStateInternal.FAIL_IN_PROGRESS, "Task attempt is not in the  FAIL_IN_PROGRESS state");
     verify(mockHeartbeatHandler).unregister(taskAttemptID);
     assertEquals(1, taImpl.getDiagnostics().size());
     assertEquals(TaskAttemptTerminationCause.NO_PROGRESS, taImpl.getTerminationCause());
   }
 
-  @Test(timeout = 5000)
+  @Test
+  @Timeout(value = 5000, unit = TimeUnit.MILLISECONDS)
   public void testEventSerializingHash() throws Exception {
     ApplicationId appId = ApplicationId.newInstance(1, 2);
     TezDAGID dagID = TezDAGID.getInstance(appId, 1);
@@ -1333,10 +1326,11 @@ public class TestTaskAttempt {
     assertEquals(taEventFail11.getSerializingHash(), tEventKill1.getSerializingHash());
     assertEquals(taEventKill21.getSerializingHash(), tEventFail2.getSerializingHash());
     // events from different tasks may not have the same value
-    assertFalse(tEventFail1.getSerializingHash() == tEventFail2.getSerializingHash());
+    assertNotEquals(tEventFail1.getSerializingHash(), tEventFail2.getSerializingHash());
   }
 
-  @Test(timeout = 5000)
+  @Test
+  @Timeout(value = 5000, unit = TimeUnit.MILLISECONDS)
   public void testCompletedAtSubmitted() throws ServicePluginException {
     ApplicationId appId = ApplicationId.newInstance(1, 2);
     ApplicationAttemptId appAttemptId = ApplicationAttemptId.newInstance(
@@ -1382,8 +1376,7 @@ public class TestTaskAttempt {
 
     taImpl.handle(new TaskAttemptEventSchedule(taskAttemptID, 0, 0));
     taImpl.handle(new TaskAttemptEventSubmitted(taskAttemptID, contId));
-    assertEquals("Task attempt is not in the RUNNING state", taImpl.getState(),
-        TaskAttemptState.STARTING);
+    assertEquals(taImpl.getState(), TaskAttemptState.STARTING, "Task attempt is not in the RUNNING state");
 
     verify(mockHeartbeatHandler).register(taskAttemptID);
 
@@ -1396,8 +1389,7 @@ public class TestTaskAttempt {
 
     taImpl.handle(new TaskAttemptEvent(taskAttemptID, TaskAttemptEventType.TA_DONE));
 
-    assertEquals("Task attempt is not in the  SUCCEEDED state", taImpl.getState(),
-        TaskAttemptState.SUCCEEDED);
+    assertEquals(taImpl.getState(), TaskAttemptState.SUCCEEDED, "Task attempt is not in the  SUCCEEDED state");
     verify(mockHeartbeatHandler).unregister(taskAttemptID);
     assertEquals(0, taImpl.getDiagnostics().size());
 
@@ -1418,7 +1410,8 @@ public class TestTaskAttempt {
             expectedEventsAfterTerminating), DAGEventCounterUpdate.class, 1);
   }
 
-  @Test(timeout = 5000)
+  @Test
+  @Timeout(value = 5000, unit = TimeUnit.MILLISECONDS)
   public void testSuccess() throws Exception {
     ApplicationId appId = ApplicationId.newInstance(1, 2);
     ApplicationAttemptId appAttemptId = ApplicationAttemptId.newInstance(
@@ -1466,8 +1459,7 @@ public class TestTaskAttempt {
     taImpl.handle(new TaskAttemptEventSchedule(taskAttemptID, 0, 0));
     taImpl.handle(new TaskAttemptEventSubmitted(taskAttemptID, contId));
     taImpl.handle(new TaskAttemptEventStartedRemotely(taskAttemptID));
-    assertEquals("Task attempt is not in the RUNNING state", taImpl.getState(),
-        TaskAttemptState.RUNNING);
+    assertEquals(taImpl.getState(), TaskAttemptState.RUNNING, "Task attempt is not in the RUNNING state");
     verify(mockHeartbeatHandler).register(taskAttemptID);
 
     int expectedEventsAtRunning = 6;
@@ -1481,8 +1473,7 @@ public class TestTaskAttempt {
 
     taImpl.handle(new TaskAttemptEvent(taskAttemptID, TaskAttemptEventType.TA_DONE));
 
-    assertEquals("Task attempt is not in the  SUCCEEDED state", taImpl.getState(),
-        TaskAttemptState.SUCCEEDED);
+    assertEquals(taImpl.getState(), TaskAttemptState.SUCCEEDED, "Task attempt is not in the  SUCCEEDED state");
     verify(mockHeartbeatHandler).unregister(taskAttemptID);
     assertEquals(0, taImpl.getDiagnostics().size());
 
@@ -1505,7 +1496,8 @@ public class TestTaskAttempt {
             expectedEventsAfterTerminating), SpeculatorEventTaskAttemptStatusUpdate.class, 2);
   }
 
-  @Test(timeout = 5000)
+  @Test
+  @Timeout(value = 5000, unit = TimeUnit.MILLISECONDS)
   // Ensure Container Preemption race with task completion is handled correctly by
   // the TaskAttempt
   public void testContainerPreemptedAfterSuccess() throws Exception {
@@ -1555,8 +1547,7 @@ public class TestTaskAttempt {
     taImpl.handle(new TaskAttemptEventSchedule(taskAttemptID, 0, 0));
     taImpl.handle(new TaskAttemptEventSubmitted(taskAttemptID, contId));
     taImpl.handle(new TaskAttemptEventStartedRemotely(taskAttemptID));
-    assertEquals("Task attempt is not in the RUNNING state", taImpl.getState(),
-        TaskAttemptState.RUNNING);
+    assertEquals(taImpl.getState(), TaskAttemptState.RUNNING, "Task attempt is not in the RUNNING state");
     verify(mockHeartbeatHandler).register(taskAttemptID);
 
     int expectedEventsAtRunning = 5;
@@ -1564,8 +1555,7 @@ public class TestTaskAttempt {
 
     taImpl.handle(new TaskAttemptEvent(taskAttemptID, TaskAttemptEventType.TA_DONE));
 
-    assertEquals("Task attempt is not in the  SUCCEEDED state", taImpl.getState(),
-        TaskAttemptState.SUCCEEDED);
+    assertEquals(taImpl.getState(), TaskAttemptState.SUCCEEDED, "Task attempt is not in the  SUCCEEDED state");
     verify(mockHeartbeatHandler).unregister(taskAttemptID);
 
     assertEquals(0, taImpl.getDiagnostics().size());
@@ -1598,7 +1588,8 @@ public class TestTaskAttempt {
     assertEquals(TaskAttemptTerminationCause.UNKNOWN_ERROR, taImpl.getTerminationCause());
   }
 
-  @Test(timeout = 5000)
+  @Test
+  @Timeout(value = 5000, unit = TimeUnit.MILLISECONDS)
   // Ensure node failure on Successful Non-Leaf tasks cause them to be marked as KILLED
   public void testNodeFailedNonLeafVertex() throws Exception {
     ApplicationId appId = ApplicationId.newInstance(1, 2);
@@ -1647,8 +1638,7 @@ public class TestTaskAttempt {
     taImpl.handle(new TaskAttemptEventSchedule(taskAttemptID, 0, 0));
     taImpl.handle(new TaskAttemptEventSubmitted(taskAttemptID, contId));
     taImpl.handle(new TaskAttemptEventStartedRemotely(taskAttemptID));
-    assertEquals("Task attempt is not in the RUNNING state", TaskAttemptState.RUNNING,
-        taImpl.getState());
+    assertEquals(TaskAttemptState.RUNNING, taImpl.getState(), "Task attempt is not in the RUNNING state");
     verify(mockHeartbeatHandler).register(taskAttemptID);
 
     int expectedEventsAtRunning = 5;
@@ -1656,8 +1646,7 @@ public class TestTaskAttempt {
 
     taImpl.handle(new TaskAttemptEvent(taskAttemptID, TaskAttemptEventType.TA_DONE));
 
-    assertEquals("Task attempt is not in the  SUCCEEDED state", TaskAttemptState.SUCCEEDED,
-        taImpl.getState());
+    assertEquals(TaskAttemptState.SUCCEEDED, taImpl.getState(), "Task attempt is not in the  SUCCEEDED state");
     verify(mockHeartbeatHandler).unregister(taskAttemptID);
     assertEquals(0, taImpl.getDiagnostics().size());
 
@@ -1680,11 +1669,10 @@ public class TestTaskAttempt {
     taImpl.handle(new TaskAttemptEventNodeFailed(taskAttemptID, "NodeDecomissioned",
         TaskAttemptTerminationCause.NODE_FAILED));
     // Verify in KILLED state
-    assertEquals("Task attempt is not in the  KILLED state", TaskAttemptState.KILLED,
-        taImpl.getState());
+    assertEquals(TaskAttemptState.KILLED, taImpl.getState(), "Task attempt is not in the  KILLED state");
     // verify unregister is not invoked again
     verify(mockHeartbeatHandler, times(1)).unregister(taskAttemptID);
-    assertEquals(true, taImpl.inputFailedReported);
+    assertTrue(taImpl.inputFailedReported);
     // Verify one event to the Task informing it about FAILURE. No events to scheduler. Counter event.
     int expectedEventsNodeFailure = expectedEventsAfterTerminating + 2;
     arg = ArgumentCaptor.forClass(Event.class);
@@ -1694,18 +1682,16 @@ public class TestTaskAttempt {
             expectedEventsNodeFailure), TaskEventTAKilled.class, 1);
 
     // Verify still in KILLED state
-    assertEquals("Task attempt is not in the  KILLED state", TaskAttemptState.KILLED,
-        taImpl.getState());
+    assertEquals(TaskAttemptState.KILLED, taImpl.getState(), "Task attempt is not in the  KILLED state");
     assertEquals(TaskAttemptTerminationCause.NODE_FAILED, taImpl.getTerminationCause());
 
     assertEquals(TaskAttemptStateInternal.KILLED, taImpl.getInternalState());
     taImpl.handle(new TaskAttemptEventTezEventUpdate(taImpl.getTaskAttemptID(), Collections.EMPTY_LIST));
-    assertFalse(
-        "InternalError occurred trying to handle TA_TEZ_EVENT_UPDATE in KILLED state",
-        eventHandler.internalError);
+    assertFalse(eventHandler.internalError, "InternalError occurred trying to handle TA_TEZ_EVENT_UPDATE in KILLED state");
   }
 
-  @Test(timeout = 5000)
+  @Test
+  @Timeout(value = 5000, unit = TimeUnit.MILLISECONDS)
   // Ensure node failure on Successful Leaf tasks do not cause them to be marked as KILLED
   public void testNodeFailedLeafVertex() throws Exception {
     ApplicationId appId = ApplicationId.newInstance(1, 2);
@@ -1754,8 +1740,7 @@ public class TestTaskAttempt {
     taImpl.handle(new TaskAttemptEventSchedule(taskAttemptID, 0, 0));
     taImpl.handle(new TaskAttemptEventSubmitted(taskAttemptID, contId));
     taImpl.handle(new TaskAttemptEventStartedRemotely(taskAttemptID));
-    assertEquals("Task attempt is not in the RUNNING state", TaskAttemptState.RUNNING,
-        taImpl.getState());
+    assertEquals(TaskAttemptState.RUNNING, taImpl.getState(), "Task attempt is not in the RUNNING state");
     verify(mockHeartbeatHandler).register(taskAttemptID);
 
     int expectedEventsAtRunning = 5;
@@ -1763,8 +1748,7 @@ public class TestTaskAttempt {
 
     taImpl.handle(new TaskAttemptEvent(taskAttemptID, TaskAttemptEventType.TA_DONE));
 
-    assertEquals("Task attempt is not in the  SUCCEEDED state", TaskAttemptState.SUCCEEDED,
-        taImpl.getState());
+    assertEquals(TaskAttemptState.SUCCEEDED, taImpl.getState(), "Task attempt is not in the  SUCCEEDED state");
     verify(mockHeartbeatHandler).unregister(taskAttemptID);
     assertEquals(0, taImpl.getDiagnostics().size());
 
@@ -1792,15 +1776,15 @@ public class TestTaskAttempt {
     verify(eventHandler, times(expectedEventsNodeFailure)).handle(arg.capture());
 
     // Verify still in SUCCEEDED state
-    assertEquals("Task attempt is not in the  SUCCEEDED state", TaskAttemptState.SUCCEEDED,
-        taImpl.getState());
+    assertEquals(TaskAttemptState.SUCCEEDED, taImpl.getState(), "Task attempt is not in the  SUCCEEDED state");
     // verify unregister is not invoked again
     verify(mockHeartbeatHandler, times(1)).unregister(taskAttemptID);
     // error cause remains as default value
     assertEquals(TaskAttemptTerminationCause.UNKNOWN_ERROR, taImpl.getTerminationCause());
   }
 
-  @Test(timeout = 5000)
+  @Test
+  @Timeout(value = 5000, unit = TimeUnit.MILLISECONDS)
   // Verifies that multiple TooManyFetchFailures are handled correctly by the
   // TaskAttempt.
   public void testMultipleOutputFailed() throws Exception {
@@ -1855,8 +1839,7 @@ public class TestTaskAttempt {
     verify(mockHeartbeatHandler).register(taskAttemptID);
     taImpl.handle(new TaskAttemptEvent(taskAttemptID,
         TaskAttemptEventType.TA_DONE));
-    assertEquals("Task attempt is not in succeeded state", taImpl.getState(),
-        TaskAttemptState.SUCCEEDED);
+    assertEquals(taImpl.getState(), TaskAttemptState.SUCCEEDED, "Task attempt is not in succeeded state");
     verify(mockHeartbeatHandler).unregister(taskAttemptID);
 
     int expectedEventsTillSucceeded = 8;
@@ -1886,13 +1869,11 @@ public class TestTaskAttempt {
     taImpl.handle(new TaskAttemptEventOutputFailed(taskAttemptID, tzEvent, 11));
 
     // failure threshold not met. state is SUCCEEDED
-    assertEquals("Task attempt is not in succeeded state", taImpl.getState(),
-        TaskAttemptState.SUCCEEDED);
+    assertEquals(taImpl.getState(), TaskAttemptState.SUCCEEDED, "Task attempt is not in succeeded state");
 
     // sending same error again doesnt change anything
     taImpl.handle(new TaskAttemptEventOutputFailed(taskAttemptID, tzEvent, 11));
-    assertEquals("Task attempt is not in succeeded state", taImpl.getState(),
-        TaskAttemptState.SUCCEEDED);
+    assertEquals(taImpl.getState(), TaskAttemptState.SUCCEEDED, "Task attempt is not in succeeded state");
     // default value of error cause
     assertEquals(TaskAttemptTerminationCause.UNKNOWN_ERROR, taImpl.getTerminationCause());
 
@@ -1909,7 +1890,7 @@ public class TestTaskAttempt {
     when(mockDAG.getVertex(destVertexID)).thenReturn(destVertex);
     taImpl.handle(new TaskAttemptEventOutputFailed(taskAttemptID, tzEvent, 11));
 
-    assertEquals("Task attempt is not in FAILED state", TaskAttemptState.FAILED, taImpl.getState());
+    assertEquals(TaskAttemptState.FAILED, taImpl.getState(), "Task attempt is not in FAILED state");
     assertEquals(TaskAttemptTerminationCause.OUTPUT_LOST, taImpl.getTerminationCause());
     // verify unregister is not invoked again
     verify(mockHeartbeatHandler, times(1)).unregister(taskAttemptID);
@@ -1918,9 +1899,9 @@ public class TestTaskAttempt {
     finishEvent = (TaskAttemptFinishedEvent)histEvent.getHistoryEvent();
     assertEquals(TaskFailureType.NON_FATAL, finishEvent.getTaskFailureType());
     long newFinishTime = finishEvent.getFinishTime();
-    Assert.assertEquals(finishTime, newFinishTime);
+    assertEquals(finishTime, newFinishTime);
 
-    assertEquals(true, taImpl.inputFailedReported);
+    assertTrue(taImpl.inputFailedReported);
     int expectedEventsAfterFetchFailure = expectedEventsTillSucceeded + 2;
     arg = ArgumentCaptor.forClass(Event.class);
     verify(eventHandler, times(expectedEventsAfterFetchFailure)).handle(arg.capture());
@@ -1931,11 +1912,8 @@ public class TestTaskAttempt {
     assertEquals(TaskFailureType.NON_FATAL, failedEvent.getTaskFailureType());
 
     taImpl.handle(new TaskAttemptEventOutputFailed(taskAttemptID, tzEvent, 1));
-    assertEquals("Task attempt is not in FAILED state, still",
-        taImpl.getState(), TaskAttemptState.FAILED);
-    assertFalse(
-        "InternalError occurred trying to handle TA_TOO_MANY_FETCH_FAILURES",
-        eventHandler.internalError);
+    assertEquals(taImpl.getState(), TaskAttemptState.FAILED, "Task attempt is not in FAILED state, still");
+    assertFalse(eventHandler.internalError, "InternalError occurred trying to handle TA_TOO_MANY_FETCH_FAILURES");
     // No new events.
     verify(eventHandler, times(expectedEventsAfterFetchFailure)).handle(
         arg.capture());
@@ -1957,8 +1935,7 @@ public class TestTaskAttempt {
     taImpl2.handle(new TaskAttemptEventStartedRemotely(taskAttemptID2));
     verify(mockHeartbeatHandler).register(taskAttemptID2);
     taImpl2.handle(new TaskAttemptEvent(taskAttemptID2, TaskAttemptEventType.TA_DONE));
-    assertEquals("Task attempt is not in succeeded state", taImpl2.getState(),
-        TaskAttemptState.SUCCEEDED);
+    assertEquals(taImpl2.getState(), TaskAttemptState.SUCCEEDED, "Task attempt is not in succeeded state");
     verify(mockHeartbeatHandler).unregister(taskAttemptID2);
 
     mockReEvent = InputReadErrorEvent.create("", 1, 1);
@@ -1971,8 +1948,7 @@ public class TestTaskAttempt {
     //This should fail even when MAX_ALLOWED_OUTPUT_FAILURES_FRACTION is within limits, as
     // MAX_ALLOWED_OUTPUT_FAILURES has crossed the limit.
     taImpl2.handle(new TaskAttemptEventOutputFailed(taskAttemptID2, tzEvent, 8));
-    assertEquals("Task attempt is not in failed state", taImpl2.getState(),
-        TaskAttemptState.FAILED);
+    assertEquals(taImpl2.getState(), TaskAttemptState.FAILED, "Task attempt is not in failed state");
     assertEquals(TaskAttemptTerminationCause.OUTPUT_LOST, taImpl2.getTerminationCause());
     // verify unregister is not invoked again
     verify(mockHeartbeatHandler, times(1)).unregister(taskAttemptID2);
@@ -2000,8 +1976,7 @@ public class TestTaskAttempt {
     taImpl3.handle(new TaskAttemptEventStartedRemotely(taskAttemptID3));
     verify(mockHeartbeatHandler).register(taskAttemptID3);
     taImpl3.handle(new TaskAttemptEvent(taskAttemptID3, TaskAttemptEventType.TA_DONE));
-    assertEquals("Task attempt is not in succeeded state", taImpl3.getState(),
-        TaskAttemptState.SUCCEEDED);
+    assertEquals(taImpl3.getState(), TaskAttemptState.SUCCEEDED, "Task attempt is not in succeeded state");
     verify(mockHeartbeatHandler).unregister(taskAttemptID3);
 
     mockReEvent = InputReadErrorEvent.create("", 1, 1);
@@ -2015,23 +1990,21 @@ public class TestTaskAttempt {
     when(destVertex.getRunningTasks()).thenReturn(1000);
     // time deadline not exceeded for a couple of read error events
     taImpl3.handle(new TaskAttemptEventOutputFailed(taskAttemptID3, tzEvent, 1000));
-    assertEquals("Task attempt is not in succeeded state", taImpl3.getState(),
-        TaskAttemptState.SUCCEEDED);
+    assertEquals(taImpl3.getState(), TaskAttemptState.SUCCEEDED, "Task attempt is not in succeeded state");
     when(mockClock.getTime()).thenReturn(1500L);
     taImpl3.handle(new TaskAttemptEventOutputFailed(taskAttemptID3, tzEvent, 1000));
-    assertEquals("Task attempt is not in succeeded state", taImpl3.getState(),
-        TaskAttemptState.SUCCEEDED);
+    assertEquals(taImpl3.getState(), TaskAttemptState.SUCCEEDED, "Task attempt is not in succeeded state");
     // exceed the time threshold
     when(mockClock.getTime()).thenReturn(2001L);
     taImpl3.handle(new TaskAttemptEventOutputFailed(taskAttemptID3, tzEvent, 1000));
-    assertEquals("Task attempt is not in FAILED state", taImpl3.getState(),
-        TaskAttemptState.FAILED);
+    assertEquals(taImpl3.getState(), TaskAttemptState.FAILED, "Task attempt is not in FAILED state");
     assertEquals(TaskAttemptTerminationCause.OUTPUT_LOST, taImpl3.getTerminationCause());
     // verify unregister is not invoked again
     verify(mockHeartbeatHandler, times(1)).unregister(taskAttemptID3);
   }
 
-  @Test(timeout = 60000)
+  @Test
+  @Timeout(value = 60000, unit = TimeUnit.MILLISECONDS)
   public void testTAFailureBasedOnRunningTasks() throws Exception {
     ApplicationId appId = ApplicationId.newInstance(1, 2);
     ApplicationAttemptId appAttemptId = ApplicationAttemptId.newInstance(
@@ -2084,8 +2057,7 @@ public class TestTaskAttempt {
     verify(mockHeartbeatHandler).register(taskAttemptID);
     taImpl.handle(new TaskAttemptEvent(taskAttemptID,
         TaskAttemptEventType.TA_DONE));
-    assertEquals("Task attempt is not in succeeded state", taImpl.getState(),
-        TaskAttemptState.SUCCEEDED);
+    assertEquals(taImpl.getState(), TaskAttemptState.SUCCEEDED, "Task attempt is not in succeeded state");
     verify(mockHeartbeatHandler).unregister(taskAttemptID);
 
     int expectedEventsTillSucceeded = 8;
@@ -2115,11 +2087,12 @@ public class TestTaskAttempt {
     taImpl.handle(new TaskAttemptEventOutputFailed(taskAttemptID, tzEvent, 11));
 
     // failure threshold is met due to running tasks. state is FAILED
-    assertEquals("Task attempt is not in FAILED state", TaskAttemptState.FAILED, taImpl.getState());
+    assertEquals(TaskAttemptState.FAILED, taImpl.getState(), "Task attempt is not in FAILED state");
   }
 
   @SuppressWarnings("deprecation")
-  @Test(timeout = 5000)
+  @Test
+  @Timeout(value = 5000, unit = TimeUnit.MILLISECONDS)
   public void testKilledInNew() throws ServicePluginException {
     ApplicationId appId = ApplicationId.newInstance(1, 2);
     ApplicationAttemptId appAttemptId = ApplicationAttemptId.newInstance(
@@ -2159,13 +2132,13 @@ public class TestTaskAttempt {
         taListener, taskConf, new SystemClock(),
         mockHeartbeatHandler, appCtx, false,
         resource, createFakeContainerContext(), true);
-    Assert.assertEquals(TaskAttemptStateInternal.NEW, taImpl.getInternalState());
+    assertEquals(TaskAttemptStateInternal.NEW, taImpl.getInternalState());
     taImpl.handle(new TaskAttemptEventKillRequest(taImpl.getTaskAttemptID(), "kill it",
         TaskAttemptTerminationCause.TERMINATED_BY_CLIENT));
-    Assert.assertEquals(TaskAttemptStateInternal.KILLED, taImpl.getInternalState());
+    assertEquals(TaskAttemptStateInternal.KILLED, taImpl.getInternalState());
 
-    Assert.assertEquals(0, taImpl.taskAttemptStartedEventLogged);
-    Assert.assertEquals(1, taImpl.taskAttemptFinishedEventLogged);
+    assertEquals(0, taImpl.taskAttemptStartedEventLogged);
+    assertEquals(1, taImpl.taskAttemptFinishedEventLogged);
   }
 
   @Test
@@ -2207,10 +2180,10 @@ public class TestTaskAttempt {
     TaskAttemptEventOutputFailed outputFailedEvent =
         new TaskAttemptEventOutputFailed(sourceAttempt.getTaskAttemptID(), tezEvent, 11);
 
-    Assert.assertEquals(TaskAttemptStateInternal.NEW, sourceAttempt.getInternalState());
+    assertEquals(TaskAttemptStateInternal.NEW, sourceAttempt.getInternalState());
     TaskAttemptStateInternal resultState = new TaskAttemptImpl.OutputReportedFailedTransition()
         .transition(sourceAttempt, outputFailedEvent);
-    Assert.assertEquals(expectedState, resultState);
+    assertEquals(expectedState, resultState);
   }
 
   @Test
@@ -2240,7 +2213,7 @@ public class TestTaskAttempt {
 
     // mapper task succeeded earlier
     sourceAttempt.handle(new TaskAttemptEvent(sourceAttempt.getTaskAttemptID(), TaskAttemptEventType.TA_DONE));
-    Assert.assertEquals(TaskAttemptStateInternal.SUCCEEDED, sourceAttempt.getInternalState());
+    assertEquals(TaskAttemptStateInternal.SUCCEEDED, sourceAttempt.getInternalState());
 
     // the event is propagated to map task's event handler
     TezEvent tezEvent = new TezEvent(inputReadErrorEvent1, mockMeta);
@@ -2250,7 +2223,7 @@ public class TestTaskAttempt {
         new TaskAttemptImpl.OutputReportedFailedTransition().transition(sourceAttempt, outputFailedEvent);
     // SUCCEEDED, as we haven't reached the host limit fraction
     // active nodes: 8, failed hosts: 1, fraction 0.125 (< 0.2)
-    Assert.assertEquals(TaskAttemptStateInternal.SUCCEEDED, resultState);
+    assertEquals(TaskAttemptStateInternal.SUCCEEDED, resultState);
 
     // the second event is propagated to map task's event handler
     TezEvent tezEvent2 = new TezEvent(inputReadErrorEvent2, mockMeta);
@@ -2261,7 +2234,7 @@ public class TestTaskAttempt {
 
     // now it's marked as FAILED
     // active nodes: 8, failed hosts: 2, fraction 0.25 (> 0.2)
-    Assert.assertEquals(TaskAttemptStateInternal.FAILED, resultState2);
+    assertEquals(TaskAttemptStateInternal.FAILED, resultState2);
   }
 
   @Test
@@ -2329,7 +2302,7 @@ public class TestTaskAttempt {
         return;
       }
     }
-    Assert.fail(
+    fail(
         String.format("Haven't found counter update %s=%d, instead seen: %s", counter, expectedValue, counterUpdates));
   }
 
@@ -2337,7 +2310,7 @@ public class TestTaskAttempt {
       List<DAGEventCounterUpdate.CounterIncrementalUpdate> counterUpdates, DAGCounter counter) {
     for (DAGEventCounterUpdate.CounterIncrementalUpdate update : counterUpdates) {
       if (update.getCounterKey().equals(counter)) {
-        Assert.fail(
+        fail(
             String.format("Found counter update %s=%d, which is not expected", counter, update.getIncrementValue()));
       }
     }
@@ -2353,9 +2326,7 @@ public class TestTaskAttempt {
         ret = e;
       }
     }
-    assertEquals(
-        "Mismatch in num occurences of event: " + eventClass.getCanonicalName(),
-        expectedOccurences, count);
+    assertEquals(expectedOccurences, count, "Mismatch in num occurences of event: " + eventClass.getCanonicalName());
     return ret;
   }
 

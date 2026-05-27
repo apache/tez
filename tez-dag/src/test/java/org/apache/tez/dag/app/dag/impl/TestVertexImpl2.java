@@ -18,9 +18,9 @@
  */
 package org.apache.tez.dag.app.dag.impl;
 
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertNull;
-import static org.junit.Assert.assertTrue;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertNull;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.Mockito.doReturn;
 import static org.mockito.Mockito.mock;
 
@@ -28,6 +28,7 @@ import java.io.IOException;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
+import java.util.concurrent.TimeUnit;
 
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.security.Credentials;
@@ -63,15 +64,16 @@ import com.google.common.collect.BiMap;
 import com.google.common.collect.HashBiMap;
 import com.google.common.collect.Lists;
 
-import org.junit.Assert;
-import org.junit.Test;
+import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.Timeout;
 
 /**
  * Contains additional tests for VertexImpl. Please avoid adding class parameters.
  */
 public class TestVertexImpl2 {
 
-  @Test(timeout = 5000)
+  @Test
+  @Timeout(value = 5000, unit = TimeUnit.MILLISECONDS)
   public void testTaskLoggingOptsPerLogger() {
 
     Configuration conf = new TezConfiguration();
@@ -105,7 +107,8 @@ public class TestVertexImpl2 {
     }
   }
 
-  @Test(timeout = 5000)
+  @Test
+  @Timeout(value = 5000, unit = TimeUnit.MILLISECONDS)
   public void testTaskLoggingOptsSimple() {
 
     Configuration conf = new TezConfiguration();
@@ -138,7 +141,8 @@ public class TestVertexImpl2 {
     }
   }
 
-  @Test(timeout = 5000)
+  @Test
+  @Timeout(value = 5000, unit = TimeUnit.MILLISECONDS)
   public void testTaskSpecificLoggingOpts() {
 
     String vertexName = "testvertex";
@@ -204,7 +208,8 @@ public class TestVertexImpl2 {
     }
   }
 
-  @Test(timeout = 5000)
+  @Test
+  @Timeout(value = 5000, unit = TimeUnit.MILLISECONDS)
   public void testTaskSpecificLoggingOpts2() {
 
     String vertexName = "testvertex";
@@ -270,7 +275,8 @@ public class TestVertexImpl2 {
     }
   }
 
-  @Test(timeout = 5000)
+  @Test
+  @Timeout(value = 5000, unit = TimeUnit.MILLISECONDS)
   public void testNullExecutionContexts() {
 
     ExecutionContextTestInfoHolder info = new ExecutionContextTestInfoHolder(null, null);
@@ -281,7 +287,8 @@ public class TestVertexImpl2 {
     assertEquals(0, vertexWrapper.vertex.taskCommunicatorIdentifier);
   }
 
-  @Test(timeout = 5000)
+  @Test
+  @Timeout(value = 5000, unit = TimeUnit.MILLISECONDS)
   public void testDefaultExecContextViaDag() {
     VertexExecutionContext defaultExecContext = VertexExecutionContext.create(
         ExecutionContextTestInfoHolder
@@ -299,7 +306,8 @@ public class TestVertexImpl2 {
     assertEquals(2, vertexWrapper.vertex.taskCommunicatorIdentifier);
   }
 
-  @Test(timeout = 5000)
+  @Test
+  @Timeout(value = 5000, unit = TimeUnit.MILLISECONDS)
   public void testVertexExecutionContextOnly() {
     VertexExecutionContext vertexExecutionContext = VertexExecutionContext.create(
         ExecutionContextTestInfoHolder
@@ -317,7 +325,8 @@ public class TestVertexImpl2 {
     assertEquals(1, vertexWrapper.vertex.taskCommunicatorIdentifier);
   }
 
-  @Test(timeout = 5000)
+  @Test
+  @Timeout(value = 5000, unit = TimeUnit.MILLISECONDS)
   public void testVertexExecutionContextOverride() {
     VertexExecutionContext defaultExecContext = VertexExecutionContext.create(
         ExecutionContextTestInfoHolder
@@ -532,9 +541,9 @@ public class TestVertexImpl2 {
               dagConf);
 
       if (checkVertexOnlyConf) {
-        Assert.assertEquals("xyz1", vertex.vertexOnlyConf.get("abc1"));
-        Assert.assertEquals("bar2", vertex.vertexOnlyConf.get("foo1"));
-        Assert.assertEquals("bar", vertex.vertexOnlyConf.get("foo"));
+        assertEquals("xyz1", vertex.vertexOnlyConf.get("abc1"));
+        assertEquals("bar2", vertex.vertexOnlyConf.get("foo1"));
+        assertEquals("bar", vertex.vertexOnlyConf.get("foo"));
       }
 
     }

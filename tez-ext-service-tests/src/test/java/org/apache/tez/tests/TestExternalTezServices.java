@@ -18,9 +18,10 @@
  */
 package org.apache.tez.tests;
 
-import static org.junit.Assert.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertEquals;
 
 import java.io.IOException;
+import java.util.concurrent.TimeUnit;
 
 import org.apache.hadoop.fs.Path;
 import org.apache.tez.common.TezUtils;
@@ -44,9 +45,10 @@ import org.apache.tez.serviceplugins.api.ServicePluginsDescriptor;
 import org.apache.tez.serviceplugins.api.TaskCommunicatorDescriptor;
 import org.apache.tez.serviceplugins.api.TaskSchedulerDescriptor;
 
-import org.junit.AfterClass;
-import org.junit.BeforeClass;
-import org.junit.Test;
+import org.junit.jupiter.api.AfterAll;
+import org.junit.jupiter.api.BeforeAll;
+import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.Timeout;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -75,7 +77,7 @@ public class TestExternalTezServices {
   private static String TEST_ROOT_DIR = "target" + Path.SEPARATOR + TestExternalTezServices.class.getName()
       + "-tmpDir";
 
-  @BeforeClass
+  @BeforeAll
   public static void setup() throws Exception {
 
     extServiceTestHelper = new ExternalTezServiceTestHelper(TEST_ROOT_DIR);
@@ -111,83 +113,94 @@ public class TestExternalTezServices {
         .setupHashJoinData(SRC_DATA_DIR, dataPath1, dataPath2, HASH_JOIN_EXPECTED_RESULT_PATH, HASH_JOIN_OUTPUT_PATH);
   }
 
-  @AfterClass
+  @AfterAll
   public static void tearDown() throws IOException, TezException {
     extServiceTestHelper.tearDownAll();
   }
 
 
-  @Test(timeout = 60000)
+  @Test
+  @Timeout(value = 60000, unit = TimeUnit.MILLISECONDS)
   public void testAllInService() throws Exception {
     int expectedExternalSubmissions = 4 + 3; //4 for 4 src files, 3 for num reducers.
     runJoinValidate("AllInService", expectedExternalSubmissions, EXECUTION_CONTEXT_EXT_SERVICE_PUSH,
         EXECUTION_CONTEXT_EXT_SERVICE_PUSH, EXECUTION_CONTEXT_EXT_SERVICE_PUSH);
   }
 
-  @Test(timeout = 60000)
+  @Test
+  @Timeout(value = 60000, unit = TimeUnit.MILLISECONDS)
   public void testAllInContainers() throws Exception {
     int expectedExternalSubmissions = 0; // All in containers
     runJoinValidate("AllInContainers", expectedExternalSubmissions, EXECUTION_CONTEXT_REGULAR_CONTAINERS,
         EXECUTION_CONTEXT_REGULAR_CONTAINERS, EXECUTION_CONTEXT_REGULAR_CONTAINERS);
   }
 
-  @Test(timeout = 60000)
+  @Test
+  @Timeout(value = 60000, unit = TimeUnit.MILLISECONDS)
   public void testAllInAM() throws Exception {
     int expectedExternalSubmissions = 0; // All in AM
     runJoinValidate("AllInAM", expectedExternalSubmissions, EXECUTION_CONTEXT_IN_AM,
         EXECUTION_CONTEXT_IN_AM, EXECUTION_CONTEXT_IN_AM);
   }
 
-  @Test(timeout = 60000)
+  @Test
+  @Timeout(value = 60000, unit = TimeUnit.MILLISECONDS)
   public void testMixed1() throws Exception { // M-ExtService, R-containers
     int expectedExternalSubmissions = 4 + 0; //4 for 4 src files, 0 for num reducers.
     runJoinValidate("Mixed1", expectedExternalSubmissions, EXECUTION_CONTEXT_EXT_SERVICE_PUSH,
         EXECUTION_CONTEXT_EXT_SERVICE_PUSH, EXECUTION_CONTEXT_REGULAR_CONTAINERS);
   }
 
-  @Test(timeout = 60000)
+  @Test
+  @Timeout(value = 60000, unit = TimeUnit.MILLISECONDS)
   public void testMixed2() throws Exception { // M-Containers, R-ExtService
     int expectedExternalSubmissions = 0 + 3; // 3 for num reducers.
     runJoinValidate("Mixed2", expectedExternalSubmissions, EXECUTION_CONTEXT_REGULAR_CONTAINERS,
         EXECUTION_CONTEXT_REGULAR_CONTAINERS, EXECUTION_CONTEXT_EXT_SERVICE_PUSH);
   }
 
-  @Test(timeout = 60000)
+  @Test
+  @Timeout(value = 60000, unit = TimeUnit.MILLISECONDS)
   public void testMixed3() throws Exception { // M - service, R-AM
     int expectedExternalSubmissions = 4 + 0; //4 for 4 src files, 0 for num reducers (in-AM).
     runJoinValidate("Mixed3", expectedExternalSubmissions, EXECUTION_CONTEXT_EXT_SERVICE_PUSH,
         EXECUTION_CONTEXT_EXT_SERVICE_PUSH, EXECUTION_CONTEXT_IN_AM);
   }
 
-  @Test(timeout = 60000)
+  @Test
+  @Timeout(value = 60000, unit = TimeUnit.MILLISECONDS)
   public void testMixed4() throws Exception { // M - containers, R-AM
     int expectedExternalSubmissions = 0 + 0; // Nothing in external service.
     runJoinValidate("Mixed4", expectedExternalSubmissions, EXECUTION_CONTEXT_REGULAR_CONTAINERS,
         EXECUTION_CONTEXT_REGULAR_CONTAINERS, EXECUTION_CONTEXT_IN_AM);
   }
 
-  @Test(timeout = 60000)
+  @Test
+  @Timeout(value = 60000, unit = TimeUnit.MILLISECONDS)
   public void testMixed5() throws Exception { // M1 - containers, M2-extservice, R-AM
     int expectedExternalSubmissions = 2 + 0; // 2 for M2
     runJoinValidate("Mixed5", expectedExternalSubmissions, EXECUTION_CONTEXT_REGULAR_CONTAINERS,
         EXECUTION_CONTEXT_EXT_SERVICE_PUSH, EXECUTION_CONTEXT_IN_AM);
   }
 
-  @Test(timeout = 60000)
+  @Test
+  @Timeout(value = 60000, unit = TimeUnit.MILLISECONDS)
   public void testMixed6() throws Exception { // M - AM, R - Service
     int expectedExternalSubmissions = 0 + 3; // 3 for R in service
     runJoinValidate("Mixed6", expectedExternalSubmissions, EXECUTION_CONTEXT_IN_AM,
         EXECUTION_CONTEXT_IN_AM, EXECUTION_CONTEXT_EXT_SERVICE_PUSH);
   }
 
-  @Test(timeout = 60000)
+  @Test
+  @Timeout(value = 60000, unit = TimeUnit.MILLISECONDS)
   public void testMixed7() throws Exception { // M - AM, R - Containers
     int expectedExternalSubmissions = 0; // Nothing in ext service
     runJoinValidate("Mixed7", expectedExternalSubmissions, EXECUTION_CONTEXT_IN_AM,
         EXECUTION_CONTEXT_IN_AM, EXECUTION_CONTEXT_REGULAR_CONTAINERS);
   }
 
-  @Test(timeout = 60000)
+  @Test
+  @Timeout(value = 60000, unit = TimeUnit.MILLISECONDS)
   public void testErrorPropagation() throws TezException, InterruptedException, IOException {
     runExceptionSimulation();
   }

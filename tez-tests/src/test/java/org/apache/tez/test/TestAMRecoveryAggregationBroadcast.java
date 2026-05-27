@@ -18,7 +18,7 @@
  */
 package org.apache.tez.test;
 
-import static org.junit.Assert.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertEquals;
 
 import java.io.BufferedWriter;
 import java.io.IOException;
@@ -85,12 +85,12 @@ import org.apache.tez.runtime.library.conf.OrderedPartitionedKVEdgeConfig;
 import org.apache.tez.runtime.library.conf.UnorderedKVEdgeConfig;
 import org.apache.tez.runtime.library.partitioner.HashPartitioner;
 
-import org.junit.After;
-import org.junit.AfterClass;
-import org.junit.Assert;
-import org.junit.Before;
-import org.junit.BeforeClass;
-import org.junit.Test;
+import org.junit.jupiter.api.AfterAll;
+import org.junit.jupiter.api.AfterEach;
+import org.junit.jupiter.api.BeforeAll;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.Timeout;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -120,7 +120,7 @@ public class TestAMRecoveryAggregationBroadcast {
   private TezConfiguration tezConf;
   private TezClient tezSession;
 
-  @BeforeClass
+  @BeforeAll
   public static void setupAll() {
     try {
       dfsConf = new Configuration();
@@ -156,7 +156,7 @@ public class TestAMRecoveryAggregationBroadcast {
     writer.close();
   }
 
-  @AfterClass
+  @AfterAll
   public static void tearDownAll() {
     if (tezCluster != null) {
       tezCluster.stop();
@@ -168,7 +168,7 @@ public class TestAMRecoveryAggregationBroadcast {
     }
   }
 
-  @Before
+  @BeforeEach
   public void setup() throws Exception {
     Path remoteStagingDir = remoteFs.makeQualified(new Path(TEST_ROOT_DIR, String
         .valueOf(new Random().nextInt(100000))));
@@ -187,7 +187,7 @@ public class TestAMRecoveryAggregationBroadcast {
     tezSession.start();
   }
 
-  @After
+  @AfterEach
   public void teardown() throws InterruptedException {
     if (tezSession != null) {
       try {
@@ -200,7 +200,8 @@ public class TestAMRecoveryAggregationBroadcast {
     tezSession = null;
   }
 
-  @Test(timeout = 120000)
+  @Test
+  @Timeout(value = 120000, unit = TimeUnit.MILLISECONDS)
   public void testSucceed() throws Exception {
     DAG dag = createDAG("Succeed");
     TezCounters counters = runDAGAndVerify(dag, false);
@@ -215,7 +216,8 @@ public class TestAMRecoveryAggregationBroadcast {
     assertEquals(Collections.emptyList(), readRecoveryLog(2));
   }
 
-  @Test(timeout = 120000)
+  @Test
+  @Timeout(value = 120000, unit = TimeUnit.MILLISECONDS)
   public void testTableScanTemporalFailure() throws Exception {
     tezConf.setBoolean(TABLE_SCAN_SLEEP, true);
     DAG dag = createDAG("TableScanTemporalFailure");
@@ -235,7 +237,8 @@ public class TestAMRecoveryAggregationBroadcast {
     assertEquals(Collections.emptyList(), readRecoveryLog(3));
   }
 
-  @Test(timeout = 120000)
+  @Test
+  @Timeout(value = 120000, unit = TimeUnit.MILLISECONDS)
   public void testAggregationTemporalFailure() throws Exception {
     tezConf.setBoolean(AGGREGATION_SLEEP, true);
     DAG dag = createDAG("AggregationTemporalFailure");
@@ -255,7 +258,8 @@ public class TestAMRecoveryAggregationBroadcast {
     assertEquals(Collections.emptyList(), readRecoveryLog(3));
   }
 
-  @Test(timeout = 120000)
+  @Test
+  @Timeout(value = 120000, unit = TimeUnit.MILLISECONDS)
   public void testMapJoinTemporalFailure() throws Exception {
     tezConf.setBoolean(MAP_JOIN_SLEEP, true);
     DAG dag = createDAG("MapJoinTemporalFailure");
@@ -350,13 +354,13 @@ public class TestAMRecoveryAggregationBroadcast {
     }
     DAGStatus dagStatus = dagClient.waitForCompletionWithStatusUpdates(EnumSet.of(StatusGetOpts.GET_COUNTERS));
     LOG.info("Diagnosis: " + dagStatus.getDiagnostics());
-    Assert.assertEquals(State.SUCCEEDED, dagStatus.getState());
+    assertEquals(State.SUCCEEDED, dagStatus.getState());
 
     FSDataInputStream in = remoteFs.open(new Path(OUT_PATH, "part-v002-o000-r-00000"));
     ByteBuffer buf = ByteBuffer.allocate(100);
     in.read(buf);
     buf.flip();
-    Assert.assertEquals(EXPECTED_OUTPUT, StandardCharsets.UTF_8.decode(buf).toString());
+    assertEquals(EXPECTED_OUTPUT, StandardCharsets.UTF_8.decode(buf).toString());
     return dagStatus.getDAGCounters();
   }
 

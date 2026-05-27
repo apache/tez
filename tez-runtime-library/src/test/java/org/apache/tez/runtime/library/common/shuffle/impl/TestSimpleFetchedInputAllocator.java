@@ -18,12 +18,13 @@
  */
 package org.apache.tez.runtime.library.common.shuffle.impl;
 
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertTrue;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import java.io.File;
 import java.io.IOException;
 import java.util.UUID;
+import java.util.concurrent.TimeUnit;
 
 import org.apache.hadoop.conf.Configuration;
 import org.apache.tez.common.TezRuntimeFrameworkConfigs;
@@ -31,7 +32,8 @@ import org.apache.tez.runtime.library.api.TezRuntimeConfiguration;
 import org.apache.tez.runtime.library.common.InputAttemptIdentifier;
 import org.apache.tez.runtime.library.common.shuffle.FetchedInput;
 
-import org.junit.Test;
+import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.Timeout;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -39,7 +41,8 @@ public class TestSimpleFetchedInputAllocator {
 
   private static final Logger LOG = LoggerFactory.getLogger(TestSimpleFetchedInputAllocator.class);
 
-  @Test(timeout = 5000)
+  @Test
+  @Timeout(value = 5000, unit = TimeUnit.MILLISECONDS)
   public void testInMemAllocation() throws IOException {
     File localDirs = new File(System.getProperty("test.build.data", "/tmp"), this.getClass().getName());
     Configuration conf = new Configuration();
@@ -91,7 +94,8 @@ public class TestSimpleFetchedInputAllocator {
    * a high `maxMemory` is reported by the Runtime.The allocation results in a
    * DISK input because the `requestSize` exceeds the `maxSingleShuffleLimit`.
    */
-  @Test(timeout = 5000)
+  @Test
+  @Timeout(value = 5000, unit = TimeUnit.MILLISECONDS)
   public void testInMemAllocationWithJvmMaxMemory() throws IOException {
     File localDirs = new File(System.getProperty("test.build.data", "/tmp"), this.getClass().getName());
     Configuration conf = new Configuration();

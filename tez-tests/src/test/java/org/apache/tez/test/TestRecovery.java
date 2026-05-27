@@ -18,8 +18,8 @@
  */
 package org.apache.tez.test;
 
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertTrue;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import java.io.BufferedReader;
 import java.io.BufferedWriter;
@@ -31,6 +31,7 @@ import java.util.HashSet;
 import java.util.List;
 import java.util.Random;
 import java.util.Set;
+import java.util.concurrent.TimeUnit;
 
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.fs.CommonConfigurationKeysPublic;
@@ -81,10 +82,11 @@ import org.apache.tez.test.RecoveryServiceWithEventHandlingHook.SimpleShutdownCo
 
 import com.google.common.collect.Lists;
 
-import org.junit.AfterClass;
-import org.junit.Assert;
-import org.junit.BeforeClass;
-import org.junit.Test;
+import org.junit.jupiter.api.AfterAll;
+import org.junit.jupiter.api.Assertions;
+import org.junit.jupiter.api.BeforeAll;
+import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.Timeout;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -99,7 +101,7 @@ public class TestRecovery {
   private static MiniDFSCluster dfsCluster = null;
   private static FileSystem remoteFs = null;
 
-  @BeforeClass
+  @BeforeAll
   public static void beforeClass() throws Exception {
     LOG.info("Starting mini clusters");
     try {
@@ -121,7 +123,7 @@ public class TestRecovery {
     }
   }
 
-  @AfterClass
+  @AfterAll
   public static void afterClass() throws InterruptedException {
     if (miniTezCluster != null) {
       try {
@@ -141,7 +143,8 @@ public class TestRecovery {
     }
   }
 
-  @Test(timeout=1800000)
+  @Test
+  @Timeout(value = 1800000, unit = TimeUnit.MILLISECONDS)
   public void testRecovery_OrderedWordCount() throws Exception {
     ApplicationId appId = ApplicationId.newInstance(System.currentTimeMillis(),
         1);
@@ -285,13 +288,14 @@ public class TestRecovery {
     tezConf.set(TezConfiguration.TEZ_AM_LOG_LEVEL, "INFO;org.apache.tez=DEBUG");
     OrderedWordCount job = new OrderedWordCount();
     if (generateSplitInClient) {
-      Assert
-          .assertTrue("OrderedWordCount failed", job.run(tezConf, new String[]{
-              "-generateSplitInClient", inputDirStr, outputDirStr, "5"}, null) == 0);
+
+          assertEquals(0, job.run(tezConf, new String[]{
+                  "-generateSplitInClient", inputDirStr, outputDirStr, "5"}, null),
+              "OrderedWordCount failed");
     } else {
-      Assert
-          .assertTrue("OrderedWordCount failed", job.run(tezConf, new String[]{
-              inputDirStr, outputDirStr, "5"}, null) == 0);
+
+          assertEquals(0, job.run(tezConf, new String[]{
+              inputDirStr, outputDirStr, "5"}, null), "OrderedWordCount failed");
     }
     TestTezJobs.verifyOutput(outputDir, remoteFs);
     List<HistoryEvent> historyEventsOfAttempt1 = RecoveryParser
@@ -343,18 +347,20 @@ public class TestRecovery {
             TezConfiguration.TEZ_AM_STAGING_SCRATCH_DATA_AUTO_DELETE, false);
     OrderedWordCount job = new OrderedWordCount();
     if (generateSplitInClient) {
-      Assert
-              .assertTrue("OrderedWordCount failed", job.run(tezConf, new String[]{
-                      "-generateSplitInClient", inputDirStr, outputDirStr, "5"}, null) == 0);
+
+             Assertions.assertEquals(0, job.run(tezConf, new String[]{
+                     "-generateSplitInClient", inputDirStr, outputDirStr, "5"}, null),
+                 "OrderedWordCount failed");
     } else {
-      Assert
-              .assertTrue("OrderedWordCount failed", job.run(tezConf, new String[]{
-                      inputDirStr, outputDirStr, "5"}, null) == 0);
+
+              Assertions.assertEquals(0, job.run(tezConf, new String[]{
+                  inputDirStr, outputDirStr, "5"}, null), "OrderedWordCount failed");
     }
     TestTezJobs.verifyOutput(outputDir, remoteFs);
   }
 
-  @Test(timeout = 1800000)
+  @Test
+  @Timeout(value = 1800000, unit = TimeUnit.MILLISECONDS)
   public void testRecovery_HashJoin() throws Exception {
     ApplicationId appId = ApplicationId.newInstance(System.currentTimeMillis(),
         1);
@@ -557,7 +563,8 @@ public class TestRecovery {
     assertTrue(shutdownCondition.match(lastEvent));
   }
 
-  @Test(timeout = 1800000)
+  @Test
+  @Timeout(value = 1800000, unit = TimeUnit.MILLISECONDS)
   public void testTwoRoundsRecoverying() throws Exception {
     ApplicationId appId = ApplicationId.newInstance(System.currentTimeMillis(),
             1);

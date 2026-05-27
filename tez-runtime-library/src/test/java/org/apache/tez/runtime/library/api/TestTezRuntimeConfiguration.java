@@ -18,20 +18,22 @@
  */
 package org.apache.tez.runtime.library.api;
 
-import static org.junit.Assert.assertTrue;
-import static org.junit.Assert.fail;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.fail;
 
 import java.lang.reflect.Field;
 import java.util.HashSet;
 import java.util.Set;
+import java.util.concurrent.TimeUnit;
 
-import org.junit.Test;
+import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.Timeout;
 
 
 public class TestTezRuntimeConfiguration {
 
-
-  @Test(timeout = 5000)
+  @Test
+  @Timeout(value = 5000, unit = TimeUnit.MILLISECONDS)
   public void testKeySet() throws IllegalAccessException {
     Class<?> c = TezRuntimeConfiguration.class;
     Set<String> expectedKeys = new HashSet<String>();
@@ -47,7 +49,6 @@ public class TestTezRuntimeConfiguration {
         fail("Found unexpected key: " + key + " in key set");
       }
     }
-    assertTrue("Missing keys in key set: " + expectedKeys, expectedKeys.size() == 0);
+    assertEquals(0, expectedKeys.size(), "Missing keys in key set: " + expectedKeys);
   }
-
 }

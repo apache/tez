@@ -18,6 +18,8 @@
  */
 package org.apache.tez.dag.app;
 
+import static org.junit.jupiter.api.Assertions.assertEquals;
+
 import java.io.IOException;
 import java.util.List;
 import java.util.concurrent.TimeUnit;
@@ -52,9 +54,9 @@ import org.apache.tez.util.StopWatch;
 
 import com.google.common.collect.Lists;
 
-import org.junit.Assert;
-import org.junit.Ignore;
-import org.junit.Test;
+import org.junit.jupiter.api.Disabled;
+import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.Timeout;
 
 // The objective of these tests is to make sure the large job simulations pass
 // within the memory limits set by the junit tests (1GB)
@@ -136,7 +138,7 @@ public class TestMemoryWithEvents {
     mockLauncher.waitTillContainersLaunched();
     mockLauncher.startScheduling(true);
     DAGStatus status = dagClient.waitForCompletion();
-    Assert.assertEquals(DAGStatus.State.SUCCEEDED, status.getState());
+    assertEquals(DAGStatus.State.SUCCEEDED, status.getState());
     checkMemory(dag.getName(), mockApp);
     stopwatch.stop();
     System.out.println("Time taken(ms): " + stopwatch.now(TimeUnit.MILLISECONDS));
@@ -163,8 +165,9 @@ public class TestMemoryWithEvents {
     }
   }
 
-  @Ignore
-  @Test (timeout = 600000)
+  @Disabled
+  @Test
+  @Timeout(value = 600000, unit = TimeUnit.MILLISECONDS)
   public void testMemoryRootInputEvents() throws Exception {
     DAG dag = DAG.create("testMemoryRootInputEvents");
     Vertex vA = Vertex.create("A", ProcessorDescriptor.create("Proc.class"), numTasks);
@@ -177,8 +180,9 @@ public class TestMemoryWithEvents {
     testMemory(dag, false);
   }
 
-  @Ignore
-  @Test (timeout = 600000)
+  @Disabled
+  @Test
+  @Timeout(value = 600000, unit = TimeUnit.MILLISECONDS)
   public void testMemoryOneToOne() throws Exception {
     DAG dag = DAG.create("testMemoryOneToOne");
     Vertex vA = Vertex.create("A", ProcessorDescriptor.create("Proc.class"), numTasks);
@@ -192,8 +196,9 @@ public class TestMemoryWithEvents {
     testMemory(dag, true);
   }
 
-  @Ignore
-  @Test (timeout = 600000)
+  @Disabled
+  @Test
+  @Timeout(value = 600000, unit = TimeUnit.MILLISECONDS)
   public void testMemoryBroadcast() throws Exception {
     DAG dag = DAG.create("testMemoryBroadcast");
     Vertex vA = Vertex.create("A", ProcessorDescriptor.create("Proc.class"), numTasks);
@@ -207,8 +212,9 @@ public class TestMemoryWithEvents {
     testMemory(dag, true);
   }
 
-  @Ignore
-  @Test (timeout = 600000)
+  @Disabled
+  @Test
+  @Timeout(value = 600000, unit = TimeUnit.MILLISECONDS)
   public void testMemoryScatterGather() throws Exception {
     DAG dag = DAG.create("testMemoryScatterGather");
     Vertex vA = Vertex.create("A", ProcessorDescriptor.create("Proc.class"), numTasks);

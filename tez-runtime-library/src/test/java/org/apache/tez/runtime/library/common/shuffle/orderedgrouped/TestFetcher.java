@@ -18,7 +18,10 @@
  */
 package org.apache.tez.runtime.library.common.shuffle.orderedgrouped;
 
-import static org.junit.Assert.fail;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertTrue;
+import static org.junit.jupiter.api.Assertions.fail;
 import static org.mockito.Mockito.any;
 import static org.mockito.Mockito.anyBoolean;
 import static org.mockito.Mockito.anyInt;
@@ -50,6 +53,7 @@ import java.util.List;
 import java.util.Map.Entry;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentMap;
+import java.util.concurrent.TimeUnit;
 
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.fs.FileSystem;
@@ -76,8 +80,8 @@ import org.apache.tez.runtime.library.testutils.RuntimeTestUtils;
 
 import com.google.common.collect.Lists;
 
-import org.junit.Assert;
-import org.junit.Test;
+import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.Timeout;
 import org.mockito.ArgumentCaptor;
 import org.mockito.invocation.InvocationOnMock;
 import org.mockito.stubbing.Answer;
@@ -114,7 +118,8 @@ public class TestFetcher {
 
   static final Logger LOG = LoggerFactory.getLogger(TestFetcher.class);
 
-  @Test(timeout = 5000)
+  @Test
+  @Timeout(value = 5000, unit = TimeUnit.MILLISECONDS)
   public void testInputsReturnedOnConnectionException() throws Exception {
     Configuration conf = new TezConfiguration();
     ShuffleScheduler scheduler = mock(ShuffleScheduler.class);
@@ -141,7 +146,8 @@ public class TestFetcher {
   }
 
 
-  @Test(timeout = 5000)
+  @Test
+  @Timeout(value = 5000, unit = TimeUnit.MILLISECONDS)
   public void testLocalFetchModeSetting1() throws Exception {
     Configuration conf = new TezConfiguration();
     ShuffleScheduler scheduler = mock(ShuffleScheduler.class);
@@ -211,7 +217,8 @@ public class TestFetcher {
     verify(spyFetcher, times(1)).copyFromHost(mapHost);
   }
 
-  @Test(timeout = 5000)
+  @Test
+  @Timeout(value = 5000, unit = TimeUnit.MILLISECONDS)
   public void testSetupLocalDiskFetch() throws Exception {
     Configuration conf = new TezConfiguration();
     ShuffleScheduler scheduler = mock(ShuffleScheduler.class);
@@ -322,7 +329,8 @@ public class TestFetcher {
     verify(scheduler).putBackKnownMapOutput(host, srcAttempts.get(SECOND_FAILED_ATTEMPT_IDX));
   }
 
-  @Test (timeout = 5000)
+  @Test
+  @Timeout(value = 5000, unit = TimeUnit.MILLISECONDS)
   public void testSetupLocalDiskFetchEmptyPartitions() throws Exception {
     Configuration conf = new TezConfiguration();
     ShuffleScheduler scheduler = mock(ShuffleScheduler.class);
@@ -394,7 +402,8 @@ public class TestFetcher {
     verify(spyFetcher).putBackRemainingMapOutputs(host);
   }
 
-  @Test(timeout = 5000)
+  @Test
+  @Timeout(value = 5000, unit = TimeUnit.MILLISECONDS)
   public void testSetupLocalDiskFetchAutoReduce() throws Exception {
     Configuration conf = new TezConfiguration();
     ShuffleScheduler scheduler = mock(ShuffleScheduler.class);
@@ -532,7 +541,7 @@ public class TestFetcher {
 
     // cannot use the equals of MapOutput as it compares id which is private. so doing it manually
     MapOutput m = captureMapOutput.getAllValues().get(0);
-    Assert.assertTrue(m.getType().equals(MapOutput.Type.DISK_DIRECT) &&
+    assertTrue(m.getType().equals(MapOutput.Type.DISK_DIRECT) &&
         m.getAttemptIdentifier().equals(srcAttemptToMatch));
   }
 
@@ -567,7 +576,8 @@ public class TestFetcher {
     }
   }
 
-  @Test(timeout = 5000)
+  @Test
+  @Timeout(value = 5000, unit = TimeUnit.MILLISECONDS)
   @SuppressWarnings("unchecked")
   public void testWithRetry() throws Exception {
     Configuration conf = new TezConfiguration();
@@ -677,15 +687,16 @@ public class TestFetcher {
     try {
       long currentIOErrors = ioErrsCounter.getValue();
       boolean connected = fetcher.setupConnection(host, srcAttempts);
-      Assert.assertTrue(connected == false);
+      assertFalse(connected);
       //Ensure that counters are incremented (i.e it followed the exception codepath)
-      Assert.assertTrue(ioErrsCounter.getValue() > currentIOErrors);
+      assertTrue(ioErrsCounter.getValue() > currentIOErrors);
     } catch (IOException e) {
       fail();
     }
   }
 
-  @Test(timeout = 5000)
+  @Test
+  @Timeout(value = 5000, unit = TimeUnit.MILLISECONDS)
   public void testInputAttemptIdentifierMap() {
     InputAttemptIdentifier[] srcAttempts = {
       new InputAttemptIdentifier(0, 1, InputAttemptIdentifier.PATH_PREFIX + "pathComponent_0",
@@ -731,12 +742,12 @@ public class TestFetcher {
         ioErrsCounter, wrongLengthErrsCounter, badIdErrsCounter, wrongMapErrsCounter,
         connectionErrsCounter, wrongReduceErrsCounter, false, false, true, false, createMockInputContext());
     fetcher.populateRemainingMap(new LinkedList<InputAttemptIdentifier>(Arrays.asList(srcAttempts)));
-    Assert.assertEquals(expectedSrcAttempts.length, fetcher.remaining.size());
+    assertEquals(expectedSrcAttempts.length, fetcher.remaining.size());
     Iterator<Entry<String, InputAttemptIdentifier>> iterator = fetcher.remaining.entrySet().iterator();
     int count = 0;
     while(iterator.hasNext()) {
       String key = iterator.next().getKey();
-      Assert.assertTrue(expectedSrcAttempts[count++].toString().compareTo(key) == 0);
+      assertEquals(0, expectedSrcAttempts[count++].toString().compareTo(key));
     }
   }
 
@@ -761,9 +772,9 @@ public class TestFetcher {
     InputAttemptFetchFailure[] failures =
         fetcher.copyMapOutput(mapHost, input, inputAttemptIdentifier);
 
-    Assert.assertEquals(1, failures.length);
-    Assert.assertTrue(failures[0].isDiskErrorAtSource());
-    Assert.assertFalse(failures[0].isLocalFetch());
+    assertEquals(1, failures.length);
+    assertTrue(failures[0].isDiskErrorAtSource());
+    assertFalse(failures[0].isLocalFetch());
   }
 
   private RawLocalFileSystem getRawFs(Configuration conf) {

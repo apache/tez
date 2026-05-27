@@ -19,7 +19,7 @@
 package org.apache.tez.test;
 
 import static org.apache.hadoop.security.ssl.SSLFactory.SSL_CLIENT_CONF_KEY;
-import static org.junit.Assert.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertEquals;
 
 import java.io.BufferedWriter;
 import java.io.File;
@@ -30,11 +30,11 @@ import java.net.InetAddress;
 import java.security.KeyPair;
 import java.security.SecureRandom;
 import java.security.cert.X509Certificate;
-import java.util.ArrayList;
-import java.util.Collection;
 import java.util.Date;
 import java.util.HashMap;
 import java.util.Map;
+import java.util.concurrent.TimeUnit;
+import java.util.stream.Stream;
 
 import javax.security.auth.x500.X500Principal;
 
@@ -56,18 +56,16 @@ import org.bouncycastle.asn1.x509.GeneralName;
 import org.bouncycastle.asn1.x509.GeneralNames;
 import org.bouncycastle.asn1.x509.X509Extensions;
 import org.bouncycastle.x509.X509V3CertificateGenerator;
-import org.junit.After;
-import org.junit.AfterClass;
-import org.junit.Before;
-import org.junit.BeforeClass;
-import org.junit.Test;
-import org.junit.runner.RunWith;
-import org.junit.runners.Parameterized;
+import org.junit.jupiter.api.AfterAll;
+import org.junit.jupiter.api.AfterEach;
+import org.junit.jupiter.api.BeforeAll;
+import org.junit.jupiter.api.Timeout;
+import org.junit.jupiter.params.*;
+import org.junit.jupiter.params.provider.*;
 
 /**
  * Test to verify secure-shuffle (SSL mode) in Tez
  */
-@RunWith(Parameterized.class)
 public class TestSecureShuffle {
 
   private static MiniDFSCluster miniDFSCluster;
@@ -80,38 +78,19 @@ public class TestSecureShuffle {
       + TestSecureShuffle.class.getName() + "-tmpDir";
   private static File keysStoresDir = new File(TEST_ROOT_DIR, "keystores");
 
-  private boolean enableSSLInCluster; //To set ssl config in cluster
-  private int resultWithTezSSL; //expected result with tez ssl setting
-  private int resultWithoutTezSSL; //expected result without tez ssl setting
-  private boolean asyncHttp;
-
-  public TestSecureShuffle(boolean sslInCluster, int resultWithTezSSL, int resultWithoutTezSSL,
-      boolean asyncHttp) {
-    this.enableSSLInCluster = sslInCluster;
-    this.resultWithTezSSL = resultWithTezSSL;
-    this.resultWithoutTezSSL = resultWithoutTezSSL;
-    this.asyncHttp = asyncHttp;
+  public static Stream<Arguments> getParameters() {
+    return Stream.of(
+        // enable ssl in cluster, succeed with tez-ssl enabled, fail with tez-ssl disabled
+        Arguments.of(true, 0, 1, false),
+        // With asyncHttp
+        Arguments.of(true, 0, 1, true),
+        Arguments.of(false, 1, 0, true),
+        // Negative testcase
+        // disable ssl in cluster, fail with tez-ssl enabled, succeed with tez-ssl disabled
+        Arguments.of(false, 1, 0, false));
   }
 
-  @Parameterized.Parameters(name = "test[sslInCluster:{0}, resultWithTezSSL:{1}, "
-      + "resultWithoutTezSSL:{2}, asyncHttp:{3}]")
-  public static Collection<Object[]> getParameters() {
-    Collection<Object[]> parameters = new ArrayList<Object[]>();
-    //enable ssl in cluster, succeed with tez-ssl enabled, fail with tez-ssl disabled
-    parameters.add(new Object[] { true, 0, 1, false });
-
-    //With asyncHttp
-    parameters.add(new Object[] { true, 0, 1, true });
-    parameters.add(new Object[] { false, 1, 0, true });
-
-    //Negative testcase
-    //disable ssl in cluster, fail with tez-ssl enabled, succeed with tez-ssl disabled
-    parameters.add(new Object[] { false, 1, 0, false });
-
-    return parameters;
-  }
-
-  @BeforeClass
+  @BeforeAll
   public static void setupDFSCluster() throws Exception {
     conf = new Configuration();
     conf.setBoolean(DFSConfigKeys.DFS_NAMENODE_EDITS_NOEDITLOGCHANNELFLUSH, false);
@@ -125,7 +104,7 @@ public class TestSecureShuffle {
     conf.setBoolean(TezRuntimeConfiguration.TEZ_RUNTIME_OPTIMIZE_LOCAL_FETCH, false);
   }
 
-  @AfterClass
+  @AfterAll
   public static void shutdownDFSCluster() {
     if (miniDFSCluster != null) {
       //shutdown
@@ -133,8 +112,7 @@ public class TestSecureShuffle {
     }
   }
 
-  @Before
-  public void setupTezCluster() throws Exception {
+  public void setupTezCluster(boolean enableSSLInCluster, boolean asyncHttp) throws Exception {
     if (enableSSLInCluster) {
       // Enable SSL debugging
       System.setProperty("javax.net.debug", "all");
@@ -163,10 +141,11 @@ public class TestSecureShuffle {
     createSampleFile(inputLoc);
   }
 
-  @After
+  @AfterEach
   public void shutdownTezCluster() throws IOException {
     if (miniTezCluster != null) {
       miniTezCluster.stop();
+      miniTezCluster = null;
     }
   }
 
@@ -180,22 +159,23 @@ public class TestSecureShuffle {
     assertEquals(expectedResult, wordCount.run(args));
   }
 
-  /**
-   * Verify whether shuffle works in mini cluster
-   *
-   * @throws Exception
-   */
-  @Test(timeout = 500000)
-  public void testSecureShuffle() throws Exception {
+  @ParameterizedTest(name = "test[sslInCluster:{0}, resultWithTezSSL:{1}, "
+      + "resultWithoutTezSSL:{2}, asyncHttp:{3}]")
+  @MethodSource("getParameters")
+  @Timeout(value = 500000, unit = TimeUnit.MILLISECONDS)
+  public void testSecureShuffle(
+      boolean sslInCluster, int resultWithTezSSL, int resultWithoutTezSSL, boolean asyncHttp)
+      throws Exception {
+    setupTezCluster(sslInCluster, asyncHttp);
     //With tez-ssl setting
     miniTezCluster.getConfig().setBoolean(
         TezRuntimeConfiguration.TEZ_RUNTIME_SHUFFLE_ENABLE_SSL, true);
-    baseTest(this.resultWithTezSSL);
+    baseTest(resultWithTezSSL);
 
     //Without tez-ssl setting
     miniTezCluster.getConfig().setBoolean(
         TezRuntimeConfiguration.TEZ_RUNTIME_SHUFFLE_ENABLE_SSL, false);
-    baseTest(this.resultWithoutTezSSL);
+    baseTest(resultWithoutTezSSL);
   }
 
   /**

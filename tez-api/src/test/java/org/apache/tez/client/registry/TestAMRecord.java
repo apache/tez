@@ -18,7 +18,11 @@
  */
 package org.apache.tez.client.registry;
 
-import static org.junit.Assert.*;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertNotEquals;
+import static org.junit.jupiter.api.Assertions.assertNotNull;
+import static org.junit.jupiter.api.Assertions.assertSame;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import java.util.concurrent.ConcurrentHashMap;
 
@@ -26,7 +30,8 @@ import org.apache.hadoop.registry.client.types.ServiceRecord;
 import org.apache.hadoop.yarn.api.records.ApplicationId;
 import org.apache.tez.client.registry.zookeeper.ZkConfig;
 
-import org.junit.Test;
+import org.junit.jupiter.api.Test;
+
 
 public class TestAMRecord {
 
@@ -228,12 +233,12 @@ public class TestAMRecord {
 
     assertNotNull(str);
     // Validate actual JSON-like snippets from the string
-    assertTrue("Should contain appId=value snippet", str.contains("appId=" + appId.toString()));
-    assertTrue("Should contain hostName=value snippet", str.contains("hostName=" + hostName));
-    assertTrue("Should contain hostIp=value snippet", str.contains("hostIp=" + hostIp));
-    assertTrue("Should contain port=value snippet", str.contains("port=" + port));
-    assertTrue("Should contain externalId=value snippet", str.contains("externalId=" + externalId));
-    assertTrue("Should contain computeName=value snippet", str.contains("computeName=" + computeName));
+    assertTrue(str.contains("appId=" + appId.toString()), "Should contain appId=value snippet");
+    assertTrue(str.contains("hostName=" + hostName), "Should contain hostName=value snippet");
+    assertTrue(str.contains("hostIp=" + hostIp), "Should contain hostIp=value snippet");
+    assertTrue(str.contains("port=" + port), "Should contain port=value snippet");
+    assertTrue(str.contains("externalId=" + externalId), "Should contain externalId=value snippet");
+    assertTrue(str.contains("computeName=" + computeName), "Should contain computeName=value snippet");
   }
 
   @Test

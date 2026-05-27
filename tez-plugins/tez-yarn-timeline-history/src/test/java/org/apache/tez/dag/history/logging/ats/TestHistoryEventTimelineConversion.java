@@ -18,11 +18,18 @@
  */
 package org.apache.tez.dag.history.logging.ats;
 
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertNotNull;
+import static org.junit.jupiter.api.Assertions.assertNull;
+import static org.junit.jupiter.api.Assertions.assertTrue;
+import static org.junit.jupiter.api.Assertions.fail;
+
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Random;
 import java.util.Set;
+import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicBoolean;
 
 import org.apache.hadoop.conf.Configuration;
@@ -89,9 +96,9 @@ import org.apache.tez.runtime.api.TaskFailureType;
 import com.google.common.collect.Lists;
 
 import org.codehaus.jettison.json.JSONException;
-import org.junit.Assert;
-import org.junit.Before;
-import org.junit.Test;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.Timeout;
 
 public class TestHistoryEventTimelineConversion {
 
@@ -109,7 +116,7 @@ public class TestHistoryEventTimelineConversion {
   private String containerLogs = "containerLogs";
 
   @SuppressWarnings("deprecation")
-  @Before
+  @BeforeEach
   public void setup() {
     applicationId = ApplicationId.newInstance(9999l, 1);
     applicationAttemptId = ApplicationAttemptId.newInstance(applicationId, 1);
@@ -128,7 +135,8 @@ public class TestHistoryEventTimelineConversion {
     nodeId = NodeId.newInstance("node", 13435);
   }
 
-  @Test(timeout = 5000)
+  @Test
+  @Timeout(value = 5000, unit = TimeUnit.MILLISECONDS)
   public void testHandlerExists() throws JSONException {
     for (HistoryEventType eventType : HistoryEventType.values()) {
       HistoryEvent event = null;
@@ -217,7 +225,7 @@ public class TestHistoryEventTimelineConversion {
           event = new DAGKillRequestEvent();
           break;
         default:
-          Assert.fail("Unhandled event type " + eventType);
+          fail("Unhandled event type " + eventType);
       }
       if (event == null || !event.isHistoryEvent()) {
         continue;
@@ -234,7 +242,8 @@ public class TestHistoryEventTimelineConversion {
 
   }
 
-  @Test(timeout = 5000)
+  @Test
+  @Timeout(value = 5000, unit = TimeUnit.MILLISECONDS)
   public void testConvertAppLaunchedEventConcurrentModificationException()
       throws InterruptedException {
     long launchTime = random.nextLong();
@@ -268,7 +277,8 @@ public class TestHistoryEventTimelineConversion {
   }
 
   @SuppressWarnings("unchecked")
-  @Test(timeout = 5000)
+  @Test
+  @Timeout(value = 5000, unit = TimeUnit.MILLISECONDS)
   public void testConvertAppLaunchedEvent() {
     long launchTime = random.nextLong();
     long submitTime = random.nextLong();
@@ -281,209 +291,215 @@ public class TestHistoryEventTimelineConversion {
         submitTime, user, conf, mockVersionInfo);
 
     List<TimelineEntity> entities = HistoryEventTimelineConversion.convertToTimelineEntities(event);
-    Assert.assertEquals(1, entities.size());
+    assertEquals(1, entities.size());
     TimelineEntity timelineEntity = entities.get(0);
 
-    Assert.assertEquals(launchTime, timelineEntity.getStartTime().longValue());
+    assertEquals(launchTime, timelineEntity.getStartTime().longValue());
 
-    Assert.assertEquals(EntityTypes.TEZ_APPLICATION.name(), timelineEntity.getEntityType());
-    Assert.assertEquals("tez_" + applicationId.toString(), timelineEntity.getEntityId());
+    assertEquals(EntityTypes.TEZ_APPLICATION.name(), timelineEntity.getEntityType());
+    assertEquals("tez_" + applicationId.toString(), timelineEntity.getEntityId());
 
-    Assert.assertEquals(0, timelineEntity.getRelatedEntities().size());
+    assertEquals(0, timelineEntity.getRelatedEntities().size());
 
-    Assert.assertEquals(1, timelineEntity.getPrimaryFilters().size());
-    Assert.assertTrue(timelineEntity.getPrimaryFilters().get(ATSConstants.USER).contains(user));
+    assertEquals(1, timelineEntity.getPrimaryFilters().size());
+    assertTrue(timelineEntity.getPrimaryFilters().get(ATSConstants.USER).contains(user));
 
-    Assert.assertEquals(5, timelineEntity.getOtherInfo().size());
-    Assert.assertTrue(timelineEntity.getOtherInfo().containsKey(ATSConstants.CONFIG));
-    Assert.assertTrue(timelineEntity.getOtherInfo().containsKey(ATSConstants.TEZ_VERSION));
-    Assert.assertEquals(user, timelineEntity.getOtherInfo().get(ATSConstants.USER));
-    Assert.assertEquals(applicationId.toString(),
+    assertEquals(5, timelineEntity.getOtherInfo().size());
+    assertTrue(timelineEntity.getOtherInfo().containsKey(ATSConstants.CONFIG));
+    assertTrue(timelineEntity.getOtherInfo().containsKey(ATSConstants.TEZ_VERSION));
+    assertEquals(user, timelineEntity.getOtherInfo().get(ATSConstants.USER));
+    assertEquals(applicationId.toString(),
         timelineEntity.getOtherInfo().get(ATSConstants.APPLICATION_ID));
-    Assert.assertEquals(AMWebController.VERSION,
+    assertEquals(AMWebController.VERSION,
         timelineEntity.getOtherInfo().get(ATSConstants.DAG_AM_WEB_SERVICE_VERSION));
 
     Map<String, String> config =
         (Map<String, String>) timelineEntity.getOtherInfo().get(ATSConstants.CONFIG);
-    Assert.assertEquals(conf.get("foo"), config.get("foo"));
-    Assert.assertEquals(conf.get("applicationId"), config.get("applicationId"));
+    assertEquals(conf.get("foo"), config.get("foo"));
+    assertEquals(conf.get("applicationId"), config.get("applicationId"));
 
     Map<String, String> versionInfo =
         (Map<String, String>) timelineEntity.getOtherInfo().get(ATSConstants.TEZ_VERSION);
-    Assert.assertEquals(mockVersionInfo.getVersion(),
+    assertEquals(mockVersionInfo.getVersion(),
         versionInfo.get(ATSConstants.VERSION));
-    Assert.assertEquals(mockVersionInfo.getRevision(),
+    assertEquals(mockVersionInfo.getRevision(),
         versionInfo.get(ATSConstants.REVISION));
-    Assert.assertEquals(mockVersionInfo.getBuildTime(),
+    assertEquals(mockVersionInfo.getBuildTime(),
         versionInfo.get(ATSConstants.BUILD_TIME));
 
   }
 
-  @Test(timeout = 5000)
+  @Test
+  @Timeout(value = 5000, unit = TimeUnit.MILLISECONDS)
   public void testConvertAMLaunchedEvent() {
     long launchTime = random.nextLong();
     long submitTime = random.nextLong();
     AMLaunchedEvent event = new AMLaunchedEvent(applicationAttemptId, launchTime, submitTime, user);
 
     List<TimelineEntity> entities = HistoryEventTimelineConversion.convertToTimelineEntities(event);
-    Assert.assertEquals(1, entities.size());
+    assertEquals(1, entities.size());
     TimelineEntity timelineEntity = entities.get(0);
 
-    Assert.assertEquals("tez_" + applicationAttemptId.toString(), timelineEntity.getEntityId());
-    Assert.assertEquals(EntityTypes.TEZ_APPLICATION_ATTEMPT.name(), timelineEntity.getEntityType());
+    assertEquals("tez_" + applicationAttemptId.toString(), timelineEntity.getEntityId());
+    assertEquals(EntityTypes.TEZ_APPLICATION_ATTEMPT.name(), timelineEntity.getEntityType());
 
     final Map<String, Set<String>> relatedEntities = timelineEntity.getRelatedEntities();
-    Assert.assertEquals(0, relatedEntities.size());
+    assertEquals(0, relatedEntities.size());
 
     final Map<String, Set<Object>> primaryFilters = timelineEntity.getPrimaryFilters();
-    Assert.assertEquals(2, primaryFilters.size());
-    Assert.assertTrue(primaryFilters.get(ATSConstants.USER).contains(user));
-    Assert.assertTrue(primaryFilters.get(ATSConstants.APPLICATION_ID)
+    assertEquals(2, primaryFilters.size());
+    assertTrue(primaryFilters.get(ATSConstants.USER).contains(user));
+    assertTrue(primaryFilters.get(ATSConstants.APPLICATION_ID)
         .contains(applicationId.toString()));
 
-    Assert.assertEquals(launchTime, timelineEntity.getStartTime().longValue());
+    assertEquals(launchTime, timelineEntity.getStartTime().longValue());
 
-    Assert.assertEquals(1, timelineEntity.getEvents().size());
+    assertEquals(1, timelineEntity.getEvents().size());
     TimelineEvent evt = timelineEntity.getEvents().get(0);
-    Assert.assertEquals(HistoryEventType.AM_LAUNCHED.name(), evt.getEventType());
-    Assert.assertEquals(launchTime, evt.getTimestamp());
+    assertEquals(HistoryEventType.AM_LAUNCHED.name(), evt.getEventType());
+    assertEquals(launchTime, evt.getTimestamp());
 
     final Map<String, Object> otherInfo = timelineEntity.getOtherInfo();
-    Assert.assertEquals(4, otherInfo.size());
-    Assert.assertEquals(submitTime, otherInfo.get(ATSConstants.APP_SUBMIT_TIME));
-    Assert.assertEquals(applicationId.toString(), otherInfo.get(ATSConstants.APPLICATION_ID));
-    Assert.assertEquals(applicationAttemptId.toString(), otherInfo.get(ATSConstants.APPLICATION_ATTEMPT_ID));
-    Assert.assertEquals(user, otherInfo.get(ATSConstants.USER));
+    assertEquals(4, otherInfo.size());
+    assertEquals(submitTime, otherInfo.get(ATSConstants.APP_SUBMIT_TIME));
+    assertEquals(applicationId.toString(), otherInfo.get(ATSConstants.APPLICATION_ID));
+    assertEquals(applicationAttemptId.toString(), otherInfo.get(ATSConstants.APPLICATION_ATTEMPT_ID));
+    assertEquals(user, otherInfo.get(ATSConstants.USER));
   }
 
-  @Test(timeout = 5000)
+  @Test
+  @Timeout(value = 5000, unit = TimeUnit.MILLISECONDS)
   public void testConvertAMStartedEvent() {
     long startTime = random.nextLong();
 
     AMStartedEvent event = new AMStartedEvent(applicationAttemptId, startTime, user);
 
     List<TimelineEntity> entities = HistoryEventTimelineConversion.convertToTimelineEntities(event);
-    Assert.assertEquals(1, entities.size());
+    assertEquals(1, entities.size());
     TimelineEntity timelineEntity = entities.get(0);
 
-    Assert.assertEquals("tez_" + applicationAttemptId.toString(), timelineEntity.getEntityId());
-    Assert.assertEquals(EntityTypes.TEZ_APPLICATION_ATTEMPT.name(), timelineEntity.getEntityType());
+    assertEquals("tez_" + applicationAttemptId.toString(), timelineEntity.getEntityId());
+    assertEquals(EntityTypes.TEZ_APPLICATION_ATTEMPT.name(), timelineEntity.getEntityType());
 
     final Map<String, Set<String>> relatedEntities = timelineEntity.getRelatedEntities();
-    Assert.assertEquals(0, relatedEntities.size());
+    assertEquals(0, relatedEntities.size());
 
     final Map<String, Set<Object>> primaryFilters = timelineEntity.getPrimaryFilters();
-    Assert.assertEquals(2, primaryFilters.size());
-    Assert.assertTrue(primaryFilters.get(ATSConstants.USER).contains(user));
-    Assert.assertTrue(primaryFilters.get(ATSConstants.APPLICATION_ID)
+    assertEquals(2, primaryFilters.size());
+    assertTrue(primaryFilters.get(ATSConstants.USER).contains(user));
+    assertTrue(primaryFilters.get(ATSConstants.APPLICATION_ID)
             .contains(applicationId.toString()));
 
-    Assert.assertEquals(1, timelineEntity.getEvents().size());
+    assertEquals(1, timelineEntity.getEvents().size());
     TimelineEvent evt = timelineEntity.getEvents().get(0);
-    Assert.assertEquals(HistoryEventType.AM_STARTED.name(), evt.getEventType());
-    Assert.assertEquals(startTime, evt.getTimestamp());
+    assertEquals(HistoryEventType.AM_STARTED.name(), evt.getEventType());
+    assertEquals(startTime, evt.getTimestamp());
 
   }
 
-  @Test(timeout = 5000)
+  @Test
+  @Timeout(value = 5000, unit = TimeUnit.MILLISECONDS)
   public void testConvertContainerLaunchedEvent() {
     long launchTime = random.nextLong();
     ContainerLaunchedEvent event = new ContainerLaunchedEvent(containerId, launchTime,
         applicationAttemptId);
     List<TimelineEntity> entities = HistoryEventTimelineConversion.convertToTimelineEntities(event);
-    Assert.assertEquals(1, entities.size());
+    assertEquals(1, entities.size());
     TimelineEntity timelineEntity = entities.get(0);
 
-    Assert.assertEquals(EntityTypes.TEZ_CONTAINER_ID.name(), timelineEntity.getEntityType());
-    Assert.assertEquals("tez_" + containerId.toString(), timelineEntity.getEntityId());
+    assertEquals(EntityTypes.TEZ_CONTAINER_ID.name(), timelineEntity.getEntityType());
+    assertEquals("tez_" + containerId.toString(), timelineEntity.getEntityId());
 
-    Assert.assertEquals(1, timelineEntity.getRelatedEntities().size());
-    Assert.assertTrue(
+    assertEquals(1, timelineEntity.getRelatedEntities().size());
+    assertTrue(
         timelineEntity.getRelatedEntities().get(EntityTypes.TEZ_APPLICATION_ATTEMPT.name()).contains(
             "tez_" + applicationAttemptId.toString()));
 
-    Assert.assertEquals(1, timelineEntity.getPrimaryFilters().size());
-    Assert.assertTrue(timelineEntity.getPrimaryFilters().get(ATSConstants.APPLICATION_ID).contains(
+    assertEquals(1, timelineEntity.getPrimaryFilters().size());
+    assertTrue(timelineEntity.getPrimaryFilters().get(ATSConstants.APPLICATION_ID).contains(
         applicationAttemptId.getApplicationId().toString()));
 
-    Assert.assertEquals(containerId.toString(), timelineEntity.getOtherInfo().get(ATSConstants.CONTAINER_ID));
+    assertEquals(containerId.toString(), timelineEntity.getOtherInfo().get(ATSConstants.CONTAINER_ID));
 
-    Assert.assertEquals(launchTime, timelineEntity.getStartTime().longValue());
+    assertEquals(launchTime, timelineEntity.getStartTime().longValue());
 
-    Assert.assertEquals(1, timelineEntity.getEvents().size());
-    Assert.assertEquals(HistoryEventType.CONTAINER_LAUNCHED.name(),
+    assertEquals(1, timelineEntity.getEvents().size());
+    assertEquals(HistoryEventType.CONTAINER_LAUNCHED.name(),
         timelineEntity.getEvents().get(0).getEventType());
-    Assert.assertEquals(launchTime,
+    assertEquals(launchTime,
         timelineEntity.getEvents().get(0).getTimestamp());
   }
 
-  @Test(timeout = 5000)
+  @Test
+  @Timeout(value = 5000, unit = TimeUnit.MILLISECONDS)
   public void testConvertContainerStoppedEvent() {
     long stopTime = random.nextLong();
     int exitStatus = random.nextInt();
     ContainerStoppedEvent event = new ContainerStoppedEvent(containerId, stopTime, exitStatus,
         applicationAttemptId);
     List<TimelineEntity> entities = HistoryEventTimelineConversion.convertToTimelineEntities(event);
-    Assert.assertEquals(1, entities.size());
+    assertEquals(1, entities.size());
     TimelineEntity timelineEntity = entities.get(0);
 
-    Assert.assertEquals("tez_" + containerId.toString(), timelineEntity.getEntityId());
-    Assert.assertEquals(EntityTypes.TEZ_CONTAINER_ID.name(), timelineEntity.getEntityType());
+    assertEquals("tez_" + containerId.toString(), timelineEntity.getEntityId());
+    assertEquals(EntityTypes.TEZ_CONTAINER_ID.name(), timelineEntity.getEntityType());
 
     final Map<String, Set<String>> relatedEntities = timelineEntity.getRelatedEntities();
-    Assert.assertEquals(1, relatedEntities.size());
-    Assert.assertTrue(relatedEntities.get(EntityTypes.TEZ_APPLICATION_ATTEMPT.name())
+    assertEquals(1, relatedEntities.size());
+    assertTrue(relatedEntities.get(EntityTypes.TEZ_APPLICATION_ATTEMPT.name())
         .contains("tez_" + applicationAttemptId.toString()));
 
     final Map<String, Set<Object>> primaryFilters = timelineEntity.getPrimaryFilters();
-    Assert.assertEquals(2, primaryFilters.size());
-    Assert.assertTrue(primaryFilters.get(ATSConstants.APPLICATION_ID)
+    assertEquals(2, primaryFilters.size());
+    assertTrue(primaryFilters.get(ATSConstants.APPLICATION_ID)
         .contains(applicationId.toString()));
-    Assert.assertTrue(primaryFilters.get(ATSConstants.EXIT_STATUS).contains(exitStatus));
+    assertTrue(primaryFilters.get(ATSConstants.EXIT_STATUS).contains(exitStatus));
 
-    Assert.assertEquals(1, timelineEntity.getEvents().size());
+    assertEquals(1, timelineEntity.getEvents().size());
     final TimelineEvent evt = timelineEntity.getEvents().get(0);
-    Assert.assertEquals(HistoryEventType.CONTAINER_STOPPED.name(), evt.getEventType());
-    Assert.assertEquals(stopTime, evt.getTimestamp());
+    assertEquals(HistoryEventType.CONTAINER_STOPPED.name(), evt.getEventType());
+    assertEquals(stopTime, evt.getTimestamp());
 
     final Map<String, Object> otherInfo = timelineEntity.getOtherInfo();
-    Assert.assertEquals(2, otherInfo.size());
-    Assert.assertEquals(exitStatus, otherInfo.get(ATSConstants.EXIT_STATUS));
-    Assert.assertEquals(stopTime, otherInfo.get(ATSConstants.FINISH_TIME));
+    assertEquals(2, otherInfo.size());
+    assertEquals(exitStatus, otherInfo.get(ATSConstants.EXIT_STATUS));
+    assertEquals(stopTime, otherInfo.get(ATSConstants.FINISH_TIME));
   }
 
-  @Test(timeout = 5000)
+  @Test
+  @Timeout(value = 5000, unit = TimeUnit.MILLISECONDS)
   public void testConvertDAGStartedEvent() {
     long startTime = random.nextLong();
     String dagName = "testDagName";
     DAGStartedEvent event = new DAGStartedEvent(tezDAGID, startTime, user, dagName);
     List<TimelineEntity> entities = HistoryEventTimelineConversion.convertToTimelineEntities(event);
-    Assert.assertEquals(1, entities.size());
+    assertEquals(1, entities.size());
     TimelineEntity timelineEntity = entities.get(0);
 
 
-    Assert.assertEquals(tezDAGID.toString(), timelineEntity.getEntityId());
-    Assert.assertEquals(EntityTypes.TEZ_DAG_ID.name(), timelineEntity.getEntityType());
+    assertEquals(tezDAGID.toString(), timelineEntity.getEntityId());
+    assertEquals(EntityTypes.TEZ_DAG_ID.name(), timelineEntity.getEntityType());
 
-    Assert.assertEquals(1, timelineEntity.getEvents().size());
+    assertEquals(1, timelineEntity.getEvents().size());
     TimelineEvent evt = timelineEntity.getEvents().get(0);
-    Assert.assertEquals(HistoryEventType.DAG_STARTED.name(), evt.getEventType());
-    Assert.assertEquals(startTime, evt.getTimestamp());
+    assertEquals(HistoryEventType.DAG_STARTED.name(), evt.getEventType());
+    assertEquals(startTime, evt.getTimestamp());
 
     final Map<String, Set<Object>> primaryFilters = timelineEntity.getPrimaryFilters();
-    Assert.assertEquals(3, primaryFilters.size());
-    Assert.assertTrue(primaryFilters.get(ATSConstants.USER).contains(user));
-    Assert.assertTrue(primaryFilters.get(ATSConstants.APPLICATION_ID)
+    assertEquals(3, primaryFilters.size());
+    assertTrue(primaryFilters.get(ATSConstants.USER).contains(user));
+    assertTrue(primaryFilters.get(ATSConstants.APPLICATION_ID)
         .contains(applicationId.toString()));
-    Assert.assertTrue(primaryFilters.get(ATSConstants.DAG_NAME).contains(dagName));
+    assertTrue(primaryFilters.get(ATSConstants.DAG_NAME).contains(dagName));
 
     final Map<String, Object> otherInfo = timelineEntity.getOtherInfo();
-    Assert.assertEquals(2, otherInfo.size());
-    Assert.assertEquals(startTime, otherInfo.get(ATSConstants.START_TIME));
-    Assert.assertEquals(DAGState.RUNNING.name(), otherInfo.get(ATSConstants.STATUS));
+    assertEquals(2, otherInfo.size());
+    assertEquals(startTime, otherInfo.get(ATSConstants.START_TIME));
+    assertEquals(DAGState.RUNNING.name(), otherInfo.get(ATSConstants.STATUS));
   }
 
-  @Test(timeout = 5000)
+  @Test
+  @Timeout(value = 5000, unit = TimeUnit.MILLISECONDS)
   public void testConvertDAGSubmittedEvent() {
     long submitTime = random.nextLong();
 
@@ -492,7 +508,7 @@ public class TestHistoryEventTimelineConversion {
         applicationAttemptId, null, user, null, containerLogs, queueName);
 
     List<TimelineEntity> entities = HistoryEventTimelineConversion.convertToTimelineEntities(event);
-    Assert.assertEquals(2, entities.size());
+    assertEquals(2, entities.size());
 
 
     if (entities.get(0).getEntityType().equals(EntityTypes.TEZ_DAG_ID.name())) {
@@ -506,90 +522,91 @@ public class TestHistoryEventTimelineConversion {
 
   private void assertDagSubmittedEntity(long submitTime, DAGSubmittedEvent event,
       TimelineEntity timelineEntity) {
-    Assert.assertEquals(EntityTypes.TEZ_DAG_ID.name(), timelineEntity.getEntityType());
-    Assert.assertEquals(tezDAGID.toString(), timelineEntity.getEntityId());
+    assertEquals(EntityTypes.TEZ_DAG_ID.name(), timelineEntity.getEntityType());
+    assertEquals(tezDAGID.toString(), timelineEntity.getEntityId());
 
-    Assert.assertEquals(2, timelineEntity.getRelatedEntities().size());
-    Assert.assertTrue(
+    assertEquals(2, timelineEntity.getRelatedEntities().size());
+    assertTrue(
         timelineEntity.getRelatedEntities().get(EntityTypes.TEZ_APPLICATION.name()).contains(
             "tez_" + applicationId.toString()));
-    Assert.assertTrue(
+    assertTrue(
         timelineEntity.getRelatedEntities().get(EntityTypes.TEZ_APPLICATION_ATTEMPT.name()).contains(
             "tez_" + applicationAttemptId.toString()));
 
-    Assert.assertEquals(1, timelineEntity.getEvents().size());
+    assertEquals(1, timelineEntity.getEvents().size());
     TimelineEvent timelineEvent = timelineEntity.getEvents().get(0);
-    Assert.assertEquals(HistoryEventType.DAG_SUBMITTED.name(), timelineEvent.getEventType());
-    Assert.assertEquals(submitTime, timelineEvent.getTimestamp());
+    assertEquals(HistoryEventType.DAG_SUBMITTED.name(), timelineEvent.getEventType());
+    assertEquals(submitTime, timelineEvent.getTimestamp());
 
-    Assert.assertEquals(submitTime, timelineEntity.getStartTime().longValue());
+    assertEquals(submitTime, timelineEntity.getStartTime().longValue());
 
-    Assert.assertEquals(5, timelineEntity.getPrimaryFilters().size());
+    assertEquals(5, timelineEntity.getPrimaryFilters().size());
 
-    Assert.assertTrue(
+    assertTrue(
         timelineEntity.getPrimaryFilters().get(ATSConstants.DAG_NAME).contains(
             dagPlan.getName()));
-    Assert.assertTrue(
+    assertTrue(
         timelineEntity.getPrimaryFilters().get(ATSConstants.CALLER_CONTEXT_ID).contains(
             dagPlan.getCallerContext().getCallerId()));
-    Assert.assertTrue(
+    assertTrue(
         timelineEntity.getPrimaryFilters().get(ATSConstants.APPLICATION_ID).contains(
             applicationAttemptId.getApplicationId().toString()));
-    Assert.assertTrue(
+    assertTrue(
         timelineEntity.getPrimaryFilters().get(ATSConstants.USER).contains(user));
-    Assert.assertTrue(
+    assertTrue(
         timelineEntity.getPrimaryFilters().get(ATSConstants.DAG_QUEUE_NAME)
             .contains(event.getQueueName()));
 
-    Assert.assertEquals(9, timelineEntity.getOtherInfo().size());
-    Assert.assertEquals(applicationId.toString(),
+    assertEquals(9, timelineEntity.getOtherInfo().size());
+    assertEquals(applicationId.toString(),
         timelineEntity.getOtherInfo().get(ATSConstants.APPLICATION_ID));
-    Assert.assertEquals(applicationAttemptId.toString(),
+    assertEquals(applicationAttemptId.toString(),
         timelineEntity.getOtherInfo().get(ATSConstants.APPLICATION_ATTEMPT_ID));
-    Assert.assertEquals(applicationAttemptId.getApplicationId().toString(),
+    assertEquals(applicationAttemptId.getApplicationId().toString(),
         timelineEntity.getOtherInfo().get(ATSConstants.APPLICATION_ID));
-    Assert.assertEquals(AMWebController.VERSION,
+    assertEquals(AMWebController.VERSION,
         timelineEntity.getOtherInfo().get(ATSConstants.DAG_AM_WEB_SERVICE_VERSION));
-    Assert.assertEquals(user,
+    assertEquals(user,
         timelineEntity.getOtherInfo().get(ATSConstants.USER));
-    Assert.assertEquals(containerLogs,
+    assertEquals(containerLogs,
         timelineEntity.getOtherInfo().get(ATSConstants.IN_PROGRESS_LOGS_URL + "_"
             + applicationAttemptId.getAttemptId()));
-    Assert.assertEquals(
+    assertEquals(
         timelineEntity.getOtherInfo().get(ATSConstants.CALLER_CONTEXT_ID),
             dagPlan.getCallerContext().getCallerId());
-    Assert.assertEquals(
+    assertEquals(
         timelineEntity.getOtherInfo().get(ATSConstants.CALLER_CONTEXT_TYPE),
             dagPlan.getCallerContext().getCallerType());
-    Assert.assertEquals(dagPlan.getCallerContext().getContext(),
+    assertEquals(dagPlan.getCallerContext().getContext(),
         timelineEntity.getOtherInfo().get(ATSConstants.CALLER_CONTEXT));
-    Assert.assertEquals(
+    assertEquals(
         event.getQueueName(), timelineEntity.getOtherInfo().get(ATSConstants.DAG_QUEUE_NAME));
 
   }
 
   private void assertDagSubmittedExtraInfoEntity(long submitTime, DAGSubmittedEvent event,
       TimelineEntity timelineEntity) {
-    Assert.assertEquals(EntityTypes.TEZ_DAG_EXTRA_INFO.name(), timelineEntity.getEntityType());
-    Assert.assertEquals(tezDAGID.toString(), timelineEntity.getEntityId());
+    assertEquals(EntityTypes.TEZ_DAG_EXTRA_INFO.name(), timelineEntity.getEntityType());
+    assertEquals(tezDAGID.toString(), timelineEntity.getEntityId());
 
-    Assert.assertEquals(1, timelineEntity.getRelatedEntities().size());
-    Assert.assertTrue(timelineEntity.getRelatedEntities()
+    assertEquals(1, timelineEntity.getRelatedEntities().size());
+    assertTrue(timelineEntity.getRelatedEntities()
         .get(EntityTypes.TEZ_DAG_ID.name()).contains(tezDAGID.toString()));
 
-    Assert.assertEquals(1, timelineEntity.getEvents().size());
+    assertEquals(1, timelineEntity.getEvents().size());
     TimelineEvent timelineEvent = timelineEntity.getEvents().get(0);
-    Assert.assertEquals(HistoryEventType.DAG_SUBMITTED.name(), timelineEvent.getEventType());
-    Assert.assertEquals(submitTime, timelineEvent.getTimestamp());
+    assertEquals(HistoryEventType.DAG_SUBMITTED.name(), timelineEvent.getEventType());
+    assertEquals(submitTime, timelineEvent.getTimestamp());
 
-    Assert.assertEquals(submitTime, timelineEntity.getStartTime().longValue());
-    Assert.assertEquals(0, timelineEntity.getPrimaryFilters().size());
-    Assert.assertEquals(1, timelineEntity.getOtherInfo().size());
-    Assert.assertTrue(timelineEntity.getOtherInfo().containsKey(ATSConstants.DAG_PLAN));
+    assertEquals(submitTime, timelineEntity.getStartTime().longValue());
+    assertEquals(0, timelineEntity.getPrimaryFilters().size());
+    assertEquals(1, timelineEntity.getOtherInfo().size());
+    assertTrue(timelineEntity.getOtherInfo().containsKey(ATSConstants.DAG_PLAN));
   }
 
   @SuppressWarnings("unchecked")
-  @Test(timeout = 5000)
+  @Test
+  @Timeout(value = 5000, unit = TimeUnit.MILLISECONDS)
   public void testConvertTaskAttemptFinishedEvent() {
     String vertexName = "testVertex";
     long creationTime = random.nextLong();
@@ -611,53 +628,53 @@ public class TestHistoryEventTimelineConversion {
         startTime, finishTime, state, TaskFailureType.FATAL, error, diagnostics, counters, events, null, creationTime,
         tezTaskAttemptID, allocationTime, containerId, nodeId, "inProgressURL", "logsURL", "nodeHttpAddress");
     List<TimelineEntity> entities = HistoryEventTimelineConversion.convertToTimelineEntities(event);
-    Assert.assertEquals(1, entities.size());
+    assertEquals(1, entities.size());
     TimelineEntity timelineEntity = entities.get(0);
 
-    Assert.assertEquals(tezTaskAttemptID.toString(), timelineEntity.getEntityId());
-    Assert.assertEquals(EntityTypes.TEZ_TASK_ATTEMPT_ID.name(), timelineEntity.getEntityType());
+    assertEquals(tezTaskAttemptID.toString(), timelineEntity.getEntityId());
+    assertEquals(EntityTypes.TEZ_TASK_ATTEMPT_ID.name(), timelineEntity.getEntityType());
 
     final Map<String, Set<Object>> primaryFilters = timelineEntity.getPrimaryFilters();
-    Assert.assertEquals(5, primaryFilters.size());
-    Assert.assertTrue(primaryFilters.get(ATSConstants.APPLICATION_ID)
+    assertEquals(5, primaryFilters.size());
+    assertTrue(primaryFilters.get(ATSConstants.APPLICATION_ID)
         .contains(applicationId.toString()));
-    Assert.assertTrue(primaryFilters.get(EntityTypes.TEZ_DAG_ID.name())
+    assertTrue(primaryFilters.get(EntityTypes.TEZ_DAG_ID.name())
         .contains(tezDAGID.toString()));
-    Assert.assertTrue(primaryFilters.get(EntityTypes.TEZ_VERTEX_ID.name())
+    assertTrue(primaryFilters.get(EntityTypes.TEZ_VERTEX_ID.name())
         .contains(tezVertexID.toString()));
-    Assert.assertTrue(primaryFilters.get(EntityTypes.TEZ_TASK_ID.name())
+    assertTrue(primaryFilters.get(EntityTypes.TEZ_TASK_ID.name())
         .contains(tezTaskID.toString()));
-    Assert.assertTrue(primaryFilters.get(ATSConstants.STATUS).contains(state.toString()));
+    assertTrue(primaryFilters.get(ATSConstants.STATUS).contains(state.toString()));
 
-    Assert.assertEquals(1, timelineEntity.getEvents().size());
+    assertEquals(1, timelineEntity.getEvents().size());
     TimelineEvent evt = timelineEntity.getEvents().get(0);
-    Assert.assertEquals(HistoryEventType.TASK_ATTEMPT_FINISHED.name(), evt.getEventType());
-    Assert.assertEquals(finishTime, evt.getTimestamp());
+    assertEquals(HistoryEventType.TASK_ATTEMPT_FINISHED.name(), evt.getEventType());
+    assertEquals(finishTime, evt.getTimestamp());
 
     final Map<String, Object> otherInfo = timelineEntity.getOtherInfo();
-    Assert.assertEquals(17, otherInfo.size());
-    Assert.assertEquals(tezTaskAttemptID.toString(),
+    assertEquals(17, otherInfo.size());
+    assertEquals(tezTaskAttemptID.toString(),
         timelineEntity.getOtherInfo().get(ATSConstants.CREATION_CAUSAL_ATTEMPT));
-    Assert.assertEquals(creationTime, timelineEntity.getOtherInfo().get(ATSConstants.CREATION_TIME));
-    Assert.assertEquals(allocationTime, timelineEntity.getOtherInfo().get(ATSConstants.ALLOCATION_TIME));
-    Assert.assertEquals(startTime, timelineEntity.getOtherInfo().get(ATSConstants.START_TIME));
-    Assert.assertEquals(finishTime, otherInfo.get(ATSConstants.FINISH_TIME));
-    Assert.assertEquals(finishTime - startTime, otherInfo.get(ATSConstants.TIME_TAKEN));
-    Assert.assertEquals(state.name(), otherInfo.get(ATSConstants.STATUS));
-    Assert.assertEquals(TaskFailureType.FATAL.name(), otherInfo.get(ATSConstants.TASK_FAILURE_TYPE));
-    Assert.assertEquals(error.name(), otherInfo.get(ATSConstants.TASK_ATTEMPT_ERROR_ENUM));
-    Assert.assertEquals(diagnostics, otherInfo.get(ATSConstants.DIAGNOSTICS));
+    assertEquals(creationTime, timelineEntity.getOtherInfo().get(ATSConstants.CREATION_TIME));
+    assertEquals(allocationTime, timelineEntity.getOtherInfo().get(ATSConstants.ALLOCATION_TIME));
+    assertEquals(startTime, timelineEntity.getOtherInfo().get(ATSConstants.START_TIME));
+    assertEquals(finishTime, otherInfo.get(ATSConstants.FINISH_TIME));
+    assertEquals(finishTime - startTime, otherInfo.get(ATSConstants.TIME_TAKEN));
+    assertEquals(state.name(), otherInfo.get(ATSConstants.STATUS));
+    assertEquals(TaskFailureType.FATAL.name(), otherInfo.get(ATSConstants.TASK_FAILURE_TYPE));
+    assertEquals(error.name(), otherInfo.get(ATSConstants.TASK_ATTEMPT_ERROR_ENUM));
+    assertEquals(diagnostics, otherInfo.get(ATSConstants.DIAGNOSTICS));
     Map<String, Object> obj1 = (Map<String, Object>)otherInfo.get(ATSConstants.LAST_DATA_EVENTS);
     List<Object> obj2 = (List<Object>) obj1.get(ATSConstants.LAST_DATA_EVENTS);
-    Assert.assertEquals(2, obj2.size());
+    assertEquals(2, obj2.size());
     Map<String, Object> obj3 = (Map<String, Object>) obj2.get(0);
-    Assert.assertEquals(events.get(0).getTimestamp(), obj3.get(ATSConstants.TIMESTAMP));
-    Assert.assertTrue(otherInfo.containsKey(ATSConstants.COUNTERS));
-    Assert.assertEquals("inProgressURL", otherInfo.get(ATSConstants.IN_PROGRESS_LOGS_URL));
-    Assert.assertEquals("logsURL", otherInfo.get(ATSConstants.COMPLETED_LOGS_URL));
-    Assert.assertEquals(nodeId.toString(), otherInfo.get(ATSConstants.NODE_ID));
-    Assert.assertEquals(containerId.toString(), otherInfo.get(ATSConstants.CONTAINER_ID));
-    Assert.assertEquals("nodeHttpAddress", otherInfo.get(ATSConstants.NODE_HTTP_ADDRESS));
+    assertEquals(events.get(0).getTimestamp(), obj3.get(ATSConstants.TIMESTAMP));
+    assertTrue(otherInfo.containsKey(ATSConstants.COUNTERS));
+    assertEquals("inProgressURL", otherInfo.get(ATSConstants.IN_PROGRESS_LOGS_URL));
+    assertEquals("logsURL", otherInfo.get(ATSConstants.COMPLETED_LOGS_URL));
+    assertEquals(nodeId.toString(), otherInfo.get(ATSConstants.NODE_ID));
+    assertEquals(containerId.toString(), otherInfo.get(ATSConstants.CONTAINER_ID));
+    assertEquals("nodeHttpAddress", otherInfo.get(ATSConstants.NODE_HTTP_ADDRESS));
 
     TaskAttemptFinishedEvent eventWithNullFailureType =
         new TaskAttemptFinishedEvent(tezTaskAttemptID, vertexName,
@@ -667,15 +684,16 @@ public class TestHistoryEventTimelineConversion {
             "nodeHttpAddress");
     List<TimelineEntity> evtEntities = HistoryEventTimelineConversion.convertToTimelineEntities(
         eventWithNullFailureType);
-    Assert.assertEquals(1, evtEntities.size());
+    assertEquals(1, evtEntities.size());
     TimelineEntity timelineEntityWithNullFailureType = evtEntities.get(0);
 
-    Assert.assertNull(
+    assertNull(
         timelineEntityWithNullFailureType.getOtherInfo().get(ATSConstants.TASK_FAILURE_TYPE));
   }
 
   @SuppressWarnings("unchecked")
-  @Test(timeout = 5000)
+  @Test
+  @Timeout(value = 5000, unit = TimeUnit.MILLISECONDS)
   public void testConvertDAGInitializedEvent() {
     long initTime = random.nextLong();
 
@@ -687,39 +705,40 @@ public class TestHistoryEventTimelineConversion {
 
 
     List<TimelineEntity> entities = HistoryEventTimelineConversion.convertToTimelineEntities(event);
-    Assert.assertEquals(1, entities.size());
+    assertEquals(1, entities.size());
     TimelineEntity timelineEntity = entities.get(0);
 
-    Assert.assertEquals(EntityTypes.TEZ_DAG_ID.name(), timelineEntity.getEntityType());
-    Assert.assertEquals(tezDAGID.toString(), timelineEntity.getEntityId());
+    assertEquals(EntityTypes.TEZ_DAG_ID.name(), timelineEntity.getEntityType());
+    assertEquals(tezDAGID.toString(), timelineEntity.getEntityId());
 
-    Assert.assertEquals(0, timelineEntity.getRelatedEntities().size());
+    assertEquals(0, timelineEntity.getRelatedEntities().size());
 
-    Assert.assertEquals(1, timelineEntity.getEvents().size());
+    assertEquals(1, timelineEntity.getEvents().size());
     TimelineEvent timelineEvent = timelineEntity.getEvents().get(0);
-    Assert.assertEquals(HistoryEventType.DAG_INITIALIZED.name(), timelineEvent.getEventType());
-    Assert.assertEquals(initTime, timelineEvent.getTimestamp());
+    assertEquals(HistoryEventType.DAG_INITIALIZED.name(), timelineEvent.getEventType());
+    assertEquals(initTime, timelineEvent.getTimestamp());
 
-    Assert.assertEquals(3, timelineEntity.getPrimaryFilters().size());
-    Assert.assertTrue(
+    assertEquals(3, timelineEntity.getPrimaryFilters().size());
+    assertTrue(
         timelineEntity.getPrimaryFilters().get(ATSConstants.APPLICATION_ID).contains(
             applicationId.toString()));
-    Assert.assertTrue(
+    assertTrue(
         timelineEntity.getPrimaryFilters().get(ATSConstants.DAG_NAME).contains("dagName"));
-    Assert.assertTrue(
+    assertTrue(
         timelineEntity.getPrimaryFilters().get(ATSConstants.USER).contains(user));
 
-    Assert.assertTrue(timelineEntity.getOtherInfo().containsKey(
+    assertTrue(timelineEntity.getOtherInfo().containsKey(
         ATSConstants.VERTEX_NAME_ID_MAPPING));
     Map<String, String> vIdMap = (Map<String, String>) timelineEntity.getOtherInfo().get(
         ATSConstants.VERTEX_NAME_ID_MAPPING);
-    Assert.assertEquals(1, vIdMap.size());
-    Assert.assertNotNull(vIdMap.containsKey("foo"));
-    Assert.assertEquals(tezVertexID.toString(), vIdMap.get("foo"));
+    assertEquals(1, vIdMap.size());
+    assertNotNull(vIdMap.containsKey("foo"));
+    assertEquals(tezVertexID.toString(), vIdMap.get("foo"));
 
   }
 
-  @Test(timeout = 5000)
+  @Test
+  @Timeout(value = 5000, unit = TimeUnit.MILLISECONDS)
   public void testConvertDAGFinishedEvent() {
     long finishTime = random.nextLong();
     long startTime = random.nextLong();
@@ -731,7 +750,7 @@ public class TestHistoryEventTimelineConversion {
         "diagnostics", null, user, dagPlan.getName(), taskStats, applicationAttemptId, dagPlan);
 
     List<TimelineEntity> entities = HistoryEventTimelineConversion.convertToTimelineEntities(event);
-    Assert.assertEquals(2, entities.size());
+    assertEquals(2, entities.size());
 
     if (entities.get(0).getEntityType().equals(EntityTypes.TEZ_DAG_ID.name())) {
       assertDagFinishedEntity(finishTime, startTime, event, entities.get(0));
@@ -744,69 +763,70 @@ public class TestHistoryEventTimelineConversion {
 
   private void assertDagFinishedEntity(long finishTime, long startTime, DAGFinishedEvent event,
       TimelineEntity timelineEntity) {
-    Assert.assertEquals(EntityTypes.TEZ_DAG_ID.name(), timelineEntity.getEntityType());
-    Assert.assertEquals(tezDAGID.toString(), timelineEntity.getEntityId());
+    assertEquals(EntityTypes.TEZ_DAG_ID.name(), timelineEntity.getEntityType());
+    assertEquals(tezDAGID.toString(), timelineEntity.getEntityId());
 
-    Assert.assertEquals(0, timelineEntity.getRelatedEntities().size());
+    assertEquals(0, timelineEntity.getRelatedEntities().size());
 
-    Assert.assertEquals(1, timelineEntity.getEvents().size());
+    assertEquals(1, timelineEntity.getEvents().size());
     TimelineEvent timelineEvent = timelineEntity.getEvents().get(0);
-    Assert.assertEquals(HistoryEventType.DAG_FINISHED.name(), timelineEvent.getEventType());
-    Assert.assertEquals(finishTime, timelineEvent.getTimestamp());
+    assertEquals(HistoryEventType.DAG_FINISHED.name(), timelineEvent.getEventType());
+    assertEquals(finishTime, timelineEvent.getTimestamp());
 
-    Assert.assertEquals(5, timelineEntity.getPrimaryFilters().size());
-    Assert.assertTrue(
+    assertEquals(5, timelineEntity.getPrimaryFilters().size());
+    assertTrue(
         timelineEntity.getPrimaryFilters().get(ATSConstants.APPLICATION_ID).contains(
             applicationId.toString()));
-    Assert.assertTrue(
+    assertTrue(
         timelineEntity.getPrimaryFilters().get(ATSConstants.DAG_NAME).contains(dagPlan.getName()));
-    Assert.assertTrue(
+    assertTrue(
         timelineEntity.getPrimaryFilters().get(ATSConstants.USER).contains(user));
-    Assert.assertTrue(
+    assertTrue(
         timelineEntity.getPrimaryFilters().get(ATSConstants.STATUS).contains(
             DAGState.ERROR.name()));
-    Assert.assertTrue(
+    assertTrue(
         timelineEntity.getPrimaryFilters().get(ATSConstants.CALLER_CONTEXT_ID).contains(
             dagPlan.getCallerContext().getCallerId()));
 
-    Assert.assertEquals(startTime,
+    assertEquals(startTime,
         ((Long) timelineEntity.getOtherInfo().get(ATSConstants.START_TIME)).longValue());
-    Assert.assertEquals(finishTime,
+    assertEquals(finishTime,
         ((Long) timelineEntity.getOtherInfo().get(ATSConstants.FINISH_TIME)).longValue());
-    Assert.assertEquals(finishTime - startTime,
+    assertEquals(finishTime - startTime,
         ((Long) timelineEntity.getOtherInfo().get(ATSConstants.TIME_TAKEN)).longValue());
-    Assert.assertEquals(DAGState.ERROR.name(),
+    assertEquals(DAGState.ERROR.name(),
         timelineEntity.getOtherInfo().get(ATSConstants.STATUS));
-    Assert.assertEquals("diagnostics",
+    assertEquals("diagnostics",
         timelineEntity.getOtherInfo().get(ATSConstants.DIAGNOSTICS));
-    Assert.assertEquals(applicationAttemptId.toString(),
+    assertEquals(applicationAttemptId.toString(),
         timelineEntity.getOtherInfo().get(ATSConstants.COMPLETION_APPLICATION_ATTEMPT_ID));
 
-    Assert.assertEquals(100,
+    assertEquals(100,
         ((Integer) timelineEntity.getOtherInfo().get("FOO")).intValue());
-    Assert.assertEquals(200,
+    assertEquals(200,
         ((Integer) timelineEntity.getOtherInfo().get("BAR")).intValue());
   }
 
   private void assertDagFinishedExtraInfoEntity(long finishTime, TimelineEntity timelineEntity) {
-    Assert.assertEquals(EntityTypes.TEZ_DAG_EXTRA_INFO.name(), timelineEntity.getEntityType());
-    Assert.assertEquals(tezDAGID.toString(), timelineEntity.getEntityId());
+    assertEquals(EntityTypes.TEZ_DAG_EXTRA_INFO.name(), timelineEntity.getEntityType());
+    assertEquals(tezDAGID.toString(), timelineEntity.getEntityId());
 
-    Assert.assertEquals(1, timelineEntity.getRelatedEntities().size());
-    Assert.assertTrue(
+    assertEquals(1, timelineEntity.getRelatedEntities().size());
+    assertTrue(
         timelineEntity.getRelatedEntities().get(ATSConstants.TEZ_DAG_ID).contains(
             tezDAGID.toString()));
 
-    Assert.assertEquals(1, timelineEntity.getEvents().size());
+    assertEquals(1, timelineEntity.getEvents().size());
     TimelineEvent timelineEvent = timelineEntity.getEvents().get(0);
-    Assert.assertEquals(HistoryEventType.DAG_FINISHED.name(), timelineEvent.getEventType());
-    Assert.assertEquals(finishTime, timelineEvent.getTimestamp());
+    assertEquals(HistoryEventType.DAG_FINISHED.name(), timelineEvent.getEventType());
+    assertEquals(finishTime, timelineEvent.getTimestamp());
 
-    Assert.assertTrue(timelineEntity.getOtherInfo().containsKey(ATSConstants.COUNTERS));
+    assertTrue(timelineEntity.getOtherInfo().containsKey(ATSConstants.COUNTERS));
   }
 
   @SuppressWarnings("unchecked")
-  @Test(timeout = 5000)
+  @Test
+  @Timeout(value = 5000, unit = TimeUnit.MILLISECONDS)
   public void testConvertVertexInitializedEvent() {
     long initRequestedTime = random.nextLong();
     long initedTime = random.nextLong();
@@ -821,65 +841,66 @@ public class TestHistoryEventTimelineConversion {
 
 
     List<TimelineEntity> entities = HistoryEventTimelineConversion.convertToTimelineEntities(event);
-    Assert.assertEquals(1, entities.size());
+    assertEquals(1, entities.size());
     TimelineEntity timelineEntity = entities.get(0);
 
-    Assert.assertEquals(EntityTypes.TEZ_VERTEX_ID.name(), timelineEntity.getEntityType());
-    Assert.assertEquals(tezVertexID.toString(), timelineEntity.getEntityId());
+    assertEquals(EntityTypes.TEZ_VERTEX_ID.name(), timelineEntity.getEntityType());
+    assertEquals(tezVertexID.toString(), timelineEntity.getEntityId());
 
-    Assert.assertEquals(initedTime, timelineEntity.getStartTime().longValue());
+    assertEquals(initedTime, timelineEntity.getStartTime().longValue());
 
-    Assert.assertEquals(1, timelineEntity.getRelatedEntities().size());
-    Assert.assertTrue(
+    assertEquals(1, timelineEntity.getRelatedEntities().size());
+    assertTrue(
         timelineEntity.getRelatedEntities().get(EntityTypes.TEZ_DAG_ID.name()).contains(
             tezDAGID.toString()));
 
-    Assert.assertEquals(2, timelineEntity.getPrimaryFilters().size());
-    Assert.assertTrue(
+    assertEquals(2, timelineEntity.getPrimaryFilters().size());
+    assertTrue(
         timelineEntity.getPrimaryFilters().get(ATSConstants.APPLICATION_ID).contains(
             applicationId.toString()));
-    Assert.assertTrue(
+    assertTrue(
         timelineEntity.getPrimaryFilters().get(EntityTypes.TEZ_DAG_ID.name()).contains(
             tezDAGID.toString()));
 
-    Assert.assertEquals(1, timelineEntity.getEvents().size());
+    assertEquals(1, timelineEntity.getEvents().size());
     TimelineEvent timelineEvent = timelineEntity.getEvents().get(0);
-    Assert.assertEquals(HistoryEventType.VERTEX_INITIALIZED.name(), timelineEvent.getEventType());
-    Assert.assertEquals(initedTime, timelineEvent.getTimestamp());
+    assertEquals(HistoryEventType.VERTEX_INITIALIZED.name(), timelineEvent.getEventType());
+    assertEquals(initedTime, timelineEvent.getTimestamp());
 
-    Assert.assertEquals("v1", timelineEntity.getOtherInfo().get(ATSConstants.VERTEX_NAME));
-    Assert.assertEquals("proc", timelineEntity.getOtherInfo().get(ATSConstants.PROCESSOR_CLASS_NAME));
+    assertEquals("v1", timelineEntity.getOtherInfo().get(ATSConstants.VERTEX_NAME));
+    assertEquals("proc", timelineEntity.getOtherInfo().get(ATSConstants.PROCESSOR_CLASS_NAME));
 
-    Assert.assertEquals(initedTime,
+    assertEquals(initedTime,
         ((Long) timelineEntity.getOtherInfo().get(ATSConstants.INIT_TIME)).longValue());
-    Assert.assertEquals(initRequestedTime,
+    assertEquals(initRequestedTime,
         ((Long) timelineEntity.getOtherInfo().get(ATSConstants.INIT_REQUESTED_TIME)).longValue());
-    Assert.assertEquals(initedTime,
+    assertEquals(initedTime,
         ((Long) timelineEntity.getOtherInfo().get(ATSConstants.INIT_TIME)).longValue());
-    Assert.assertEquals(numTasks,
+    assertEquals(numTasks,
         ((Integer) timelineEntity.getOtherInfo().get(ATSConstants.NUM_TASKS)).intValue());
-    Assert.assertNotNull(timelineEntity.getOtherInfo().get(ATSConstants.SERVICE_PLUGIN));
-    Assert.assertEquals("abc",
+    assertNotNull(timelineEntity.getOtherInfo().get(ATSConstants.SERVICE_PLUGIN));
+    assertEquals("abc",
         ((Map<String, Object>)timelineEntity.getOtherInfo().get(ATSConstants.SERVICE_PLUGIN)).get(
             ATSConstants.CONTAINER_LAUNCHER_NAME));
-    Assert.assertEquals("def",
+    assertEquals("def",
         ((Map<String, Object>)timelineEntity.getOtherInfo().get(ATSConstants.SERVICE_PLUGIN)).get(
             ATSConstants.TASK_SCHEDULER_NAME));
-    Assert.assertEquals("ghi",
+    assertEquals("ghi",
         ((Map<String, Object>)timelineEntity.getOtherInfo().get(ATSConstants.SERVICE_PLUGIN)).get(
             ATSConstants.TASK_COMMUNICATOR_NAME));
-    Assert.assertEquals("abc1",
+    assertEquals("abc1",
         ((Map<String, Object>)timelineEntity.getOtherInfo().get(ATSConstants.SERVICE_PLUGIN)).get(
             ATSConstants.CONTAINER_LAUNCHER_CLASS_NAME));
-    Assert.assertEquals("def1",
+    assertEquals("def1",
         ((Map<String, Object>)timelineEntity.getOtherInfo().get(ATSConstants.SERVICE_PLUGIN)).get(
             ATSConstants.TASK_SCHEDULER_CLASS_NAME));
-    Assert.assertEquals("ghi1",
+    assertEquals("ghi1",
         ((Map<String, Object>)timelineEntity.getOtherInfo().get(ATSConstants.SERVICE_PLUGIN)).get(
             ATSConstants.TASK_COMMUNICATOR_CLASS_NAME));
   }
 
-  @Test(timeout = 5000)
+  @Test
+  @Timeout(value = 5000, unit = TimeUnit.MILLISECONDS)
   public void testConvertVertexStartedEvent() {
     long startRequestedTime = random.nextLong();
     long startTime = random.nextLong();
@@ -887,37 +908,38 @@ public class TestHistoryEventTimelineConversion {
     VertexStartedEvent event = new VertexStartedEvent(tezVertexID, startRequestedTime, startTime);
 
     List<TimelineEntity> entities = HistoryEventTimelineConversion.convertToTimelineEntities(event);
-    Assert.assertEquals(1, entities.size());
+    assertEquals(1, entities.size());
     TimelineEntity timelineEntity = entities.get(0);
 
-    Assert.assertEquals(EntityTypes.TEZ_VERTEX_ID.name(), timelineEntity.getEntityType());
-    Assert.assertEquals(tezVertexID.toString(), timelineEntity.getEntityId());
+    assertEquals(EntityTypes.TEZ_VERTEX_ID.name(), timelineEntity.getEntityType());
+    assertEquals(tezVertexID.toString(), timelineEntity.getEntityId());
 
-    Assert.assertEquals(0, timelineEntity.getRelatedEntities().size());
+    assertEquals(0, timelineEntity.getRelatedEntities().size());
 
-    Assert.assertEquals(2, timelineEntity.getPrimaryFilters().size());
-    Assert.assertTrue(timelineEntity.getPrimaryFilters().get(ATSConstants.APPLICATION_ID)
+    assertEquals(2, timelineEntity.getPrimaryFilters().size());
+    assertTrue(timelineEntity.getPrimaryFilters().get(ATSConstants.APPLICATION_ID)
             .contains(applicationId.toString()));
-    Assert.assertTrue(
+    assertTrue(
             timelineEntity.getPrimaryFilters().get(EntityTypes.TEZ_DAG_ID.name()).contains(
                     tezDAGID.toString()));
 
-    Assert.assertEquals(1, timelineEntity.getEvents().size());
+    assertEquals(1, timelineEntity.getEvents().size());
     TimelineEvent timelineEvent = timelineEntity.getEvents().get(0);
-    Assert.assertEquals(HistoryEventType.VERTEX_STARTED.name(), timelineEvent.getEventType());
-    Assert.assertEquals(startTime, timelineEvent.getTimestamp());
+    assertEquals(HistoryEventType.VERTEX_STARTED.name(), timelineEvent.getEventType());
+    assertEquals(startTime, timelineEvent.getTimestamp());
 
-    Assert.assertEquals(3, timelineEntity.getOtherInfo().size());
-    Assert.assertEquals(startRequestedTime,
+    assertEquals(3, timelineEntity.getOtherInfo().size());
+    assertEquals(startRequestedTime,
             ((Long) timelineEntity.getOtherInfo().get(ATSConstants.START_REQUESTED_TIME)).longValue());
-    Assert.assertEquals(startTime,
+    assertEquals(startTime,
             ((Long) timelineEntity.getOtherInfo().get(ATSConstants.START_TIME)).longValue());
-    Assert.assertEquals(VertexState.RUNNING.name(),
+    assertEquals(VertexState.RUNNING.name(),
             timelineEntity.getOtherInfo().get(ATSConstants.STATUS));
   }
 
   @SuppressWarnings("unchecked")
-  @Test(timeout = 5000)
+  @Test
+  @Timeout(value = 5000, unit = TimeUnit.MILLISECONDS)
   public void testConvertVertexFinishedEvent() {
     String vertexName = "v1";
     long initRequestedTime = random.nextLong();
@@ -940,169 +962,172 @@ public class TestHistoryEventTimelineConversion {
             .setTaskCommunicatorClassName("ghi1"));
 
     List<TimelineEntity> entities = HistoryEventTimelineConversion.convertToTimelineEntities(event);
-    Assert.assertEquals(1, entities.size());
+    assertEquals(1, entities.size());
     TimelineEntity timelineEntity = entities.get(0);
 
-    Assert.assertEquals(EntityTypes.TEZ_VERTEX_ID.name(), timelineEntity.getEntityType());
-    Assert.assertEquals(tezVertexID.toString(), timelineEntity.getEntityId());
+    assertEquals(EntityTypes.TEZ_VERTEX_ID.name(), timelineEntity.getEntityType());
+    assertEquals(tezVertexID.toString(), timelineEntity.getEntityId());
 
-    Assert.assertEquals(0, timelineEntity.getRelatedEntities().size());
+    assertEquals(0, timelineEntity.getRelatedEntities().size());
 
-    Assert.assertEquals(3, timelineEntity.getPrimaryFilters().size());
-    Assert.assertTrue(timelineEntity.getPrimaryFilters().get(ATSConstants.APPLICATION_ID)
+    assertEquals(3, timelineEntity.getPrimaryFilters().size());
+    assertTrue(timelineEntity.getPrimaryFilters().get(ATSConstants.APPLICATION_ID)
         .contains(applicationId.toString()));
-    Assert.assertTrue(
+    assertTrue(
         timelineEntity.getPrimaryFilters().get(EntityTypes.TEZ_DAG_ID.name()).contains(
             tezDAGID.toString()));
-    Assert.assertTrue(
+    assertTrue(
         timelineEntity.getPrimaryFilters().get(ATSConstants.STATUS).contains(
             VertexState.ERROR.name()));
 
-    Assert.assertEquals(1, timelineEntity.getEvents().size());
+    assertEquals(1, timelineEntity.getEvents().size());
     TimelineEvent timelineEvent = timelineEntity.getEvents().get(0);
-    Assert.assertEquals(HistoryEventType.VERTEX_FINISHED.name(), timelineEvent.getEventType());
-    Assert.assertEquals(finishTime, timelineEvent.getTimestamp());
+    assertEquals(HistoryEventType.VERTEX_FINISHED.name(), timelineEvent.getEventType());
+    assertEquals(finishTime, timelineEvent.getTimestamp());
 
-    Assert.assertEquals(vertexName,
+    assertEquals(vertexName,
         timelineEntity.getOtherInfo().get(ATSConstants.VERTEX_NAME));
-    Assert.assertEquals(finishTime,
+    assertEquals(finishTime,
         ((Long) timelineEntity.getOtherInfo().get(ATSConstants.FINISH_TIME)).longValue());
-    Assert.assertEquals(finishTime - startTime,
+    assertEquals(finishTime - startTime,
         ((Long) timelineEntity.getOtherInfo().get(ATSConstants.TIME_TAKEN)).longValue());
-    Assert.assertEquals(VertexState.ERROR.name(),
+    assertEquals(VertexState.ERROR.name(),
         timelineEntity.getOtherInfo().get(ATSConstants.STATUS));
-    Assert.assertEquals("diagnostics",
+    assertEquals("diagnostics",
         timelineEntity.getOtherInfo().get(ATSConstants.DIAGNOSTICS));
-    Assert.assertNotNull(timelineEntity.getOtherInfo().get(ATSConstants.SERVICE_PLUGIN));
-    Assert.assertEquals("abc",
+    assertNotNull(timelineEntity.getOtherInfo().get(ATSConstants.SERVICE_PLUGIN));
+    assertEquals("abc",
         ((Map<String, Object>)timelineEntity.getOtherInfo().get(ATSConstants.SERVICE_PLUGIN)).get(
             ATSConstants.CONTAINER_LAUNCHER_NAME));
-    Assert.assertEquals("def",
+    assertEquals("def",
         ((Map<String, Object>)timelineEntity.getOtherInfo().get(ATSConstants.SERVICE_PLUGIN)).get(
             ATSConstants.TASK_SCHEDULER_NAME));
-    Assert.assertEquals("ghi",
+    assertEquals("ghi",
         ((Map<String, Object>)timelineEntity.getOtherInfo().get(ATSConstants.SERVICE_PLUGIN)).get(
             ATSConstants.TASK_COMMUNICATOR_NAME));
-    Assert.assertEquals("abc1",
+    assertEquals("abc1",
         ((Map<String, Object>)timelineEntity.getOtherInfo().get(ATSConstants.SERVICE_PLUGIN)).get(
             ATSConstants.CONTAINER_LAUNCHER_CLASS_NAME));
-    Assert.assertEquals("def1",
+    assertEquals("def1",
         ((Map<String, Object>)timelineEntity.getOtherInfo().get(ATSConstants.SERVICE_PLUGIN)).get(
             ATSConstants.TASK_SCHEDULER_CLASS_NAME));
-    Assert.assertEquals("ghi1",
+    assertEquals("ghi1",
         ((Map<String, Object>)timelineEntity.getOtherInfo().get(ATSConstants.SERVICE_PLUGIN)).get(
             ATSConstants.TASK_COMMUNICATOR_CLASS_NAME));
 
-    Assert.assertTrue(timelineEntity.getOtherInfo().containsKey(ATSConstants.STATS));
+    assertTrue(timelineEntity.getOtherInfo().containsKey(ATSConstants.STATS));
 
-    Assert.assertEquals(100,
+    assertEquals(100,
         ((Integer) timelineEntity.getOtherInfo().get("FOO")).intValue());
-    Assert.assertEquals(200,
+    assertEquals(200,
         ((Integer) timelineEntity.getOtherInfo().get("BAR")).intValue());
   }
 
-  @Test(timeout = 5000)
+  @Test
+  @Timeout(value = 5000, unit = TimeUnit.MILLISECONDS)
   public void testConvertTaskStartedEvent() {
     long scheduleTime = random.nextLong();
     long startTime = random.nextLong();
     TaskStartedEvent event = new TaskStartedEvent(tezTaskID, "v1", scheduleTime, startTime);
 
     List<TimelineEntity> entities = HistoryEventTimelineConversion.convertToTimelineEntities(event);
-    Assert.assertEquals(1, entities.size());
+    assertEquals(1, entities.size());
     TimelineEntity timelineEntity = entities.get(0);
 
-    Assert.assertEquals(EntityTypes.TEZ_TASK_ID.name(), timelineEntity.getEntityType());
-    Assert.assertEquals(tezTaskID.toString(), timelineEntity.getEntityId());
+    assertEquals(EntityTypes.TEZ_TASK_ID.name(), timelineEntity.getEntityType());
+    assertEquals(tezTaskID.toString(), timelineEntity.getEntityId());
 
-    Assert.assertEquals(startTime, timelineEntity.getStartTime().longValue());
+    assertEquals(startTime, timelineEntity.getStartTime().longValue());
 
-    Assert.assertEquals(1, timelineEntity.getRelatedEntities().size());
-    Assert.assertTrue(
+    assertEquals(1, timelineEntity.getRelatedEntities().size());
+    assertTrue(
         timelineEntity.getRelatedEntities().get(EntityTypes.TEZ_VERTEX_ID.name()).contains(
             tezVertexID.toString()));
 
-    Assert.assertEquals(3, timelineEntity.getPrimaryFilters().size());
-    Assert.assertTrue(
+    assertEquals(3, timelineEntity.getPrimaryFilters().size());
+    assertTrue(
         timelineEntity.getPrimaryFilters().get(ATSConstants.APPLICATION_ID).contains(
             applicationId.toString()));
-    Assert.assertTrue(
+    assertTrue(
         timelineEntity.getPrimaryFilters().get(EntityTypes.TEZ_DAG_ID.name()).contains(
             tezDAGID.toString()));
-    Assert.assertTrue(
+    assertTrue(
         timelineEntity.getPrimaryFilters().get(EntityTypes.TEZ_VERTEX_ID.name()).contains(
             tezVertexID.toString()));
 
-    Assert.assertEquals(1, timelineEntity.getEvents().size());
+    assertEquals(1, timelineEntity.getEvents().size());
     TimelineEvent timelineEvent = timelineEntity.getEvents().get(0);
-    Assert.assertEquals(HistoryEventType.TASK_STARTED.name(), timelineEvent.getEventType());
-    Assert.assertEquals(startTime, timelineEvent.getTimestamp());
+    assertEquals(HistoryEventType.TASK_STARTED.name(), timelineEvent.getEventType());
+    assertEquals(startTime, timelineEvent.getTimestamp());
 
-    Assert.assertTrue(timelineEntity.getOtherInfo().containsKey(ATSConstants.SCHEDULED_TIME));
-    Assert.assertTrue(timelineEntity.getOtherInfo().containsKey(ATSConstants.START_TIME));
+    assertTrue(timelineEntity.getOtherInfo().containsKey(ATSConstants.SCHEDULED_TIME));
+    assertTrue(timelineEntity.getOtherInfo().containsKey(ATSConstants.START_TIME));
 
-    Assert.assertEquals(scheduleTime,
+    assertEquals(scheduleTime,
         ((Long) timelineEntity.getOtherInfo().get(ATSConstants.SCHEDULED_TIME)).longValue());
-    Assert.assertEquals(startTime,
+    assertEquals(startTime,
         ((Long) timelineEntity.getOtherInfo().get(ATSConstants.START_TIME)).longValue());
-    Assert.assertTrue(TaskState.SCHEDULED.name()
-        .equals(timelineEntity.getOtherInfo().get(ATSConstants.STATUS)));
+    assertEquals(TaskState.SCHEDULED.name(),
+        timelineEntity.getOtherInfo().get(ATSConstants.STATUS));
   }
 
-  @Test(timeout = 5000)
+  @Test
+  @Timeout(value = 5000, unit = TimeUnit.MILLISECONDS)
   public void testConvertTaskAttemptStartedEvent() {
     long startTime = random.nextLong();
     TaskAttemptStartedEvent event = new TaskAttemptStartedEvent(tezTaskAttemptID, "v1",
         startTime, containerId, nodeId, "inProgressURL", "logsURL", "nodeHttpAddress");
 
     List<TimelineEntity> entities = HistoryEventTimelineConversion.convertToTimelineEntities(event);
-    Assert.assertEquals(1, entities.size());
+    assertEquals(1, entities.size());
     TimelineEntity timelineEntity = entities.get(0);
 
-    Assert.assertEquals(EntityTypes.TEZ_TASK_ATTEMPT_ID.name(), timelineEntity.getEntityType());
-    Assert.assertEquals(tezTaskAttemptID.toString(), timelineEntity.getEntityId());
+    assertEquals(EntityTypes.TEZ_TASK_ATTEMPT_ID.name(), timelineEntity.getEntityType());
+    assertEquals(tezTaskAttemptID.toString(), timelineEntity.getEntityId());
 
-    Assert.assertEquals(startTime, timelineEntity.getStartTime().longValue());
+    assertEquals(startTime, timelineEntity.getStartTime().longValue());
 
-    Assert.assertEquals(1, timelineEntity.getRelatedEntities().size());
-    Assert.assertTrue(
+    assertEquals(1, timelineEntity.getRelatedEntities().size());
+    assertTrue(
         timelineEntity.getRelatedEntities().get(EntityTypes.TEZ_TASK_ID.name()).contains(
             tezTaskID.toString()));
 
-    Assert.assertEquals(1, timelineEntity.getEvents().size());
+    assertEquals(1, timelineEntity.getEvents().size());
     TimelineEvent timelineEvent = timelineEntity.getEvents().get(0);
-    Assert.assertEquals(HistoryEventType.TASK_ATTEMPT_STARTED.name(), timelineEvent.getEventType());
-    Assert.assertEquals(startTime, timelineEvent.getTimestamp());
+    assertEquals(HistoryEventType.TASK_ATTEMPT_STARTED.name(), timelineEvent.getEventType());
+    assertEquals(startTime, timelineEvent.getTimestamp());
 
-    Assert.assertEquals(4, timelineEntity.getPrimaryFilters().size());
-    Assert.assertTrue(
+    assertEquals(4, timelineEntity.getPrimaryFilters().size());
+    assertTrue(
         timelineEntity.getPrimaryFilters().get(ATSConstants.APPLICATION_ID).contains(
             applicationId.toString()));
-    Assert.assertTrue(
+    assertTrue(
         timelineEntity.getPrimaryFilters().get(EntityTypes.TEZ_DAG_ID.name()).contains(
             tezDAGID.toString()));
-    Assert.assertTrue(
+    assertTrue(
         timelineEntity.getPrimaryFilters().get(EntityTypes.TEZ_VERTEX_ID.name()).contains(
             tezVertexID.toString()));
-    Assert.assertTrue(
+    assertTrue(
         timelineEntity.getPrimaryFilters().get(EntityTypes.TEZ_TASK_ID.name()).contains(
             tezTaskID.toString()));
 
-    Assert.assertTrue(timelineEntity.getOtherInfo().containsKey(ATSConstants.START_TIME));
-    Assert.assertEquals("inProgressURL",
+    assertTrue(timelineEntity.getOtherInfo().containsKey(ATSConstants.START_TIME));
+    assertEquals("inProgressURL",
         timelineEntity.getOtherInfo().get(ATSConstants.IN_PROGRESS_LOGS_URL));
-    Assert.assertEquals("logsURL",
+    assertEquals("logsURL",
         timelineEntity.getOtherInfo().get(ATSConstants.COMPLETED_LOGS_URL));
-    Assert.assertEquals(nodeId.toString(),
+    assertEquals(nodeId.toString(),
         timelineEntity.getOtherInfo().get(ATSConstants.NODE_ID));
-    Assert.assertEquals(containerId.toString(),
+    assertEquals(containerId.toString(),
         timelineEntity.getOtherInfo().get(ATSConstants.CONTAINER_ID));
-    Assert.assertEquals("nodeHttpAddress",
+    assertEquals("nodeHttpAddress",
         timelineEntity.getOtherInfo().get(ATSConstants.NODE_HTTP_ADDRESS));
-    Assert.assertTrue(TaskAttemptState.RUNNING.name()
-        .equals(timelineEntity.getOtherInfo().get(ATSConstants.STATUS)));
+    assertEquals(TaskAttemptState.RUNNING.name(),
+        timelineEntity.getOtherInfo().get(ATSConstants.STATUS));
   }
 
-  @Test(timeout = 5000)
+  @Test
+  @Timeout(value = 5000, unit = TimeUnit.MILLISECONDS)
   public void testConvertTaskFinishedEvent() {
     String vertexName = "testVertexName";
     long startTime = random.nextLong();
@@ -1114,41 +1139,42 @@ public class TestHistoryEventTimelineConversion {
     TaskFinishedEvent event = new TaskFinishedEvent(tezTaskID, vertexName, startTime, finishTime,
         tezTaskAttemptID, state, diagnostics, counters, 3);
     List<TimelineEntity> entities = HistoryEventTimelineConversion.convertToTimelineEntities(event);
-    Assert.assertEquals(1, entities.size());
+    assertEquals(1, entities.size());
     TimelineEntity timelineEntity = entities.get(0);
 
-    Assert.assertEquals(tezTaskID.toString(), timelineEntity.getEntityId());
-    Assert.assertEquals(EntityTypes.TEZ_TASK_ID.name(), timelineEntity.getEntityType());
+    assertEquals(tezTaskID.toString(), timelineEntity.getEntityId());
+    assertEquals(EntityTypes.TEZ_TASK_ID.name(), timelineEntity.getEntityType());
 
     final Map<String, Set<Object>> primaryFilters = timelineEntity.getPrimaryFilters();
-    Assert.assertEquals(4, primaryFilters.size());
-    Assert.assertTrue(primaryFilters.get(ATSConstants.APPLICATION_ID)
+    assertEquals(4, primaryFilters.size());
+    assertTrue(primaryFilters.get(ATSConstants.APPLICATION_ID)
         .contains(applicationId.toString()));
-    Assert.assertTrue(primaryFilters.get(EntityTypes.TEZ_DAG_ID.name())
+    assertTrue(primaryFilters.get(EntityTypes.TEZ_DAG_ID.name())
         .contains(tezDAGID.toString()));
-    Assert.assertTrue(primaryFilters.get(EntityTypes.TEZ_VERTEX_ID.name())
+    assertTrue(primaryFilters.get(EntityTypes.TEZ_VERTEX_ID.name())
         .contains(tezVertexID.toString()));
-    Assert.assertTrue(primaryFilters.get(ATSConstants.STATUS).contains(state.name()));
+    assertTrue(primaryFilters.get(ATSConstants.STATUS).contains(state.name()));
 
-    Assert.assertEquals(1, timelineEntity.getEvents().size());
+    assertEquals(1, timelineEntity.getEvents().size());
     TimelineEvent evt = timelineEntity.getEvents().get(0);
-    Assert.assertEquals(HistoryEventType.TASK_FINISHED.name(), evt.getEventType());
-    Assert.assertEquals(finishTime, evt.getTimestamp());
+    assertEquals(HistoryEventType.TASK_FINISHED.name(), evt.getEventType());
+    assertEquals(finishTime, evt.getTimestamp());
 
     final Map<String, Object> otherInfo = timelineEntity.getOtherInfo();
-    Assert.assertEquals(7, otherInfo.size());
-    Assert.assertEquals(finishTime, otherInfo.get(ATSConstants.FINISH_TIME));
-    Assert.assertEquals(finishTime - startTime, otherInfo.get(ATSConstants.TIME_TAKEN));
-    Assert.assertEquals(state.name(), otherInfo.get(ATSConstants.STATUS));
-    Assert.assertEquals(tezTaskAttemptID.toString(),
+    assertEquals(7, otherInfo.size());
+    assertEquals(finishTime, otherInfo.get(ATSConstants.FINISH_TIME));
+    assertEquals(finishTime - startTime, otherInfo.get(ATSConstants.TIME_TAKEN));
+    assertEquals(state.name(), otherInfo.get(ATSConstants.STATUS));
+    assertEquals(tezTaskAttemptID.toString(),
         otherInfo.get(ATSConstants.SUCCESSFUL_ATTEMPT_ID));
-    Assert.assertEquals(3, otherInfo.get(ATSConstants.NUM_FAILED_TASKS_ATTEMPTS));
-    Assert.assertEquals(diagnostics, otherInfo.get(ATSConstants.DIAGNOSTICS));
-    Assert.assertTrue(otherInfo.containsKey(ATSConstants.COUNTERS));
+    assertEquals(3, otherInfo.get(ATSConstants.NUM_FAILED_TASKS_ATTEMPTS));
+    assertEquals(diagnostics, otherInfo.get(ATSConstants.DIAGNOSTICS));
+    assertTrue(otherInfo.containsKey(ATSConstants.COUNTERS));
   }
 
   @SuppressWarnings("unchecked")
-  @Test(timeout = 5000)
+  @Test
+  @Timeout(value = 5000, unit = TimeUnit.MILLISECONDS)
   public void testConvertVertexReconfigreDoneEvent() {
     TezVertexID vId = tezVertexID;
     Map<String, EdgeProperty> edgeMgrs =
@@ -1161,40 +1187,41 @@ public class TestHistoryEventTimelineConversion {
         edgeMgrs, null, true);
 
     List<TimelineEntity> entities = HistoryEventTimelineConversion.convertToTimelineEntities(event);
-    Assert.assertEquals(1, entities.size());
+    assertEquals(1, entities.size());
     TimelineEntity timelineEntity = entities.get(0);
 
-    Assert.assertEquals(ATSConstants.TEZ_VERTEX_ID, timelineEntity.getEntityType());
-    Assert.assertEquals(vId.toString(), timelineEntity.getEntityId());
-    Assert.assertEquals(1, timelineEntity.getEvents().size());
+    assertEquals(ATSConstants.TEZ_VERTEX_ID, timelineEntity.getEntityType());
+    assertEquals(vId.toString(), timelineEntity.getEntityId());
+    assertEquals(1, timelineEntity.getEvents().size());
 
     final Map<String, Set<Object>> primaryFilters = timelineEntity.getPrimaryFilters();
-    Assert.assertEquals(2, primaryFilters.size());
-    Assert.assertTrue(primaryFilters.get(ATSConstants.APPLICATION_ID)
+    assertEquals(2, primaryFilters.size());
+    assertTrue(primaryFilters.get(ATSConstants.APPLICATION_ID)
         .contains(applicationId.toString()));
-    Assert.assertTrue(primaryFilters.get(EntityTypes.TEZ_DAG_ID.name())
+    assertTrue(primaryFilters.get(EntityTypes.TEZ_DAG_ID.name())
         .contains(tezDAGID.toString()));
 
     TimelineEvent evt = timelineEntity.getEvents().get(0);
-    Assert.assertEquals(HistoryEventType.VERTEX_CONFIGURE_DONE.name(), evt.getEventType());
-    Assert.assertEquals(1, evt.getEventInfo().get(ATSConstants.NUM_TASKS));
-    Assert.assertNotNull(evt.getEventInfo().get(ATSConstants.UPDATED_EDGE_MANAGERS));
+    assertEquals(HistoryEventType.VERTEX_CONFIGURE_DONE.name(), evt.getEventType());
+    assertEquals(1, evt.getEventInfo().get(ATSConstants.NUM_TASKS));
+    assertNotNull(evt.getEventInfo().get(ATSConstants.UPDATED_EDGE_MANAGERS));
 
     Map<String, Object> updatedEdgeMgrs = (Map<String, Object>)
         evt.getEventInfo().get(ATSConstants.UPDATED_EDGE_MANAGERS);
-    Assert.assertEquals(1, updatedEdgeMgrs.size());
-    Assert.assertTrue(updatedEdgeMgrs.containsKey("a"));
+    assertEquals(1, updatedEdgeMgrs.size());
+    assertTrue(updatedEdgeMgrs.containsKey("a"));
     Map<String, Object> updatedEdgeMgr = (Map<String, Object>) updatedEdgeMgrs.get("a");
 
-    Assert.assertEquals(DataMovementType.CUSTOM.name(),
+    assertEquals(DataMovementType.CUSTOM.name(),
         updatedEdgeMgr.get(DAGUtils.DATA_MOVEMENT_TYPE_KEY));
-    Assert.assertEquals("In", updatedEdgeMgr.get(DAGUtils.EDGE_DESTINATION_CLASS_KEY));
-    Assert.assertEquals("a.class", updatedEdgeMgr.get(DAGUtils.EDGE_MANAGER_CLASS_KEY));
+    assertEquals("In", updatedEdgeMgr.get(DAGUtils.EDGE_DESTINATION_CLASS_KEY));
+    assertEquals("a.class", updatedEdgeMgr.get(DAGUtils.EDGE_MANAGER_CLASS_KEY));
 
-    Assert.assertEquals(1, timelineEntity.getOtherInfo().get(ATSConstants.NUM_TASKS));
+    assertEquals(1, timelineEntity.getOtherInfo().get(ATSConstants.NUM_TASKS));
   }
 
-  @Test(timeout = 5000)
+  @Test
+  @Timeout(value = 5000, unit = TimeUnit.MILLISECONDS)
   public void testConvertDAGRecoveredEvent() {
     long recoverTime = random.nextLong();
 
@@ -1202,37 +1229,38 @@ public class TestHistoryEventTimelineConversion {
         dagPlan.getName(), user, recoverTime, containerLogs);
 
     List<TimelineEntity> entities = HistoryEventTimelineConversion.convertToTimelineEntities(event);
-    Assert.assertEquals(1, entities.size());
+    assertEquals(1, entities.size());
     TimelineEntity timelineEntity = entities.get(0);
 
-    Assert.assertEquals(EntityTypes.TEZ_DAG_ID.name(), timelineEntity.getEntityType());
-    Assert.assertEquals(tezDAGID.toString(), timelineEntity.getEntityId());
+    assertEquals(EntityTypes.TEZ_DAG_ID.name(), timelineEntity.getEntityType());
+    assertEquals(tezDAGID.toString(), timelineEntity.getEntityId());
 
-    Assert.assertEquals(0, timelineEntity.getRelatedEntities().size());
+    assertEquals(0, timelineEntity.getRelatedEntities().size());
 
-    Assert.assertEquals(1, timelineEntity.getEvents().size());
+    assertEquals(1, timelineEntity.getEvents().size());
     TimelineEvent timelineEvent = timelineEntity.getEvents().get(0);
-    Assert.assertEquals(HistoryEventType.DAG_RECOVERED.name(), timelineEvent.getEventType());
-    Assert.assertEquals(recoverTime, timelineEvent.getTimestamp());
+    assertEquals(HistoryEventType.DAG_RECOVERED.name(), timelineEvent.getEventType());
+    assertEquals(recoverTime, timelineEvent.getTimestamp());
 
-    Assert.assertTrue(timelineEvent.getEventInfo().containsKey(ATSConstants.APPLICATION_ATTEMPT_ID));
-    Assert.assertEquals(applicationAttemptId.toString(),
+    assertTrue(timelineEvent.getEventInfo().containsKey(ATSConstants.APPLICATION_ATTEMPT_ID));
+    assertEquals(applicationAttemptId.toString(),
         timelineEvent.getEventInfo().get(ATSConstants.APPLICATION_ATTEMPT_ID));
 
-    Assert.assertEquals(3, timelineEntity.getPrimaryFilters().size());
-    Assert.assertTrue(
+    assertEquals(3, timelineEntity.getPrimaryFilters().size());
+    assertTrue(
         timelineEntity.getPrimaryFilters().get(ATSConstants.APPLICATION_ID).contains(
             applicationId.toString()));
-    Assert.assertTrue(
+    assertTrue(
         timelineEntity.getPrimaryFilters().get(ATSConstants.DAG_NAME).contains("DAGPlanMock"));
-    Assert.assertTrue(
+    assertTrue(
         timelineEntity.getPrimaryFilters().get(ATSConstants.USER).contains(user));
-    Assert.assertEquals(containerLogs,
+    assertEquals(containerLogs,
         timelineEntity.getOtherInfo().get(ATSConstants.IN_PROGRESS_LOGS_URL + "_"
             + applicationAttemptId.getAttemptId()));
   }
 
-  @Test(timeout = 5000)
+  @Test
+  @Timeout(value = 5000, unit = TimeUnit.MILLISECONDS)
   public void testConvertDAGRecoveredEvent2() {
     long recoverTime = random.nextLong();
 
@@ -1241,36 +1269,36 @@ public class TestHistoryEventTimelineConversion {
 
 
     List<TimelineEntity> entities = HistoryEventTimelineConversion.convertToTimelineEntities(event);
-    Assert.assertEquals(1, entities.size());
+    assertEquals(1, entities.size());
     TimelineEntity timelineEntity = entities.get(0);
 
-    Assert.assertEquals(EntityTypes.TEZ_DAG_ID.name(), timelineEntity.getEntityType());
-    Assert.assertEquals(tezDAGID.toString(), timelineEntity.getEntityId());
+    assertEquals(EntityTypes.TEZ_DAG_ID.name(), timelineEntity.getEntityType());
+    assertEquals(tezDAGID.toString(), timelineEntity.getEntityId());
 
-    Assert.assertEquals(0, timelineEntity.getRelatedEntities().size());
+    assertEquals(0, timelineEntity.getRelatedEntities().size());
 
-    Assert.assertEquals(1, timelineEntity.getEvents().size());
+    assertEquals(1, timelineEntity.getEvents().size());
     TimelineEvent timelineEvent = timelineEntity.getEvents().get(0);
-    Assert.assertEquals(HistoryEventType.DAG_RECOVERED.name(), timelineEvent.getEventType());
-    Assert.assertEquals(recoverTime, timelineEvent.getTimestamp());
+    assertEquals(HistoryEventType.DAG_RECOVERED.name(), timelineEvent.getEventType());
+    assertEquals(recoverTime, timelineEvent.getTimestamp());
 
-    Assert.assertTrue(timelineEvent.getEventInfo().containsKey(ATSConstants.APPLICATION_ATTEMPT_ID));
-    Assert.assertEquals(applicationAttemptId.toString(),
+    assertTrue(timelineEvent.getEventInfo().containsKey(ATSConstants.APPLICATION_ATTEMPT_ID));
+    assertEquals(applicationAttemptId.toString(),
         timelineEvent.getEventInfo().get(ATSConstants.APPLICATION_ATTEMPT_ID));
-    Assert.assertEquals(DAGState.ERROR.name(),
+    assertEquals(DAGState.ERROR.name(),
         timelineEvent.getEventInfo().get(ATSConstants.DAG_STATE));
-    Assert.assertEquals("mock reason",
+    assertEquals("mock reason",
         timelineEvent.getEventInfo().get(ATSConstants.RECOVERY_FAILURE_REASON));
 
-    Assert.assertEquals(3, timelineEntity.getPrimaryFilters().size());
-    Assert.assertTrue(
+    assertEquals(3, timelineEntity.getPrimaryFilters().size());
+    assertTrue(
         timelineEntity.getPrimaryFilters().get(ATSConstants.APPLICATION_ID).contains(
             applicationId.toString()));
-    Assert.assertTrue(
+    assertTrue(
         timelineEntity.getPrimaryFilters().get(ATSConstants.DAG_NAME).contains("DAGPlanMock"));
-    Assert.assertTrue(
+    assertTrue(
         timelineEntity.getPrimaryFilters().get(ATSConstants.USER).contains(user));
-    Assert.assertEquals(containerLogs,
+    assertEquals(containerLogs,
         timelineEntity.getOtherInfo().get(ATSConstants.IN_PROGRESS_LOGS_URL + "_"
             + applicationAttemptId.getAttemptId()));
   }

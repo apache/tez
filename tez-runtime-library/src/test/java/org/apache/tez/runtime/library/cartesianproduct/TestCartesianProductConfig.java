@@ -18,10 +18,10 @@
  */
 package org.apache.tez.runtime.library.cartesianproduct;
 
-import static org.junit.Assert.assertArrayEquals;
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertFalse;
-import static org.junit.Assert.assertNull;
+import static org.junit.jupiter.api.Assertions.assertArrayEquals;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertNull;
 
 import java.io.IOException;
 import java.nio.ByteBuffer;
@@ -30,6 +30,7 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Random;
+import java.util.concurrent.TimeUnit;
 
 import org.apache.tez.dag.api.TezConfiguration;
 import org.apache.tez.dag.api.UserPayload;
@@ -37,18 +38,20 @@ import org.apache.tez.runtime.library.cartesianproduct.CartesianProductUserPaylo
 
 import com.google.common.primitives.Ints;
 
-import org.junit.Before;
-import org.junit.Test;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.Timeout;
 
 public class TestCartesianProductConfig {
   private TezConfiguration conf;
 
-  @Before
+  @BeforeEach
   public void setup() {
     conf = new TezConfiguration();
   }
 
-  @Test(timeout = 5000)
+  @Test
+  @Timeout(value = 5000, unit = TimeUnit.MILLISECONDS)
   public void testSerializationPartitioned() throws IOException {
     Map<String, Integer> vertexPartitionMap = new HashMap<>();
     vertexPartitionMap.put("v1", 2);
@@ -67,7 +70,8 @@ public class TestCartesianProductConfig {
     assertConfigEquals(config, parsedConfig);
   }
 
-  @Test(timeout = 5000)
+  @Test
+  @Timeout(value = 5000, unit = TimeUnit.MILLISECONDS)
   public void testSerializationFair() throws Exception {
     List<String> sourceVertices = new ArrayList<>();
     sourceVertices.add("v1");
@@ -114,7 +118,8 @@ public class TestCartesianProductConfig {
     }
   }
 
-  @Test(timeout = 5000)
+  @Test
+  @Timeout(value = 5000, unit = TimeUnit.MILLISECONDS)
   public void testFairCartesianProductConfig() {
     List<String> sourceVertices = new ArrayList<>();
     sourceVertices.add("v0");

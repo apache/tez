@@ -18,14 +18,20 @@
  */
 package org.apache.tez.dag.api;
 
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertNotEquals;
+
+import java.util.concurrent.TimeUnit;
+
 import com.google.common.collect.Sets;
 
-import org.junit.Assert;
-import org.junit.Test;
+import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.Timeout;
 
 public class TestTaskLocationHint {
 
-  @Test (timeout = 5000)
+  @Test
+  @Timeout(value = 5000, unit = TimeUnit.MILLISECONDS)
   public void testEquality() {
     TaskLocationHint t1 = TaskLocationHint.createTaskLocationHint("v1", 0);
     TaskLocationHint t2 = TaskLocationHint.createTaskLocationHint("v1", 0);
@@ -42,21 +48,21 @@ public class TestTaskLocationHint {
     TaskLocationHint t10 = TaskLocationHint.createTaskLocationHint(
         Sets.newHashSet(new String[] {"n1"}), Sets.newHashSet(new String[] {"r1", "r2"}));
 
-    Assert.assertEquals(t1, t2);
-    Assert.assertEquals(t5, t6);
-    Assert.assertEquals(t7, t8);
-    Assert.assertEquals(t2, t1);
-    Assert.assertEquals(t6, t5);
-    Assert.assertEquals(t8, t7);
-    Assert.assertNotEquals(t1, t3);
-    Assert.assertNotEquals(t3, t1);
-    Assert.assertNotEquals(t1, t4);
-    Assert.assertNotEquals(t4, t1);
-    Assert.assertNotEquals(t1, t5);
-    Assert.assertNotEquals(t5, t1);
-    Assert.assertNotEquals(t8, t9);
-    Assert.assertNotEquals(t9, t8);
-    Assert.assertNotEquals(t9, t10);
-    Assert.assertNotEquals(t10, t9);
+    assertEquals(t1, t2);
+    assertEquals(t5, t6);
+    assertEquals(t7, t8);
+    assertEquals(t2, t1);
+    assertEquals(t6, t5);
+    assertEquals(t8, t7);
+    assertNotEquals(t1, t3);
+    assertNotEquals(t3, t1);
+    assertNotEquals(t1, t4);
+    assertNotEquals(t4, t1);
+    assertNotEquals(t1, t5);
+    assertNotEquals(t5, t1);
+    assertNotEquals(t8, t9);
+    assertNotEquals(t9, t8);
+    assertNotEquals(t9, t10);
+    assertNotEquals(t10, t9);
   }
 }

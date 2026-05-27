@@ -18,9 +18,10 @@
  */
 package org.apache.tez.mapreduce.input;
 
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertTrue;
-import static org.junit.Assert.fail;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertInstanceOf;
+import static org.junit.jupiter.api.Assertions.assertTrue;
+import static org.junit.jupiter.api.Assertions.fail;
 import static org.mockito.Mockito.doReturn;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.times;
@@ -35,6 +36,7 @@ import java.util.LinkedList;
 import java.util.List;
 import java.util.Random;
 import java.util.UUID;
+import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicLong;
 
 import org.apache.hadoop.conf.Configuration;
@@ -62,9 +64,10 @@ import org.apache.tez.runtime.api.InputContext;
 import org.apache.tez.runtime.api.events.InputDataInformationEvent;
 import org.apache.tez.runtime.library.api.KeyValueReader;
 
-import org.junit.AfterClass;
-import org.junit.Before;
-import org.junit.Test;
+import org.junit.jupiter.api.AfterAll;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.Timeout;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -88,14 +91,15 @@ public class TestMultiMRInput {
     }
   }
 
-  @Before
+  @BeforeEach
   public void setup() throws IOException {
     LOG.info("Setup. Using test dir: " + TEST_ROOT_DIR);
     localFs.delete(TEST_ROOT_DIR, true);
     localFs.mkdirs(TEST_ROOT_DIR);
   }
 
-  @Test(timeout = 5000)
+  @Test
+  @Timeout(value = 5000, unit = TimeUnit.MILLISECONDS)
   public void test0PhysicalInputs() throws Exception {
 
     Path workDir = new Path(TEST_ROOT_DIR, "testSingleSplit");
@@ -118,11 +122,12 @@ public class TestMultiMRInput {
       mMrInput.handleEvents(events);
       fail("HandleEvents should cause an input with 0 physical inputs to fail");
     } catch (Exception e) {
-      assertTrue(e instanceof IllegalStateException);
+      assertInstanceOf(IllegalStateException.class, e);
     }
   }
 
-  @Test(timeout = 5000)
+  @Test
+  @Timeout(value = 5000, unit = TimeUnit.MILLISECONDS)
   public void testConfigMerge() throws Exception {
     JobConf jobConf = new JobConf(false);
     jobConf.set("payload-key", "payload-value");
@@ -141,7 +146,8 @@ public class TestMultiMRInput {
     assertEquals("payload-value", mergedConfig.get("payload-key"));
   }
 
-  @Test(timeout = 5000)
+  @Test
+  @Timeout(value = 5000, unit = TimeUnit.MILLISECONDS)
   public void testSingleSplit() throws Exception {
 
     Path workDir = new Path(TEST_ROOT_DIR, "testSingleSplit");
@@ -210,7 +216,8 @@ public class TestMultiMRInput {
     assertReaders(input, data, 1, inputLength.get());
   }
 
-  @Test(timeout = 5000)
+  @Test
+  @Timeout(value = 5000, unit = TimeUnit.MILLISECONDS)
   public void testMultipleSplits() throws Exception {
 
     Path workDir = new Path(TEST_ROOT_DIR, "testMultipleSplits");
@@ -278,7 +285,8 @@ public class TestMultiMRInput {
     assertEquals(expectedReaderCounts, readerCount);
   }
 
-  @Test(timeout = 5000)
+  @Test
+  @Timeout(value = 5000, unit = TimeUnit.MILLISECONDS)
   public void testExtraEvents() throws Exception {
     Path workDir = new Path(TEST_ROOT_DIR, "testExtraEvents");
     JobConf jobConf = new JobConf(defaultConf);
@@ -354,7 +362,7 @@ public class TestMultiMRInput {
     return inputContext;
   }
 
-  @AfterClass
+  @AfterAll
   public static void cleanUp() throws IOException {
     localFs.delete(TEST_ROOT_DIR, true);
   }

@@ -18,8 +18,8 @@
  */
 package org.apache.tez.test;
 
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertTrue;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import java.io.IOException;
 import java.util.Set;
@@ -56,11 +56,9 @@ import org.apache.tez.runtime.library.partitioner.HashPartitioner;
 
 import com.google.common.collect.Sets;
 
-import org.junit.After;
-import org.junit.AfterClass;
-import org.junit.Before;
-import org.junit.BeforeClass;
-import org.junit.Test;
+import org.junit.jupiter.api.AfterAll;
+import org.junit.jupiter.api.BeforeAll;
+import org.junit.jupiter.api.Test;
 
 public class TestPipelinedShuffle {
 
@@ -75,7 +73,7 @@ public class TestPipelinedShuffle {
 
   private static final int KEYS_PER_MAPPER = 5000;
 
-  @BeforeClass
+  @BeforeAll
   public static void setupDFSCluster() throws Exception {
     conf = new Configuration();
     conf.setBoolean(DFSConfigKeys.DFS_NAMENODE_EDITS_NOEDITLOGCHANNELFLUSH, false);
@@ -88,7 +86,7 @@ public class TestPipelinedShuffle {
     conf.setBoolean(TezRuntimeConfiguration.TEZ_RUNTIME_OPTIMIZE_LOCAL_FETCH, false);
   }
 
-  @AfterClass
+  @AfterAll
   public static void shutdownDFSCluster() {
     if (miniDFSCluster != null) {
       //shutdown
@@ -97,8 +95,8 @@ public class TestPipelinedShuffle {
   }
 
   //TODO: Add support for async http clients
-  @Before
-  public void setupTezCluster() throws Exception {
+  @BeforeAll
+  public static void setupTezCluster() {
     //With 1 MB sort buffer and with good amount of dataset, it would spill records
     conf.setInt(TezRuntimeConfiguration.TEZ_RUNTIME_IO_SORT_MB, 1);
 
@@ -122,8 +120,8 @@ public class TestPipelinedShuffle {
     miniTezCluster.start();
   }
 
-  @After
-  public void shutdownTezCluster() throws IOException {
+  @AfterAll
+  public static void shutdownTezCluster() {
     if (miniTezCluster != null) {
       miniTezCluster.stop();
     }

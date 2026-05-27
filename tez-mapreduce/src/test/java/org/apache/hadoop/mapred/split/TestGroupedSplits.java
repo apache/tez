@@ -18,9 +18,13 @@
  */
 package org.apache.hadoop.mapred.split;
 
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertFalse;
-import static org.junit.Assert.assertTrue;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertInstanceOf;
+import static org.junit.jupiter.api.Assertions.assertNotNull;
+import static org.junit.jupiter.api.Assertions.assertNull;
+import static org.junit.jupiter.api.Assertions.assertTrue;
+import static org.junit.jupiter.api.Assertions.fail;
 import static org.mockito.Mockito.*;
 
 import java.io.ByteArrayOutputStream;
@@ -38,6 +42,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Random;
 import java.util.Set;
+import java.util.concurrent.TimeUnit;
 
 import org.apache.commons.lang3.mutable.MutableInt;
 import org.apache.hadoop.conf.Configuration;
@@ -60,9 +65,9 @@ import org.apache.tez.mapreduce.grouper.TezSplitGrouper;
 
 import com.google.common.collect.Sets;
 
-import org.junit.Assert;
-import org.junit.BeforeClass;
-import org.junit.Test;
+import org.junit.jupiter.api.BeforeAll;
+import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.Timeout;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -90,7 +95,8 @@ public class TestGroupedSplits {
   // A reporter that does nothing
   private static final Reporter voidReporter = Reporter.NULL;
 
-  @Test(timeout=10000)
+  @Test
+  @Timeout(value = 10000, unit = TimeUnit.MILLISECONDS)
   public void testFormat() throws Exception {
     JobConf job = new JobConf(defaultConf);
 
@@ -125,10 +131,9 @@ public class TestGroupedSplits {
 
       // we should have a single split as the length is comfortably smaller than
       // the block size
-      assertEquals("We got more than one splits!", 1, splits.length);
+      assertEquals(1, splits.length, "We got more than one splits!");
       InputSplit split = splits[0];
-      assertEquals("It should be TezGroupedSplit",
-        TezGroupedSplit.class, split.getClass());
+      assertEquals(TezGroupedSplit.class, split.getClass(), "It should be TezGroupedSplit");
 
       // check the split
       BitSet bits = new BitSet(length);
@@ -144,7 +149,7 @@ public class TestGroupedSplits {
             LOG.warn("conflict with " + v +
                      " at position "+reader.getPos());
           }
-          assertFalse("Key in multiple partitions.", bits.get(v));
+          assertFalse(bits.get(v), "Key in multiple partitions.");
           bits.set(v);
           count++;
         }
@@ -152,7 +157,7 @@ public class TestGroupedSplits {
       } finally {
         reader.close();
       }
-      assertEquals("Some keys in no partition.", length, bits.cardinality());
+      assertEquals(length, bits.cardinality(), "Some keys in no partition.");
     }
   }
 
@@ -232,7 +237,7 @@ public class TestGroupedSplits {
     return result;
   }
 
-  @BeforeClass
+  @BeforeAll
   public static void beforeClass() {
     MockDNSToSwitchMapping.initializeMockRackResolver();
   }
@@ -240,7 +245,8 @@ public class TestGroupedSplits {
   /**
    * Test using the gzip codec for reading
    */
-  @Test(timeout=10000)
+  @Test
+  @Timeout(value = 10000, unit = TimeUnit.MILLISECONDS)
   public void testGzip() throws IOException {
     JobConf job = new JobConf(defaultConf);
     CompressionCodec gzip = new GzipCodec();
@@ -267,14 +273,14 @@ public class TestGroupedSplits {
       if (j==1) {
         // j==1 covers single split corner case
         // and does not do grouping
-        assertEquals("compressed splits == " + j, j, splits.length);
+        assertEquals(j, splits.length, "compressed splits == " + j);
       }
       List<Text> results = new ArrayList<Text>();
       for (int i=0; i<splits.length; ++i) {
         List<Text> read = readSplit(format, splits[i], job);
         results.addAll(read);
       }
-      assertEquals("splits length", 11, results.size());
+      assertEquals(11, results.size(), "splits length");
 
       final String[] firstList =
         {"the quick", "brown", "fox jumped", "over", " the lazy", " dog"};
@@ -293,20 +299,21 @@ public class TestGroupedSplits {
         start = testResults(results, thirdList, start);
         break;
       default:
-        Assert.fail("unexpected first token - " + first);
+        fail("unexpected first token - " + first);
       }
     }
   }
 
   private static int testResults(List<Text> results, String[] first, int start) {
     for (int i = 0; i < first.length; i++) {
-      assertEquals("splits["+i+"]", first[i], results.get(start+i).toString());
+      assertEquals(first[i], results.get(start+i).toString(), "splits["+i+"]");
     }
     return first.length+start;
   }
 
   @SuppressWarnings({ "rawtypes", "unchecked" })
-  @Test(timeout=10000)
+  @Test
+  @Timeout(value = 10000, unit = TimeUnit.MILLISECONDS)
   public void testGroupedSplitSize() throws IOException {
     JobConf job = new JobConf(defaultConf);
     InputFormat mockWrappedFormat = mock(InputFormat.class);
@@ -379,7 +386,8 @@ public class TestGroupedSplits {
     }
   }
 
-  @Test (timeout=5000)
+  @Test
+  @Timeout(value = 5000, unit = TimeUnit.MILLISECONDS)
   public void testMaintainSplitOrdering() throws IOException {
     int numLocations = 3;
     String[] locations = new String[numLocations];
@@ -418,12 +426,13 @@ public class TestGroupedSplits {
       }
       // last one is rack split
       if (i==3) {
-        assertTrue(split.getRack() != null);
+        assertNotNull(split.getRack());
       }
     }
   }
 
-  @Test (timeout=5000)
+  @Test
+  @Timeout(value = 5000, unit = TimeUnit.MILLISECONDS)
   public void testRepeatableSplits() throws IOException {
     int numLocations = 3;
     String[] locations = new String[numLocations];
@@ -480,14 +489,15 @@ public class TestGroupedSplits {
       }
       if (i==3) {
         // check for rack split creation. Ensures repeatability holds for rack splits also
-        assertTrue(gSplit1.getRack() != null);
-        assertTrue(gSplit2.getRack() != null);
+        assertNotNull(gSplit1.getRack());
+        assertNotNull(gSplit2.getRack());
       }
     }
   }
 
 
-  @Test (timeout = 30000)
+  @Test
+  @Timeout(value = 30000, unit = TimeUnit.MILLISECONDS)
   public void testS3Scenario() throws IOException {
     //There can be multiple nodes in cluster, but locations would be "localhost" in s3
     String[] locations = {"localhost"};
@@ -538,7 +548,8 @@ public class TestGroupedSplits {
   }
 
   @SuppressWarnings({ "rawtypes", "unchecked" })
-  @Test(timeout=10000)
+  @Test
+  @Timeout(value = 10000, unit = TimeUnit.MILLISECONDS)
   public void testGroupedSplitWithDuplicates() throws IOException {
     JobConf job = new JobConf(defaultConf);
     InputFormat mockWrappedFormat = mock(InputFormat.class);
@@ -570,7 +581,8 @@ public class TestGroupedSplits {
   }
 
   @SuppressWarnings({ "rawtypes", "unchecked" })
-  @Test(timeout=10000)
+  @Test
+  @Timeout(value = 10000, unit = TimeUnit.MILLISECONDS)
   public void testGroupedSplitWithBadLocations() throws IOException {
     JobConf job = new JobConf(defaultConf);
     InputFormat mockWrappedFormat = mock(InputFormat.class);
@@ -609,7 +621,8 @@ public class TestGroupedSplits {
 
   @SuppressWarnings({ "rawtypes", "unchecked" })
   // No grouping
-  @Test(timeout=10000)
+  @Test
+  @Timeout(value = 10000, unit = TimeUnit.MILLISECONDS)
   public void testGroupedSplitWithBadLocations2() throws IOException {
     JobConf job = new JobConf(defaultConf);
     InputFormat mockWrappedFormat = mock(InputFormat.class);
@@ -660,7 +673,7 @@ public class TestGroupedSplits {
         assertEquals(1, split.getLocations().length);
         assertTrue(split.getLocations()[0].equals(validLocation) || split.getLocations()[0].equals(validLocation2));
       } else {
-        Assert.assertNull(split.getLocations());
+        assertNull(split.getLocations());
       }
       ByteArrayOutputStream bOut = new ByteArrayOutputStream();
       split.write(new DataOutputStream(bOut));
@@ -668,7 +681,8 @@ public class TestGroupedSplits {
   }
 
   @SuppressWarnings({ "rawtypes", "unchecked" })
-  @Test(timeout=10000)
+  @Test
+  @Timeout(value = 10000, unit = TimeUnit.MILLISECONDS)
   public void testGroupedSplitWithEstimator() throws IOException {
     JobConf job = new JobConf(defaultConf);
 
@@ -737,7 +751,8 @@ public class TestGroupedSplits {
 
 
   // Splits get grouped
-  @Test (timeout = 10000)
+  @Test
+  @Timeout(value = 10000, unit = TimeUnit.MILLISECONDS)
   public void testGroupingWithCustomLocations1() throws IOException {
 
     int numSplits = 3;
@@ -768,7 +783,7 @@ public class TestGroupedSplits {
 
     // Sanity. 1 group, with 3 splits.
     assertEquals(1, groupedSplits.length);
-    assertTrue(groupedSplits[0] instanceof  TezGroupedSplit);
+    assertInstanceOf(TezGroupedSplit.class, groupedSplits[0]);
     TezGroupedSplit groupedSplit = (TezGroupedSplit)groupedSplits[0];
     assertEquals(3, groupedSplit.getGroupedSplits().size());
 
@@ -778,7 +793,8 @@ public class TestGroupedSplits {
   }
 
   // Original splits returned.
-  @Test (timeout = 10000)
+  @Test
+  @Timeout(value = 10000, unit = TimeUnit.MILLISECONDS)
   public void testGroupingWithCustomLocations2() throws IOException {
 
     int numSplits = 3;
@@ -810,7 +826,7 @@ public class TestGroupedSplits {
     // Sanity. 3 group, with 1 split each
     assertEquals(3, groupedSplits.length);
     for (int i = 0 ; i < 3 ; i++) {
-      assertTrue(groupedSplits[i] instanceof  TezGroupedSplit);
+      assertInstanceOf(TezGroupedSplit.class, groupedSplits[i]);
       TezGroupedSplit groupedSplit = (TezGroupedSplit)groupedSplits[i];
       assertEquals(1, groupedSplit.getGroupedSplits().size());
 
@@ -820,7 +836,8 @@ public class TestGroupedSplits {
     }
   }
 
-  @Test(timeout = 5000)
+  @Test
+  @Timeout(value = 5000, unit = TimeUnit.MILLISECONDS)
   public void testForceNodeLocalSplits() throws IOException {
     int numLocations = 7;
     long splitLen = 100L;

@@ -19,25 +19,28 @@
 package org.apache.tez.runtime.library.cartesianproduct;
 
 import static org.apache.tez.runtime.library.cartesianproduct.CartesianProductUserPayload.*;
-import static org.junit.Assert.assertArrayEquals;
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertNotNull;
-import static org.junit.Assert.assertNull;
+import static org.junit.jupiter.api.Assertions.assertArrayEquals;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertNotNull;
+import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
+
+import java.util.concurrent.TimeUnit;
 
 import org.apache.tez.dag.api.EdgeManagerPluginContext;
 import org.apache.tez.dag.api.EdgeManagerPluginOnDemand.CompositeEventRouteMetadata;
 import org.apache.tez.dag.api.EdgeManagerPluginOnDemand.EventRouteMetadata;
 
-import org.junit.Before;
-import org.junit.Test;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.Timeout;
 
 public class TestFairCartesianProductEdgeManager {
   private EdgeManagerPluginContext mockContext;
   private FairCartesianProductEdgeManager edgeManager;
 
-  @Before
+  @BeforeEach
   public void setup() {
     mockContext = mock(EdgeManagerPluginContext.class);
     edgeManager = new FairCartesianProductEdgeManager(mockContext);
@@ -127,7 +130,8 @@ public class TestFairCartesianProductEdgeManager {
    * Vertex v0 has 2 tasks, 2 chunks
    * Vertex v1 has 30 tasks, 3 chunks
    */
-  @Test(timeout = 5000)
+  @Test
+  @Timeout(value = 5000, unit = TimeUnit.MILLISECONDS)
   public void testTwoWayAllVertex() throws Exception {
     CartesianProductConfigProto.Builder builder = CartesianProductConfigProto.newBuilder();
     builder.setIsPartitioned(false).addSources("v0").addSources("v1")
@@ -150,7 +154,8 @@ public class TestFairCartesianProductEdgeManager {
    * Vertex v1 has 30 tasks, 3 chunks
    * Vertex v2 has 1 tasks, 4 chunks
    */
-  @Test(timeout = 5000)
+  @Test
+  @Timeout(value = 5000, unit = TimeUnit.MILLISECONDS)
   public void testThreeWayAllVertex() throws Exception {
     CartesianProductConfigProto.Builder builder = CartesianProductConfigProto.newBuilder();
     builder.setIsPartitioned(false).addSources("v0").addSources("v1").addSources("v2")
@@ -181,7 +186,8 @@ public class TestFairCartesianProductEdgeManager {
    * Vertex v2 has 20 tasks
    * Group g0 has 3 chunks
    */
-  @Test(timeout = 5000)
+  @Test
+  @Timeout(value = 5000, unit = TimeUnit.MILLISECONDS)
   public void testTwoWayVertexWithVertexGroup() throws Exception {
     CartesianProductConfigProto.Builder builder = CartesianProductConfigProto.newBuilder();
     builder.setIsPartitioned(false).addSources("v0").addSources("g0")
@@ -208,7 +214,8 @@ public class TestFairCartesianProductEdgeManager {
    * Group g0 has 2 chunks
    * Group g1 has 3 chunks
    */
-  @Test(timeout = 5000)
+  @Test
+  @Timeout(value = 5000, unit = TimeUnit.MILLISECONDS)
   public void testTwoWayAllVertexGroup() throws Exception {
     CartesianProductConfigProto.Builder builder = CartesianProductConfigProto.newBuilder();
     builder.setIsPartitioned(false).addSources("g0").addSources("g1")
@@ -227,7 +234,8 @@ public class TestFairCartesianProductEdgeManager {
       dataForInputError(1, 15, 0), dataForDest(1, 25), dataForSrc(1, 10), dataForSrc(1, 3));
   }
 
-  @Test(timeout = 5000)
+  @Test
+  @Timeout(value = 5000, unit = TimeUnit.MILLISECONDS)
   public void testNumPartition() throws Exception {
     when(mockContext.getSourceVertexName()).thenReturn("source");
     when(mockContext.getSourceVertexNumTasks()).thenReturn(10);
