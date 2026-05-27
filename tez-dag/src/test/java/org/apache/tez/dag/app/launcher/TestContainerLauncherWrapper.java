@@ -18,16 +18,20 @@
  */
 package org.apache.tez.dag.app.launcher;
 
+import java.util.concurrent.TimeUnit;
+
 import org.apache.tez.dag.app.PluginWrapperTestHelpers;
 import org.apache.tez.serviceplugins.api.ContainerLauncher;
 
 import com.google.common.collect.Sets;
 
-import org.junit.Test;
+import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.Timeout;
 
 public class TestContainerLauncherWrapper {
 
-  @Test(timeout = 5000)
+  @Test
+  @Timeout(value = 5000, unit = TimeUnit.MILLISECONDS)
   public void testDelegation() throws Exception {
     PluginWrapperTestHelpers.testDelegation(ContainerLauncherWrapper.class, ContainerLauncher.class,
         Sets.newHashSet("getContainerLauncher", "dagComplete", "vertexComplete", "taskAttemptFailed"));

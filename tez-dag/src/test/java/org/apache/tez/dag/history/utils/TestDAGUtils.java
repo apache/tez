@@ -18,12 +18,17 @@
  */
 package org.apache.tez.dag.history.utils;
 
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertTrue;
+
 import java.io.IOException;
 import java.util.Collection;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Map;
 import java.util.Set;
+import java.util.concurrent.TimeUnit;
 
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.yarn.api.records.ApplicationId;
@@ -49,8 +54,8 @@ import org.apache.tez.dag.records.TezVertexID;
 import org.apache.tez.runtime.api.OutputCommitter;
 
 import org.codehaus.jettison.json.JSONException;
-import org.junit.Assert;
-import org.junit.Test;
+import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.Timeout;
 
 public class TestDAGUtils {
 
@@ -98,7 +103,8 @@ public class TestDAGUtils {
     return dag.createDag(conf, null, null, null, true);
   }
 
-  @Test(timeout = 5000)
+  @Test
+  @Timeout(value = 5000, unit = TimeUnit.MILLISECONDS)
   @SuppressWarnings("unchecked")
   public void testConvertDAGPlanToATSMap() throws IOException, JSONException {
     DAGPlan dagPlan = createDAG("testConvertDAGPlanToATSMap");
@@ -113,26 +119,26 @@ public class TestDAGUtils {
     idNameMap.put("vertex3", vId3);
 
     Map<String, Object> atsMap = DAGUtils.convertDAGPlanToATSMap(dagPlan);
-    Assert.assertTrue(atsMap.containsKey(DAGUtils.DAG_NAME_KEY));
-    Assert.assertEquals("DAG-testConvertDAGPlanToATSMap",
+    assertTrue(atsMap.containsKey(DAGUtils.DAG_NAME_KEY));
+    assertEquals("DAG-testConvertDAGPlanToATSMap",
         atsMap.get(DAGUtils.DAG_NAME_KEY));
-    Assert.assertTrue(atsMap.containsKey(DAGUtils.DAG_INFO_KEY));
-    Assert.assertTrue(atsMap.containsKey(DAGUtils.DAG_CONTEXT_KEY));
+    assertTrue(atsMap.containsKey(DAGUtils.DAG_INFO_KEY));
+    assertTrue(atsMap.containsKey(DAGUtils.DAG_CONTEXT_KEY));
     Map<String, String> contextMap = (Map<String, String>)atsMap.get(DAGUtils.DAG_CONTEXT_KEY);
-    Assert.assertEquals("context1", contextMap.get(ATSConstants.CONTEXT));
-    Assert.assertEquals("callerId1", contextMap.get(ATSConstants.CALLER_ID));
-    Assert.assertEquals("callerType1", contextMap.get(ATSConstants.CALLER_TYPE));
-    Assert.assertEquals("desc1", contextMap.get(ATSConstants.DESCRIPTION));
+    assertEquals("context1", contextMap.get(ATSConstants.CONTEXT));
+    assertEquals("callerId1", contextMap.get(ATSConstants.CALLER_ID));
+    assertEquals("callerType1", contextMap.get(ATSConstants.CALLER_TYPE));
+    assertEquals("desc1", contextMap.get(ATSConstants.DESCRIPTION));
 
-    Assert.assertEquals("dagInfo", atsMap.get(DAGUtils.DAG_INFO_KEY));
-    Assert.assertEquals(dagPlan.getName(), atsMap.get(DAGUtils.DAG_NAME_KEY));
-    Assert.assertTrue(atsMap.containsKey("version"));
-    Assert.assertEquals(2, atsMap.get("version"));
-    Assert.assertTrue(atsMap.containsKey(DAGUtils.VERTICES_KEY));
-    Assert.assertTrue(atsMap.containsKey(DAGUtils.EDGES_KEY));
-    Assert.assertTrue(atsMap.containsKey(DAGUtils.VERTEX_GROUPS_KEY));
+    assertEquals("dagInfo", atsMap.get(DAGUtils.DAG_INFO_KEY));
+    assertEquals(dagPlan.getName(), atsMap.get(DAGUtils.DAG_NAME_KEY));
+    assertTrue(atsMap.containsKey("version"));
+    assertEquals(2, atsMap.get("version"));
+    assertTrue(atsMap.containsKey(DAGUtils.VERTICES_KEY));
+    assertTrue(atsMap.containsKey(DAGUtils.EDGES_KEY));
+    assertTrue(atsMap.containsKey(DAGUtils.VERTEX_GROUPS_KEY));
 
-    Assert.assertEquals(3, ((Collection<?>) atsMap.get(DAGUtils.VERTICES_KEY)).size());
+    assertEquals(3, ((Collection<?>) atsMap.get(DAGUtils.VERTICES_KEY)).size());
 
     Set<String> inEdgeIds = new HashSet<String>();
     Set<String> outEdgeIds = new HashSet<String>();
@@ -142,10 +148,10 @@ public class TestDAGUtils {
 
     for (Object o : ((Collection<?>) atsMap.get(DAGUtils.VERTICES_KEY))) {
       Map<String, Object> v = (Map<String, Object>) o;
-      Assert.assertTrue(v.containsKey(DAGUtils.VERTEX_NAME_KEY));
+      assertTrue(v.containsKey(DAGUtils.VERTEX_NAME_KEY));
       String vName = (String)v.get(DAGUtils.VERTEX_NAME_KEY);
-      Assert.assertTrue(v.containsKey(DAGUtils.PROCESSOR_CLASS_KEY));
-      Assert.assertTrue(v.containsKey(DAGUtils.USER_PAYLOAD_AS_TEXT));
+      assertTrue(v.containsKey(DAGUtils.PROCESSOR_CLASS_KEY));
+      assertTrue(v.containsKey(DAGUtils.USER_PAYLOAD_AS_TEXT));
 
       if (v.containsKey(DAGUtils.IN_EDGE_IDS_KEY)) {
         inEdgeIds.addAll(((Collection<String>) v.get(DAGUtils.IN_EDGE_IDS_KEY)));
@@ -154,18 +160,18 @@ public class TestDAGUtils {
         outEdgeIds.addAll(((Collection<String>) v.get(DAGUtils.OUT_EDGE_IDS_KEY)));
       }
 
-      Assert.assertTrue(idNameMap.containsKey(vName));
+      assertTrue(idNameMap.containsKey(vName));
       String procPayload = vName + " Processor HistoryText";
-      Assert.assertEquals(procPayload, v.get(DAGUtils.USER_PAYLOAD_AS_TEXT));
+      assertEquals(procPayload, v.get(DAGUtils.USER_PAYLOAD_AS_TEXT));
 
       if (v.containsKey(DAGUtils.ADDITIONAL_INPUTS_KEY)) {
         additionalInputCount += ((Collection<?>) v.get(DAGUtils.ADDITIONAL_INPUTS_KEY)).size();
         for (Object input : ((Collection<?>) v.get(DAGUtils.ADDITIONAL_INPUTS_KEY))) {
           Map<String, Object> inputMap = (Map<String, Object>) input;
-          Assert.assertTrue(inputMap.containsKey(DAGUtils.NAME_KEY));
-          Assert.assertTrue(inputMap.containsKey(DAGUtils.CLASS_KEY));
-          Assert.assertFalse(inputMap.containsKey(DAGUtils.INITIALIZER_KEY));
-          Assert.assertEquals("input HistoryText", inputMap.get(DAGUtils.USER_PAYLOAD_AS_TEXT));
+          assertTrue(inputMap.containsKey(DAGUtils.NAME_KEY));
+          assertTrue(inputMap.containsKey(DAGUtils.CLASS_KEY));
+          assertFalse(inputMap.containsKey(DAGUtils.INITIALIZER_KEY));
+          assertEquals("input HistoryText", inputMap.get(DAGUtils.USER_PAYLOAD_AS_TEXT));
         }
       }
 
@@ -173,46 +179,46 @@ public class TestDAGUtils {
         additionalOutputCount += ((Collection<?>) v.get(DAGUtils.ADDITIONAL_OUTPUTS_KEY)).size();
         for (Object output : ((Collection<?>) v.get(DAGUtils.ADDITIONAL_OUTPUTS_KEY))) {
           Map<String, Object> outputMap = (Map<String, Object>) output;
-          Assert.assertTrue(outputMap.containsKey(DAGUtils.NAME_KEY));
-          Assert.assertTrue(outputMap.containsKey(DAGUtils.CLASS_KEY));
-          Assert.assertTrue(outputMap.containsKey(DAGUtils.INITIALIZER_KEY));
-          Assert.assertEquals("uvOut HistoryText", outputMap.get(DAGUtils.USER_PAYLOAD_AS_TEXT));
+          assertTrue(outputMap.containsKey(DAGUtils.NAME_KEY));
+          assertTrue(outputMap.containsKey(DAGUtils.CLASS_KEY));
+          assertTrue(outputMap.containsKey(DAGUtils.INITIALIZER_KEY));
+          assertEquals("uvOut HistoryText", outputMap.get(DAGUtils.USER_PAYLOAD_AS_TEXT));
         }
       }
     }
 
     // 1 input
-    Assert.assertEquals(1, additionalInputCount);
+    assertEquals(1, additionalInputCount);
     // 3 outputs due to vertex group
-    Assert.assertEquals(3, additionalOutputCount);
+    assertEquals(3, additionalOutputCount);
 
     // 1 edge translates to 2 due to vertex group
-    Assert.assertEquals(2, inEdgeIds.size());
-    Assert.assertEquals(2, outEdgeIds.size());
+    assertEquals(2, inEdgeIds.size());
+    assertEquals(2, outEdgeIds.size());
 
     for (Object o : ((Collection<?>) atsMap.get(DAGUtils.EDGES_KEY))) {
       Map<String, Object> e = (Map<String, Object>) o;
 
-      Assert.assertTrue(inEdgeIds.contains(e.get(DAGUtils.EDGE_ID_KEY)));
-      Assert.assertTrue(outEdgeIds.contains(e.get(DAGUtils.EDGE_ID_KEY)));
-      Assert.assertTrue(e.containsKey(DAGUtils.INPUT_VERTEX_NAME_KEY));
-      Assert.assertTrue(e.containsKey(DAGUtils.OUTPUT_VERTEX_NAME_KEY));
-      Assert.assertEquals(DataMovementType.SCATTER_GATHER.name(),
+      assertTrue(inEdgeIds.contains(e.get(DAGUtils.EDGE_ID_KEY)));
+      assertTrue(outEdgeIds.contains(e.get(DAGUtils.EDGE_ID_KEY)));
+      assertTrue(e.containsKey(DAGUtils.INPUT_VERTEX_NAME_KEY));
+      assertTrue(e.containsKey(DAGUtils.OUTPUT_VERTEX_NAME_KEY));
+      assertEquals(DataMovementType.SCATTER_GATHER.name(),
           e.get(DAGUtils.DATA_MOVEMENT_TYPE_KEY));
-      Assert.assertEquals(DataSourceType.PERSISTED.name(), e.get(DAGUtils.DATA_SOURCE_TYPE_KEY));
-      Assert.assertEquals(SchedulingType.SEQUENTIAL.name(), e.get(DAGUtils.SCHEDULING_TYPE_KEY));
-      Assert.assertEquals("dummy output class", e.get(DAGUtils.EDGE_SOURCE_CLASS_KEY));
-      Assert.assertEquals("dummy input class", e.get(DAGUtils.EDGE_DESTINATION_CLASS_KEY));
-      Assert.assertEquals("Dummy History Text", e.get(DAGUtils.OUTPUT_USER_PAYLOAD_AS_TEXT));
-      Assert.assertEquals("Dummy History Text", e.get(DAGUtils.INPUT_USER_PAYLOAD_AS_TEXT));
+      assertEquals(DataSourceType.PERSISTED.name(), e.get(DAGUtils.DATA_SOURCE_TYPE_KEY));
+      assertEquals(SchedulingType.SEQUENTIAL.name(), e.get(DAGUtils.SCHEDULING_TYPE_KEY));
+      assertEquals("dummy output class", e.get(DAGUtils.EDGE_SOURCE_CLASS_KEY));
+      assertEquals("dummy input class", e.get(DAGUtils.EDGE_DESTINATION_CLASS_KEY));
+      assertEquals("Dummy History Text", e.get(DAGUtils.OUTPUT_USER_PAYLOAD_AS_TEXT));
+      assertEquals("Dummy History Text", e.get(DAGUtils.INPUT_USER_PAYLOAD_AS_TEXT));
     }
 
     for (Object o : ((Collection<?>) atsMap.get(DAGUtils.VERTEX_GROUPS_KEY))) {
       Map<String, Object> e = (Map<String, Object>) o;
-      Assert.assertEquals("uv12", e.get(DAGUtils.VERTEX_GROUP_NAME_KEY));
-      Assert.assertTrue(e.containsKey(DAGUtils.VERTEX_GROUP_MEMBERS_KEY));
-      Assert.assertTrue(e.containsKey(DAGUtils.VERTEX_GROUP_OUTPUTS_KEY));
-      Assert.assertTrue(e.containsKey(DAGUtils.VERTEX_GROUP_EDGE_MERGED_INPUTS_KEY));
+      assertEquals("uv12", e.get(DAGUtils.VERTEX_GROUP_NAME_KEY));
+      assertTrue(e.containsKey(DAGUtils.VERTEX_GROUP_MEMBERS_KEY));
+      assertTrue(e.containsKey(DAGUtils.VERTEX_GROUP_OUTPUTS_KEY));
+      assertTrue(e.containsKey(DAGUtils.VERTEX_GROUP_EDGE_MERGED_INPUTS_KEY));
     }
   }
 

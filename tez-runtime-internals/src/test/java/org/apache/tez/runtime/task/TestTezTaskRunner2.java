@@ -18,10 +18,12 @@
  */
 package org.apache.tez.runtime.task;
 
+import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.mockito.Mockito.*;
 
 import java.util.ArrayList;
 import java.util.List;
+import java.util.concurrent.TimeUnit;
 
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.security.UserGroupInformation;
@@ -38,13 +40,14 @@ import org.apache.tez.runtime.api.impl.InputSpec;
 import org.apache.tez.runtime.api.impl.OutputSpec;
 import org.apache.tez.runtime.api.impl.TaskSpec;
 
-import org.junit.Assert;
-import org.junit.Test;
+import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.Timeout;
 
 
 public class TestTezTaskRunner2 {
 
-  @Test (timeout = 5000)
+  @Test
+  @Timeout(value = 5000, unit = TimeUnit.MILLISECONDS)
   public void testTaskConfUsage() throws Exception {
     Configuration conf = new Configuration(false);
     conf.set("global", "global1");
@@ -68,9 +71,9 @@ public class TestTezTaskRunner2 {
         localDirs, taskSpec, 1, null, null, null, mock(TaskReporter.class), null, null, "pid",
         null, 1000, false, new DefaultHadoopShim(), sharedExecutor);
 
-    Assert.assertEquals("global1", taskRunner2.task.getTaskConf().get("global"));
-    Assert.assertEquals("task1", taskRunner2.task.getTaskConf().get("global_override"));
-    Assert.assertEquals("task1", taskRunner2.task.getTaskConf().get("task"));
+    assertEquals("global1", taskRunner2.task.getTaskConf().get("global"));
+    assertEquals("task1", taskRunner2.task.getTaskConf().get("global_override"));
+    assertEquals("task1", taskRunner2.task.getTaskConf().get("task"));
     sharedExecutor.shutdownNow();
   }
 

@@ -18,6 +18,7 @@
  */
 package org.apache.tez.dag.library.vertexmanager;
 
+import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
@@ -26,6 +27,7 @@ import static org.mockito.Mockito.when;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
+import java.util.concurrent.TimeUnit;
 
 import org.apache.tez.dag.api.EdgeManagerPluginDescriptor;
 import org.apache.tez.dag.api.EdgeProperty;
@@ -37,9 +39,9 @@ import org.apache.tez.dag.api.event.VertexState;
 import org.apache.tez.dag.api.event.VertexStateUpdate;
 import org.apache.tez.dag.library.edgemanager.SilentEdgeManager;
 
-import org.junit.Assert;
-import org.junit.Before;
-import org.junit.Test;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.Timeout;
 import org.mockito.ArgumentCaptor;
 import org.mockito.Captor;
 import org.mockito.MockitoAnnotations;
@@ -49,12 +51,13 @@ public class TestVertexManagerWithConcurrentInput {
   @Captor
   ArgumentCaptor<List<VertexManagerPluginContext.ScheduleTaskRequest>> requestCaptor;
 
-  @Before
+  @BeforeEach
   public void init() {
     MockitoAnnotations.initMocks(this);
   }
 
-  @Test(timeout = 5000)
+  @Test
+  @Timeout(value = 5000, unit = TimeUnit.MILLISECONDS)
   public void testBasicVertexWithConcurrentInput() throws Exception {
     HashMap<String, EdgeProperty> mockInputVertices =
         new HashMap<String, EdgeProperty>();
@@ -110,6 +113,6 @@ public class TestVertexManagerWithConcurrentInput {
     manager.onVertexStarted(Collections.singletonList(
         TestShuffleVertexManager.createTaskAttemptIdentifier(mockSrcVertexId1, 0)));
     verify(mockContext, times(1)).scheduleTasks(requestCaptor.capture());
-    Assert.assertEquals(0, manager.completedUpstreamTasks);
+    assertEquals(0, manager.completedUpstreamTasks);
   }
 }

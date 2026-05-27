@@ -18,15 +18,16 @@
  */
 package org.apache.tez.test;
 
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertNotNull;
-import static org.junit.Assert.assertTrue;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertNotNull;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import java.io.File;
 import java.io.IOException;
 import java.net.HttpURLConnection;
 import java.net.URI;
 import java.net.URL;
+import java.util.concurrent.TimeUnit;
 
 import javax.servlet.http.HttpServletResponse;
 
@@ -48,9 +49,10 @@ import org.apache.tez.dag.api.client.DAGStatus;
 import org.apache.tez.runtime.library.processor.SleepProcessor;
 import org.apache.tez.runtime.library.processor.SleepProcessor.SleepProcessorConfig;
 
-import org.junit.AfterClass;
-import org.junit.BeforeClass;
-import org.junit.Test;
+import org.junit.jupiter.api.AfterAll;
+import org.junit.jupiter.api.BeforeAll;
+import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.Timeout;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -66,7 +68,7 @@ public class TestAM {
 
   private static final String TEST_ROOT_DIR = "target" + Path.SEPARATOR + TestAM.class.getName() + "-tmpDir";
 
-  @BeforeClass
+  @BeforeAll
   public static void setup() throws IOException {
     try {
       conf.set(MiniDFSCluster.HDFS_MINIDFS_BASEDIR, TEST_ROOT_DIR);
@@ -93,7 +95,7 @@ public class TestAM {
     }
   }
 
-  @AfterClass
+  @AfterAll
   public static void tearDown() {
     if (tezCluster != null) {
       tezCluster.stop();
@@ -106,7 +108,8 @@ public class TestAM {
     getProfiler().delete();
   }
 
-  @Test(timeout = 60000)
+  @Test
+  @Timeout(value = 60000, unit = TimeUnit.MILLISECONDS)
   public void testAMWebUIService() throws TezException, IOException, InterruptedException {
     SleepProcessorConfig spConf = new SleepProcessorConfig(1);
 
@@ -129,7 +132,7 @@ public class TestAM {
     }
 
     String webUIAddress = dagClient.getWebUIAddress();
-    assertNotNull("getWebUIAddress should return TezAM's web UI address", webUIAddress);
+    assertNotNull(webUIAddress, "getWebUIAddress should return TezAM's web UI address");
     LOG.info("TezAM webUI address: " + webUIAddress);
 
     checkAddress(webUIAddress + "/jmx");
@@ -147,8 +150,7 @@ public class TestAM {
     URL url = URI.create(webUIAddress).toURL();
     IntegerRanges portRange = conf.getRange(TezConfiguration.TEZ_AM_WEBSERVICE_PORT_RANGE,
         TezConfiguration.TEZ_AM_WEBSERVICE_PORT_RANGE_DEFAULT);
-    assertTrue("WebUIService port should be in the defined range (got: " + url.getPort() + ")",
-        portRange.getRangeStart() <= url.getPort());
+    assertTrue(portRange.getRangeStart() <= url.getPort(), "WebUIService port should be in the defined range (got: " + url.getPort() + ")");
 
     tezSession.stop();
   }
@@ -166,7 +168,7 @@ public class TestAM {
     } catch (Exception e) {
       LOG.error("Error while checking url: " + url, e);
     }
-    assertTrue(url + " should be available", success);
+    assertTrue(success, url + " should be available");
   }
 
   private static File getProfiler() {

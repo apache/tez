@@ -18,14 +18,19 @@
  */
 package org.apache.tez.dag.api;
 
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertFalse;
-import static org.junit.Assert.assertNotNull;
-import static org.junit.Assert.assertTrue;
+import static org.junit.jupiter.api.Assertions.assertArrayEquals;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertNotEquals;
+import static org.junit.jupiter.api.Assertions.assertNotNull;
+import static org.junit.jupiter.api.Assertions.assertNull;
+import static org.junit.jupiter.api.Assertions.assertSame;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import java.io.IOException;
 import java.nio.ByteBuffer;
 import java.util.List;
+import java.util.concurrent.TimeUnit;
 
 import org.apache.hadoop.fs.Path;
 import org.apache.hadoop.yarn.api.records.URL;
@@ -47,12 +52,13 @@ import org.apache.tez.serviceplugins.api.TaskSchedulerDescriptor;
 
 import com.google.common.collect.Sets;
 
-import org.junit.Assert;
-import org.junit.Test;
+import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.Timeout;
 
 public class TestDagTypeConverters {
 
-  @Test(timeout = 5000)
+  @Test
+  @Timeout(value = 5000, unit = TimeUnit.MILLISECONDS)
   public void testTezEntityDescriptorSerialization() throws IOException {
     UserPayload payload = UserPayload.create(ByteBuffer.wrap(new String("Foobar").getBytes()), 100);
     String historytext = "Bar123";
@@ -61,24 +67,25 @@ public class TestDagTypeConverters {
         .setHistoryText(historytext);
     TezEntityDescriptorProto proto =
         DagTypeConverters.convertToDAGPlan(entityDescriptor);
-    Assert.assertEquals(payload.getVersion(), proto.getTezUserPayload().getVersion());
-    Assert.assertArrayEquals(payload.deepCopyAsArray(), proto.getTezUserPayload().getUserPayload().toByteArray());
+    assertEquals(payload.getVersion(), proto.getTezUserPayload().getVersion());
+    assertArrayEquals(payload.deepCopyAsArray(), proto.getTezUserPayload().getUserPayload().toByteArray());
     assertTrue(proto.hasHistoryText());
-    Assert.assertNotEquals(historytext, proto.getHistoryText());
-    Assert.assertEquals(historytext, new String(
+    assertNotEquals(historytext, proto.getHistoryText());
+    assertEquals(historytext, new String(
         TezCommonUtils.decompressByteStringToByteArray(proto.getHistoryText())));
 
     // Ensure that the history text is not deserialized
     InputDescriptor inputDescriptor =
         DagTypeConverters.convertInputDescriptorFromDAGPlan(proto);
-    Assert.assertNull(inputDescriptor.getHistoryText());
+    assertNull(inputDescriptor.getHistoryText());
 
     // Check history text value
     String actualHistoryText = DagTypeConverters.getHistoryTextFromProto(proto, TezCommonUtils.newInflater());
-    Assert.assertEquals(historytext, actualHistoryText);
+    assertEquals(historytext, actualHistoryText);
   }
 
-  @Test(timeout = 5000)
+  @Test
+  @Timeout(value = 5000, unit = TimeUnit.MILLISECONDS)
   public void testYarnPathTranslation() {
     // Without port
     String p1String = "hdfs://mycluster/file";
@@ -89,9 +96,9 @@ public class TestDagTypeConverters {
     String p1StringSerialized = DagTypeConverters.convertToDAGPlan(lr1Url);
     // Deserialize
     URL lr1UrlDeserialized = DagTypeConverters.convertToYarnURL(p1StringSerialized);
-    Assert.assertEquals("mycluster", lr1UrlDeserialized.getHost());
-    Assert.assertEquals("/file", lr1UrlDeserialized.getFile());
-    Assert.assertEquals("hdfs", lr1UrlDeserialized.getScheme());
+    assertEquals("mycluster", lr1UrlDeserialized.getHost());
+    assertEquals("/file", lr1UrlDeserialized.getFile());
+    assertEquals("hdfs", lr1UrlDeserialized.getScheme());
 
 
     // With port
@@ -103,14 +110,15 @@ public class TestDagTypeConverters {
     String p2StringSerialized = DagTypeConverters.convertToDAGPlan(lr2Url);
     // Deserialize
     URL lr2UrlDeserialized = DagTypeConverters.convertToYarnURL(p2StringSerialized);
-    Assert.assertEquals("mycluster", lr2UrlDeserialized.getHost());
-    Assert.assertEquals("/file", lr2UrlDeserialized.getFile());
-    Assert.assertEquals("hdfs", lr2UrlDeserialized.getScheme());
-    Assert.assertEquals(2311, lr2UrlDeserialized.getPort());
+    assertEquals("mycluster", lr2UrlDeserialized.getHost());
+    assertEquals("/file", lr2UrlDeserialized.getFile());
+    assertEquals("hdfs", lr2UrlDeserialized.getScheme());
+    assertEquals(2311, lr2UrlDeserialized.getPort());
   }
 
 
-  @Test(timeout = 5000)
+  @Test
+  @Timeout(value = 5000, unit = TimeUnit.MILLISECONDS)
   public void testVertexExecutionContextTranslation() {
     VertexExecutionContext originalContext;
     VertexExecutionContextProto contextProto;
@@ -142,7 +150,8 @@ public class TestDagTypeConverters {
   static final String testComm = "testComm";
   static final String classSuffix = "_class";
 
-  @Test(timeout = 5000)
+  @Test
+  @Timeout(value = 5000, unit = TimeUnit.MILLISECONDS)
   public void testServiceDescriptorTranslation() {
 
 

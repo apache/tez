@@ -18,9 +18,9 @@
  */
 package org.apache.tez.runtime.library.output;
 
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertFalse;
-import static org.junit.Assert.assertTrue;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.Mockito.any;
 import static org.mockito.Mockito.anyLong;
 import static org.mockito.Mockito.atLeast;
@@ -37,6 +37,7 @@ import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.concurrent.TimeUnit;
 
 import org.apache.commons.lang3.RandomStringUtils;
 import org.apache.hadoop.conf.Configuration;
@@ -75,10 +76,10 @@ import org.apache.tez.runtime.library.testutils.KVDataGen.KVPair;
 
 import com.google.protobuf.ByteString;
 
-import org.junit.After;
-import org.junit.Assert;
-import org.junit.Before;
-import org.junit.Test;
+import org.junit.jupiter.api.AfterEach;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.Timeout;
 import org.mockito.ArgumentCaptor;
 import org.mockito.invocation.InvocationOnMock;
 import org.mockito.stubbing.Answer;
@@ -110,17 +111,18 @@ public class TestOnFileUnorderedKVOutput {
     }
   }
 
-  @Before
+  @BeforeEach
   public void setup() throws Exception {
     localFs.mkdirs(workDir);
   }
 
-  @After
+  @AfterEach
   public void cleanup() throws Exception {
     localFs.delete(workDir, true);
   }
 
-  @Test(timeout = 5000)
+  @Test
+  @Timeout(value = 5000, unit = TimeUnit.MILLISECONDS)
   public void testGeneratedDataMovementEvent() throws Exception {
     Configuration conf = new Configuration();
     conf.set(TezRuntimeConfiguration.TEZ_RUNTIME_KEY_CLASS, Text.class.getName());
@@ -148,7 +150,7 @@ public class TestOnFileUnorderedKVOutput {
     assertTrue(events != null && events.size() == 2);
     CompositeDataMovementEvent dmEvent = (CompositeDataMovementEvent)events.get(1);
 
-    assertEquals("Invalid source index", 0, dmEvent.getSourceIndexStart());
+    assertEquals(0, dmEvent.getSourceIndexStart(), "Invalid source index");
 
     DataMovementEventPayloadProto shufflePayload = DataMovementEventPayloadProto
         .parseFrom(ByteString.copyFrom(dmEvent.getUserPayload()));
@@ -180,7 +182,8 @@ public class TestOnFileUnorderedKVOutput {
     assertEquals("base-value", mergedConf.get("base-key"));
   }
 
-  @Test(timeout = 30000)
+  @Test
+  @Timeout(value = 30000, unit = TimeUnit.MILLISECONDS)
   @SuppressWarnings("unchecked")
   public void testWithPipelinedShuffle() throws Exception {
     Configuration conf = new Configuration();
@@ -217,7 +220,7 @@ public class TestOnFileUnorderedKVOutput {
 
 
     CompositeDataMovementEvent dmEvent = (CompositeDataMovementEvent)events.get(1);
-    assertEquals("Invalid source index", 0, dmEvent.getSourceIndexStart());
+    assertEquals(0, dmEvent.getSourceIndexStart(), "Invalid source index");
 
     DataMovementEventPayloadProto shufflePayload = DataMovementEventPayloadProto
         .parseFrom(ByteString.copyFrom(dmEvent.getUserPayload()));
@@ -271,7 +274,7 @@ public class TestOnFileUnorderedKVOutput {
     verify(runtimeTask, times(1)).addAndGetTezCounter(destinationVertexName);
     verify(runtimeTask, times(1)).getTaskStatistics();
     // verify output stats object got created
-    Assert.assertTrue(task.getTaskStatistics().getIOStatistics().containsKey(destinationVertexName));
+    assertTrue(task.getTaskStatistics().getIOStatistics().containsKey(destinationVertexName));
     OutputContext outputContext = spy(realOutputContext);
     doAnswer(new Answer() {
       @Override public Object answer(InvocationOnMock invocation) throws Throwable {

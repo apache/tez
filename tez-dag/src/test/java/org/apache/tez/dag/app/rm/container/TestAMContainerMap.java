@@ -18,10 +18,12 @@
  */
 package org.apache.tez.dag.app.rm.container;
 
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertTrue;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
+
+import java.util.concurrent.TimeUnit;
 
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.yarn.api.records.Container;
@@ -32,12 +34,14 @@ import org.apache.tez.dag.app.TaskCommunicatorManagerInterface;
 import org.apache.tez.dag.app.dag.DAG;
 import org.apache.tez.dag.app.rm.container.TestAMContainer.WrappedContainer;
 
-import org.junit.Test;
+import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.Timeout;
 
 public class TestAMContainerMap {
 
 
-  @Test (timeout = 10000)
+  @Test
+  @Timeout(value = 10000, unit = TimeUnit.MILLISECONDS)
   public void testCleanupOnDagComplete() {
 
     ContainerHeartbeatHandler chh = mock(ContainerHeartbeatHandler.class);

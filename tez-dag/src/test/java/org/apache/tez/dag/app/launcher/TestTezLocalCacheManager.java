@@ -18,6 +18,10 @@
  */
 package org.apache.tez.dag.app.launcher;
 
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertTrue;
+
 import java.io.File;
 import java.io.IOException;
 import java.net.URISyntaxException;
@@ -38,8 +42,8 @@ import org.apache.hadoop.yarn.factory.providers.RecordFactoryProvider;
 import org.apache.hadoop.yarn.util.ConverterUtils;
 import org.apache.tez.dag.api.TezConfiguration;
 
-import org.junit.Assert;
-import org.junit.Test;
+import org.junit.jupiter.api.Test;
+
 
 /**
  * Test local cache manager.
@@ -67,17 +71,17 @@ public class TestTezLocalCacheManager {
     try {
       manager.localize();
 
-      Assert.assertEquals(
+      assertEquals(
           "content-one",
           new String(Files.readAllBytes(Paths.get("./file-one")))
       );
 
-      Assert.assertEquals(
+      assertEquals(
           "content-two",
           new String(Files.readAllBytes(Paths.get("./file-two")))
       );
 
-      Assert.assertEquals(
+      assertEquals(
           "content-two",
           new String(Files.readAllBytes(Paths.get("./file-three")))
       );
@@ -86,9 +90,9 @@ public class TestTezLocalCacheManager {
     }
 
     // verify that symlinks were removed
-    Assert.assertFalse(Files.exists(Paths.get("./file-one")));
-    Assert.assertFalse(Files.exists(Paths.get("./file-two")));
-    Assert.assertFalse(Files.exists(Paths.get("./file-three")));
+    assertFalse(Files.exists(Paths.get("./file-one")));
+    assertFalse(Files.exists(Paths.get("./file-two")));
+    assertFalse(Files.exists(Paths.get("./file-three")));
   }
 
   // create a temporary file with the given content and return a LocalResource
@@ -124,13 +128,13 @@ public class TestTezLocalCacheManager {
     TezLocalCacheManager manager = new TezLocalCacheManager(resources, new Configuration());
 
     try {
-      Assert.assertFalse(Files.exists(Paths.get("./file-one")));
+      assertFalse(Files.exists(Paths.get("./file-one")));
       manager.localize();
-      Assert.assertTrue(Files.exists(Paths.get("./file-one")));
+      assertTrue(Files.exists(Paths.get("./file-one")));
 
     } finally {
       manager.cleanup();
-      Assert.assertFalse(Files.exists(Paths.get("./file-one")));
+      assertFalse(Files.exists(Paths.get("./file-one")));
     }
 
     // configured directory
@@ -140,16 +144,16 @@ public class TestTezLocalCacheManager {
 
     try {
       // files don't exist at all
-      Assert.assertFalse(Files.exists(Paths.get("./file-one")));
-      Assert.assertFalse(Files.exists(Paths.get("./target/file-one")));
+      assertFalse(Files.exists(Paths.get("./file-one")));
+      assertFalse(Files.exists(Paths.get("./target/file-one")));
       manager.localize();
       // file appears only at configured location
-      Assert.assertFalse(Files.exists(Paths.get("./file-one")));
-      Assert.assertTrue(Files.exists(Paths.get("./target/file-one")));
+      assertFalse(Files.exists(Paths.get("./file-one")));
+      assertTrue(Files.exists(Paths.get("./target/file-one")));
 
     } finally {
       manager.cleanup();
-      Assert.assertFalse(Files.exists(Paths.get("./target/file-one")));
+      assertFalse(Files.exists(Paths.get("./target/file-one")));
     }
   }
 }

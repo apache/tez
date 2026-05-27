@@ -18,12 +18,13 @@
  */
 package org.apache.tez.dag.app.dag.app;
 
-import static org.junit.Assert.assertNull;
+import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.mockito.Mockito.doReturn;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.verify;
 
 import java.io.IOException;
+import java.util.concurrent.TimeUnit;
 
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.security.Credentials;
@@ -37,11 +38,13 @@ import org.apache.tez.dag.api.UserPayload;
 import org.apache.tez.dag.app.TezTaskCommunicatorImpl;
 import org.apache.tez.serviceplugins.api.TaskCommunicatorContext;
 
-import org.junit.Test;
+import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.Timeout;
 
 public class TestTezTaskCommunicatorManager {
 
-  @Test (timeout = 5000)
+  @Test
+  @Timeout(value = 5000, unit = TimeUnit.MILLISECONDS)
   public void testContainerAliveOnGetTask() throws IOException {
 
     TaskCommunicatorContext context = mock(TaskCommunicatorContext.class);

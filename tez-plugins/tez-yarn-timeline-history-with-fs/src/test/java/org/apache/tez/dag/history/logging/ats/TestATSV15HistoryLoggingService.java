@@ -18,11 +18,11 @@
  */
 package org.apache.tez.dag.history.logging.ats;
 
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertNotEquals;
-import static org.junit.Assert.assertNotNull;
-import static org.junit.Assert.assertNull;
-import static org.junit.Assert.assertTrue;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertNotEquals;
+import static org.junit.jupiter.api.Assertions.assertNotNull;
+import static org.junit.jupiter.api.Assertions.assertNull;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.Mockito.any;
 import static org.mockito.Mockito.anyString;
 import static org.mockito.Mockito.eq;
@@ -37,6 +37,7 @@ import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.concurrent.TimeUnit;
 
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.yarn.api.records.ApplicationAttemptId;
@@ -65,7 +66,8 @@ import org.apache.tez.dag.records.TezTaskID;
 import org.apache.tez.dag.records.TezVertexID;
 import org.apache.tez.hadoop.shim.HadoopShim;
 
-import org.junit.Test;
+import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.Timeout;
 import org.mockito.invocation.InvocationOnMock;
 import org.mockito.stubbing.Answer;
 
@@ -81,7 +83,8 @@ public class TestATSV15HistoryLoggingService {
 
   private AppContext appContext;
 
-  @Test(timeout=2000)
+  @Test
+  @Timeout(value = 2000, unit = TimeUnit.MILLISECONDS)
   public void testDAGGroupingDefault() throws Exception {
     ATSV15HistoryLoggingService service = createService(-1);
 
@@ -110,7 +113,8 @@ public class TestATSV15HistoryLoggingService {
     service.stop();
   }
 
-  @Test(timeout=2000)
+  @Test
+  @Timeout(value = 2000, unit = TimeUnit.MILLISECONDS)
   public void testDAGGroupingDisabled() throws Exception {
     ATSV15HistoryLoggingService service = createService(1);
     service.start();
@@ -138,7 +142,8 @@ public class TestATSV15HistoryLoggingService {
     service.stop();
   }
 
-  @Test(timeout=2000)
+  @Test
+  @Timeout(value = 2000, unit = TimeUnit.MILLISECONDS)
   public void testDAGGroupingGroupingEnabled() throws Exception {
     int numDagsPerGroup = 100;
     ATSV15HistoryLoggingService service = createService(numDagsPerGroup);

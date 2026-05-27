@@ -22,6 +22,7 @@ import java.util.Random;
 
 import org.apache.hadoop.io.Text;
 
+
 public final class RandomTextGenerator {
 
   static int minWordsInKey = 10;

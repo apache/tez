@@ -18,17 +18,24 @@
  */
 package org.apache.tez.common.security;
 
+import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertNotNull;
+import static org.junit.jupiter.api.Assertions.assertTrue;
+
+import java.util.concurrent.TimeUnit;
+
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.yarn.conf.YarnConfiguration;
 import org.apache.tez.dag.api.TezConfiguration;
 import org.apache.tez.dag.api.TezConstants;
 
-import org.junit.Assert;
-import org.junit.Test;
+import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.Timeout;
 
 public class TestACLConfigurationParser {
 
-  @Test(timeout = 5000)
+  @Test
+  @Timeout(value = 5000, unit = TimeUnit.MILLISECONDS)
   public void testACLConfigParser() {
 
     Configuration conf = new Configuration(false);
@@ -39,43 +46,44 @@ public class TestACLConfigurationParser {
     conf.set(TezConfiguration.TEZ_AM_VIEW_ACLS, viewACLs);
 
     ACLConfigurationParser parser = new ACLConfigurationParser(conf);
-    Assert.assertTrue(parser.getAllowedUsers().containsKey(ACLType.AM_VIEW_ACL));
-    Assert.assertFalse(parser.getAllowedUsers().containsKey(ACLType.AM_MODIFY_ACL));
-    Assert.assertTrue(parser.getAllowedUsers().get(ACLType.AM_VIEW_ACL).contains("user1"));
-    Assert.assertFalse(parser.getAllowedUsers().get(ACLType.AM_VIEW_ACL).contains("user3"));
-    Assert.assertTrue(parser.getAllowedUsers().get(ACLType.AM_VIEW_ACL).contains("user4"));
-    Assert.assertTrue(parser.getAllowedUsers().get(ACLType.YARN_ADMIN_ACL).contains("admin1"));
-    Assert.assertTrue(parser.getAllowedUsers().get(ACLType.YARN_ADMIN_ACL).contains("admin4"));
-    Assert.assertFalse(parser.getAllowedGroups().isEmpty());
-    Assert.assertTrue(parser.getAllowedGroups().get(ACLType.AM_VIEW_ACL).contains("grp3"));
-    Assert.assertFalse(parser.getAllowedGroups().get(ACLType.AM_VIEW_ACL).contains("grp6"));
-    Assert.assertTrue(parser.getAllowedGroups().get(ACLType.AM_VIEW_ACL).contains("grp4"));
-    Assert.assertTrue(parser.getAllowedGroups().get(ACLType.AM_VIEW_ACL).contains("grp5"));
-    Assert.assertTrue(parser.getAllowedGroups().get(ACLType.YARN_ADMIN_ACL).contains("admgrp3"));
-    Assert.assertTrue(parser.getAllowedGroups().get(ACLType.YARN_ADMIN_ACL).contains("admgrp4"));
-    Assert.assertTrue(parser.getAllowedGroups().get(ACLType.YARN_ADMIN_ACL).contains("admgrp5"));
+    assertTrue(parser.getAllowedUsers().containsKey(ACLType.AM_VIEW_ACL));
+    assertFalse(parser.getAllowedUsers().containsKey(ACLType.AM_MODIFY_ACL));
+    assertTrue(parser.getAllowedUsers().get(ACLType.AM_VIEW_ACL).contains("user1"));
+    assertFalse(parser.getAllowedUsers().get(ACLType.AM_VIEW_ACL).contains("user3"));
+    assertTrue(parser.getAllowedUsers().get(ACLType.AM_VIEW_ACL).contains("user4"));
+    assertTrue(parser.getAllowedUsers().get(ACLType.YARN_ADMIN_ACL).contains("admin1"));
+    assertTrue(parser.getAllowedUsers().get(ACLType.YARN_ADMIN_ACL).contains("admin4"));
+    assertFalse(parser.getAllowedGroups().isEmpty());
+    assertTrue(parser.getAllowedGroups().get(ACLType.AM_VIEW_ACL).contains("grp3"));
+    assertFalse(parser.getAllowedGroups().get(ACLType.AM_VIEW_ACL).contains("grp6"));
+    assertTrue(parser.getAllowedGroups().get(ACLType.AM_VIEW_ACL).contains("grp4"));
+    assertTrue(parser.getAllowedGroups().get(ACLType.AM_VIEW_ACL).contains("grp5"));
+    assertTrue(parser.getAllowedGroups().get(ACLType.YARN_ADMIN_ACL).contains("admgrp3"));
+    assertTrue(parser.getAllowedGroups().get(ACLType.YARN_ADMIN_ACL).contains("admgrp4"));
+    assertTrue(parser.getAllowedGroups().get(ACLType.YARN_ADMIN_ACL).contains("admgrp5"));
 
     conf.set(TezConfiguration.TEZ_AM_MODIFY_ACLS, modifyACLs);
     parser = new ACLConfigurationParser(conf);
-    Assert.assertTrue(parser.getAllowedUsers().containsKey(ACLType.AM_VIEW_ACL));
-    Assert.assertTrue(parser.getAllowedUsers().containsKey(ACLType.AM_MODIFY_ACL));
-    Assert.assertTrue(parser.getAllowedUsers().get(ACLType.AM_VIEW_ACL).contains("user1"));
-    Assert.assertFalse(parser.getAllowedUsers().get(ACLType.AM_VIEW_ACL).contains("user3"));
-    Assert.assertTrue(parser.getAllowedUsers().get(ACLType.AM_VIEW_ACL).contains("user4"));
-    Assert.assertFalse(parser.getAllowedUsers().get(ACLType.AM_MODIFY_ACL).contains("user1"));
-    Assert.assertTrue(parser.getAllowedUsers().get(ACLType.AM_MODIFY_ACL).contains("user3"));
-    Assert.assertFalse(parser.getAllowedGroups().isEmpty());
-    Assert.assertTrue(parser.getAllowedGroups().get(ACLType.AM_VIEW_ACL).contains("grp3"));
-    Assert.assertFalse(parser.getAllowedGroups().get(ACLType.AM_VIEW_ACL).contains("grp6"));
-    Assert.assertTrue(parser.getAllowedGroups().get(ACLType.AM_VIEW_ACL).contains("grp4"));
-    Assert.assertTrue(parser.getAllowedGroups().get(ACLType.AM_VIEW_ACL).contains("grp5"));
-    Assert.assertFalse(parser.getAllowedGroups().isEmpty());
-    Assert.assertTrue(parser.getAllowedGroups().get(ACLType.YARN_ADMIN_ACL).contains("admgrp3"));
-    Assert.assertTrue(parser.getAllowedGroups().get(ACLType.YARN_ADMIN_ACL).contains("admgrp4"));
-    Assert.assertTrue(parser.getAllowedGroups().get(ACLType.YARN_ADMIN_ACL).contains("admgrp5"));
+    assertTrue(parser.getAllowedUsers().containsKey(ACLType.AM_VIEW_ACL));
+    assertTrue(parser.getAllowedUsers().containsKey(ACLType.AM_MODIFY_ACL));
+    assertTrue(parser.getAllowedUsers().get(ACLType.AM_VIEW_ACL).contains("user1"));
+    assertFalse(parser.getAllowedUsers().get(ACLType.AM_VIEW_ACL).contains("user3"));
+    assertTrue(parser.getAllowedUsers().get(ACLType.AM_VIEW_ACL).contains("user4"));
+    assertFalse(parser.getAllowedUsers().get(ACLType.AM_MODIFY_ACL).contains("user1"));
+    assertTrue(parser.getAllowedUsers().get(ACLType.AM_MODIFY_ACL).contains("user3"));
+    assertFalse(parser.getAllowedGroups().isEmpty());
+    assertTrue(parser.getAllowedGroups().get(ACLType.AM_VIEW_ACL).contains("grp3"));
+    assertFalse(parser.getAllowedGroups().get(ACLType.AM_VIEW_ACL).contains("grp6"));
+    assertTrue(parser.getAllowedGroups().get(ACLType.AM_VIEW_ACL).contains("grp4"));
+    assertTrue(parser.getAllowedGroups().get(ACLType.AM_VIEW_ACL).contains("grp5"));
+    assertFalse(parser.getAllowedGroups().isEmpty());
+    assertTrue(parser.getAllowedGroups().get(ACLType.YARN_ADMIN_ACL).contains("admgrp3"));
+    assertTrue(parser.getAllowedGroups().get(ACLType.YARN_ADMIN_ACL).contains("admgrp4"));
+    assertTrue(parser.getAllowedGroups().get(ACLType.YARN_ADMIN_ACL).contains("admgrp5"));
   }
 
-  @Test(timeout = 5000)
+  @Test
+  @Timeout(value = 5000, unit = TimeUnit.MILLISECONDS)
   public void testGroupsOnly() {
     Configuration conf = new Configuration(false);
     String adminACLs = "admin1,admin4,       admgrp3,admgrp4,admgrp5  ";
@@ -84,20 +92,21 @@ public class TestACLConfigurationParser {
     conf.set(YarnConfiguration.YARN_ADMIN_ACL, adminACLs);
 
     ACLConfigurationParser parser = new ACLConfigurationParser(conf);
-    Assert.assertFalse(parser.getAllowedUsers().isEmpty());
-    Assert.assertTrue(parser.getAllowedUsers().get(ACLType.YARN_ADMIN_ACL).contains("admin1"));
-    Assert.assertTrue(parser.getAllowedUsers().get(ACLType.YARN_ADMIN_ACL).contains("admin4"));
-    Assert.assertFalse(parser.getAllowedGroups().isEmpty());
-    Assert.assertTrue(parser.getAllowedGroups().get(ACLType.AM_VIEW_ACL).contains("grp3"));
-    Assert.assertFalse(parser.getAllowedGroups().get(ACLType.AM_VIEW_ACL).contains("grp6"));
-    Assert.assertTrue(parser.getAllowedGroups().get(ACLType.AM_VIEW_ACL).contains("grp4"));
-    Assert.assertTrue(parser.getAllowedGroups().get(ACLType.AM_VIEW_ACL).contains("grp5"));
-    Assert.assertTrue(parser.getAllowedGroups().get(ACLType.YARN_ADMIN_ACL).contains("admgrp3"));
-    Assert.assertTrue(parser.getAllowedGroups().get(ACLType.YARN_ADMIN_ACL).contains("admgrp4"));
-    Assert.assertTrue(parser.getAllowedGroups().get(ACLType.YARN_ADMIN_ACL).contains("admgrp5"));
+    assertFalse(parser.getAllowedUsers().isEmpty());
+    assertTrue(parser.getAllowedUsers().get(ACLType.YARN_ADMIN_ACL).contains("admin1"));
+    assertTrue(parser.getAllowedUsers().get(ACLType.YARN_ADMIN_ACL).contains("admin4"));
+    assertFalse(parser.getAllowedGroups().isEmpty());
+    assertTrue(parser.getAllowedGroups().get(ACLType.AM_VIEW_ACL).contains("grp3"));
+    assertFalse(parser.getAllowedGroups().get(ACLType.AM_VIEW_ACL).contains("grp6"));
+    assertTrue(parser.getAllowedGroups().get(ACLType.AM_VIEW_ACL).contains("grp4"));
+    assertTrue(parser.getAllowedGroups().get(ACLType.AM_VIEW_ACL).contains("grp5"));
+    assertTrue(parser.getAllowedGroups().get(ACLType.YARN_ADMIN_ACL).contains("admgrp3"));
+    assertTrue(parser.getAllowedGroups().get(ACLType.YARN_ADMIN_ACL).contains("admgrp4"));
+    assertTrue(parser.getAllowedGroups().get(ACLType.YARN_ADMIN_ACL).contains("admgrp5"));
   }
 
-  @Test(timeout = 5000)
+  @Test
+  @Timeout(value = 5000, unit = TimeUnit.MILLISECONDS)
   public void testDAGACLConfigParser() {
 
     Configuration conf = new Configuration(false);
@@ -108,44 +117,44 @@ public class TestACLConfigurationParser {
     conf.set(YarnConfiguration.YARN_ADMIN_ACL, adminACLs);
 
     ACLConfigurationParser parser = new ACLConfigurationParser(conf, true);
-    Assert.assertTrue(parser.getAllowedUsers().containsKey(ACLType.DAG_VIEW_ACL));
-    Assert.assertFalse(parser.getAllowedUsers().containsKey(ACLType.DAG_MODIFY_ACL));
-    Assert.assertTrue(parser.getAllowedUsers().get(ACLType.DAG_VIEW_ACL).contains("user1"));
-    Assert.assertFalse(parser.getAllowedUsers().get(ACLType.DAG_VIEW_ACL).contains("user3"));
-    Assert.assertTrue(parser.getAllowedUsers().get(ACLType.DAG_VIEW_ACL).contains("user4"));
-    Assert.assertTrue(parser.getAllowedUsers().get(ACLType.YARN_ADMIN_ACL).contains("admin1"));
-    Assert.assertTrue(parser.getAllowedUsers().get(ACLType.YARN_ADMIN_ACL).contains("admin4"));
-    Assert.assertFalse(parser.getAllowedGroups().isEmpty());
-    Assert.assertTrue(parser.getAllowedGroups().get(ACLType.DAG_VIEW_ACL).contains("grp3"));
-    Assert.assertFalse(parser.getAllowedGroups().get(ACLType.DAG_VIEW_ACL).contains("grp6"));
-    Assert.assertTrue(parser.getAllowedGroups().get(ACLType.DAG_VIEW_ACL).contains("grp4"));
-    Assert.assertTrue(parser.getAllowedGroups().get(ACLType.DAG_VIEW_ACL).contains("grp5"));
-    Assert.assertTrue(parser.getAllowedGroups().get(ACLType.YARN_ADMIN_ACL).contains("admgrp3"));
-    Assert.assertTrue(parser.getAllowedGroups().get(ACLType.YARN_ADMIN_ACL).contains("admgrp4"));
-    Assert.assertTrue(parser.getAllowedGroups().get(ACLType.YARN_ADMIN_ACL).contains("admgrp5"));
+    assertTrue(parser.getAllowedUsers().containsKey(ACLType.DAG_VIEW_ACL));
+    assertFalse(parser.getAllowedUsers().containsKey(ACLType.DAG_MODIFY_ACL));
+    assertTrue(parser.getAllowedUsers().get(ACLType.DAG_VIEW_ACL).contains("user1"));
+    assertFalse(parser.getAllowedUsers().get(ACLType.DAG_VIEW_ACL).contains("user3"));
+    assertTrue(parser.getAllowedUsers().get(ACLType.DAG_VIEW_ACL).contains("user4"));
+    assertTrue(parser.getAllowedUsers().get(ACLType.YARN_ADMIN_ACL).contains("admin1"));
+    assertTrue(parser.getAllowedUsers().get(ACLType.YARN_ADMIN_ACL).contains("admin4"));
+    assertFalse(parser.getAllowedGroups().isEmpty());
+    assertTrue(parser.getAllowedGroups().get(ACLType.DAG_VIEW_ACL).contains("grp3"));
+    assertFalse(parser.getAllowedGroups().get(ACLType.DAG_VIEW_ACL).contains("grp6"));
+    assertTrue(parser.getAllowedGroups().get(ACLType.DAG_VIEW_ACL).contains("grp4"));
+    assertTrue(parser.getAllowedGroups().get(ACLType.DAG_VIEW_ACL).contains("grp5"));
+    assertTrue(parser.getAllowedGroups().get(ACLType.YARN_ADMIN_ACL).contains("admgrp3"));
+    assertTrue(parser.getAllowedGroups().get(ACLType.YARN_ADMIN_ACL).contains("admgrp4"));
+    assertTrue(parser.getAllowedGroups().get(ACLType.YARN_ADMIN_ACL).contains("admgrp5"));
 
     conf.set(TezConstants.TEZ_DAG_MODIFY_ACLS, modifyACLs);
     parser = new ACLConfigurationParser(conf, true);
-    Assert.assertTrue(parser.getAllowedUsers().containsKey(ACLType.DAG_VIEW_ACL));
-    Assert.assertTrue(parser.getAllowedUsers().containsKey(ACLType.DAG_MODIFY_ACL));
-    Assert.assertTrue(parser.getAllowedUsers().get(ACLType.DAG_VIEW_ACL).contains("user1"));
-    Assert.assertFalse(parser.getAllowedUsers().get(ACLType.DAG_VIEW_ACL).contains("user3"));
-    Assert.assertTrue(parser.getAllowedUsers().get(ACLType.DAG_VIEW_ACL).contains("user4"));
-    Assert.assertFalse(parser.getAllowedUsers().get(ACLType.DAG_MODIFY_ACL).contains("user1"));
-    Assert.assertTrue(parser.getAllowedUsers().get(ACLType.DAG_MODIFY_ACL).contains("user3"));
-    Assert.assertTrue(parser.getAllowedUsers().get(ACLType.YARN_ADMIN_ACL).contains("admin1"));
-    Assert.assertTrue(parser.getAllowedUsers().get(ACLType.YARN_ADMIN_ACL).contains("admin4"));
-    Assert.assertFalse(parser.getAllowedGroups().isEmpty());
-    Assert.assertTrue(parser.getAllowedGroups().get(ACLType.DAG_VIEW_ACL).contains("grp3"));
-    Assert.assertFalse(parser.getAllowedGroups().get(ACLType.DAG_VIEW_ACL).contains("grp6"));
-    Assert.assertTrue(parser.getAllowedGroups().get(ACLType.DAG_VIEW_ACL).contains("grp4"));
-    Assert.assertTrue(parser.getAllowedGroups().get(ACLType.DAG_VIEW_ACL).contains("grp5"));
-    Assert.assertNotNull(parser.getAllowedGroups().get(ACLType.DAG_MODIFY_ACL));
-    Assert.assertFalse(parser.getAllowedGroups().get(ACLType.DAG_MODIFY_ACL).contains("grp6"));
-    Assert.assertTrue(parser.getAllowedGroups().get(ACLType.DAG_MODIFY_ACL).contains("grp4"));
-    Assert.assertTrue(parser.getAllowedGroups().get(ACLType.YARN_ADMIN_ACL).contains("admgrp3"));
-    Assert.assertTrue(parser.getAllowedGroups().get(ACLType.YARN_ADMIN_ACL).contains("admgrp4"));
-    Assert.assertTrue(parser.getAllowedGroups().get(ACLType.YARN_ADMIN_ACL).contains("admgrp5"));
+    assertTrue(parser.getAllowedUsers().containsKey(ACLType.DAG_VIEW_ACL));
+    assertTrue(parser.getAllowedUsers().containsKey(ACLType.DAG_MODIFY_ACL));
+    assertTrue(parser.getAllowedUsers().get(ACLType.DAG_VIEW_ACL).contains("user1"));
+    assertFalse(parser.getAllowedUsers().get(ACLType.DAG_VIEW_ACL).contains("user3"));
+    assertTrue(parser.getAllowedUsers().get(ACLType.DAG_VIEW_ACL).contains("user4"));
+    assertFalse(parser.getAllowedUsers().get(ACLType.DAG_MODIFY_ACL).contains("user1"));
+    assertTrue(parser.getAllowedUsers().get(ACLType.DAG_MODIFY_ACL).contains("user3"));
+    assertTrue(parser.getAllowedUsers().get(ACLType.YARN_ADMIN_ACL).contains("admin1"));
+    assertTrue(parser.getAllowedUsers().get(ACLType.YARN_ADMIN_ACL).contains("admin4"));
+    assertFalse(parser.getAllowedGroups().isEmpty());
+    assertTrue(parser.getAllowedGroups().get(ACLType.DAG_VIEW_ACL).contains("grp3"));
+    assertFalse(parser.getAllowedGroups().get(ACLType.DAG_VIEW_ACL).contains("grp6"));
+    assertTrue(parser.getAllowedGroups().get(ACLType.DAG_VIEW_ACL).contains("grp4"));
+    assertTrue(parser.getAllowedGroups().get(ACLType.DAG_VIEW_ACL).contains("grp5"));
+    assertNotNull(parser.getAllowedGroups().get(ACLType.DAG_MODIFY_ACL));
+    assertFalse(parser.getAllowedGroups().get(ACLType.DAG_MODIFY_ACL).contains("grp6"));
+    assertTrue(parser.getAllowedGroups().get(ACLType.DAG_MODIFY_ACL).contains("grp4"));
+    assertTrue(parser.getAllowedGroups().get(ACLType.YARN_ADMIN_ACL).contains("admgrp3"));
+    assertTrue(parser.getAllowedGroups().get(ACLType.YARN_ADMIN_ACL).contains("admgrp4"));
+    assertTrue(parser.getAllowedGroups().get(ACLType.YARN_ADMIN_ACL).contains("admgrp5"));
   }
 
 }

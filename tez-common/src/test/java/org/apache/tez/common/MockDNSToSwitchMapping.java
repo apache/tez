@@ -30,6 +30,7 @@ import org.apache.hadoop.net.CachedDNSToSwitchMapping;
 import org.apache.hadoop.net.DNSToSwitchMapping;
 import org.apache.hadoop.yarn.util.RackResolver;
 
+
 /**
  * Mock RackResolver
  * Overrides CachedDNSToSwitchMapping to ensure that it does not try to resolve hostnames

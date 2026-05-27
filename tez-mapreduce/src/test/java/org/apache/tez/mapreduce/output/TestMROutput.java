@@ -18,7 +18,12 @@
  */
 package org.apache.tez.mapreduce.output;
 
-import static org.junit.Assert.*;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertNotEquals;
+import static org.junit.jupiter.api.Assertions.assertNotNull;
+import static org.junit.jupiter.api.Assertions.assertNull;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.Mockito.*;
 
 import java.io.BufferedWriter;
@@ -28,6 +33,7 @@ import java.io.IOException;
 import java.io.Writer;
 import java.util.HashMap;
 import java.util.List;
+import java.util.concurrent.TimeUnit;
 
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.fs.FileSystem;
@@ -74,22 +80,24 @@ import com.google.common.collect.HashMultimap;
 import com.google.common.collect.Lists;
 import com.google.common.io.Files;
 
-import org.junit.BeforeClass;
-import org.junit.Ignore;
-import org.junit.Test;
+import org.junit.jupiter.api.BeforeAll;
+import org.junit.jupiter.api.Disabled;
+import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.Timeout;
 
 
 public class TestMROutput {
 
   static File tmpDir;
 
-  @BeforeClass
+  @BeforeAll
   public static void setupClass () {
     tmpDir = Files.createTempDir();
     tmpDir.deleteOnExit();
   }
 
-  @Test(timeout = 5000)
+  @Test
+  @Timeout(value = 5000, unit = TimeUnit.MILLISECONDS)
   public void testNewAPI_TextOutputFormat() throws Exception {
     Configuration conf = new Configuration();
     conf.setBoolean(MRConfig.IS_MAP_PROCESSOR, true);
@@ -103,8 +111,8 @@ public class TestMROutput {
     MROutput output = new MROutput(outputContext, 2);
     output.initialize();
 
-    assertEquals(true, output.isMapperOutput);
-    assertEquals(true, output.useNewApi);
+    assertTrue(output.isMapperOutput);
+    assertTrue(output.useNewApi);
     assertEquals(TextOutputFormat.class, output.newOutputFormat.getClass());
     assertNull(output.oldOutputFormat);
     assertNotNull(output.newApiTaskAttemptContext);
@@ -150,12 +158,13 @@ public class TestMROutput {
     output.initialize();
     String invalidDAGID = "invalid default";
     String dagID = output.jobConf.get(MRJobConfig.JOB_COMMITTER_UUID, invalidDAGID);
-    assertNotEquals(dagID, invalidDAGID);
-    assertNotEquals(output.jobConf.get(org.apache.hadoop.mapred.JobContext.TASK_ATTEMPT_ID), dagID);
+    assertNotEquals(invalidDAGID, dagID);
+    assertNotEquals(dagID, output.jobConf.get(org.apache.hadoop.mapred.JobContext.TASK_ATTEMPT_ID));
     assertEquals(dagID, Utils.getDAGID(outputContext));
   }
 
-  @Test(timeout = 5000)
+  @Test
+  @Timeout(value = 5000, unit = TimeUnit.MILLISECONDS)
   public void testOldAPI_TextOutputFormat() throws Exception {
     Configuration conf = new Configuration();
     conf.setBoolean(MRConfig.IS_MAP_PROCESSOR, false);
@@ -170,8 +179,8 @@ public class TestMROutput {
     MROutput output = new MROutput(outputContext, 2);
     output.initialize();
 
-    assertEquals(false, output.isMapperOutput);
-    assertEquals(false, output.useNewApi);
+    assertFalse(output.isMapperOutput);
+    assertFalse(output.useNewApi);
     assertEquals(org.apache.hadoop.mapred.TextOutputFormat.class, output.oldOutputFormat.getClass());
     assertNull(output.newOutputFormat);
     assertNotNull(output.oldApiTaskAttemptContext);
@@ -181,7 +190,8 @@ public class TestMROutput {
     assertEquals(org.apache.hadoop.mapred.FileOutputCommitter.class, output.committer.getClass());
   }
 
-  @Test(timeout = 5000)
+  @Test
+  @Timeout(value = 5000, unit = TimeUnit.MILLISECONDS)
   public void testNewAPI_SequenceFileOutputFormat() throws Exception {
     JobConf conf = new JobConf();
     conf.setOutputKeyClass(NullWritable.class);
@@ -195,7 +205,7 @@ public class TestMROutput {
         new Configuration(false));
     MROutput output = new MROutput(outputContext, 2);
     output.initialize();
-    assertEquals(true, output.useNewApi);
+    assertTrue(output.useNewApi);
     assertEquals(SequenceFileOutputFormat.class, output.newOutputFormat.getClass());
     assertNull(output.oldOutputFormat);
     assertEquals(NullWritable.class, output.newApiTaskAttemptContext.getOutputKeyClass());
@@ -206,7 +216,8 @@ public class TestMROutput {
     assertEquals(FileOutputCommitter.class, output.committer.getClass());
   }
 
-  @Test(timeout = 5000)
+  @Test
+  @Timeout(value = 5000, unit = TimeUnit.MILLISECONDS)
   public void testOldAPI_SequenceFileOutputFormat() throws Exception {
     JobConf conf = new JobConf();
     conf.setOutputKeyClass(NullWritable.class);
@@ -221,7 +232,7 @@ public class TestMROutput {
         new Configuration(false));
     MROutput output = new MROutput(outputContext, 2);
     output.initialize();
-    assertEquals(false, output.useNewApi);
+    assertFalse(output.useNewApi);
     assertEquals(org.apache.hadoop.mapred.SequenceFileOutputFormat.class, output.oldOutputFormat.getClass());
     assertNull(output.newOutputFormat);
     assertEquals(NullWritable.class, output.oldApiTaskAttemptContext.getOutputKeyClass());
@@ -234,7 +245,8 @@ public class TestMROutput {
 
   // test to try and use the WorkOutputPathOutputFormat - this checks that the getDefaultWorkFile is
   // set while creating recordWriters
-  @Test(timeout = 5000)
+  @Test
+  @Timeout(value = 5000, unit = TimeUnit.MILLISECONDS)
   public void testNewAPI_WorkOutputPathOutputFormat() throws Exception {
     Configuration conf = new Configuration();
     conf.setBoolean(MRConfig.IS_MAP_PROCESSOR, true);
@@ -248,8 +260,8 @@ public class TestMROutput {
     MROutput output = new MROutput(outputContext, 2);
     output.initialize();
 
-    assertEquals(true, output.isMapperOutput);
-    assertEquals(true, output.useNewApi);
+    assertTrue(output.isMapperOutput);
+    assertTrue(output.useNewApi);
     assertEquals(NewAPI_WorkOutputPathReadingOutputFormat.class, output.newOutputFormat.getClass());
     assertNull(output.oldOutputFormat);
     assertNotNull(output.newApiTaskAttemptContext);
@@ -261,7 +273,8 @@ public class TestMROutput {
 
   // test to try and use the WorkOutputPathOutputFormat - this checks that the workOutput path is
   // set while creating recordWriters
-  @Test(timeout = 5000)
+  @Test
+  @Timeout(value = 5000, unit = TimeUnit.MILLISECONDS)
   public void testOldAPI_WorkOutputPathOutputFormat() throws Exception {
     Configuration conf = new Configuration();
     conf.setBoolean(MRConfig.IS_MAP_PROCESSOR, false);
@@ -275,8 +288,8 @@ public class TestMROutput {
     MROutput output = new MROutput(outputContext, 2);
     output.initialize();
 
-    assertEquals(false, output.isMapperOutput);
-    assertEquals(false, output.useNewApi);
+    assertFalse(output.isMapperOutput);
+    assertFalse(output.useNewApi);
     assertEquals(OldAPI_WorkOutputPathReadingOutputFormat.class, output.oldOutputFormat.getClass());
     assertNull(output.newOutputFormat);
     assertNotNull(output.oldApiTaskAttemptContext);
@@ -458,7 +471,7 @@ public class TestMROutput {
 
   }
 
-  @Ignore
+  @Disabled
   @Test
   public void testPerf() throws Exception {
     Configuration conf = new Configuration();

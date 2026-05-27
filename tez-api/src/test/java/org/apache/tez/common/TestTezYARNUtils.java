@@ -19,12 +19,15 @@
 package org.apache.tez.common;
 
 import static org.apache.tez.common.TezYARNUtils.appendToEnvFromInputString;
-import static org.junit.Assert.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import java.io.File;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.TreeMap;
+import java.util.concurrent.TimeUnit;
 
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.util.Shell;
@@ -32,97 +35,114 @@ import org.apache.hadoop.yarn.api.ApplicationConstants.Environment;
 import org.apache.tez.dag.api.TezConfiguration;
 import org.apache.tez.dag.api.TezConstants;
 
-import org.junit.Assert;
-import org.junit.Test;
+import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.Timeout;
 
 public class TestTezYARNUtils {
 
-  @Test(timeout = 5000)
+  @Test
+  @Timeout(value = 5000, unit = TimeUnit.MILLISECONDS)
   public void testAuxClasspath() {
     Configuration conf = new Configuration(false);
     conf.set(TezConfiguration.TEZ_CLUSTER_ADDITIONAL_CLASSPATH_PREFIX, "foobar");
     String classpath = TezYARNUtils.getFrameworkClasspath(conf, true);
-    Assert.assertTrue(classpath.contains("foobar"));
-    Assert.assertTrue(classpath.indexOf("foobar") <
+    assertTrue(classpath.contains("foobar"));
+    assertTrue(classpath.indexOf("foobar") <
         classpath.indexOf(TezConstants.TEZ_TAR_LR_NAME));
-    Assert.assertTrue(classpath.indexOf("foobar") <
+    assertTrue(classpath.indexOf("foobar") <
         classpath.indexOf(Environment.PWD.$()));
   }
 
-  @Test(timeout = 20000)
+  @Test
+  @Timeout(value = 20000, unit = TimeUnit.MILLISECONDS)
   public void testUserClasspathFirstFalse() {
     Configuration conf = new Configuration(false);
     conf.setBoolean(TezConfiguration.TEZ_USER_CLASSPATH_FIRST, false);
     conf.set(TezConfiguration.TEZ_CLUSTER_ADDITIONAL_CLASSPATH_PREFIX, "foobar");
     String classpath = TezYARNUtils.getFrameworkClasspath(conf, true);
-    Assert.assertTrue(classpath.contains("foobar"));
-    Assert.assertTrue(classpath.indexOf("foobar") >
+    assertTrue(classpath.contains("foobar"));
+    assertTrue(classpath.indexOf("foobar") >
         classpath.indexOf(TezConstants.TEZ_TAR_LR_NAME));
-    Assert.assertTrue(classpath.indexOf("foobar") >
+    assertTrue(classpath.indexOf("foobar") >
         classpath.indexOf(Environment.PWD.$()));
   }
 
-  @Test(timeout = 5000)
+  @Test
+  @Timeout(value = 5000, unit = TimeUnit.MILLISECONDS)
   public void testBasicArchiveClasspath() {
     Configuration conf = new Configuration(false);
     String classpath = TezYARNUtils.getFrameworkClasspath(conf, true);
-    Assert.assertTrue(classpath.contains(Environment.PWD.$()));
-    Assert.assertTrue(classpath.contains(Environment.PWD.$() + File.separator + "*"));
-    Assert.assertTrue(classpath.contains(TezConstants.TEZ_TAR_LR_NAME + File.separator + "*"));
-    Assert.assertTrue(classpath.contains(TezConstants.TEZ_TAR_LR_NAME + File.separator
+    assertTrue(classpath.contains(Environment.PWD.$()));
+    assertTrue(classpath.contains(Environment.PWD.$() + File.separator + "*"));
+    assertTrue(classpath.contains(TezConstants.TEZ_TAR_LR_NAME + File.separator + "*"));
+    assertTrue(classpath.contains(TezConstants.TEZ_TAR_LR_NAME + File.separator
         + "lib" + File.separator + "*"));
-    Assert.assertTrue(!classpath.contains(Environment.HADOOP_CONF_DIR.$()));
-    Assert.assertTrue(classpath.indexOf(Environment.PWD.$()) <
+    assertFalse(classpath.contains(Environment.HADOOP_CONF_DIR.$()));
+    assertTrue(classpath.indexOf(Environment.PWD.$()) <
         classpath.indexOf(TezConstants.TEZ_TAR_LR_NAME));
   }
 
-  @Test(timeout = 5000)
+  @Test
+  @Timeout(value = 5000, unit = TimeUnit.MILLISECONDS)
   public void testNoHadoopConfInClasspath() {
     Configuration conf = new Configuration(false);
     conf.setBoolean(TezConfiguration.TEZ_CLASSPATH_ADD_HADOOP_CONF, true);
     String classpath = TezYARNUtils.getFrameworkClasspath(conf, true);
-    Assert.assertTrue(classpath.contains(Environment.PWD.$()));
-    Assert.assertTrue(classpath.contains(Environment.PWD.$() + File.separator + "*"));
-    Assert.assertTrue(classpath.contains(TezConstants.TEZ_TAR_LR_NAME + File.separator + "*"));
-    Assert.assertTrue(classpath.contains(TezConstants.TEZ_TAR_LR_NAME + File.separator
+    assertTrue(classpath.contains(Environment.PWD.$()));
+    assertTrue(classpath.contains(Environment.PWD.$() + File.separator + "*"));
+    assertTrue(classpath.contains(TezConstants.TEZ_TAR_LR_NAME + File.separator + "*"));
+    assertTrue(classpath.contains(TezConstants.TEZ_TAR_LR_NAME + File.separator
         + "lib" + File.separator + "*"));
-    Assert.assertTrue(classpath.contains(Environment.HADOOP_CONF_DIR.$()));
-    Assert.assertTrue(classpath.indexOf(Environment.PWD.$()) <
+    assertTrue(classpath.contains(Environment.HADOOP_CONF_DIR.$()));
+    assertTrue(classpath.indexOf(Environment.PWD.$()) <
         classpath.indexOf(TezConstants.TEZ_TAR_LR_NAME));
-    Assert.assertTrue(classpath.indexOf(TezConstants.TEZ_TAR_LR_NAME) <
+    assertTrue(classpath.indexOf(TezConstants.TEZ_TAR_LR_NAME) <
         classpath.indexOf(Environment.HADOOP_CONF_DIR.$()));
   }
 
-  @Test(timeout = 5000)
+  @Test
+  @Timeout(value = 5000, unit = TimeUnit.MILLISECONDS)
   public void testSetupDefaultEnvironment() {
     Configuration conf = new Configuration(false);
     conf.set(TezConfiguration.TEZ_AM_LAUNCH_ENV, "LD_LIBRARY_PATH=USER_PATH,USER_KEY=USER_VALUE");
-    conf.set(TezConfiguration.TEZ_AM_LAUNCH_CLUSTER_DEFAULT_ENV, "LD_LIBRARY_PATH=DEFAULT_PATH,DEFAULT_KEY=DEFAULT_VALUE");
+    conf.set(
+        TezConfiguration.TEZ_AM_LAUNCH_CLUSTER_DEFAULT_ENV,
+        "LD_LIBRARY_PATH=DEFAULT_PATH,DEFAULT_KEY=DEFAULT_VALUE");
 
     Map<String, String> environment = new TreeMap<String, String>();
-    TezYARNUtils.setupDefaultEnv(environment, conf,
+    TezYARNUtils.setupDefaultEnv(
+        environment,
+        conf,
         TezConfiguration.TEZ_AM_LAUNCH_ENV,
         TezConfiguration.TEZ_AM_LAUNCH_ENV_DEFAULT,
         TezConfiguration.TEZ_AM_LAUNCH_CLUSTER_DEFAULT_ENV,
-        TezConfiguration.TEZ_AM_LAUNCH_CLUSTER_DEFAULT_ENV_DEFAULT, false);
+        TezConfiguration.TEZ_AM_LAUNCH_CLUSTER_DEFAULT_ENV_DEFAULT,
+        false);
 
     String value1 = environment.get("USER_KEY");
-    Assert.assertEquals("User env should merge with default env", "USER_VALUE", value1);
+    assertEquals("USER_VALUE", value1, "User env should merge with default env");
     String value2 = environment.get("DEFAULT_KEY");
-    Assert.assertEquals("User env should merge with default env", "DEFAULT_VALUE", value2);
+    assertEquals("DEFAULT_VALUE", value2, "User env should merge with default env");
     String value3 = environment.get("LD_LIBRARY_PATH");
-    Assert.assertEquals("User env should append default env",
-        Environment.PWD.$() + File.pathSeparator + "USER_PATH" + File.pathSeparator + "DEFAULT_PATH", value3);
-    }
+    assertEquals(
+        Environment.PWD.$()
+            + File.pathSeparator
+            + "USER_PATH"
+            + File.pathSeparator
+            + "DEFAULT_PATH",
+        value3,
+        "User env should append default env");
+  }
 
-  @Test(timeout = 5000)
+  @Test
+  @Timeout(value = 5000, unit = TimeUnit.MILLISECONDS)
   public void testTezLibUrisClasspath() {
     Configuration conf = new Configuration(false);
     conf.set(TezConfiguration.TEZ_LIB_URIS_CLASSPATH, "foobar");
     String classpath = TezYARNUtils.getFrameworkClasspath(conf, true);
-    Assert.assertTrue(classpath.contains("foobar"));
-    Assert.assertTrue(classpath.contains(Environment.PWD.$()));
-    Assert.assertTrue(classpath.indexOf("foobar") >
+    assertTrue(classpath.contains("foobar"));
+    assertTrue(classpath.contains(Environment.PWD.$()));
+    assertTrue(classpath.indexOf("foobar") >
         classpath.indexOf(Environment.PWD.$()));
   }
 

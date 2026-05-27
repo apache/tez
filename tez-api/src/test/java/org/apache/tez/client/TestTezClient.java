@@ -18,12 +18,14 @@
  */
 package org.apache.tez.client;
 
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertFalse;
-import static org.junit.Assert.assertNotNull;
-import static org.junit.Assert.assertNull;
-import static org.junit.Assert.assertTrue;
-import static org.junit.Assert.fail;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertInstanceOf;
+import static org.junit.jupiter.api.Assertions.assertNotNull;
+import static org.junit.jupiter.api.Assertions.assertNull;
+import static org.junit.jupiter.api.Assertions.assertThrows;
+import static org.junit.jupiter.api.Assertions.assertTrue;
+import static org.junit.jupiter.api.Assertions.fail;
 import static org.mockito.Mockito.RETURNS_DEEP_STUBS;
 import static org.mockito.Mockito.any;
 import static org.mockito.Mockito.atLeast;
@@ -99,9 +101,8 @@ import com.google.common.collect.Maps;
 import com.google.protobuf.RpcController;
 import com.google.protobuf.ServiceException;
 
-import org.hamcrest.CoreMatchers;
-import org.junit.Assert;
-import org.junit.Test;
+import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.Timeout;
 import org.mockito.ArgumentCaptor;
 
 public class TestTezClient {
@@ -211,27 +212,36 @@ public class TestTezClient {
     return client;
   }
 
-  @Test (timeout = 5000)
+  @Test
+  @Timeout(value = 5000, unit = TimeUnit.MILLISECONDS)
   public void testTezClientApp() throws Exception {
     testTezClient(false, true, "testTezClientApp");
   }
 
-  @Test (timeout = 5000)
+  @Test
+  @Timeout(value = 5000, unit = TimeUnit.MILLISECONDS)
   public void testTezClientSession() throws Exception {
     testTezClient(true, true, "testTezClientSession");
   }
 
-  @Test (timeout = 5000)
+  @Test
+  @Timeout(value = 5000, unit = TimeUnit.MILLISECONDS)
   public void testTezClientReconnect() throws Exception {
     testTezClientReconnect(true);
   }
 
-  @Test (timeout = 5000, expected = IllegalStateException.class)
+  @Test
+  @Timeout(value = 5000, unit = TimeUnit.MILLISECONDS)
   public void testTezClientReconnectNoSession() throws Exception {
-    testTezClientReconnect(false);
+    assertThrows(
+        IllegalStateException.class,
+        () -> {
+          testTezClientReconnect(false);
+        });
   }
 
-  @Test (timeout = 5000)
+  @Test
+  @Timeout(value = 5000, unit = TimeUnit.MILLISECONDS)
   public void testTezClientSessionLargeDAGPlan() throws Exception {
     // request size is within threshold of being serialized
     _testTezClientSessionLargeDAGPlan(10*1024*1024, 10, 10, false);
@@ -294,7 +304,8 @@ public class TestTezClient {
     }
   }
 
-  @Test (timeout = 5000)
+  @Test
+  @Timeout(value = 5000, unit = TimeUnit.MILLISECONDS)
   public void testGetClient() throws Exception {
     /* BEGIN first TezClient usage without calling stop() */
     TezClientForTest client = testTezClient(true, false, "testGetClient");
@@ -354,7 +365,7 @@ public class TestTezClient {
     if (isSession) {
       verify(client.mockYarnClient, times(1)).submitApplication(captor.capture());
       ApplicationSubmissionContext context = captor.getValue();
-      Assert.assertEquals(3, context.getAMContainerSpec().getLocalResources().size());
+      assertEquals(3, context.getAMContainerSpec().getLocalResources().size());
       assertTrue(context.getAMContainerSpec().getLocalResources().containsKey(
           TezConstants.TEZ_AM_LOCAL_RESOURCES_PB_FILE_NAME));
       assertTrue(context.getAMContainerSpec().getLocalResources().containsKey(
@@ -387,7 +398,7 @@ public class TestTezClient {
     } else {
       verify(client.mockYarnClient, times(1)).submitApplication(captor.capture());
       ApplicationSubmissionContext context = captor.getValue();
-      Assert.assertEquals(4, context.getAMContainerSpec().getLocalResources().size());
+      assertEquals(4, context.getAMContainerSpec().getLocalResources().size());
       assertTrue(context.getAMContainerSpec().getLocalResources().containsKey(
           TezConstants.TEZ_AM_LOCAL_RESOURCES_PB_FILE_NAME));
       assertTrue(context.getAMContainerSpec().getLocalResources().containsKey(
@@ -424,8 +435,8 @@ public class TestTezClient {
       ArgumentCaptor<SubmitDAGRequestProto> captor1 = ArgumentCaptor.forClass(SubmitDAGRequestProto.class);
       verify(client.sessionAmProxy, times(2)).submitDAG(any(), captor1.capture());
       SubmitDAGRequestProto proto = captor1.getValue();
-      Assert.assertEquals(1, proto.getAdditionalAmResources().getLocalResourcesCount());
-      Assert.assertEquals(lrName2, proto.getAdditionalAmResources().getLocalResources(0).getName());
+      assertEquals(1, proto.getAdditionalAmResources().getLocalResourcesCount());
+      assertEquals(lrName2, proto.getAdditionalAmResources().getLocalResources(0).getName());
     } else {
       // new app master
       assertTrue(dagClient.getExecutionContext().contains(appId2.toString()));
@@ -433,7 +444,7 @@ public class TestTezClient {
       verify(client.mockYarnClient, times(2)).submitApplication(captor.capture());
       // additional resource is added
       ApplicationSubmissionContext context = captor.getValue();
-      Assert.assertEquals(5, context.getAMContainerSpec().getLocalResources().size());
+      assertEquals(5, context.getAMContainerSpec().getLocalResources().size());
       assertTrue(context.getAMContainerSpec().getLocalResources().containsKey(
           TezConstants.TEZ_AM_LOCAL_RESOURCES_PB_FILE_NAME));
       assertTrue(context.getAMContainerSpec().getLocalResources().containsKey(
@@ -482,7 +493,7 @@ public class TestTezClient {
     if (isSession) {
       verify(client.mockYarnClient, times(1)).submitApplication(captor.capture());
       ApplicationSubmissionContext context = captor.getValue();
-      Assert.assertEquals(3, context.getAMContainerSpec().getLocalResources().size());
+      assertEquals(3, context.getAMContainerSpec().getLocalResources().size());
       assertTrue(context.getAMContainerSpec().getLocalResources().containsKey(
               TezConstants.TEZ_AM_LOCAL_RESOURCES_PB_FILE_NAME));
       assertTrue(context.getAMContainerSpec().getLocalResources().containsKey(
@@ -550,7 +561,8 @@ public class TestTezClient {
     client2.stop();
   }
 
-  @Test (timeout=5000)
+  @Test
+  @Timeout(value = 5000, unit = TimeUnit.MILLISECONDS)
   public void testPreWarm() throws Exception {
     TezClientForTest client = configureAndCreateTezClient();
     client.start();
@@ -575,7 +587,8 @@ public class TestTezClient {
   }
 
 
-  @Test (timeout=5000)
+  @Test
+  @Timeout(value = 5000, unit = TimeUnit.MILLISECONDS)
   public void testPreWarmCloseStuck() throws Exception {
     TezClientForTest client = configureAndCreateTezClient();
     client.setPrewarmTimeoutMs(10L); // Don't wait too long.
@@ -604,7 +617,8 @@ public class TestTezClient {
                   .setSucceededTaskCount(1).setTotalTaskCount(1).build()).build()).build());
   }
 
-  @Test (timeout=30000)
+  @Test
+  @Timeout(value = 30000, unit = TimeUnit.MILLISECONDS)
   public void testPreWarmWithTimeout() throws Exception {
     long startTime = 0 , endTime = 0;
     TezClientForTest client = configureAndCreateTezClient();
@@ -632,12 +646,11 @@ public class TestTezClient {
       fail("PreWarm should have encountered an Exception!");
     } catch (SessionNotReady te) {
       endTime = Time.monotonicNow();
-      assertTrue("Time taken is not as expected",
-          (endTime - startTime) > timeout);
+      assertTrue((endTime - startTime) > timeout, "Time taken is not as expected");
       verify(spyClient, times(0)).submitDAG(any());
-      Assert.assertTrue("Unexpected Exception message: " + te.getMessage(),
-          te.getMessage().contains("Tez AM not ready"));
-
+      assertTrue(
+          te.getMessage().contains("Tez AM not ready"),
+          "Unexpected Exception message: " + te.getMessage());
     }
 
     when(
@@ -650,8 +663,7 @@ public class TestTezClient {
       startTime = Time.monotonicNow();
       spyClient.preWarm(vertex, timeout, TimeUnit.MILLISECONDS);
       endTime = Time.monotonicNow();
-      assertTrue("Time taken is not as expected",
-          (endTime - startTime) <= timeout);
+      assertTrue((endTime - startTime) <= timeout, "Time taken is not as expected");
       verify(spyClient, times(1)).submitDAG(any());
     } catch (TezException te) {
       fail("PreWarm should have succeeded!");
@@ -685,15 +697,15 @@ public class TestTezClient {
     startTime = Time.monotonicNow();
     spyClient.preWarm(vertex, timeout, TimeUnit.MILLISECONDS);
     endTime = Time.monotonicNow();
-    assertTrue("Time taken is not as expected",
-        (endTime - startTime) <= timeout);
+    assertTrue((endTime - startTime) <= timeout, "Time taken is not as expected");
     verify(spyClient, times(2)).submitDAG(any());
     setClientToReportStoppedDags(client);
     spyClient.stop();
     client.stop();
   }
 
-  @Test (timeout = 10000)
+  @Test
+  @Timeout(value = 10000, unit = TimeUnit.MILLISECONDS)
   public void testMultipleSubmissions() throws Exception {
     testMultipleSubmissionsJob(false);
     testMultipleSubmissionsJob(true);
@@ -735,7 +747,8 @@ public class TestTezClient {
     client2.stop();
   }
 
-  @Test(timeout = 5000)
+  @Test
+  @Timeout(value = 5000, unit = TimeUnit.MILLISECONDS)
   public void testWaitTillReady_Interrupt() throws Exception {
     final TezClientForTest client = configureAndCreateTezClient();
     client.start();
@@ -757,11 +770,12 @@ public class TestTezClient {
     thread.join(250);
     thread.interrupt();
     thread.join();
-    Assert.assertThat(exceptionReference.get(), CoreMatchers.instanceOf(InterruptedException.class));
+    assertInstanceOf(InterruptedException.class, exceptionReference.get());
     client.stop();
   }
 
-  @Test(timeout = 5000)
+  @Test
+  @Timeout(value = 5000, unit = TimeUnit.MILLISECONDS)
   public void testWaitTillReadyAppFailed() throws Exception {
     final TezClientForTest client = configureAndCreateTezClient();
     client.start();
@@ -779,7 +793,8 @@ public class TestTezClient {
     client.stop();
   }
 
-  @Test(timeout = 5000)
+  @Test
+  @Timeout(value = 5000, unit = TimeUnit.MILLISECONDS)
   public void testWaitTillReadyAppFailedNoDiagnostics() throws Exception {
     final TezClientForTest client = configureAndCreateTezClient();
     client.start();
@@ -794,7 +809,8 @@ public class TestTezClient {
     client.stop();
   }
 
-  @Test(timeout = 5000)
+  @Test
+  @Timeout(value = 5000, unit = TimeUnit.MILLISECONDS)
   public void testSubmitDAGAppFailed() throws Exception {
     final TezClientForTest client = configureAndCreateTezClient();
     client.start();
@@ -819,7 +835,8 @@ public class TestTezClient {
     client.stop();
   }
 
-  @Test(timeout = 5000)
+  @Test
+  @Timeout(value = 5000, unit = TimeUnit.MILLISECONDS)
   public void testTezClientCounterLimits() throws YarnException, IOException, ServiceException {
     Limits.reset();
     int defaultCounterLimit = TezConfiguration.TEZ_COUNTERS_MAX_DEFAULT;
@@ -843,7 +860,8 @@ public class TestTezClient {
     }
   }
 
-  @Test(timeout = 5000)
+  @Test
+  @Timeout(value = 5000, unit = TimeUnit.MILLISECONDS)
   public void testClientBuilder() {
     TezConfiguration tezConfWitSession = new TezConfiguration();
     tezConfWitSession.setBoolean(TezConfiguration.TEZ_AM_SESSION_MODE, true);
@@ -914,7 +932,8 @@ public class TestTezClient {
     // No-op class
   }
 
-  @Test(timeout = 5000)
+  @Test
+  @Timeout(value = 5000, unit = TimeUnit.MILLISECONDS)
   public void testInvalidJavaOptsChecker1() throws YarnException, IOException, ServiceException,
       TezException {
     TezConfiguration conf = new TezConfiguration();
@@ -923,7 +942,8 @@ public class TestTezClient {
     client.start();
   }
 
-  @Test(timeout = 5000)
+  @Test
+  @Timeout(value = 5000, unit = TimeUnit.MILLISECONDS)
   public void testInvalidJavaOptsChecker2() throws YarnException, IOException, ServiceException,
       TezException {
     TezConfiguration conf = new TezConfiguration();
@@ -932,7 +952,8 @@ public class TestTezClient {
     client.start();
   }
 
-  @Test(timeout = 5000)
+  @Test
+  @Timeout(value = 5000, unit = TimeUnit.MILLISECONDS)
   public void testStopRetriesUntilTerminalState() throws Exception {
     TezConfiguration conf = new TezConfiguration();
     conf.setBoolean(TezConfiguration.TEZ_CLIENT_ASYNCHRONOUS_STOP, false);
@@ -944,12 +965,13 @@ public class TestTezClient {
     try {
       client.stop();
     } catch (Exception e) {
-      Assert.fail("Expected ApplicationNotFoundException");
+      fail("Expected ApplicationNotFoundException");
     }
     verify(client.mockYarnClient, atLeast(2)).getApplicationReport(client.mockAppId);
   }
 
-  @Test(timeout = 20000)
+  @Test
+  @Timeout(value = 20000, unit = TimeUnit.MILLISECONDS)
   public void testStopRetriesUntilTimeout() throws Exception {
     TezConfiguration conf = new TezConfiguration();
     conf.setBoolean(TezConfiguration.TEZ_CLIENT_ASYNCHRONOUS_STOP, false);
@@ -962,28 +984,30 @@ public class TestTezClient {
     try {
       client.stop();
     } catch (Exception e) {
-      Assert.fail("Stop should complete without exception: " + e);
+      fail("Stop should complete without exception: " + e);
     }
     long end = System.currentTimeMillis();
     verify(client.mockYarnClient, atLeast(2)).getApplicationReport(client.mockAppId);
-    Assert.assertTrue("Stop ended before timeout", end - start > HARD_KILL_TIMEOUT);
+    assertTrue(end - start > HARD_KILL_TIMEOUT, "Stop ended before timeout");
   }
 
-  @Test(timeout = 5000)
+  @Test
+  @Timeout(value = 5000, unit = TimeUnit.MILLISECONDS)
   public void testSubmitHostPopulated() throws YarnException, IOException, ServiceException, TezException {
 
     TezConfiguration conf = new TezConfiguration();
     configureAndCreateTezClient(conf);
     InetAddress ip = InetAddress.getLocalHost();
     if (ip != null) {
-      Assert.assertEquals(ip.getCanonicalHostName(), conf.get(TezConfigurationConstants.TEZ_SUBMIT_HOST));
-      Assert.assertEquals(ip.getHostAddress(), conf.get(TezConfigurationConstants.TEZ_SUBMIT_HOST_ADDRESS));
+      assertEquals(ip.getCanonicalHostName(), conf.get(TezConfigurationConstants.TEZ_SUBMIT_HOST));
+      assertEquals(ip.getHostAddress(), conf.get(TezConfigurationConstants.TEZ_SUBMIT_HOST_ADDRESS));
     } else {
-      Assert.fail("Failed to retrieve local host information");
+      fail("Failed to retrieve local host information");
     }
   }
 
-  @Test(timeout = 5000)
+  @Test
+  @Timeout(value = 5000, unit = TimeUnit.MILLISECONDS)
   public void testClientResubmit() throws Exception {
     TezClientForTest client = configureAndCreateTezClient(null, true, null);
     client.start();
@@ -1002,15 +1026,16 @@ public class TestTezClient {
     for (int i = 0; i < 3; ++i) {
       try {
         client.submitDAG(dag);
-        Assert.fail("Expected TezUncheckedException here.");
+        fail("Expected TezUncheckedException here.");
       } catch(TezUncheckedException ex) {
-        Assert.assertTrue(ex.getMessage().contains("Invalid/conflicting GC options found"));
+        assertTrue(ex.getMessage().contains("Invalid/conflicting GC options found"));
       }
     }
     client.stop();
   }
 
-  @Test(timeout = 10000)
+  @Test
+  @Timeout(value = 10000, unit = TimeUnit.MILLISECONDS)
   public void testMissingYarnAppStatus() throws Exception {
     // verify an app not found exception is thrown when YARN reports a null app status
     ApplicationId appId1 = ApplicationId.newInstance(0, 1);
@@ -1029,7 +1054,8 @@ public class TestTezClient {
     }
   }
 
-  @Test(timeout = 30000)
+  @Test
+  @Timeout(value = 30000, unit = TimeUnit.MILLISECONDS)
   public void testAMClientHeartbeat() throws Exception {
     TezConfiguration conf = new TezConfiguration();
     conf.setInt(TezConfiguration.TEZ_AM_CLIENT_HEARTBEAT_TIMEOUT_SECS, 10);
@@ -1059,7 +1085,8 @@ public class TestTezClient {
     verify(client2.sessionAmProxy, times(0)).getAMStatus(any(), any());
   }
 
-  @Test(timeout = 20000)
+  @Test
+  @Timeout(value = 20000, unit = TimeUnit.MILLISECONDS)
   public void testAMHeartbeatFailOnGetAMProxy_AppNotStarted() throws Exception {
     int amHeartBeatTimeoutSecs = 3;
     TezConfiguration conf = new TezConfiguration();
@@ -1075,7 +1102,8 @@ public class TestTezClient {
     assertFalse(client.getAMKeepAliveService().isTerminated());
   }
 
-  @Test(timeout = 20000)
+  @Test
+  @Timeout(value = 20000, unit = TimeUnit.MILLISECONDS)
   public void testAMHeartbeatFailOnGetAMProxy_AppFailed() throws Exception {
     int amHeartBeatTimeoutSecs = 3;
     TezConfiguration conf = new TezConfiguration();
@@ -1091,7 +1119,8 @@ public class TestTezClient {
     assertTrue(client.getAMKeepAliveService().isTerminated());
   }
 
-  @Test(timeout = 20000)
+  @Test
+  @Timeout(value = 20000, unit = TimeUnit.MILLISECONDS)
   public void testAMHeartbeatFailOnGetAMStatus() throws Exception {
     int amHeartBeatTimeoutSecs = 3;
     TezConfiguration conf = new TezConfiguration();
@@ -1109,7 +1138,8 @@ public class TestTezClient {
   }
 
   //See TEZ-3874
-  @Test(timeout = 5000)
+  @Test
+  @Timeout(value = 5000, unit = TimeUnit.MILLISECONDS)
   public void testYarnZkDeprecatedConf() {
     Configuration conf = new Configuration(false);
     String val = "hostname:2181";

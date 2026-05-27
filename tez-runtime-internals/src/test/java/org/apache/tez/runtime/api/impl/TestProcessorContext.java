@@ -18,15 +18,15 @@
  */
 package org.apache.tez.runtime.api.impl;
 
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertTrue;
+import static org.junit.jupiter.api.Assertions.assertArrayEquals;
+import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.mockito.Mockito.*;
 
 import java.io.IOException;
 import java.nio.ByteBuffer;
-import java.util.Arrays;
 import java.util.Collections;
 import java.util.Map;
+import java.util.concurrent.TimeUnit;
 
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.yarn.api.records.ApplicationId;
@@ -46,11 +46,13 @@ import org.apache.tez.runtime.common.resources.MemoryDistributor;
 
 import com.google.common.collect.Maps;
 
-import org.junit.Test;
+import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.Timeout;
 
 public class TestProcessorContext {
 
-  @Test (timeout = 5000)
+  @Test
+  @Timeout(value = 5000, unit = TimeUnit.MILLISECONDS)
   public void testDagNumber() throws IOException {
     String[] localDirs = new String[] {"dummyLocalDir"};
     int appAttemptNumber = 1;
@@ -111,7 +113,7 @@ public class TestProcessorContext {
     assertEquals(dagName, procContext.getDAGName());
     assertEquals(vertexName, procContext.getTaskVertexName());
     assertEquals(vertexId.getId(), procContext.getTaskVertexIndex());
-    assertTrue(Arrays.equals(localDirs, procContext.getWorkDirs()));
+    assertArrayEquals(localDirs, procContext.getWorkDirs());
 
      // test auto call of notifyProgress
      procContext.setProgress(0.1f);

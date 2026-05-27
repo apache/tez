@@ -18,7 +18,7 @@
  */
 package org.apache.tez.dag.app.dag;
 
-import static org.junit.Assert.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.mockito.Mockito.RETURNS_DEEP_STUBS;
 import static org.mockito.Mockito.any;
 import static org.mockito.Mockito.doReturn;
@@ -32,6 +32,7 @@ import static org.mockito.Mockito.when;
 import java.io.IOException;
 import java.util.Collections;
 import java.util.List;
+import java.util.concurrent.TimeUnit;
 
 import org.apache.hadoop.security.UserGroupInformation;
 import org.apache.hadoop.yarn.api.records.ApplicationId;
@@ -56,7 +57,8 @@ import org.apache.tez.runtime.api.impl.TezEvent;
 
 import com.google.common.collect.Lists;
 
-import org.junit.Test;
+import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.Timeout;
 import org.mockito.ArgumentCaptor;
 
 public class TestRootInputInitializerManager {
@@ -66,7 +68,8 @@ public class TestRootInputInitializerManager {
   // Primarily a failure scenario, when a Task moves back to running from success
   // Order event1, success1, event2, success2
   @SuppressWarnings("unchecked")
-  @Test(timeout = 5000)
+  @Test
+  @Timeout(value = 5000, unit = TimeUnit.MILLISECONDS)
   public void testEventBeforeSuccess() throws Exception {
     InputDescriptor id = mock(InputDescriptor.class);
     InputInitializerDescriptor iid = mock(InputInitializerDescriptor.class);
@@ -141,7 +144,8 @@ public class TestRootInputInitializerManager {
   // Order event1 success1, success2, event2
   // Primarily a failure scenario, when a Task moves back to running from success
   @SuppressWarnings("unchecked")
-  @Test(timeout = 5000)
+  @Test
+  @Timeout(value = 5000, unit = TimeUnit.MILLISECONDS)
   public void testSuccessBeforeEvent() throws Exception {
     InputDescriptor id = mock(InputDescriptor.class);
     InputInitializerDescriptor iid = mock(InputInitializerDescriptor.class);
@@ -213,7 +217,8 @@ public class TestRootInputInitializerManager {
   }
 
 
-  @Test (timeout = 5000)
+  @Test
+  @Timeout(value = 5000, unit = TimeUnit.MILLISECONDS)
   public void testCorrectUgiUsage() throws TezException, InterruptedException {
     Vertex vertex = mock(Vertex.class);
     doReturn(mock(TezVertexID.class)).when(vertex).getVertexId();

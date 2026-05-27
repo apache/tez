@@ -18,13 +18,15 @@
  */
 package org.apache.tez.test;
 
+import static org.junit.jupiter.api.Assertions.assertEquals;
+
 import java.io.IOException;
 
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.yarn.conf.YarnConfiguration;
 
-import org.junit.Assert;
-import org.junit.Test;
+import org.junit.jupiter.api.Test;
+
 
 public class TestMiniTezCluster {
 
@@ -35,7 +37,7 @@ public class TestMiniTezCluster {
     tezMiniCluster.start();
 
     // overrides if not set
-    Assert.assertEquals(99.0, tezMiniCluster.getConfig()
+    assertEquals(99.0, tezMiniCluster.getConfig()
         .getFloat(YarnConfiguration.NM_MAX_PER_DISK_UTILIZATION_PERCENTAGE, -1), 0.00001);
 
     tezMiniCluster.close();
@@ -47,7 +49,7 @@ public class TestMiniTezCluster {
     tezMiniCluster.start();
 
     // respects provided non-default value
-    Assert.assertEquals(50.0, tezMiniCluster.getConfig()
+    assertEquals(50.0, tezMiniCluster.getConfig()
         .getFloat(YarnConfiguration.NM_MAX_PER_DISK_UTILIZATION_PERCENTAGE, -1), 0.00001);
 
     tezMiniCluster.close();

@@ -18,19 +18,23 @@
  */
 package org.apache.tez.mapreduce.hadoop;
 
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertTrue;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertTrue;
+
+import java.util.concurrent.TimeUnit;
 
 import org.apache.hadoop.io.IntWritable;
 import org.apache.hadoop.io.LongWritable;
 import org.apache.hadoop.mapred.JobConf;
 import org.apache.tez.runtime.library.common.ConfigUtils;
 
-import org.junit.Test;
+import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.Timeout;
 
 public class TestConfigTranslationMRToTez {
 
-  @Test(timeout = 5000)
+  @Test
+  @Timeout(value = 5000, unit = TimeUnit.MILLISECONDS)
   // Tests derived keys - i.e. the actual key is not set, but the value is
   // derived from a fallback key.
   public void testComplexKeys() {
@@ -50,7 +54,8 @@ public class TestConfigTranslationMRToTez {
         .getIntermediateInputKeyComparator(confVertex1).getClass().getName());
   }
 
-  @Test(timeout = 5000)
+  @Test
+  @Timeout(value = 5000, unit = TimeUnit.MILLISECONDS)
   public void testMRToTezKeyTranslation() {
     JobConf confVertex1 = new JobConf();
     confVertex1.set(MRJobConfig.MAP_OUTPUT_KEY_CLASS,

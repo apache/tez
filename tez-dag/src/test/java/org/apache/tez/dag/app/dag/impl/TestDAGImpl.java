@@ -18,6 +18,10 @@
  */
 package org.apache.tez.dag.app.dag.impl;
 
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertNotNull;
+import static org.junit.jupiter.api.Assertions.assertSame;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.Mockito.any;
 import static org.mockito.Mockito.anyBoolean;
 import static org.mockito.Mockito.anyInt;
@@ -39,6 +43,7 @@ import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
 import java.util.concurrent.Callable;
+import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.locks.Condition;
 import java.util.concurrent.locks.ReentrantLock;
@@ -81,6 +86,7 @@ import org.apache.tez.dag.api.TezConstants;
 import org.apache.tez.dag.api.TezException;
 import org.apache.tez.dag.api.UserPayload;
 import org.apache.tez.dag.api.client.DAGStatus;
+import org.apache.tez.dag.api.client.DAGStatus.State;
 import org.apache.tez.dag.api.client.DAGStatusBuilder;
 import org.apache.tez.dag.api.client.StatusGetOpts;
 import org.apache.tez.dag.api.oldrecords.TaskState;
@@ -159,14 +165,12 @@ import com.google.common.util.concurrent.ListenableFuture;
 import com.google.common.util.concurrent.ListeningExecutorService;
 import com.google.protobuf.ByteString;
 
-import org.junit.After;
-import org.junit.Assert;
-import org.junit.Before;
-import org.junit.BeforeClass;
-import org.junit.Ignore;
-import org.junit.Rule;
-import org.junit.Test;
-import org.junit.rules.TestName;
+import org.junit.jupiter.api.AfterEach;
+import org.junit.jupiter.api.BeforeAll;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Disabled;
+import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.Timeout;
 import org.mockito.invocation.InvocationOnMock;
 import org.mockito.stubbing.Answer;
 import org.slf4j.Logger;
@@ -174,8 +178,8 @@ import org.slf4j.LoggerFactory;
 
 public class TestDAGImpl {
 
-  @Rule
-  public TestName testName = new TestName();
+
+
 
   private static final Logger LOG = LoggerFactory.getLogger(TestDAGImpl.class);
   private DAGPlan dagPlan;
@@ -852,20 +856,20 @@ public class TestDAGImpl {
     return dag;
   }
 
-  @BeforeClass
+  @BeforeAll
   public static void beforeClass() {
     MockDNSToSwitchMapping.initializeMockRackResolver();
   }
 
   @SuppressWarnings({ "unchecked", "rawtypes" })
-  @Before
-  public void setup() {
+  @BeforeEach
+  public void setup(org.junit.jupiter.api.TestInfo testInfo) {
     conf = new Configuration();
     conf.setBoolean(TezConfiguration.TEZ_AM_CONTAINER_REUSE_ENABLED, false);
     appAttemptId = ApplicationAttemptId.newInstance(
         ApplicationId.newInstance(100, 1), 1);
     dagId = TezDAGID.getInstance(appAttemptId.getApplicationId(), 1);
-    Assert.assertNotNull(dagId);
+    assertNotNull(dagId);
     dagPlan = createTestDAGPlan();
     dispatcher = new DrainDispatcher();
     fsTokens = new Credentials();
@@ -927,7 +931,7 @@ public class TestDAGImpl {
     doReturn(defaultShim).when(groupAppContext).getHadoopShim();
 
     groupDagId = TezDAGID.getInstance(appAttemptId.getApplicationId(), 3);
-    groupDagPlan = createGroupDAGPlan(testName.getMethodName());
+    groupDagPlan = createGroupDAGPlan(testInfo.getTestMethod().get().getName());
     groupDag = new DAGImpl(groupDagId, conf, groupDagPlan,
         dispatcher.getEventHandler(), taskCommunicatorManagerInterface,
         fsTokens, clock, "user", thh,
@@ -959,7 +963,7 @@ public class TestDAGImpl {
     dispatcher.start();
   }
 
-  @After
+  @AfterEach
   public void teardown() {
     dispatcher.await();
     dispatcher.stop();
@@ -1021,7 +1025,7 @@ public class TestDAGImpl {
   private void initDAG(DAGImpl impl) {
     impl.handle(
         new DAGEvent(impl.getID(), DAGEventType.DAG_INIT));
-    Assert.assertEquals(DAGState.INITED, impl.getState());
+    assertEquals(DAGState.INITED, impl.getState());
   }
 
   @SuppressWarnings("unchecked")
@@ -1029,28 +1033,31 @@ public class TestDAGImpl {
     dispatcher.getEventHandler().handle(
         new DAGEventStartDag(impl.getID(), null));
     dispatcher.await();
-    Assert.assertEquals(DAGState.RUNNING, impl.getState());
+    assertEquals(DAGState.RUNNING, impl.getState());
   }
 
-  @Test(timeout = 5000)
+  @Test
+  @Timeout(value = 5000, unit = TimeUnit.MILLISECONDS)
   public void testDAGInit() {
     initDAG(dag);
-    Assert.assertEquals(6, dag.getTotalVertices());
+    assertEquals(6, dag.getTotalVertices());
   }
 
-  @Test(timeout = 5000)
+  @Test
+  @Timeout(value = 5000, unit = TimeUnit.MILLISECONDS)
   public void testDAGInitFailed() {
     setupDAGWithCustomEdge(ExceptionLocation.Initialize);
     dagWithCustomEdge.handle(
         new DAGEvent(dagWithCustomEdge.getID(), DAGEventType.DAG_INIT));
-    Assert.assertEquals(DAGState.FAILED, dagWithCustomEdge.getState());
+    assertEquals(DAGState.FAILED, dagWithCustomEdge.getState());
     // START event is followed after INIT event
     dagWithCustomEdge.handle(new DAGEvent(dagWithCustomEdge.getID(), DAGEventType.DAG_START));
     dispatcher.await();
-    Assert.assertEquals(DAGState.FAILED, dagWithCustomEdge.getState());
+    assertEquals(DAGState.FAILED, dagWithCustomEdge.getState());
   }
 
-  @Test(timeout = 5000)
+  @Test
+  @Timeout(value = 5000, unit = TimeUnit.MILLISECONDS)
   public void testDAGInitFailedDuetoInvalidResource() {
     // cluster maxContainerCapability is less than the vertex resource request
     ClusterInfo clusterInfo = new ClusterInfo(Resource.newInstance(512,10));
@@ -1058,13 +1065,14 @@ public class TestDAGImpl {
     dag.handle(
         new DAGEvent(dag.getID(), DAGEventType.DAG_INIT));
     dispatcher.await();
-    Assert.assertEquals(DAGState.FAILED, dag.getState());
-    Assert.assertEquals(DAGTerminationCause.INIT_FAILURE, dag.getTerminationCause());
-    Assert.assertTrue(StringUtils.join(dag.getDiagnostics(), ",")
+    assertEquals(DAGState.FAILED, dag.getState());
+    assertEquals(DAGTerminationCause.INIT_FAILURE, dag.getTerminationCause());
+    assertTrue(StringUtils.join(dag.getDiagnostics(), ",")
         .contains("Vertex's TaskResource is beyond the cluster container capability"));
   }
 
-  @Test(timeout = 5000)
+  @Test
+  @Timeout(value = 5000, unit = TimeUnit.MILLISECONDS)
   public void testDAGStart() {
     initDAG(dag);
     startDAG(dag);
@@ -1073,15 +1081,15 @@ public class TestDAGImpl {
     for (int i = 0 ; i < 6; ++i ) {
       TezVertexID vId = TezVertexID.getInstance(dagId, i);
       Vertex v = dag.getVertex(vId);
-      Assert.assertEquals(VertexState.RUNNING, v.getState());
+      assertEquals(VertexState.RUNNING, v.getState());
       if (i < 2) {
-        Assert.assertEquals(0, v.getDistanceFromRoot());
+        assertEquals(0, v.getDistanceFromRoot());
       } else if (i == 2) {
-        Assert.assertEquals(1, v.getDistanceFromRoot());
+        assertEquals(1, v.getDistanceFromRoot());
       } else if ( i > 2 && i < 5) {
-        Assert.assertEquals(2, v.getDistanceFromRoot());
+        assertEquals(2, v.getDistanceFromRoot());
       } else if (i == 5) {
-        Assert.assertEquals(3, v.getDistanceFromRoot());
+        assertEquals(3, v.getDistanceFromRoot());
       }
     }
 
@@ -1092,7 +1100,8 @@ public class TestDAGImpl {
     }
   }
 
-  @Test(timeout = 5000)
+  @Test
+  @Timeout(value = 5000, unit = TimeUnit.MILLISECONDS)
   public void testNonExistEdgeManagerPlugin() {
     dagPlan = createDAGWithNonExistEdgeManager();
     dag = new DAGImpl(dagId, conf, dagPlan,
@@ -1102,13 +1111,14 @@ public class TestDAGImpl {
     doReturn(dag).when(appContext).getCurrentDAG();
 
     dag.handle(new DAGEvent(dagId, DAGEventType.DAG_INIT));
-    Assert.assertEquals(DAGState.FAILED, dag.getState());
-    Assert.assertEquals(DAGTerminationCause.INIT_FAILURE, dag.getTerminationCause());
-    Assert.assertTrue(StringUtils.join(dag.getDiagnostics(), "")
+    assertEquals(DAGState.FAILED, dag.getState());
+    assertEquals(DAGTerminationCause.INIT_FAILURE, dag.getTerminationCause());
+    assertTrue(StringUtils.join(dag.getDiagnostics(), "")
         .contains("java.lang.ClassNotFoundException: non-exist-edge-manager"));
   }
 
-  @Test (timeout = 5000)
+  @Test
+  @Timeout(value = 5000, unit = TimeUnit.MILLISECONDS)
   public void testNonExistDAGScheduler() {
     conf.set(TezConfiguration.TEZ_AM_DAG_SCHEDULER_CLASS, "non-exist-dag-scheduler");
     dag = new DAGImpl(dagId, conf, dagPlan,
@@ -1118,20 +1128,21 @@ public class TestDAGImpl {
     doReturn(dag).when(appContext).getCurrentDAG();
 
     dag.handle(new DAGEvent(dag.getID(), DAGEventType.DAG_INIT));
-    Assert.assertEquals(DAGState.FAILED, dag.getState());
-    Assert.assertEquals(DAGState.FAILED, dag.getState());
-    Assert.assertEquals(DAGTerminationCause.INIT_FAILURE, dag.getTerminationCause());
-    Assert.assertTrue(StringUtils.join(dag.getDiagnostics(), "")
+    assertEquals(DAGState.FAILED, dag.getState());
+    assertEquals(DAGState.FAILED, dag.getState());
+    assertEquals(DAGTerminationCause.INIT_FAILURE, dag.getTerminationCause());
+    assertTrue(StringUtils.join(dag.getDiagnostics(), "")
         .contains("java.lang.ClassNotFoundException: non-exist-dag-scheduler"));
   }
 
   @SuppressWarnings("unchecked")
-  @Test(timeout = 5000)
+  @Test
+  @Timeout(value = 5000, unit = TimeUnit.MILLISECONDS)
   public void testVertexCompletion() {
     initDAG(dag);
-    Assert.assertTrue(0.0f == dag.getCompletedTaskProgress());
+    assertEquals(0.0f, dag.getCompletedTaskProgress());
     startDAG(dag);
-    Assert.assertTrue(0.0f == dag.getCompletedTaskProgress());
+    assertEquals(0.0f, dag.getCompletedTaskProgress());
     dispatcher.await();
 
     TezVertexID vId = TezVertexID.getInstance(dagId, 1);
@@ -1142,16 +1153,17 @@ public class TestDAGImpl {
         TezTaskID.getInstance(vId, 1), TaskState.SUCCEEDED));
     dispatcher.await();
 
-    Assert.assertEquals(VertexState.SUCCEEDED, v.getState());
-    Assert.assertEquals(1, dag.getSuccessfulVertices());
+    assertEquals(VertexState.SUCCEEDED, v.getState());
+    assertEquals(1, dag.getSuccessfulVertices());
 
     // 2 tasks completed, total plan has 11 vertices
-    Assert.assertEquals((float) 2 / 11,
+    assertEquals((float) 2 / 11,
         dag.getCompletedTaskProgress(), 0.05);
   }
 
   @SuppressWarnings("unchecked")
-  @Test(timeout = 5000)
+  @Test
+  @Timeout(value = 5000, unit = TimeUnit.MILLISECONDS)
   public void testEdgeManager_GetNumDestinationTaskPhysicalInputs() {
     setupDAGWithCustomEdge(ExceptionLocation.GetNumDestinationTaskPhysicalInputs);
     dispatcher.getEventHandler().handle(
@@ -1162,11 +1174,12 @@ public class TestDAGImpl {
 
     VertexImpl v2 = (VertexImpl)dagWithCustomEdge.getVertex("vertex2");
     String diag = StringUtils.join(v2.getDiagnostics(), ",");
-    Assert.assertTrue(diag.contains(ExceptionLocation.GetNumDestinationTaskPhysicalInputs.name()));
+    assertTrue(diag.contains(ExceptionLocation.GetNumDestinationTaskPhysicalInputs.name()));
   }
 
   @SuppressWarnings("unchecked")
-  @Test(timeout = 5000)
+  @Test
+  @Timeout(value = 5000, unit = TimeUnit.MILLISECONDS)
   public void testEdgeManager_GetNumSourceTaskPhysicalOutputs() {
     setupDAGWithCustomEdge(ExceptionLocation.GetNumSourceTaskPhysicalOutputs);
     dispatcher.getEventHandler().handle(
@@ -1176,15 +1189,16 @@ public class TestDAGImpl {
     dispatcher.await();
     // After TEZ-1711, all task attempts of v1 fail which result in task fail, and finally
     // dag failed.
-    Assert.assertEquals(DAGState.FAILED, dagWithCustomEdge.getState());
+    assertEquals(DAGState.FAILED, dagWithCustomEdge.getState());
 
     VertexImpl v1 = (VertexImpl)dagWithCustomEdge.getVertex("vertex1");
     String diag = StringUtils.join(v1.getDiagnostics(), ",");
-    Assert.assertTrue(diag.contains(ExceptionLocation.GetNumSourceTaskPhysicalOutputs.name()));
+    assertTrue(diag.contains(ExceptionLocation.GetNumSourceTaskPhysicalOutputs.name()));
   }
 
   @SuppressWarnings("unchecked")
-  @Test(timeout = 5000)
+  @Test
+  @Timeout(value = 5000, unit = TimeUnit.MILLISECONDS)
   public void testEdgeManager_RouteDataMovementEventToDestination() {
     setupDAGWithCustomEdge(ExceptionLocation.RouteDataMovementEventToDestination);
     dispatcher.getEventHandler().handle(
@@ -1192,7 +1206,7 @@ public class TestDAGImpl {
     dispatcher.getEventHandler().handle(new DAGEventStartDag(dagWithCustomEdge.getID(),
         null));
     dispatcher.await();
-    Assert.assertEquals(DAGState.RUNNING, dagWithCustomEdge.getState());
+    assertEquals(DAGState.RUNNING, dagWithCustomEdge.getState());
 
     VertexImpl v1 = (VertexImpl)dagWithCustomEdge.getVertex("vertex1");
     VertexImpl v2 = (VertexImpl)dagWithCustomEdge.getVertex("vertex2");
@@ -1208,14 +1222,15 @@ public class TestDAGImpl {
     v2.getTaskAttemptTezEvents(ta1.getTaskAttemptID(), 0, 0, 1000);
     dispatcher.await();
 
-    Assert.assertEquals(VertexState.FAILED, v2.getState());
-    Assert.assertEquals(VertexState.KILLED, v1.getState());
+    assertEquals(VertexState.FAILED, v2.getState());
+    assertEquals(VertexState.KILLED, v1.getState());
     String diag = StringUtils.join(v2.getDiagnostics(), ",");
-    Assert.assertTrue(diag.contains(ExceptionLocation.RouteDataMovementEventToDestination.name()));
+    assertTrue(diag.contains(ExceptionLocation.RouteDataMovementEventToDestination.name()));
   }
 
   @SuppressWarnings("unchecked")
-  @Test(timeout = 5000)
+  @Test
+  @Timeout(value = 5000, unit = TimeUnit.MILLISECONDS)
   public void testEdgeManager_RouteDataMovementEventToDestinationWithLegacyRouting() {
     // Remove after legacy routing is removed
     setupDAGWithCustomEdge(ExceptionLocation.RouteDataMovementEventToDestination, true);
@@ -1224,7 +1239,7 @@ public class TestDAGImpl {
     dispatcher.getEventHandler().handle(new DAGEventStartDag(dagWithCustomEdge.getID(),
         null));
     dispatcher.await();
-    Assert.assertEquals(DAGState.RUNNING, dagWithCustomEdge.getState());
+    assertEquals(DAGState.RUNNING, dagWithCustomEdge.getState());
 
     VertexImpl v1 = (VertexImpl)dagWithCustomEdge.getVertex("vertex1");
     VertexImpl v2 = (VertexImpl)dagWithCustomEdge.getVertex("vertex2");
@@ -1240,14 +1255,15 @@ public class TestDAGImpl {
         new VertexEventRouteEvent(v2.getVertexId(), Lists.newArrayList(tezEvent)));
     dispatcher.await();
 
-    Assert.assertEquals(VertexState.FAILED, v2.getState());
-    Assert.assertEquals(VertexState.KILLED, v1.getState());
+    assertEquals(VertexState.FAILED, v2.getState());
+    assertEquals(VertexState.KILLED, v1.getState());
     String diag = StringUtils.join(v2.getDiagnostics(), ",");
-    Assert.assertTrue(diag.contains(ExceptionLocation.RouteDataMovementEventToDestination.name()));
+    assertTrue(diag.contains(ExceptionLocation.RouteDataMovementEventToDestination.name()));
   }
 
   @SuppressWarnings("unchecked")
-  @Test(timeout = 5000)
+  @Test
+  @Timeout(value = 5000, unit = TimeUnit.MILLISECONDS)
   public void testEdgeManager_RouteInputSourceTaskFailedEventToDestinationLegacyRouting() {
     // Remove after legacy routing is removed
     setupDAGWithCustomEdge(ExceptionLocation.RouteInputSourceTaskFailedEventToDestination, true);
@@ -1256,7 +1272,7 @@ public class TestDAGImpl {
     dispatcher.getEventHandler().handle(new DAGEventStartDag(dagWithCustomEdge.getID(),
         null));
     dispatcher.await();
-    Assert.assertEquals(DAGState.RUNNING, dagWithCustomEdge.getState());
+    assertEquals(DAGState.RUNNING, dagWithCustomEdge.getState());
 
     VertexImpl v1 = (VertexImpl)dagWithCustomEdge.getVertex("vertex1");
     VertexImpl v2 = (VertexImpl)dagWithCustomEdge.getVertex("vertex2");
@@ -1271,15 +1287,16 @@ public class TestDAGImpl {
     dispatcher.await();
     v2.getTaskAttemptTezEvents(ta1.getTaskAttemptID(), 0, 0, 1000);
     dispatcher.await();
-    Assert.assertEquals(VertexState.FAILED, v2.getState());
+    assertEquals(VertexState.FAILED, v2.getState());
 
-    Assert.assertEquals(VertexState.KILLED, v1.getState());
+    assertEquals(VertexState.KILLED, v1.getState());
     String diag = StringUtils.join(v2.getDiagnostics(), ",");
-    Assert.assertTrue(diag.contains(ExceptionLocation.RouteInputSourceTaskFailedEventToDestination.name()));
+    assertTrue(diag.contains(ExceptionLocation.RouteInputSourceTaskFailedEventToDestination.name()));
   }
 
   @SuppressWarnings("unchecked")
-  @Test(timeout = 5000)
+  @Test
+  @Timeout(value = 5000, unit = TimeUnit.MILLISECONDS)
   public void testEdgeManager_GetNumDestinationConsumerTasks() {
     setupDAGWithCustomEdge(ExceptionLocation.GetNumDestinationConsumerTasks);
     dispatcher.getEventHandler().handle(
@@ -1287,7 +1304,7 @@ public class TestDAGImpl {
     dispatcher.getEventHandler().handle(new DAGEventStartDag(dagWithCustomEdge.getID(),
         null));
     dispatcher.await();
-    Assert.assertEquals(DAGState.RUNNING, dagWithCustomEdge.getState());
+    assertEquals(DAGState.RUNNING, dagWithCustomEdge.getState());
 
     VertexImpl v1 = (VertexImpl)dagWithCustomEdge.getVertex("vertex1");
     VertexImpl v2 = (VertexImpl)dagWithCustomEdge.getVertex("vertex2");
@@ -1303,14 +1320,15 @@ public class TestDAGImpl {
         new VertexEventRouteEvent(v2.getVertexId(), Lists.newArrayList(tezEvent)));
     dispatcher.await();
     //
-    Assert.assertEquals(VertexState.FAILED, v2.getState());
-    Assert.assertEquals(VertexState.KILLED, v1.getState());
+    assertEquals(VertexState.FAILED, v2.getState());
+    assertEquals(VertexState.KILLED, v1.getState());
     String diag = StringUtils.join(v2.getDiagnostics(), ",");
-    Assert.assertTrue(diag.contains(ExceptionLocation.GetNumDestinationConsumerTasks.name()));
+    assertTrue(diag.contains(ExceptionLocation.GetNumDestinationConsumerTasks.name()));
   }
 
   @SuppressWarnings("unchecked")
-  @Test(timeout = 5000)
+  @Test
+  @Timeout(value = 5000, unit = TimeUnit.MILLISECONDS)
   public void testEdgeManager_RouteInputErrorEventToSource() {
     setupDAGWithCustomEdge(ExceptionLocation.RouteInputErrorEventToSource);
     dispatcher.getEventHandler().handle(
@@ -1318,7 +1336,7 @@ public class TestDAGImpl {
     dispatcher.getEventHandler().handle(new DAGEventStartDag(dagWithCustomEdge.getID(),
         null));
     dispatcher.await();
-    Assert.assertEquals(DAGState.RUNNING, dagWithCustomEdge.getState());
+    assertEquals(DAGState.RUNNING, dagWithCustomEdge.getState());
 
     VertexImpl v1 = (VertexImpl)dagWithCustomEdge.getVertex("vertex1");
     VertexImpl v2 = (VertexImpl)dagWithCustomEdge.getVertex("vertex2");
@@ -1332,14 +1350,15 @@ public class TestDAGImpl {
     dispatcher.getEventHandler().handle(new VertexEventRouteEvent(v2.getVertexId(), Lists.newArrayList(tezEvent)));
     dispatcher.await();
     //
-    Assert.assertEquals(VertexState.FAILED, v2.getState());
-    Assert.assertEquals(VertexState.KILLED, v1.getState());
+    assertEquals(VertexState.FAILED, v2.getState());
+    assertEquals(VertexState.KILLED, v1.getState());
     String diag = StringUtils.join(v2.getDiagnostics(), ",");
-    Assert.assertTrue(diag.contains(ExceptionLocation.RouteInputErrorEventToSource.name()));
+    assertTrue(diag.contains(ExceptionLocation.RouteInputErrorEventToSource.name()));
   }
 
   @SuppressWarnings("unchecked")
-  @Test(timeout = 5000)
+  @Test
+  @Timeout(value = 5000, unit = TimeUnit.MILLISECONDS)
   public void testGroupDAGCompletionWithCommitSuccess() {
     // should have only 2 commits. 1 vertex3 commit and 1 group commit.
     initDAG(groupDag);
@@ -1351,18 +1370,19 @@ public class TestDAGImpl {
       dispatcher.getEventHandler().handle(new VertexEventTaskCompleted(
           TezTaskID.getInstance(v.getVertexId(), 0), TaskState.SUCCEEDED));
       dispatcher.await();
-      Assert.assertEquals(VertexState.SUCCEEDED, v.getState());
-      Assert.assertEquals(i+1, groupDag.getSuccessfulVertices());
+      assertEquals(VertexState.SUCCEEDED, v.getState());
+      assertEquals(i+1, groupDag.getSuccessfulVertices());
     }
 
-    Assert.assertEquals(3, groupDag.getSuccessfulVertices());
-    Assert.assertTrue(1.0f == groupDag.getCompletedTaskProgress());
-    Assert.assertEquals(DAGState.SUCCEEDED, groupDag.getState());
-    Assert.assertEquals(2, TotalCountingOutputCommitter.totalCommitCounter);
+    assertEquals(3, groupDag.getSuccessfulVertices());
+    assertEquals(1.0f, groupDag.getCompletedTaskProgress());
+    assertEquals(DAGState.SUCCEEDED, groupDag.getState());
+    assertEquals(2, TotalCountingOutputCommitter.totalCommitCounter);
   }
 
   @SuppressWarnings("unchecked")
-  @Test(timeout = 5000)
+  @Test
+  @Timeout(value = 5000, unit = TimeUnit.MILLISECONDS)
   public void testGroupDAGWithVertexReRunning() {
     groupDag.getConf().setBoolean(TezConfiguration.TEZ_AM_COMMIT_ALL_OUTPUTS_ON_DAG_SUCCESS, false);
     initDAG(groupDag);
@@ -1377,18 +1397,19 @@ public class TestDAGImpl {
         new DAGEventVertexCompleted(v2.getVertexId(), VertexState.SUCCEEDED));
     dispatcher.await();
     // commit should not happen due to vertex-rerunning
-    Assert.assertEquals(0, TotalCountingOutputCommitter.totalCommitCounter);
+    assertEquals(0, TotalCountingOutputCommitter.totalCommitCounter);
 
     dispatcher.getEventHandler().handle(
         new DAGEventVertexCompleted(v1.getVertexId(), VertexState.SUCCEEDED));
     dispatcher.await();
     // commit happen
-    Assert.assertEquals(1, TotalCountingOutputCommitter.totalCommitCounter);
-    Assert.assertEquals(2, groupDag.getSuccessfulVertices());
+    assertEquals(1, TotalCountingOutputCommitter.totalCommitCounter);
+    assertEquals(2, groupDag.getSuccessfulVertices());
   }
 
   @SuppressWarnings("unchecked")
-  @Test(timeout = 5000)
+  @Test
+  @Timeout(value = 5000, unit = TimeUnit.MILLISECONDS)
   public void testGroupDAGWithVertexReRunningAfterCommit() {
     groupDag.getConf().setBoolean(TezConfiguration.TEZ_AM_COMMIT_ALL_OUTPUTS_ON_DAG_SUCCESS, false);
     initDAG(groupDag);
@@ -1401,17 +1422,18 @@ public class TestDAGImpl {
     dispatcher.getEventHandler().handle(new DAGEventVertexCompleted(v2.getVertexId(), VertexState.SUCCEEDED));
     dispatcher.await();
     // vertex group commit happens
-    Assert.assertEquals(1, TotalCountingOutputCommitter.totalCommitCounter);
+    assertEquals(1, TotalCountingOutputCommitter.totalCommitCounter);
 
     // dag failed when vertex re-run happens after vertex group commit is done.
     dispatcher.getEventHandler().handle(new DAGEventVertexReRunning(v1.getVertexId()));
     dispatcher.await();
-    Assert.assertEquals(DAGState.FAILED, groupDag.getState());
-    Assert.assertEquals(DAGTerminationCause.VERTEX_RERUN_AFTER_COMMIT, groupDag.getTerminationCause());
+    assertEquals(DAGState.FAILED, groupDag.getState());
+    assertEquals(DAGTerminationCause.VERTEX_RERUN_AFTER_COMMIT, groupDag.getTerminationCause());
   }
 
   @SuppressWarnings("unchecked")
-  @Test(timeout = 5000)
+  @Test
+  @Timeout(value = 5000, unit = TimeUnit.MILLISECONDS)
   public void testDAGCompletionWithCommitSuccess() {
     // all vertices completed -> DAG completion and commit
     initDAG(mrrDag);
@@ -1423,18 +1445,18 @@ public class TestDAGImpl {
       dispatcher.getEventHandler().handle(new VertexEventTaskCompleted(
           TezTaskID.getInstance(v.getVertexId(), 0), TaskState.SUCCEEDED));
       dispatcher.await();
-      Assert.assertEquals(VertexState.SUCCEEDED, v.getState());
-      Assert.assertEquals(i+1, mrrDag.getSuccessfulVertices());
+      assertEquals(VertexState.SUCCEEDED, v.getState());
+      assertEquals(i+1, mrrDag.getSuccessfulVertices());
     }
 
     // no commit yet
     for (Vertex v : mrrDag.vertices.values()) {
       for (OutputCommitter c : v.getOutputCommitters().values()) {
         CountingOutputCommitter committer= (CountingOutputCommitter) c;
-        Assert.assertEquals(0, committer.abortCounter);
-        Assert.assertEquals(0, committer.commitCounter);
-        Assert.assertEquals(1, committer.initCounter);
-        Assert.assertEquals(1, committer.setupCounter);
+        assertEquals(0, committer.abortCounter);
+        assertEquals(0, committer.commitCounter);
+        assertEquals(1, committer.initCounter);
+        assertEquals(1, committer.setupCounter);
       }
     }
 
@@ -1443,23 +1465,24 @@ public class TestDAGImpl {
     dispatcher.getEventHandler().handle(new VertexEventTaskCompleted(
         TezTaskID.getInstance(v.getVertexId(), 0), TaskState.SUCCEEDED));
     dispatcher.await();
-    Assert.assertEquals(VertexState.SUCCEEDED, v.getState());
-    Assert.assertEquals(3, mrrDag.getSuccessfulVertices());
-    Assert.assertEquals(DAGState.SUCCEEDED, mrrDag.getState());
+    assertEquals(VertexState.SUCCEEDED, v.getState());
+    assertEquals(3, mrrDag.getSuccessfulVertices());
+    assertEquals(DAGState.SUCCEEDED, mrrDag.getState());
 
     for (Vertex vertex : mrrDag.vertices.values()) {
       for (OutputCommitter c : vertex.getOutputCommitters().values()) {
         CountingOutputCommitter committer= (CountingOutputCommitter) c;
-        Assert.assertEquals(0, committer.abortCounter);
-        Assert.assertEquals(1, committer.commitCounter);
-        Assert.assertEquals(1, committer.initCounter);
-        Assert.assertEquals(1, committer.setupCounter);
+        assertEquals(0, committer.abortCounter);
+        assertEquals(1, committer.commitCounter);
+        assertEquals(1, committer.initCounter);
+        assertEquals(1, committer.setupCounter);
       }
     }
   }
 
   @SuppressWarnings("unchecked")
-  @Test(timeout=5000)
+  @Test
+  @Timeout(value = 5000, unit = TimeUnit.MILLISECONDS)
   public void testDAGCompletionWithCommitFailure() throws IOException {
     // all vertices completed -> DAG completion and commit
     initDAG(mrrDag);
@@ -1492,18 +1515,18 @@ public class TestDAGImpl {
       dispatcher.getEventHandler().handle(new VertexEventTaskCompleted(
           TezTaskID.getInstance(v.getVertexId(), 0), TaskState.SUCCEEDED));
       dispatcher.await();
-      Assert.assertEquals(VertexState.SUCCEEDED, v.getState());
-      Assert.assertEquals(i+1, mrrDag.getSuccessfulVertices());
+      assertEquals(VertexState.SUCCEEDED, v.getState());
+      assertEquals(i+1, mrrDag.getSuccessfulVertices());
     }
 
     // no commit yet
     for (Vertex v : mrrDag.vertices.values()) {
       for (OutputCommitter c : v.getOutputCommitters().values()) {
         CountingOutputCommitter committer= (CountingOutputCommitter) c;
-        Assert.assertEquals(0, committer.abortCounter);
-        Assert.assertEquals(0, committer.commitCounter);
-        Assert.assertEquals(1, committer.initCounter);
-        Assert.assertEquals(1, committer.setupCounter);
+        assertEquals(0, committer.abortCounter);
+        assertEquals(0, committer.commitCounter);
+        assertEquals(1, committer.initCounter);
+        assertEquals(1, committer.setupCounter);
       }
     }
 
@@ -1512,23 +1535,24 @@ public class TestDAGImpl {
     dispatcher.getEventHandler().handle(new VertexEventTaskCompleted(
         TezTaskID.getInstance(v.getVertexId(), 0), TaskState.SUCCEEDED));
     dispatcher.await();
-    Assert.assertEquals(VertexState.SUCCEEDED, v.getState());
-    Assert.assertEquals(3, mrrDag.getSuccessfulVertices());
-    Assert.assertEquals(DAGState.FAILED, mrrDag.getState());
-    Assert.assertEquals(DAGTerminationCause.COMMIT_FAILURE, mrrDag.getTerminationCause());
+    assertEquals(VertexState.SUCCEEDED, v.getState());
+    assertEquals(3, mrrDag.getSuccessfulVertices());
+    assertEquals(DAGState.FAILED, mrrDag.getState());
+    assertEquals(DAGTerminationCause.COMMIT_FAILURE, mrrDag.getTerminationCause());
 
     for (Vertex vertex : mrrDag.vertices.values()) {
       for (OutputCommitter c : vertex.getOutputCommitters().values()) {
         CountingOutputCommitter committer= (CountingOutputCommitter) c;
-        Assert.assertEquals(1, committer.abortCounter);
-        Assert.assertEquals(1, committer.initCounter);
-        Assert.assertEquals(1, committer.setupCounter);
+        assertEquals(1, committer.abortCounter);
+        assertEquals(1, committer.initCounter);
+        assertEquals(1, committer.setupCounter);
       }
     }
   }
 
   @SuppressWarnings("unchecked")
-  @Test(timeout=5000)
+  @Test
+  @Timeout(value = 5000, unit = TimeUnit.MILLISECONDS)
   public void testDAGErrorAbortAllOutputs() {
     // error on a vertex -> dag error -> all outputs aborted.
     initDAG(mrrDag);
@@ -1540,18 +1564,18 @@ public class TestDAGImpl {
       dispatcher.getEventHandler().handle(new VertexEventTaskCompleted(
           TezTaskID.getInstance(v.getVertexId(), 0), TaskState.SUCCEEDED));
       dispatcher.await();
-      Assert.assertEquals(VertexState.SUCCEEDED, v.getState());
-      Assert.assertEquals(i+1, mrrDag.getSuccessfulVertices());
+      assertEquals(VertexState.SUCCEEDED, v.getState());
+      assertEquals(i+1, mrrDag.getSuccessfulVertices());
     }
 
     // no commit yet
     for (Vertex v : mrrDag.vertices.values()) {
       for (OutputCommitter c : v.getOutputCommitters().values()) {
         CountingOutputCommitter committer= (CountingOutputCommitter) c;
-        Assert.assertEquals(0, committer.abortCounter);
-        Assert.assertEquals(0, committer.commitCounter);
-        Assert.assertEquals(1, committer.initCounter);
-        Assert.assertEquals(1, committer.setupCounter);
+        assertEquals(0, committer.abortCounter);
+        assertEquals(0, committer.commitCounter);
+        assertEquals(1, committer.initCounter);
+        assertEquals(1, committer.setupCounter);
       }
     }
 
@@ -1560,22 +1584,23 @@ public class TestDAGImpl {
     dispatcher.getEventHandler().handle(new VertexEvent(
         v.getVertexId(), VertexEventType.V_INTERNAL_ERROR));
     dispatcher.await();
-    Assert.assertEquals(VertexState.ERROR, v.getState());
-    Assert.assertEquals(DAGState.ERROR, mrrDag.getState());
+    assertEquals(VertexState.ERROR, v.getState());
+    assertEquals(DAGState.ERROR, mrrDag.getState());
 
     for (Vertex vertex : mrrDag.vertices.values()) {
       for (OutputCommitter c : vertex.getOutputCommitters().values()) {
         CountingOutputCommitter committer= (CountingOutputCommitter) c;
-        Assert.assertEquals(1, committer.abortCounter);
-        Assert.assertEquals(0, committer.commitCounter);
-        Assert.assertEquals(1, committer.initCounter);
-        Assert.assertEquals(1, committer.setupCounter);
+        assertEquals(1, committer.abortCounter);
+        assertEquals(0, committer.commitCounter);
+        assertEquals(1, committer.initCounter);
+        assertEquals(1, committer.setupCounter);
       }
     }
   }
 
   @SuppressWarnings("unchecked")
-  @Test(timeout=5000)
+  @Test
+  @Timeout(value = 5000, unit = TimeUnit.MILLISECONDS)
   public void testDAGErrorAbortNonSuccessfulOutputs() {
     // vertex success -> vertex output commit. failed dag aborts only non-successful vertices
     mrrDag.getConf().setBoolean(TezConfiguration.TEZ_AM_COMMIT_ALL_OUTPUTS_ON_DAG_SUCCESS, false);
@@ -1588,14 +1613,14 @@ public class TestDAGImpl {
       dispatcher.getEventHandler().handle(new VertexEventTaskCompleted(
           TezTaskID.getInstance(v.getVertexId(), 0), TaskState.SUCCEEDED));
       dispatcher.await();
-      Assert.assertEquals(VertexState.SUCCEEDED, v.getState());
-      Assert.assertEquals(i+1, mrrDag.getSuccessfulVertices());
+      assertEquals(VertexState.SUCCEEDED, v.getState());
+      assertEquals(i+1, mrrDag.getSuccessfulVertices());
       for (OutputCommitter c : v.getOutputCommitters().values()) {
         CountingOutputCommitter committer= (CountingOutputCommitter) c;
-        Assert.assertEquals(0, committer.abortCounter);
-        Assert.assertEquals(1, committer.commitCounter);
-        Assert.assertEquals(1, committer.initCounter);
-        Assert.assertEquals(1, committer.setupCounter);
+        assertEquals(0, committer.abortCounter);
+        assertEquals(1, committer.commitCounter);
+        assertEquals(1, committer.initCounter);
+        assertEquals(1, committer.setupCounter);
       }
     }
 
@@ -1604,32 +1629,33 @@ public class TestDAGImpl {
     dispatcher.getEventHandler().handle(new VertexEvent(
         errorVertex.getVertexId(), VertexEventType.V_INTERNAL_ERROR));
     dispatcher.await();
-    Assert.assertEquals(VertexState.ERROR, errorVertex.getState());
+    assertEquals(VertexState.ERROR, errorVertex.getState());
 
     dispatcher.await();
-    Assert.assertEquals(DAGState.ERROR, mrrDag.getState());
+    assertEquals(DAGState.ERROR, mrrDag.getState());
 
     for (Vertex vertex : mrrDag.vertices.values()) {
       for (OutputCommitter c : vertex.getOutputCommitters().values()) {
         CountingOutputCommitter committer= (CountingOutputCommitter) c;
         if (vertex == errorVertex) {
-          Assert.assertEquals(1, committer.abortCounter);
-          Assert.assertEquals(0, committer.commitCounter);
-          Assert.assertEquals(1, committer.initCounter);
-          Assert.assertEquals(1, committer.setupCounter);
+          assertEquals(1, committer.abortCounter);
+          assertEquals(0, committer.commitCounter);
+          assertEquals(1, committer.initCounter);
+          assertEquals(1, committer.setupCounter);
         } else {
           // abort operation should take no side effort on the successful commit
-          Assert.assertEquals(1, committer.abortCounter);
-          Assert.assertEquals(1, committer.commitCounter);
-          Assert.assertEquals(1, committer.initCounter);
-          Assert.assertEquals(1, committer.setupCounter);
+          assertEquals(1, committer.abortCounter);
+          assertEquals(1, committer.commitCounter);
+          assertEquals(1, committer.initCounter);
+          assertEquals(1, committer.setupCounter);
         }
       }
     }
   }
 
   @SuppressWarnings("unchecked")
-  @Test(timeout=5000)
+  @Test
+  @Timeout(value = 5000, unit = TimeUnit.MILLISECONDS)
   public void testVertexReRunning() {
     initDAG(dag);
     dag.dagScheduler = mock(DAGScheduler.class);
@@ -1644,24 +1670,24 @@ public class TestDAGImpl {
         TezTaskID.getInstance(vId, 1), TaskState.SUCCEEDED));
     dispatcher.await();
 
-    Assert.assertEquals(VertexState.SUCCEEDED, v.getState());
-    Assert.assertEquals(1, dag.getSuccessfulVertices());
-    Assert.assertEquals(1, dag.numCompletedVertices);
+    assertEquals(VertexState.SUCCEEDED, v.getState());
+    assertEquals(1, dag.getSuccessfulVertices());
+    assertEquals(1, dag.numCompletedVertices);
 
     dispatcher.getEventHandler().handle(
         new VertexEventTaskReschedule(TezTaskID.getInstance(vId, 0)));
     dispatcher.await();
-    Assert.assertEquals(VertexState.RUNNING, v.getState());
-    Assert.assertEquals(0, dag.getSuccessfulVertices());
-    Assert.assertEquals(0, dag.numCompletedVertices);
+    assertEquals(VertexState.RUNNING, v.getState());
+    assertEquals(0, dag.getSuccessfulVertices());
+    assertEquals(0, dag.numCompletedVertices);
 
     dispatcher.getEventHandler().handle(new VertexEventTaskCompleted(
         TezTaskID.getInstance(vId, 0), TaskState.SUCCEEDED));
           dispatcher.await();
 
-    Assert.assertEquals(VertexState.SUCCEEDED, v.getState());
-    Assert.assertEquals(1, dag.getSuccessfulVertices());
-    Assert.assertEquals(1, dag.numCompletedVertices);
+    assertEquals(VertexState.SUCCEEDED, v.getState());
+    assertEquals(1, dag.getSuccessfulVertices());
+    assertEquals(1, dag.numCompletedVertices);
 
   }
 
@@ -1674,21 +1700,23 @@ public class TestDAGImpl {
     dispatcher.getEventHandler().handle(new DAGEventTerminateDag(dagId, DAGTerminationCause.DAG_KILL, null));
     dispatcher.await();
 
-    Assert.assertEquals(DAGState.KILLED, dag.getState());
+    assertEquals(DAGState.KILLED, dag.getState());
     for (int i = 0 ; i < 6; ++i ) {
       TezVertexID vId = TezVertexID.getInstance(dagId, i);
       Vertex v = dag.getVertex(vId);
-      Assert.assertEquals(VertexState.KILLED, v.getState());
+      assertEquals(VertexState.KILLED, v.getState());
     }
 
   }
 
-  @Test(timeout = 5000)
+  @Test
+  @Timeout(value = 5000, unit = TimeUnit.MILLISECONDS)
   public void testKillRunningDAG() {
     _testTerminateRunningDAG(DAGTerminationCause.DAG_KILL);
   }
 
-  @Test(timeout = 5000)
+  @Test
+  @Timeout(value = 5000, unit = TimeUnit.MILLISECONDS)
   public void testServiceErrorRunningDAG() {
     _testTerminateRunningDAG(DAGTerminationCause.SERVICE_PLUGIN_ERROR);
   }
@@ -1709,35 +1737,37 @@ public class TestDAGImpl {
         TezTaskID.getInstance(vId0, 0), TaskState.SUCCEEDED));
     dispatcher.await();
 
-    Assert.assertEquals(VertexState.SUCCEEDED, v0.getState());
-    Assert.assertEquals(VertexState.RUNNING, v1.getState());
+    assertEquals(VertexState.SUCCEEDED, v0.getState());
+    assertEquals(VertexState.RUNNING, v1.getState());
 
     dispatcher.getEventHandler().handle(new DAGEventTerminateDag(dagId, terminationCause, null));
     dispatcher.await();
 
-    Assert.assertEquals(DAGState.TERMINATING, dag.getState());
-    Assert.assertEquals(VertexState.SUCCEEDED, v0.getState());
-    Assert.assertEquals(VertexState.TERMINATING, v1.getState());
+    assertEquals(DAGState.TERMINATING, dag.getState());
+    assertEquals(VertexState.SUCCEEDED, v0.getState());
+    assertEquals(VertexState.TERMINATING, v1.getState());
     for (int i = 2 ; i < 6; ++i ) {
       TezVertexID vId = TezVertexID.getInstance(dagId, i);
       Vertex v = dag.getVertex(vId);
-      Assert.assertEquals(VertexState.KILLED, v.getState());
+      assertEquals(VertexState.KILLED, v.getState());
     }
-    Assert.assertEquals(1, dag.getSuccessfulVertices());
+    assertEquals(1, dag.getSuccessfulVertices());
   }
 
   @SuppressWarnings("unchecked")
-  @Test(timeout = 5000)
+  @Test
+  @Timeout(value = 5000, unit = TimeUnit.MILLISECONDS)
   public void testInvalidEvent() {
     dispatcher.getEventHandler().handle(
         new DAGEventStartDag(dagId, null));
     dispatcher.await();
-    Assert.assertEquals(DAGState.ERROR, dag.getState());
+    assertEquals(DAGState.ERROR, dag.getState());
   }
 
   @SuppressWarnings("unchecked")
-  @Test(timeout = 5000)
-  @Ignore // Duplicate completions from a vertex would be a bug. Invalid test.
+  @Test
+  @Timeout(value = 5000, unit = TimeUnit.MILLISECONDS)
+  @Disabled // Duplicate completions from a vertex would be a bug. Invalid test.
   public void testVertexSuccessfulCompletionUpdates() {
     initDAG(dag);
     startDAG(dag);
@@ -1748,8 +1778,8 @@ public class TestDAGImpl {
           TezVertexID.getInstance(dagId, 0), VertexState.SUCCEEDED));
     }
     dispatcher.await();
-    Assert.assertEquals(DAGState.RUNNING, dag.getState());
-    Assert.assertEquals(1, dag.getSuccessfulVertices());
+    assertEquals(DAGState.RUNNING, dag.getState());
+    assertEquals(1, dag.getSuccessfulVertices());
 
     dispatcher.getEventHandler().handle(new DAGEventVertexCompleted(
         TezVertexID.getInstance(dagId, 1), VertexState.SUCCEEDED));
@@ -1762,12 +1792,13 @@ public class TestDAGImpl {
     dispatcher.getEventHandler().handle(new DAGEventVertexCompleted(
         TezVertexID.getInstance(dagId, 5), VertexState.SUCCEEDED));
     dispatcher.await();
-    Assert.assertEquals(DAGState.SUCCEEDED, dag.getState());
-    Assert.assertEquals(6, dag.getSuccessfulVertices());
+    assertEquals(DAGState.SUCCEEDED, dag.getState());
+    assertEquals(6, dag.getSuccessfulVertices());
   }
 
   @SuppressWarnings("unchecked")
-  @Test(timeout = 10000)
+  @Test
+  @Timeout(value = 10000, unit = TimeUnit.MILLISECONDS)
   public void testGetDAGStatusWithWait() throws TezException {
     initDAG(dag);
     startDAG(dag);
@@ -1779,37 +1810,41 @@ public class TestDAGImpl {
           TezVertexID.getInstance(dagId, i), VertexState.SUCCEEDED));
     }
     dispatcher.await();
-    Assert.assertEquals(DAGState.RUNNING, dag.getState());
-    Assert.assertEquals(5, dag.getSuccessfulVertices());
+    assertEquals(DAGState.RUNNING, dag.getState());
+    assertEquals(5, dag.getSuccessfulVertices());
 
     long dagStatusStartTime = System.currentTimeMillis();
     DAGStatusBuilder dagStatus = dag.getDAGStatus(EnumSet.noneOf(StatusGetOpts.class), 2000l);
     long dagStatusEndTime = System.currentTimeMillis();
     long diff = dagStatusEndTime - dagStatusStartTime;
-    Assert.assertTrue(diff >= 0 && diff < 2500);
-    Assert.assertEquals(DAGStatusBuilder.State.RUNNING, dagStatus.getState());
+    assertTrue(diff >= 0 && diff < 2500);
+    assertEquals(DAGStatusBuilder.State.RUNNING, dagStatus.getState());
   }
 
   @SuppressWarnings("unchecked")
-  @Test(timeout = 20000)
+  @Test
+  @Timeout(value = 20000, unit = TimeUnit.MILLISECONDS)
   public void testGetDAGStatusReturnOnDagSucceeded() throws InterruptedException, TezException {
     runTestGetDAGStatusReturnOnDagFinished(DAGStatus.State.SUCCEEDED);
   }
 
   @SuppressWarnings("unchecked")
-  @Test(timeout = 20000)
+  @Test
+  @Timeout(value = 20000, unit = TimeUnit.MILLISECONDS)
   public void testGetDAGStatusReturnOnDagFailed() throws InterruptedException, TezException {
     runTestGetDAGStatusReturnOnDagFinished(DAGStatus.State.FAILED);
   }
 
   @SuppressWarnings("unchecked")
-  @Test(timeout = 20000)
+  @Test
+  @Timeout(value = 20000, unit = TimeUnit.MILLISECONDS)
   public void testGetDAGStatusReturnOnDagKilled() throws InterruptedException, TezException {
     runTestGetDAGStatusReturnOnDagFinished(DAGStatus.State.KILLED);
   }
 
   @SuppressWarnings("unchecked")
-  @Test(timeout = 20000)
+  @Test
+  @Timeout(value = 20000, unit = TimeUnit.MILLISECONDS)
   public void testGetDAGStatusReturnOnDagError() throws InterruptedException, TezException {
     runTestGetDAGStatusReturnOnDagFinished(DAGStatus.State.ERROR);
   }
@@ -1827,10 +1862,10 @@ public class TestDAGImpl {
           TezVertexID.getInstance(dagId, 0), VertexState.SUCCEEDED));
     }
     dispatcher.await();
-    Assert.assertEquals(DAGState.RUNNING, dag.getState());
-    Assert.assertEquals(5, dag.getSuccessfulVertices());
+    assertEquals(DAGState.RUNNING, dag.getState());
+    assertEquals(5, dag.getSuccessfulVertices());
     // Verify that dagStatus is running state
-    Assert.assertEquals(DAGStatus.State.RUNNING, dag.getDAGStatus(EnumSet.noneOf(StatusGetOpts.class),
+    assertEquals(State.RUNNING, dag.getDAGStatus(EnumSet.noneOf(StatusGetOpts.class),
         10000L).getState());
 
     ReentrantLock lock = new ReentrantLock();
@@ -1851,15 +1886,15 @@ public class TestDAGImpl {
 
     // Sleep for 2 seconds. Then mark the last vertex is successful.
     Thread.sleep(2000l);
-    if (testState == DAGStatus.State.SUCCEEDED) {
+    if (testState == State.SUCCEEDED) {
       dispatcher.getEventHandler().handle(new DAGEventVertexCompleted(
           TezVertexID.getInstance(dagId, 5), VertexState.SUCCEEDED));
-    } else if (testState == DAGStatus.State.FAILED) {
+    } else if (testState == State.FAILED) {
       dispatcher.getEventHandler().handle(new DAGEventVertexCompleted(
           TezVertexID.getInstance(dagId, 5), VertexState.FAILED));
-    } else if (testState == DAGStatus.State.KILLED) {
+    } else if (testState == State.KILLED) {
       dispatcher.getEventHandler().handle(new DAGEventTerminateDag(dagId, DAGTerminationCause.DAG_KILL, null));
-    } else if (testState == DAGStatus.State.ERROR) {
+    } else if (testState == State.ERROR) {
       dispatcher.getEventHandler().handle(new DAGEventStartDag(dagId, new LinkedList<URL>()));
     } else {
       throw new UnsupportedOperationException("Unsupported state for test: " + testState);
@@ -1877,16 +1912,17 @@ public class TestDAGImpl {
     }
 
     long diff = statusCheckRunnable.dagStatusEndTime - statusCheckRunnable.dagStatusStartTime;
-    Assert.assertNotNull(statusCheckRunnable.dagStatus);
-    Assert.assertTrue("Status: " + statusCheckRunnable.dagStatus.getState()
-            + ", Diff:" + diff, diff >= 0 && diff < 3500);
-    Assert.assertEquals(testState, statusCheckRunnable.dagStatus.getState());
+    assertNotNull(statusCheckRunnable.dagStatus);
+    assertTrue(diff >= 0 && diff < 3500, "Status: " + statusCheckRunnable.dagStatus.getState()
+            + ", Diff:" + diff);
+    assertEquals(testState, statusCheckRunnable.dagStatus.getState());
     t1.join();
   }
 
 
   @SuppressWarnings("unchecked")
-  @Test(timeout = 5000)
+  @Test
+  @Timeout(value = 5000, unit = TimeUnit.MILLISECONDS)
   public void testVertexFailureHandling() {
     initDAG(dag);
     startDAG(dag);
@@ -1895,31 +1931,33 @@ public class TestDAGImpl {
     dispatcher.getEventHandler().handle(new DAGEventVertexCompleted(
         TezVertexID.getInstance(dagId, 0), VertexState.SUCCEEDED));
     dispatcher.await();
-    Assert.assertEquals(DAGState.RUNNING, dag.getState());
+    assertEquals(DAGState.RUNNING, dag.getState());
 
     dispatcher.getEventHandler().handle(new DAGEventVertexCompleted(
         TezVertexID.getInstance(dagId, 1), VertexState.SUCCEEDED));
     dispatcher.getEventHandler().handle(new DAGEventVertexCompleted(
         TezVertexID.getInstance(dagId, 2), VertexState.FAILED));
     dispatcher.await();
-    Assert.assertEquals(DAGState.FAILED, dag.getState());
-    Assert.assertEquals(2, dag.getSuccessfulVertices());
+    assertEquals(DAGState.FAILED, dag.getState());
+    assertEquals(2, dag.getSuccessfulVertices());
 
     // Expect running vertices to be killed on first failure
     for (int i = 3; i < 6; ++i) {
       TezVertexID vId = TezVertexID.getInstance(dagId, i);
       Vertex v = dag.getVertex(vId);
-      Assert.assertEquals(VertexState.KILLED, v.getState());
+      assertEquals(VertexState.KILLED, v.getState());
     }
   }
 
 
-  @Test(timeout = 5000)
+  @Test
+  @Timeout(value = 5000, unit = TimeUnit.MILLISECONDS)
   public void testDAGKill() {
     _testDAGTerminate(DAGTerminationCause.DAG_KILL);
   }
 
-  @Test(timeout = 5000)
+  @Test
+  @Timeout(value = 5000, unit = TimeUnit.MILLISECONDS)
   public void testDAGServiceError() {
     _testDAGTerminate(DAGTerminationCause.SERVICE_PLUGIN_ERROR);
   }
@@ -1935,15 +1973,15 @@ public class TestDAGImpl {
     dispatcher.getEventHandler().handle(new DAGEventVertexCompleted(
         TezVertexID.getInstance(dagId, 0), VertexState.SUCCEEDED));
     dispatcher.await();
-    Assert.assertEquals(DAGState.RUNNING, dag.getState());
+    assertEquals(DAGState.RUNNING, dag.getState());
 
     dispatcher.getEventHandler().handle(new DAGEventVertexCompleted(
         TezVertexID.getInstance(dagId, 1), VertexState.SUCCEEDED));
     dispatcher.getEventHandler().handle(new DAGEventTerminateDag(dagId, terminationCause, null));
     dispatcher.await();
-    Assert.assertEquals(terminationCause.getFinishedState(), dag.getState());
-    Assert.assertEquals(terminationCause, dag.getTerminationCause());
-    Assert.assertEquals(2, dag.getSuccessfulVertices());
+    assertEquals(terminationCause.getFinishedState(), dag.getState());
+    assertEquals(terminationCause, dag.getTerminationCause());
+    assertEquals(2, dag.getSuccessfulVertices());
 
     int killedCount = 0;
     for (Map.Entry<TezVertexID, Vertex> vEntry : dag.getVertices().entrySet()) {
@@ -1951,16 +1989,17 @@ public class TestDAGImpl {
         killedCount++;
       }
     }
-    Assert.assertEquals(4, killedCount);
+    assertEquals(4, killedCount);
 
     for (Vertex v : dag.getVertices().values()) {
-      Assert.assertEquals(VertexTerminationCause.DAG_TERMINATED, v.getTerminationCause());
+      assertEquals(VertexTerminationCause.DAG_TERMINATED, v.getTerminationCause());
     }
 
-    Assert.assertEquals(1, dagFinishEventHandler.dagFinishEvents);
+    assertEquals(1, dagFinishEventHandler.dagFinishEvents);
   }
 
-  @Test (timeout = 5000L)
+  @Test
+  @org.junit.jupiter.api.Timeout(value = 5000, unit = java.util.concurrent.TimeUnit.MILLISECONDS)
   @SuppressWarnings("unchecked")
   public void testDAGHang() throws Exception {
     conf.setBoolean(
@@ -1995,22 +2034,24 @@ public class TestDAGImpl {
     dispatcher.getEventHandler().handle(new DAGEventVertexCompleted(
         TezVertexID.getInstance(dagId, 5), VertexState.SUCCEEDED));
     dispatcher.await();
-    Assert.assertEquals(DAGState.COMMITTING, dag.getState());
+    assertEquals(DAGState.COMMITTING, dag.getState());
     DAGEventCommitCompleted dagEvent = new DAGEventCommitCompleted(
         dagId, outputKey, false , new RuntimeException("test"));
     doThrow(new RuntimeException("test")).when(
         dag).logJobHistoryUnsuccesfulEvent(any(), any());
     dag.handle(dagEvent);
     dispatcher.await();
-    Assert.assertTrue("DAG did not terminate!", dag.getInternalState() == DAGState.FAILED);
+    assertSame(dag.getInternalState(), DAGState.FAILED, "DAG did not terminate!");
   }
 
-  @Test(timeout = 5000)
+  @Test
+  @Timeout(value = 5000, unit = TimeUnit.MILLISECONDS)
   public void testDAGKillVertexSuccessAfterTerminated() {
     _testDAGKillVertexSuccessAfterTerminated(DAGTerminationCause.DAG_KILL);
   }
 
-  @Test(timeout = 5000)
+  @Test
+  @Timeout(value = 5000, unit = TimeUnit.MILLISECONDS)
   public void testDAGServiceErrorVertexSuccessAfterTerminated() {
     _testDAGKillVertexSuccessAfterTerminated(DAGTerminationCause.SERVICE_PLUGIN_ERROR);
   }
@@ -2025,14 +2066,14 @@ public class TestDAGImpl {
     dispatcher.getEventHandler().handle(new DAGEventVertexCompleted(
         TezVertexID.getInstance(dagId, 0), VertexState.SUCCEEDED));
     dispatcher.await();
-    Assert.assertEquals(DAGState.RUNNING, dag.getState());
+    assertEquals(DAGState.RUNNING, dag.getState());
 
     dispatcher.getEventHandler().handle(new DAGEventVertexCompleted(
         TezVertexID.getInstance(dagId, 1), VertexState.SUCCEEDED));
     dispatcher.getEventHandler().handle(new DAGEventTerminateDag(dagId, terminationCause, null));
     dispatcher.await();
 
-    Assert.assertEquals(terminationCause.getFinishedState(), dag.getState());
+    assertEquals(terminationCause.getFinishedState(), dag.getState());
 
     // Vertex SUCCESS gets processed after the DAG has reached the KILLED state. Should be ignored.
     for (int i = 2; i < 6; ++i) {
@@ -2047,22 +2088,24 @@ public class TestDAGImpl {
         killedCount++;
       }
     }
-    Assert.assertEquals(4, killedCount);
+    assertEquals(4, killedCount);
 
-    Assert.assertEquals(terminationCause, dag.getTerminationCause());
-    Assert.assertEquals(2, dag.getSuccessfulVertices());
+    assertEquals(terminationCause, dag.getTerminationCause());
+    assertEquals(2, dag.getSuccessfulVertices());
     for (Vertex v : dag.getVertices().values()) {
-      Assert.assertEquals(VertexTerminationCause.DAG_TERMINATED, v.getTerminationCause());
+      assertEquals(VertexTerminationCause.DAG_TERMINATED, v.getTerminationCause());
     }
-    Assert.assertEquals(1, dagFinishEventHandler.dagFinishEvents);
+    assertEquals(1, dagFinishEventHandler.dagFinishEvents);
   }
 
-  @Test(timeout = 5000)
+  @Test
+  @Timeout(value = 5000, unit = TimeUnit.MILLISECONDS)
   public void testDAGKillPending() {
     _testDAGKillPending(DAGTerminationCause.DAG_KILL);
   }
 
-  @Test(timeout = 5000)
+  @Test
+  @Timeout(value = 5000, unit = TimeUnit.MILLISECONDS)
   public void testDAGServiceErrorPending() {
     _testDAGKillPending(DAGTerminationCause.SERVICE_PLUGIN_ERROR);
   }
@@ -2077,7 +2120,7 @@ public class TestDAGImpl {
     dispatcher.getEventHandler().handle(new DAGEventVertexCompleted(
         TezVertexID.getInstance(dagId, 0), VertexState.SUCCEEDED));
     dispatcher.await();
-    Assert.assertEquals(DAGState.RUNNING, dag.getState());
+    assertEquals(DAGState.RUNNING, dag.getState());
 
     dispatcher.getEventHandler().handle(new DAGEventVertexCompleted(
         TezVertexID.getInstance(dagId, 1), VertexState.SUCCEEDED));
@@ -2089,31 +2132,32 @@ public class TestDAGImpl {
     dispatcher.await();
     dispatcher.getEventHandler().handle(new DAGEventTerminateDag(dagId, terminationCause, null));
     dispatcher.await();
-    Assert.assertEquals(terminationCause.getFinishedState(), dag.getState());
+    assertEquals(terminationCause.getFinishedState(), dag.getState());
 
     dispatcher.getEventHandler().handle(new DAGEventVertexCompleted(
         TezVertexID.getInstance(dagId, 5), VertexState.KILLED));
     dispatcher.await();
-    Assert.assertEquals(terminationCause.getFinishedState(), dag.getState());
-    Assert.assertEquals(5, dag.getSuccessfulVertices());
-    Assert.assertEquals(dag.getVertex(TezVertexID.getInstance(dagId, 5)).getTerminationCause(),
+    assertEquals(terminationCause.getFinishedState(), dag.getState());
+    assertEquals(5, dag.getSuccessfulVertices());
+    assertEquals(dag.getVertex(TezVertexID.getInstance(dagId, 5)).getTerminationCause(),
         VertexTerminationCause.DAG_TERMINATED);
-    Assert.assertEquals(1, dagFinishEventHandler.dagFinishEvents);
+    assertEquals(1, dagFinishEventHandler.dagFinishEvents);
   }
 
-  @Test(timeout = 5000)
+  @Test
+  @Timeout(value = 5000, unit = TimeUnit.MILLISECONDS)
   public void testConfiguration() throws AMUserCodeException {
     initDAG(dag);
     // dag override the default configuration
-    Assert.assertEquals(3, dag.getConf().getInt(TezConfiguration.TEZ_AM_TASK_MAX_FAILED_ATTEMPTS,
+    assertEquals(3, dag.getConf().getInt(TezConfiguration.TEZ_AM_TASK_MAX_FAILED_ATTEMPTS,
         TezConfiguration.TEZ_AM_TASK_MAX_FAILED_ATTEMPTS_DEFAULT));
     Vertex v1 = dag.getVertex("vertex1");
     Vertex v2 = dag.getVertex("vertex2");
     // v1 override the dagConfiguration
-    Assert.assertEquals(2, v1.getConf().getInt(TezConfiguration.TEZ_AM_TASK_MAX_FAILED_ATTEMPTS,
+    assertEquals(2, v1.getConf().getInt(TezConfiguration.TEZ_AM_TASK_MAX_FAILED_ATTEMPTS,
         TezConfiguration.TEZ_AM_TASK_MAX_FAILED_ATTEMPTS_DEFAULT));
     // v2 inherit the configuration from dag
-    Assert.assertEquals(3, v2.getConf().getInt(TezConfiguration.TEZ_AM_TASK_MAX_FAILED_ATTEMPTS,
+    assertEquals(3, v2.getConf().getInt(TezConfiguration.TEZ_AM_TASK_MAX_FAILED_ATTEMPTS,
         TezConfiguration.TEZ_AM_TASK_MAX_FAILED_ATTEMPTS_DEFAULT));
   }
 
@@ -2345,7 +2389,8 @@ public class TestDAGImpl {
   }
 
   @SuppressWarnings("unchecked")
-  @Test(timeout = 5000)
+  @Test
+  @Timeout(value = 5000, unit = TimeUnit.MILLISECONDS)
   public void testCounterLimits() {
     initDAG(mrrDag);
     dispatcher.await();
@@ -2361,18 +2406,18 @@ public class TestDAGImpl {
       dispatcher.getEventHandler().handle(new VertexEventTaskCompleted(
         TezTaskID.getInstance(v.getVertexId(), 0), TaskState.SUCCEEDED));
       dispatcher.await();
-      Assert.assertEquals(VertexState.SUCCEEDED, v.getState());
-      Assert.assertEquals(i+1, mrrDag.getSuccessfulVertices());
+      assertEquals(VertexState.SUCCEEDED, v.getState());
+      assertEquals(i+1, mrrDag.getSuccessfulVertices());
     }
 
-    Assert.assertEquals(3, mrrDag.getSuccessfulVertices());
-    Assert.assertEquals(DAGState.FAILED, mrrDag.getState());
-    Assert.assertTrue("Diagnostics should contain counter limits error message",
-        StringUtils.join(mrrDag.getDiagnostics(), ",").contains("Counters limit exceeded"));
+    assertEquals(3, mrrDag.getSuccessfulVertices());
+    assertEquals(DAGState.FAILED, mrrDag.getState());
+    assertTrue(StringUtils.join(mrrDag.getDiagnostics(), ",").contains("Counters limit exceeded"), "Diagnostics should contain counter limits error message");
 
   }
 
-  @Test(timeout = 5000)
+  @Test
+  @Timeout(value = 5000, unit = TimeUnit.MILLISECONDS)
   public void testTotalContainersUsedCounter() {
     DAGImpl spy = getDagSpy();
 
@@ -2385,12 +2430,13 @@ public class TestDAGImpl {
     // 2 calls to addUsedContainer
     verify(spy, times(2)).addUsedContainer(any(Container.class));
     // 2 containers were used
-    Assert.assertEquals(2,
+    assertEquals(2,
         spy.getAllCounters().getGroup(DAGCounter.class.getName()).findCounter(DAGCounter.TOTAL_CONTAINERS_USED.name())
             .getValue());
   }
 
-  @Test(timeout = 5000)
+  @Test
+  @Timeout(value = 5000, unit = TimeUnit.MILLISECONDS)
   public void testNodesUsedCounter() {
     DAGImpl spy = getDagSpy();
 
@@ -2415,14 +2461,14 @@ public class TestDAGImpl {
     verify(spy, times(4)).addUsedContainer(any(Container.class));
 
     // 2 distinct node hosts were seen: localhost, otherhost
-    Assert.assertEquals(2,
+    assertEquals(2,
         spy.getAllCounters().getGroup(DAGCounter.class.getName()).findCounter(DAGCounter.NODE_USED_COUNT.name())
             .getValue());
 
-    Assert.assertTrue(spy.nodesUsedByCurrentDAG.contains("localhost"));
-    Assert.assertTrue(spy.nodesUsedByCurrentDAG.contains("otherhost"));
+    assertTrue(spy.nodesUsedByCurrentDAG.contains("localhost"));
+    assertTrue(spy.nodesUsedByCurrentDAG.contains("otherhost"));
 
-    Assert.assertEquals(10,
+    assertEquals(10,
         spy.getAllCounters().getGroup(DAGCounter.class.getName())
             .findCounter(DAGCounter.NODE_TOTAL_COUNT.name())
             .getValue());

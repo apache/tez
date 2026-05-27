@@ -19,8 +19,8 @@
 package org.apache.tez.runtime.library.cartesianproduct;
 
 import static org.apache.tez.dag.api.EdgeProperty.DataMovementType.BROADCAST;
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertNull;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.mockito.Mockito.any;
 import static org.mockito.Mockito.eq;
 import static org.mockito.Mockito.isNull;
@@ -34,6 +34,7 @@ import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.concurrent.TimeUnit;
 
 import org.apache.tez.dag.api.EdgeManagerPluginDescriptor;
 import org.apache.tez.dag.api.EdgeProperty;
@@ -51,8 +52,9 @@ import org.apache.tez.dag.records.TezVertexID;
 import org.apache.tez.runtime.api.TaskAttemptIdentifier;
 import org.apache.tez.runtime.library.cartesianproduct.CartesianProductUserPayload.CartesianProductConfigProto;
 
-import org.junit.Before;
-import org.junit.Test;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.Timeout;
 import org.mockito.ArgumentCaptor;
 import org.mockito.Captor;
 import org.mockito.MockitoAnnotations;
@@ -66,7 +68,7 @@ public class TestCartesianProductVertexManagerPartitioned {
   private VertexManagerPluginContext context;
   private List<TaskAttemptIdentifier> allCompletions;
 
-  @Before
+  @BeforeEach
   public void setup() throws TezReflectionException {
     CartesianProductConfigProto.Builder builder = CartesianProductConfigProto.newBuilder();
     builder.setIsPartitioned(true).addSources("v0").addSources("v1")
@@ -116,7 +118,8 @@ public class TestCartesianProductVertexManagerPartitioned {
     assertNull(edgePropertiesCaptor.getValue());
   }
 
-  @Test(timeout = 5000)
+  @Test
+  @Timeout(value = 5000, unit = TimeUnit.MILLISECONDS)
   public void testReconfigureVertex() throws Exception {
     CartesianProductConfigProto.Builder builder = CartesianProductConfigProto.newBuilder();
     builder.setIsPartitioned(true).addSources("v0").addSources("v1")
@@ -126,7 +129,8 @@ public class TestCartesianProductVertexManagerPartitioned {
     testReconfigureVertexHelper(builder.build(), 25);
   }
 
-  @Test(timeout = 5000)
+  @Test
+  @Timeout(value = 5000, unit = TimeUnit.MILLISECONDS)
   public void testScheduling() throws Exception {
     vertexManager.onVertexStarted(null);
     vertexManager.onVertexStateUpdated(new VertexStateUpdate("v0", VertexState.CONFIGURED));
@@ -166,12 +170,14 @@ public class TestCartesianProductVertexManagerPartitioned {
     }
   }
 
-  @Test(timeout = 5000)
+  @Test
+  @Timeout(value = 5000, unit = TimeUnit.MILLISECONDS)
   public void testOnVertexStartWithBroadcastRunning() throws Exception {
     testOnVertexStartHelper(true);
   }
 
-  @Test(timeout = 5000)
+  @Test
+  @Timeout(value = 5000, unit = TimeUnit.MILLISECONDS)
   public void testOnVertexStartWithoutBroadcastRunning() throws Exception {
     testOnVertexStartHelper(false);
   }

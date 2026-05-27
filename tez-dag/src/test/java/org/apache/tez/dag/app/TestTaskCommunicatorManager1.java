@@ -18,11 +18,11 @@
  */
 package org.apache.tez.dag.app;
 
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertFalse;
-import static org.junit.Assert.assertNull;
-import static org.junit.Assert.assertTrue;
-import static org.junit.Assert.fail;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertNull;
+import static org.junit.jupiter.api.Assertions.assertTrue;
+import static org.junit.jupiter.api.Assertions.fail;
 import static org.mockito.Mockito.any;
 import static org.mockito.Mockito.doReturn;
 import static org.mockito.Mockito.mock;
@@ -37,6 +37,7 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Random;
+import java.util.concurrent.TimeUnit;
 
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.io.Text;
@@ -96,8 +97,9 @@ import org.apache.tez.serviceplugins.api.TaskHeartbeatResponse;
 
 import com.google.common.collect.Lists;
 
-import org.junit.Before;
-import org.junit.Test;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.Timeout;
 import org.mockito.ArgumentCaptor;
 
 @SuppressWarnings("unchecked")
@@ -118,7 +120,7 @@ public class TestTaskCommunicatorManager1 {
   TezTaskID taskID;
   TezTaskAttemptID taskAttemptID;
 
-  @Before
+  @BeforeEach
   public void setUp() throws TezException {
     appId = ApplicationId.newInstance(1000, 1);
     appAttemptId = ApplicationAttemptId.newInstance(appId, 1);
@@ -171,7 +173,8 @@ public class TestTaskCommunicatorManager1 {
     containerTask = null;
   }
 
-  @Test(timeout = 5000)
+  @Test
+  @Timeout(value = 5000, unit = TimeUnit.MILLISECONDS)
   public void testGetTask() throws IOException {
 
     TezTaskCommunicatorImpl taskCommunicator =
@@ -220,7 +223,8 @@ public class TestTaskCommunicatorManager1 {
     assertTrue(containerTask.shouldDie());
   }
 
-  @Test(timeout = 5000)
+  @Test
+  @Timeout(value = 5000, unit = TimeUnit.MILLISECONDS)
   public void testGetTaskMultiplePulls() throws IOException {
     TezTaskCommunicatorImpl taskCommunicator =
         (TezTaskCommunicatorImpl) taskAttemptListener.getTaskCommunicator(0).getTaskCommunicator();
@@ -244,7 +248,8 @@ public class TestTaskCommunicatorManager1 {
     assertNull(containerTask);
   }
 
-  @Test (timeout = 5000)
+  @Test
+  @Timeout(value = 5000, unit = TimeUnit.MILLISECONDS)
   public void testTaskEventRouting() throws Exception {
     List<TezEvent> events =  Arrays.asList(
       new TezEvent(new TaskStatusUpdateEvent(null, 0.0f, null, false), new EventMetaData(EventProducerConsumerType.PROCESSOR,
@@ -262,9 +267,8 @@ public class TestTaskCommunicatorManager1 {
     final List<Event> argAllValues = arg.getAllValues();
 
     final Event statusUpdateEvent = argAllValues.get(0);
-    assertEquals("First event should be status update", TaskAttemptEventType.TA_STATUS_UPDATE,
-        statusUpdateEvent.getType());
-    assertEquals(false, ((TaskAttemptEventStatusUpdate)statusUpdateEvent).getReadErrorReported());
+    assertEquals(TaskAttemptEventType.TA_STATUS_UPDATE, statusUpdateEvent.getType(), "First event should be status update");
+    assertFalse(((TaskAttemptEventStatusUpdate) statusUpdateEvent).getReadErrorReported());
 
     final TaskAttemptEventTezEventUpdate taEvent = (TaskAttemptEventTezEventUpdate)argAllValues.get(1);
     assertEquals(1, taEvent.getTezEvents().size());
@@ -279,7 +283,8 @@ public class TestTaskCommunicatorManager1 {
         vertexRouteEvent.getEvents().get(0).getEventType());
   }
 
-  @Test (timeout = 5000)
+  @Test
+  @Timeout(value = 5000, unit = TimeUnit.MILLISECONDS)
   public void testTaskEventRoutingWithReadError() throws Exception {
     List<TezEvent> events =  Arrays.asList(
       new TezEvent(new TaskStatusUpdateEvent(null, 0.0f, null, false), null),
@@ -296,29 +301,27 @@ public class TestTaskCommunicatorManager1 {
     final List<Event> argAllValues = arg.getAllValues();
 
     final Event statusUpdateEvent = argAllValues.get(0);
-    assertEquals("First event should be status update", TaskAttemptEventType.TA_STATUS_UPDATE,
-        statusUpdateEvent.getType());
-    assertEquals(true, ((TaskAttemptEventStatusUpdate)statusUpdateEvent).getReadErrorReported());
+    assertEquals(TaskAttemptEventType.TA_STATUS_UPDATE, statusUpdateEvent.getType(), "First event should be status update");
+    assertTrue(((TaskAttemptEventStatusUpdate) statusUpdateEvent).getReadErrorReported());
 
     final Event taFinishedEvent = argAllValues.get(1);
-    assertEquals("Second event should be TA_DONE", TaskAttemptEventType.TA_DONE,
-        taFinishedEvent.getType());
+    assertEquals(TaskAttemptEventType.TA_DONE, taFinishedEvent.getType(), "Second event should be TA_DONE");
 
     final Event vertexEvent = argAllValues.get(2);
     final VertexEventRouteEvent vertexRouteEvent = (VertexEventRouteEvent)vertexEvent;
-    assertEquals("Third event should be routed to vertex", VertexEventType.V_ROUTE_EVENT,
-        vertexEvent.getType());
+    assertEquals(VertexEventType.V_ROUTE_EVENT, vertexEvent.getType(), "Third event should be routed to vertex");
     assertEquals(EventType.INPUT_READ_ERROR_EVENT,
         vertexRouteEvent.getEvents().get(0).getEventType());
   }
 
-
-  @Test (timeout = 5000)
+  @Test
+  @Timeout(value = 5000, unit = TimeUnit.MILLISECONDS)
   public void testTaskEventRoutingTaskAttemptOnly() throws Exception {
-    List<TezEvent> events = Arrays.asList(
-      new TezEvent(new TaskAttemptCompletedEvent(), new EventMetaData(EventProducerConsumerType.SYSTEM,
-          "v1", "v2", taskAttemptID))
-    );
+    List<TezEvent> events =
+        Arrays.asList(
+            new TezEvent(
+                new TaskAttemptCompletedEvent(),
+                new EventMetaData(EventProducerConsumerType.SYSTEM, "v1", "v2", taskAttemptID)));
     generateHeartbeat(events, 0, 1, 0, new ArrayList<TezEvent>());
 
     ArgumentCaptor<Event> arg = ArgumentCaptor.forClass(Event.class);
@@ -327,11 +330,11 @@ public class TestTaskCommunicatorManager1 {
 
     final Event event = argAllValues.get(0);
     // Route to TaskAttempt directly rather than through Vertex
-    assertEquals("only event should be route event", TaskAttemptEventType.TA_DONE,
-        event.getType());
+    assertEquals(TaskAttemptEventType.TA_DONE, event.getType(), "only event should be route event");
   }
 
-  @Test (timeout = 5000)
+  @Test
+  @Timeout(value = 5000, unit = TimeUnit.MILLISECONDS)
   public void testTaskHeartbeatResponse() throws Exception {
     List<TezEvent> events = new ArrayList<TezEvent>();
     List<TezEvent> eventsToSend = new ArrayList<TezEvent>();
@@ -342,7 +345,8 @@ public class TestTaskCommunicatorManager1 {
   }
 
   //try 10 times to allocate random port, fail it if no one is succeed.
-  @Test (timeout = 5000)
+  @Test
+  @Timeout(value = 5000, unit = TimeUnit.MILLISECONDS)
   public void testPortRange() {
     boolean succeedToAllocate = false;
     Random rand = new Random();
@@ -359,7 +363,8 @@ public class TestTaskCommunicatorManager1 {
   }
 
   // TODO TEZ-2003 Move this into TestTezTaskCommunicator. Potentially other tests as well.
-  @Test (timeout= 5000)
+  @Test
+  @Timeout(value = 5000, unit = TimeUnit.MILLISECONDS)
   public void testPortRange_NotSpecified() throws IOException, TezException {
     Configuration conf = new Configuration();
     JobTokenIdentifier identifier = new JobTokenIdentifier(new Text(

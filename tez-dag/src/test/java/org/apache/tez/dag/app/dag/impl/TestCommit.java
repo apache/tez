@@ -18,6 +18,10 @@
  */
 package org.apache.tez.dag.app.dag.impl;
 
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertNotNull;
+import static org.junit.jupiter.api.Assertions.assertNull;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.Mockito.doReturn;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
@@ -120,9 +124,9 @@ import com.google.common.util.concurrent.ListeningExecutorService;
 import com.google.common.util.concurrent.MoreExecutors;
 import com.google.common.util.concurrent.ThreadFactoryBuilder;
 
-import org.junit.After;
-import org.junit.Assert;
-import org.junit.Test;
+import org.junit.jupiter.api.AfterEach;
+import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.Timeout;
 
 /**
  *
@@ -305,7 +309,7 @@ public class TestCommit {
     appAttemptId = ApplicationAttemptId.newInstance(
         ApplicationId.newInstance(100, 1), 1);
     dagId = TezDAGID.getInstance(appAttemptId.getApplicationId(), 1);
-    Assert.assertNotNull(dagId);
+    assertNotNull(dagId);
     dispatcher = new DrainDispatcher();
     fsTokens = new Credentials();
     appContext = mock(AppContext.class);
@@ -346,7 +350,7 @@ public class TestCommit {
     dispatcher.start();
   }
 
-  @After
+  @AfterEach
   public void teardown() {
     if (dispatcher != null) {
       dispatcher.await();
@@ -552,7 +556,7 @@ public class TestCommit {
 
   private void initDAG(DAGImpl dag) {
     dag.handle(new DAGEvent(dag.getID(), DAGEventType.DAG_INIT));
-    Assert.assertEquals(DAGState.INITED, dag.getState());
+    assertEquals(DAGState.INITED, dag.getState());
   }
 
   @SuppressWarnings("unchecked")
@@ -560,10 +564,11 @@ public class TestCommit {
     dispatcher.getEventHandler().handle(
         new DAGEventStartDag(impl.getID(), null));
     dispatcher.await();
-    Assert.assertEquals(DAGState.RUNNING, impl.getState());
+    assertEquals(DAGState.RUNNING, impl.getState());
   }
 
-  @Test(timeout = 5000)
+  @Test
+  @Timeout(value = 5000, unit = TimeUnit.MILLISECONDS)
   public void testVertexCommit_OnDAGSuccess() throws Exception {
     conf.setBoolean(TezConfiguration.TEZ_AM_COMMIT_ALL_OUTPUTS_ON_DAG_SUCCESS,
         true);
@@ -574,9 +579,9 @@ public class TestCommit {
     VertexImpl v1 = (VertexImpl) dag.getVertex("vertex1");
     v1.handle(new VertexEventTaskCompleted(v1.getTask(0).getTaskID(),
         TaskState.SUCCEEDED));
-    Assert.assertEquals(VertexState.SUCCEEDED, v1.getState());
-    Assert.assertNull(v1.getTerminationCause());
-    Assert.assertTrue(v1.commitFutures.isEmpty());
+    assertEquals(VertexState.SUCCEEDED, v1.getState());
+    assertNull(v1.getTerminationCause());
+    assertTrue(v1.commitFutures.isEmpty());
     CountingOutputCommitter v1OutputCommitter_1 = (CountingOutputCommitter) v1
         .getOutputCommitter("v1Out_1");
     CountingOutputCommitter v1OutputCommitter_2 = (CountingOutputCommitter) v1
@@ -584,18 +589,19 @@ public class TestCommit {
     historyEventHandler.verifyVertexCommitStartedEvent(v1.getVertexId(), 0);
     historyEventHandler.verifyVertexFinishedEvent(v1.getVertexId(), 1);
 
-    Assert.assertEquals(1, v1OutputCommitter_1.initCounter);
-    Assert.assertEquals(1, v1OutputCommitter_1.setupCounter);
-    Assert.assertEquals(0, v1OutputCommitter_1.commitCounter);
-    Assert.assertEquals(0, v1OutputCommitter_1.abortCounter);
+    assertEquals(1, v1OutputCommitter_1.initCounter);
+    assertEquals(1, v1OutputCommitter_1.setupCounter);
+    assertEquals(0, v1OutputCommitter_1.commitCounter);
+    assertEquals(0, v1OutputCommitter_1.abortCounter);
 
-    Assert.assertEquals(1, v1OutputCommitter_2.initCounter);
-    Assert.assertEquals(1, v1OutputCommitter_2.setupCounter);
-    Assert.assertEquals(0, v1OutputCommitter_2.commitCounter);
-    Assert.assertEquals(0, v1OutputCommitter_2.abortCounter);
+    assertEquals(1, v1OutputCommitter_2.initCounter);
+    assertEquals(1, v1OutputCommitter_2.setupCounter);
+    assertEquals(0, v1OutputCommitter_2.commitCounter);
+    assertEquals(0, v1OutputCommitter_2.abortCounter);
   }
 
-  @Test(timeout = 5000)
+  @Test
+  @Timeout(value = 5000, unit = TimeUnit.MILLISECONDS)
   public void testVertexCommit_OnVertexSuccess() throws Exception {
     conf.setBoolean(TezConfiguration.TEZ_AM_COMMIT_ALL_OUTPUTS_ON_DAG_SUCCESS,
         false);
@@ -606,36 +612,37 @@ public class TestCommit {
     VertexImpl v1 = (VertexImpl) dag.getVertex("vertex1");
     v1.handle(new VertexEventTaskCompleted(v1.getTask(0).getTaskID(),
         TaskState.SUCCEEDED));
-    Assert.assertEquals(VertexState.COMMITTING, v1.getState());
+    assertEquals(VertexState.COMMITTING, v1.getState());
     CountingOutputCommitter v1OutputCommitter_1 = (CountingOutputCommitter) v1
         .getOutputCommitter("v1Out_1");
     v1OutputCommitter_1.unblockCommit();
     waitForCommitCompleted(v1, "v1Out_1");
     // still in COMMITTING due to another pending commit
-    Assert.assertEquals(VertexState.COMMITTING, v1.getState());
+    assertEquals(VertexState.COMMITTING, v1.getState());
 
     CountingOutputCommitter v1OutputCommitter_2 = (CountingOutputCommitter) v1
         .getOutputCommitter("v1Out_2");
     v1OutputCommitter_2.unblockCommit();
     waitUntil(v1, VertexState.SUCCEEDED);
-    Assert.assertNull(v1.getTerminationCause());
-    Assert.assertTrue(v1.commitFutures.isEmpty());
+    assertNull(v1.getTerminationCause());
+    assertTrue(v1.commitFutures.isEmpty());
     historyEventHandler.verifyVertexCommitStartedEvent(v1.getVertexId(), 1);
     historyEventHandler.verifyVertexFinishedEvent(v1.getVertexId(), 1);
 
-    Assert.assertEquals(1, v1OutputCommitter_1.initCounter);
-    Assert.assertEquals(1, v1OutputCommitter_1.setupCounter);
-    Assert.assertEquals(1, v1OutputCommitter_1.commitCounter);
-    Assert.assertEquals(0, v1OutputCommitter_1.abortCounter);
+    assertEquals(1, v1OutputCommitter_1.initCounter);
+    assertEquals(1, v1OutputCommitter_1.setupCounter);
+    assertEquals(1, v1OutputCommitter_1.commitCounter);
+    assertEquals(0, v1OutputCommitter_1.abortCounter);
 
-    Assert.assertEquals(1, v1OutputCommitter_2.initCounter);
-    Assert.assertEquals(1, v1OutputCommitter_2.setupCounter);
-    Assert.assertEquals(1, v1OutputCommitter_2.commitCounter);
-    Assert.assertEquals(0, v1OutputCommitter_2.abortCounter);
+    assertEquals(1, v1OutputCommitter_2.initCounter);
+    assertEquals(1, v1OutputCommitter_2.setupCounter);
+    assertEquals(1, v1OutputCommitter_2.commitCounter);
+    assertEquals(0, v1OutputCommitter_2.abortCounter);
   }
 
   // the first commit fail which cause the second commit abort
-  @Test(timeout = 5000)
+  @Test
+  @Timeout(value = 5000, unit = TimeUnit.MILLISECONDS)
   public void testVertexCommitFail1_OnVertexSuccess() throws Exception {
     conf.setBoolean(TezConfiguration.TEZ_AM_COMMIT_ALL_OUTPUTS_ON_DAG_SUCCESS,
         false);
@@ -646,33 +653,34 @@ public class TestCommit {
     VertexImpl v1 = (VertexImpl) dag.getVertex("vertex1");
     v1.handle(new VertexEventTaskCompleted(v1.getTask(0).getTaskID(),
         TaskState.SUCCEEDED));
-    Assert.assertEquals(VertexState.COMMITTING, v1.getState());
+    assertEquals(VertexState.COMMITTING, v1.getState());
     CountingOutputCommitter v1OutputCommitter_1 = (CountingOutputCommitter) v1
         .getOutputCommitter("v1Out_1");
     v1OutputCommitter_1.unblockCommit();
     waitUntil(v1, VertexState.FAILED);
 
-    Assert.assertEquals(VertexTerminationCause.COMMIT_FAILURE,
+    assertEquals(VertexTerminationCause.COMMIT_FAILURE,
         v1.getTerminationCause());
-    Assert.assertTrue(v1.commitFutures.isEmpty());
+    assertTrue(v1.commitFutures.isEmpty());
     historyEventHandler.verifyVertexCommitStartedEvent(v1.getVertexId(), 1);
     historyEventHandler.verifyVertexFinishedEvent(v1.getVertexId(), 1);
     CountingOutputCommitter v1OutputCommitter_2 = (CountingOutputCommitter) v1
         .getOutputCommitter("v1Out_2");
 
-    Assert.assertEquals(1, v1OutputCommitter_1.initCounter);
-    Assert.assertEquals(1, v1OutputCommitter_1.setupCounter);
-    Assert.assertEquals(1, v1OutputCommitter_1.commitCounter);
-    Assert.assertEquals(1, v1OutputCommitter_1.abortCounter);
+    assertEquals(1, v1OutputCommitter_1.initCounter);
+    assertEquals(1, v1OutputCommitter_1.setupCounter);
+    assertEquals(1, v1OutputCommitter_1.commitCounter);
+    assertEquals(1, v1OutputCommitter_1.abortCounter);
 
-    Assert.assertEquals(1, v1OutputCommitter_2.initCounter);
-    Assert.assertEquals(1, v1OutputCommitter_2.setupCounter);
+    assertEquals(1, v1OutputCommitter_2.initCounter);
+    assertEquals(1, v1OutputCommitter_2.setupCounter);
     // can't verify the commitCounter because v1OutputCommitter_2 may not be started
-    Assert.assertEquals(1, v1OutputCommitter_2.abortCounter);
+    assertEquals(1, v1OutputCommitter_2.abortCounter);
   }
 
   // the first commit succeed while the second fails
-  @Test(timeout = 5000)
+  @Test
+  @Timeout(value = 5000, unit = TimeUnit.MILLISECONDS)
   public void testVertexCommitFail2_OnVertexSuccess() throws Exception {
     conf.setBoolean(TezConfiguration.TEZ_AM_COMMIT_ALL_OUTPUTS_ON_DAG_SUCCESS,
         false);
@@ -683,12 +691,12 @@ public class TestCommit {
     VertexImpl v1 = (VertexImpl) dag.getVertex("vertex1");
     v1.handle(new VertexEventTaskCompleted(v1.getTask(0).getTaskID(),
         TaskState.SUCCEEDED));
-    Assert.assertEquals(VertexState.COMMITTING, v1.getState());
+    assertEquals(VertexState.COMMITTING, v1.getState());
     CountingOutputCommitter v1OutputCommitter_1 = (CountingOutputCommitter) v1
         .getOutputCommitter("v1Out_1");
     v1OutputCommitter_1.unblockCommit();
     waitForCommitCompleted(v1, "v1Out_1");
-    Assert.assertEquals(VertexState.COMMITTING, v1.getState());
+    assertEquals(VertexState.COMMITTING, v1.getState());
 
     CountingOutputCommitter v1OutputCommitter_2 = (CountingOutputCommitter) v1
         .getOutputCommitter("v1Out_2");
@@ -697,21 +705,22 @@ public class TestCommit {
     historyEventHandler.verifyVertexCommitStartedEvent(v1.getVertexId(), 1);
     historyEventHandler.verifyVertexFinishedEvent(v1.getVertexId(), 1);
 
-    Assert.assertEquals(VertexTerminationCause.COMMIT_FAILURE,
+    assertEquals(VertexTerminationCause.COMMIT_FAILURE,
         v1.getTerminationCause());
-    Assert.assertTrue(v1.commitFutures.isEmpty());
-    Assert.assertEquals(1, v1OutputCommitter_1.initCounter);
-    Assert.assertEquals(1, v1OutputCommitter_1.setupCounter);
-    Assert.assertEquals(1, v1OutputCommitter_1.commitCounter);
-    Assert.assertEquals(1, v1OutputCommitter_1.abortCounter);
+    assertTrue(v1.commitFutures.isEmpty());
+    assertEquals(1, v1OutputCommitter_1.initCounter);
+    assertEquals(1, v1OutputCommitter_1.setupCounter);
+    assertEquals(1, v1OutputCommitter_1.commitCounter);
+    assertEquals(1, v1OutputCommitter_1.abortCounter);
 
-    Assert.assertEquals(1, v1OutputCommitter_2.initCounter);
-    Assert.assertEquals(1, v1OutputCommitter_2.setupCounter);
-    Assert.assertEquals(1, v1OutputCommitter_2.commitCounter);
-    Assert.assertEquals(1, v1OutputCommitter_2.abortCounter);
+    assertEquals(1, v1OutputCommitter_2.initCounter);
+    assertEquals(1, v1OutputCommitter_2.setupCounter);
+    assertEquals(1, v1OutputCommitter_2.commitCounter);
+    assertEquals(1, v1OutputCommitter_2.abortCounter);
   }
 
-  @Test(timeout = 5000)
+  @Test
+  @Timeout(value = 5000, unit = TimeUnit.MILLISECONDS)
   public void testVertexKilledWhileCommitting() throws Exception {
     conf.setBoolean(TezConfiguration.TEZ_AM_COMMIT_ALL_OUTPUTS_ON_DAG_SUCCESS,
         false);
@@ -722,17 +731,16 @@ public class TestCommit {
     VertexImpl v1 = (VertexImpl) dag.getVertex("vertex1");
     v1.handle(new VertexEventTaskCompleted(v1.getTask(0).getTaskID(),
         TaskState.SUCCEEDED));
-    Assert.assertEquals(VertexState.COMMITTING, v1.getState());
+    assertEquals(VertexState.COMMITTING, v1.getState());
     // kill dag which will trigger the vertex killed event
     dag.handle(new DAGEventTerminateDag(dag.getID(), DAGTerminationCause.DAG_KILL, null));
     dispatcher.await();
-    Assert.assertEquals(VertexState.KILLED, v1.getState());
-    Assert.assertTrue(v1.commitFutures.isEmpty());
-    Assert.assertEquals(VertexTerminationCause.DAG_TERMINATED,
+    assertEquals(VertexState.KILLED, v1.getState());
+    assertTrue(v1.commitFutures.isEmpty());
+    assertEquals(VertexTerminationCause.DAG_TERMINATED,
         v1.getTerminationCause());
-    Assert.assertEquals(DAGState.KILLED, dag.getState());
-    Assert
-        .assertEquals(DAGTerminationCause.DAG_KILL, dag.getTerminationCause());
+    assertEquals(DAGState.KILLED, dag.getState());
+    assertEquals(DAGTerminationCause.DAG_KILL, dag.getTerminationCause());
     historyEventHandler.verifyVertexCommitStartedEvent(v1.getVertexId(), 1);
     historyEventHandler.verifyVertexFinishedEvent(v1.getVertexId(), 1);
 
@@ -740,18 +748,19 @@ public class TestCommit {
         .getOutputCommitter("v1Out_1");
     CountingOutputCommitter v1OutputCommitter_2 = (CountingOutputCommitter) v1
         .getOutputCommitter("v1Out_2");
-    Assert.assertEquals(1, v1OutputCommitter_1.initCounter);
-    Assert.assertEquals(1, v1OutputCommitter_1.setupCounter);
+    assertEquals(1, v1OutputCommitter_1.initCounter);
+    assertEquals(1, v1OutputCommitter_1.setupCounter);
     // commit may not have started, so can't verify commitCounter
-    Assert.assertEquals(1, v1OutputCommitter_1.abortCounter);
+    assertEquals(1, v1OutputCommitter_1.abortCounter);
 
-    Assert.assertEquals(1, v1OutputCommitter_2.initCounter);
-    Assert.assertEquals(1, v1OutputCommitter_2.setupCounter);
+    assertEquals(1, v1OutputCommitter_2.initCounter);
+    assertEquals(1, v1OutputCommitter_2.setupCounter);
     // commit may not have started, so can't verify commitCounter
-    Assert.assertEquals(1, v1OutputCommitter_2.abortCounter);
+    assertEquals(1, v1OutputCommitter_2.abortCounter);
   }
 
-  @Test(timeout = 5000)
+  @Test
+  @Timeout(value = 5000, unit = TimeUnit.MILLISECONDS)
   public void testVertexRescheduleWhileCommitting() throws Exception {
     conf.setBoolean(TezConfiguration.TEZ_AM_COMMIT_ALL_OUTPUTS_ON_DAG_SUCCESS,
         false);
@@ -762,17 +771,17 @@ public class TestCommit {
     VertexImpl v1 = (VertexImpl) dag.getVertex("vertex1");
     v1.handle(new VertexEventTaskCompleted(v1.getTask(0).getTaskID(),
         TaskState.SUCCEEDED));
-    Assert.assertEquals(VertexState.COMMITTING, v1.getState());
+    assertEquals(VertexState.COMMITTING, v1.getState());
     // reschedule task
     v1.handle(new VertexEventTaskReschedule(TezTaskID.getInstance(
         v1.getVertexId(), 2)));
     dispatcher.await();
-    Assert.assertEquals(VertexState.FAILED, v1.getState());
-    Assert.assertEquals(VertexTerminationCause.VERTEX_RERUN_IN_COMMITTING,
+    assertEquals(VertexState.FAILED, v1.getState());
+    assertEquals(VertexTerminationCause.VERTEX_RERUN_IN_COMMITTING,
         v1.getTerminationCause());
-    Assert.assertTrue(v1.commitFutures.isEmpty());
-    Assert.assertEquals(DAGState.FAILED, dag.getState());
-    Assert.assertEquals(DAGTerminationCause.VERTEX_FAILURE,
+    assertTrue(v1.commitFutures.isEmpty());
+    assertEquals(DAGState.FAILED, dag.getState());
+    assertEquals(DAGTerminationCause.VERTEX_FAILURE,
         dag.getTerminationCause());
     historyEventHandler.verifyVertexCommitStartedEvent(v1.getVertexId(), 1);
     historyEventHandler.verifyVertexFinishedEvent(v1.getVertexId(), 1);
@@ -781,18 +790,19 @@ public class TestCommit {
         .getOutputCommitter("v1Out_1");
     CountingOutputCommitter v1OutputCommitter_2 = (CountingOutputCommitter) v1
         .getOutputCommitter("v1Out_2");
-    Assert.assertEquals(1, v1OutputCommitter_1.initCounter);
-    Assert.assertEquals(1, v1OutputCommitter_1.setupCounter);
+    assertEquals(1, v1OutputCommitter_1.initCounter);
+    assertEquals(1, v1OutputCommitter_1.setupCounter);
     // commit may not have started, so can't verify commitCounter
-    Assert.assertEquals(1, v1OutputCommitter_1.abortCounter);
+    assertEquals(1, v1OutputCommitter_1.abortCounter);
 
-    Assert.assertEquals(1, v1OutputCommitter_2.initCounter);
-    Assert.assertEquals(1, v1OutputCommitter_2.setupCounter);
+    assertEquals(1, v1OutputCommitter_2.initCounter);
+    assertEquals(1, v1OutputCommitter_2.setupCounter);
     // commit may not have started, so can't verify commitCounter
-    Assert.assertEquals(1, v1OutputCommitter_2.abortCounter);
+    assertEquals(1, v1OutputCommitter_2.abortCounter);
   }
 
-  @Test(timeout = 5000)
+  @Test
+  @Timeout(value = 5000, unit = TimeUnit.MILLISECONDS)
   public void testVertexRouteEventErrorWhileCommitting() throws Exception {
     conf.setBoolean(TezConfiguration.TEZ_AM_COMMIT_ALL_OUTPUTS_ON_DAG_SUCCESS,
         false);
@@ -803,7 +813,7 @@ public class TestCommit {
     VertexImpl v1 = (VertexImpl) dag.getVertex("vertex1");
     v1.handle(new VertexEventTaskCompleted(v1.getTask(0).getTaskID(),
         TaskState.SUCCEEDED));
-    Assert.assertEquals(VertexState.COMMITTING, v1.getState());
+    assertEquals(VertexState.COMMITTING, v1.getState());
     // reschedule task
     VertexManagerEvent vmEvent = VertexManagerEvent.create("vertex1", ByteBuffer.wrap(new byte[0]));
     TezTaskAttemptID taId = TezTaskAttemptID.getInstance(TezTaskID.getInstance(v1.getVertexId(), 0), 0);
@@ -813,12 +823,12 @@ public class TestCommit {
     v1.handle(new VertexEventRouteEvent(v1.getVertexId(), Collections.singletonList(tezEvent)));
     waitUntil(dag, DAGState.FAILED);
 
-    Assert.assertEquals(VertexState.FAILED, v1.getState());
-    Assert.assertEquals(VertexTerminationCause.AM_USERCODE_FAILURE,
+    assertEquals(VertexState.FAILED, v1.getState());
+    assertEquals(VertexTerminationCause.AM_USERCODE_FAILURE,
         v1.getTerminationCause());
-    Assert.assertTrue(v1.commitFutures.isEmpty());
-    Assert.assertEquals(DAGState.FAILED, dag.getState());
-    Assert.assertEquals(DAGTerminationCause.VERTEX_FAILURE,
+    assertTrue(v1.commitFutures.isEmpty());
+    assertEquals(DAGState.FAILED, dag.getState());
+    assertEquals(DAGTerminationCause.VERTEX_FAILURE,
         dag.getTerminationCause());
     historyEventHandler.verifyVertexCommitStartedEvent(v1.getVertexId(), 1);
     historyEventHandler.verifyVertexFinishedEvent(v1.getVertexId(), 1);
@@ -827,18 +837,19 @@ public class TestCommit {
         .getOutputCommitter("v1Out_1");
     CountingOutputCommitter v1OutputCommitter_2 = (CountingOutputCommitter) v1
         .getOutputCommitter("v1Out_2");
-    Assert.assertEquals(1, v1OutputCommitter_1.initCounter);
-    Assert.assertEquals(1, v1OutputCommitter_1.setupCounter);
+    assertEquals(1, v1OutputCommitter_1.initCounter);
+    assertEquals(1, v1OutputCommitter_1.setupCounter);
     // commit may not have started, so can't verify commitCounter
-    Assert.assertEquals(1, v1OutputCommitter_1.abortCounter);
+    assertEquals(1, v1OutputCommitter_1.abortCounter);
 
-    Assert.assertEquals(1, v1OutputCommitter_2.initCounter);
-    Assert.assertEquals(1, v1OutputCommitter_2.setupCounter);
+    assertEquals(1, v1OutputCommitter_2.initCounter);
+    assertEquals(1, v1OutputCommitter_2.setupCounter);
     // commit may not have started, so can't verify commitCounter
-    Assert.assertEquals(1, v1OutputCommitter_2.abortCounter);
+    assertEquals(1, v1OutputCommitter_2.abortCounter);
   }
 
-  @Test(timeout = 5000)
+  @Test
+  @Timeout(value = 5000, unit = TimeUnit.MILLISECONDS)
   public void testVertexInternalErrorWhileCommiting() throws Exception {
     conf.setBoolean(TezConfiguration.TEZ_AM_COMMIT_ALL_OUTPUTS_ON_DAG_SUCCESS,
         false);
@@ -849,16 +860,16 @@ public class TestCommit {
     VertexImpl v1 = (VertexImpl) dag.getVertex("vertex1");
     v1.handle(new VertexEventTaskCompleted(v1.getTask(0).getTaskID(),
         TaskState.SUCCEEDED));
-    Assert.assertEquals(VertexState.COMMITTING, v1.getState());
+    assertEquals(VertexState.COMMITTING, v1.getState());
     // internal error
     v1.handle(new VertexEvent(v1.getVertexId(),
         VertexEventType.V_INTERNAL_ERROR));
     dispatcher.await();
-    Assert.assertEquals(VertexState.ERROR, v1.getState());
-    Assert.assertEquals(VertexTerminationCause.INTERNAL_ERROR,
+    assertEquals(VertexState.ERROR, v1.getState());
+    assertEquals(VertexTerminationCause.INTERNAL_ERROR,
         v1.getTerminationCause());
-    Assert.assertEquals(DAGState.ERROR, dag.getState());
-    Assert.assertEquals(DAGTerminationCause.INTERNAL_ERROR,
+    assertEquals(DAGState.ERROR, dag.getState());
+    assertEquals(DAGTerminationCause.INTERNAL_ERROR,
         dag.getTerminationCause());
     historyEventHandler.verifyVertexCommitStartedEvent(v1.getVertexId(), 1);
     historyEventHandler.verifyVertexFinishedEvent(v1.getVertexId(), 1);
@@ -867,20 +878,21 @@ public class TestCommit {
         .getOutputCommitter("v1Out_1");
     CountingOutputCommitter v1OutputCommitter_2 = (CountingOutputCommitter) v1
         .getOutputCommitter("v1Out_2");
-    Assert.assertEquals(1, v1OutputCommitter_1.initCounter);
-    Assert.assertEquals(1, v1OutputCommitter_1.setupCounter);
+    assertEquals(1, v1OutputCommitter_1.initCounter);
+    assertEquals(1, v1OutputCommitter_1.setupCounter);
     // commit may not have started, so can't verify commitCounter
     // TODO abort it when internal error happens TEZ-2250
-    // Assert.assertEquals(1, v1OutputCommitter_1.abortCounter);
+    // assertEquals(1, v1OutputCommitter_1.abortCounter);
 
-    Assert.assertEquals(1, v1OutputCommitter_2.initCounter);
-    Assert.assertEquals(1, v1OutputCommitter_2.setupCounter);
+    assertEquals(1, v1OutputCommitter_2.initCounter);
+    assertEquals(1, v1OutputCommitter_2.setupCounter);
     // commit may not have started, so can't verify commitCounter
     // TODO abort it when internal error happens TEZ-2250
-    // Assert.assertEquals(1, v1OutputCommitter_2.abortCounter);
+    // assertEquals(1, v1OutputCommitter_2.abortCounter);
   }
 
-  @Test(timeout = 5000)
+  @Test
+  @Timeout(value = 5000, unit = TimeUnit.MILLISECONDS)
   public void testDAGCommitSucceeded_OnDAGSuccess() throws Exception {
     conf.setBoolean(TezConfiguration.TEZ_AM_COMMIT_ALL_OUTPUTS_ON_DAG_SUCCESS,
         true);
@@ -907,8 +919,8 @@ public class TestCommit {
         .getOutputCommitter("v3Out");
     v3OutputCommitter.unblockCommit();
     waitUntil(dag, DAGState.SUCCEEDED);
-    Assert.assertTrue(dag.commitFutures.isEmpty());
-    Assert.assertNull(dag.getTerminationCause());
+    assertTrue(dag.commitFutures.isEmpty());
+    assertNull(dag.getTerminationCause());
     historyEventHandler.verifyVertexGroupCommitStartedEvent("uv12", 0);
     historyEventHandler.verifyVertexGroupCommitFinishedEvent("uv12", 0);
     historyEventHandler.verifyVertexGroupCommitStartedEvent("v1", 0);
@@ -924,19 +936,20 @@ public class TestCommit {
     historyEventHandler.verifyDAGCommitStartedEvent(dag.getID(), 1);
     historyEventHandler.verifyDAGFinishedEvent(dag.getID(), 1);
 
-    Assert.assertEquals(1, v12OutputCommitter.initCounter);
-    Assert.assertEquals(1, v12OutputCommitter.setupCounter);
-    Assert.assertEquals(1, v12OutputCommitter.commitCounter);
-    Assert.assertEquals(0, v12OutputCommitter.abortCounter);
+    assertEquals(1, v12OutputCommitter.initCounter);
+    assertEquals(1, v12OutputCommitter.setupCounter);
+    assertEquals(1, v12OutputCommitter.commitCounter);
+    assertEquals(0, v12OutputCommitter.abortCounter);
 
-    Assert.assertEquals(1, v3OutputCommitter.initCounter);
-    Assert.assertEquals(1, v3OutputCommitter.setupCounter);
-    Assert.assertEquals(1, v3OutputCommitter.commitCounter);
-    Assert.assertEquals(0, v3OutputCommitter.abortCounter);
+    assertEquals(1, v3OutputCommitter.initCounter);
+    assertEquals(1, v3OutputCommitter.setupCounter);
+    assertEquals(1, v3OutputCommitter.commitCounter);
+    assertEquals(0, v3OutputCommitter.abortCounter);
   }
 
   // first commit(v12Out) succeed and then the second commit(v3Out) fail
-  @Test(timeout = 5000)
+  @Test
+  @Timeout(value = 5000, unit = TimeUnit.MILLISECONDS)
   public void testDAGCommitFail1_OnDAGSuccess() throws Exception {
     conf.setBoolean(TezConfiguration.TEZ_AM_COMMIT_ALL_OUTPUTS_ON_DAG_SUCCESS,
         true);
@@ -960,18 +973,18 @@ public class TestCommit {
     v12OutputCommitter.unblockCommit();
     waitForCommitCompleted(dag, new OutputKey("v12Out", "uv12", true));
     // still in COMMITTING due to another pending commit
-    Assert.assertEquals(DAGState.COMMITTING, dag.getState());
+    assertEquals(DAGState.COMMITTING, dag.getState());
     CountingOutputCommitter v3OutputCommitter = (CountingOutputCommitter) v3
         .getOutputCommitter("v3Out");
     v3OutputCommitter.unblockCommit();
     waitUntil(dag, DAGState.FAILED);
 
-    Assert.assertEquals(VertexState.SUCCEEDED, v1.getState());
-    Assert.assertEquals(VertexState.SUCCEEDED, v2.getState());
-    Assert.assertEquals(VertexState.SUCCEEDED, v3.getState());
-    Assert.assertEquals(DAGTerminationCause.COMMIT_FAILURE,
+    assertEquals(VertexState.SUCCEEDED, v1.getState());
+    assertEquals(VertexState.SUCCEEDED, v2.getState());
+    assertEquals(VertexState.SUCCEEDED, v3.getState());
+    assertEquals(DAGTerminationCause.COMMIT_FAILURE,
         dag.getTerminationCause());
-    Assert.assertTrue(dag.commitFutures.isEmpty());
+    assertTrue(dag.commitFutures.isEmpty());
     historyEventHandler.verifyVertexGroupCommitStartedEvent("uv12", 0);
     historyEventHandler.verifyVertexGroupCommitFinishedEvent("uv12", 0);
     historyEventHandler.verifyVertexGroupCommitStartedEvent("v1", 0);
@@ -985,19 +998,20 @@ public class TestCommit {
     historyEventHandler.verifyDAGCommitStartedEvent(dag.getID(), 1);
     historyEventHandler.verifyDAGFinishedEvent(dag.getID(), 1);
 
-    Assert.assertEquals(1, v12OutputCommitter.initCounter);
-    Assert.assertEquals(1, v12OutputCommitter.setupCounter);
-    Assert.assertEquals(1, v12OutputCommitter.commitCounter);
-    Assert.assertEquals(1, v12OutputCommitter.abortCounter);
+    assertEquals(1, v12OutputCommitter.initCounter);
+    assertEquals(1, v12OutputCommitter.setupCounter);
+    assertEquals(1, v12OutputCommitter.commitCounter);
+    assertEquals(1, v12OutputCommitter.abortCounter);
 
-    Assert.assertEquals(1, v3OutputCommitter.initCounter);
-    Assert.assertEquals(1, v3OutputCommitter.setupCounter);
-    Assert.assertEquals(1, v3OutputCommitter.commitCounter);
-    Assert.assertEquals(1, v3OutputCommitter.abortCounter);
+    assertEquals(1, v3OutputCommitter.initCounter);
+    assertEquals(1, v3OutputCommitter.setupCounter);
+    assertEquals(1, v3OutputCommitter.commitCounter);
+    assertEquals(1, v3OutputCommitter.abortCounter);
   }
 
   // the first commit(v12Out) fail
-  @Test(timeout = 5000)
+  @Test
+  @Timeout(value = 5000, unit = TimeUnit.MILLISECONDS)
   public void testDAGCommitFail2_OnDAGSuccess() throws Exception {
     conf.setBoolean(TezConfiguration.TEZ_AM_COMMIT_ALL_OUTPUTS_ON_DAG_SUCCESS,
         true);
@@ -1025,13 +1039,13 @@ public class TestCommit {
     historyEventHandler.verifyVertexGroupCommitStartedEvent("uv12", 0);
     historyEventHandler.verifyVertexGroupCommitFinishedEvent("uv12", 0);
 
-    Assert.assertEquals(VertexState.SUCCEEDED, v1.getState());
-    Assert.assertEquals(VertexState.SUCCEEDED, v2.getState());
-    Assert.assertEquals(VertexState.SUCCEEDED, v3.getState());
+    assertEquals(VertexState.SUCCEEDED, v1.getState());
+    assertEquals(VertexState.SUCCEEDED, v2.getState());
+    assertEquals(VertexState.SUCCEEDED, v3.getState());
 
-    Assert.assertEquals(DAGTerminationCause.COMMIT_FAILURE,
+    assertEquals(DAGTerminationCause.COMMIT_FAILURE,
         dag.getTerminationCause());
-    Assert.assertTrue(dag.commitFutures.isEmpty());
+    assertTrue(dag.commitFutures.isEmpty());
     historyEventHandler.verifyVertexGroupCommitStartedEvent("uv12", 0);
     historyEventHandler.verifyVertexGroupCommitFinishedEvent("uv12", 0);
     historyEventHandler.verifyVertexGroupCommitStartedEvent("v1", 0);
@@ -1045,19 +1059,20 @@ public class TestCommit {
     historyEventHandler.verifyDAGCommitStartedEvent(dag.getID(), 1);
     historyEventHandler.verifyDAGFinishedEvent(dag.getID(), 1);
 
-    Assert.assertEquals(1, v12OutputCommitter.initCounter);
-    Assert.assertEquals(1, v12OutputCommitter.setupCounter);
-    Assert.assertEquals(1, v12OutputCommitter.commitCounter);
-    Assert.assertEquals(1, v12OutputCommitter.abortCounter);
+    assertEquals(1, v12OutputCommitter.initCounter);
+    assertEquals(1, v12OutputCommitter.setupCounter);
+    assertEquals(1, v12OutputCommitter.commitCounter);
+    assertEquals(1, v12OutputCommitter.abortCounter);
 
-    Assert.assertEquals(1, v3OutputCommitter.initCounter);
-    Assert.assertEquals(1, v3OutputCommitter.setupCounter);
+    assertEquals(1, v3OutputCommitter.initCounter);
+    assertEquals(1, v3OutputCommitter.setupCounter);
     // commit may not have started, so can't verify commitCounter
-    Assert.assertEquals(1, v3OutputCommitter.abortCounter);
+    assertEquals(1, v3OutputCommitter.abortCounter);
   }
 
   // commit of v3Out complete first then commit of v12Out complete
-  @Test(timeout = 5000)
+  @Test
+  @Timeout(value = 5000, unit = TimeUnit.MILLISECONDS)
   public void testDAGCommitSucceeded1_OnVertexSuccess() throws Exception {
     conf.setBoolean(TezConfiguration.TEZ_AM_COMMIT_ALL_OUTPUTS_ON_DAG_SUCCESS,
         false);
@@ -1074,10 +1089,10 @@ public class TestCommit {
         TaskState.SUCCEEDED));
     v3.handle(new VertexEventTaskCompleted(v3.getTask(0).getTaskID(),
         TaskState.SUCCEEDED));
-    Assert.assertEquals(VertexState.SUCCEEDED, v1.getState());
-    Assert.assertEquals(VertexState.SUCCEEDED, v2.getState());
-    Assert.assertEquals(VertexState.COMMITTING, v3.getState());
-    Assert.assertEquals(DAGState.RUNNING, dag.getState());
+    assertEquals(VertexState.SUCCEEDED, v1.getState());
+    assertEquals(VertexState.SUCCEEDED, v2.getState());
+    assertEquals(VertexState.COMMITTING, v3.getState());
+    assertEquals(DAGState.RUNNING, dag.getState());
 
     CountingOutputCommitter v3OutputCommitter = (CountingOutputCommitter) v3
         .getOutputCommitter("v3Out");
@@ -1089,7 +1104,7 @@ public class TestCommit {
         .getOutputCommitter("v12Out");
     v12OutputCommitter.unblockCommit();
     waitUntil(dag, DAGState.SUCCEEDED);
-    Assert.assertTrue(dag.commitFutures.isEmpty());
+    assertTrue(dag.commitFutures.isEmpty());
     historyEventHandler.verifyVertexGroupCommitStartedEvent("uv12", 1);
     historyEventHandler.verifyVertexGroupCommitFinishedEvent("uv12", 1);
     historyEventHandler.verifyVertexGroupCommitStartedEvent("v1", 0);
@@ -1103,19 +1118,20 @@ public class TestCommit {
     historyEventHandler.verifyDAGCommitStartedEvent(dag.getID(), 0);
     historyEventHandler.verifyDAGFinishedEvent(dag.getID(), 1);
 
-    Assert.assertEquals(1, v12OutputCommitter.initCounter);
-    Assert.assertEquals(1, v12OutputCommitter.setupCounter);
-    Assert.assertEquals(1, v12OutputCommitter.commitCounter);
-    Assert.assertEquals(0, v12OutputCommitter.abortCounter);
+    assertEquals(1, v12OutputCommitter.initCounter);
+    assertEquals(1, v12OutputCommitter.setupCounter);
+    assertEquals(1, v12OutputCommitter.commitCounter);
+    assertEquals(0, v12OutputCommitter.abortCounter);
 
-    Assert.assertEquals(1, v3OutputCommitter.initCounter);
-    Assert.assertEquals(1, v3OutputCommitter.setupCounter);
-    Assert.assertEquals(1, v3OutputCommitter.commitCounter);
-    Assert.assertEquals(0, v3OutputCommitter.abortCounter);
+    assertEquals(1, v3OutputCommitter.initCounter);
+    assertEquals(1, v3OutputCommitter.setupCounter);
+    assertEquals(1, v3OutputCommitter.commitCounter);
+    assertEquals(0, v3OutputCommitter.abortCounter);
   }
 
   // commit of v12Out complete first then commit of v3Out
-  @Test(timeout = 5000)
+  @Test
+  @Timeout(value = 5000, unit = TimeUnit.MILLISECONDS)
   public void testDAGCommitSucceeded2_OnVertexSuccess() throws Exception {
     conf.setBoolean(TezConfiguration.TEZ_AM_COMMIT_ALL_OUTPUTS_ON_DAG_SUCCESS,
         false);
@@ -1132,10 +1148,10 @@ public class TestCommit {
         TaskState.SUCCEEDED));
     v3.handle(new VertexEventTaskCompleted(v3.getTask(0).getTaskID(),
         TaskState.SUCCEEDED));
-    Assert.assertEquals(VertexState.SUCCEEDED, v1.getState());
-    Assert.assertEquals(VertexState.SUCCEEDED, v2.getState());
-    Assert.assertEquals(VertexState.COMMITTING, v3.getState());
-    Assert.assertEquals(DAGState.RUNNING, dag.getState());
+    assertEquals(VertexState.SUCCEEDED, v1.getState());
+    assertEquals(VertexState.SUCCEEDED, v2.getState());
+    assertEquals(VertexState.COMMITTING, v3.getState());
+    assertEquals(DAGState.RUNNING, dag.getState());
 
     CountingOutputCommitter v12OutputCommitter = (CountingOutputCommitter) v1
         .getOutputCommitter("v12Out");
@@ -1143,13 +1159,13 @@ public class TestCommit {
     // ugly (wait for commit event sent out)
     Thread.sleep(500);
     dispatcher.await();
-    Assert.assertEquals(DAGState.RUNNING, dag.getState());
+    assertEquals(DAGState.RUNNING, dag.getState());
 
     CountingOutputCommitter v3OutputCommitter = (CountingOutputCommitter) v3
         .getOutputCommitter("v3Out");
     v3OutputCommitter.unblockCommit();
     waitUntil(dag, DAGState.SUCCEEDED);
-    Assert.assertTrue(dag.commitFutures.isEmpty());
+    assertTrue(dag.commitFutures.isEmpty());
     historyEventHandler.verifyVertexGroupCommitStartedEvent("uv12", 1);
     historyEventHandler.verifyVertexGroupCommitFinishedEvent("uv12", 1);
     historyEventHandler.verifyVertexGroupCommitStartedEvent("v1", 0);
@@ -1163,19 +1179,20 @@ public class TestCommit {
     historyEventHandler.verifyDAGCommitStartedEvent(dag.getID(), 0);
     historyEventHandler.verifyDAGFinishedEvent(dag.getID(), 1);
 
-    Assert.assertEquals(1, v12OutputCommitter.initCounter);
-    Assert.assertEquals(1, v12OutputCommitter.setupCounter);
-    Assert.assertEquals(1, v12OutputCommitter.commitCounter);
-    Assert.assertEquals(0, v12OutputCommitter.abortCounter);
+    assertEquals(1, v12OutputCommitter.initCounter);
+    assertEquals(1, v12OutputCommitter.setupCounter);
+    assertEquals(1, v12OutputCommitter.commitCounter);
+    assertEquals(0, v12OutputCommitter.abortCounter);
 
-    Assert.assertEquals(1, v3OutputCommitter.initCounter);
-    Assert.assertEquals(1, v3OutputCommitter.setupCounter);
-    Assert.assertEquals(1, v3OutputCommitter.commitCounter);
-    Assert.assertEquals(0, v3OutputCommitter.abortCounter);
+    assertEquals(1, v3OutputCommitter.initCounter);
+    assertEquals(1, v3OutputCommitter.setupCounter);
+    assertEquals(1, v3OutputCommitter.commitCounter);
+    assertEquals(0, v3OutputCommitter.abortCounter);
   }
 
   // test DAGCommitSucceeded when vertex group has multiple shared outputs
-  @Test(timeout = 5000)
+  @Test
+  @Timeout(value = 5000, unit = TimeUnit.MILLISECONDS)
   public void testDAGCommitSucceeded3_OnVertexSuccess() throws Exception {
     conf.setBoolean(TezConfiguration.TEZ_AM_COMMIT_ALL_OUTPUTS_ON_DAG_SUCCESS,
         false);
@@ -1192,10 +1209,10 @@ public class TestCommit {
         TaskState.SUCCEEDED));
     v3.handle(new VertexEventTaskCompleted(v3.getTask(0).getTaskID(),
         TaskState.SUCCEEDED));
-    Assert.assertEquals(VertexState.SUCCEEDED, v1.getState());
-    Assert.assertEquals(VertexState.SUCCEEDED, v2.getState());
-    Assert.assertEquals(VertexState.COMMITTING, v3.getState());
-    Assert.assertEquals(DAGState.RUNNING, dag.getState());
+    assertEquals(VertexState.SUCCEEDED, v1.getState());
+    assertEquals(VertexState.SUCCEEDED, v2.getState());
+    assertEquals(VertexState.COMMITTING, v3.getState());
+    assertEquals(DAGState.RUNNING, dag.getState());
 
     CountingOutputCommitter v12OutputCommitter1 = (CountingOutputCommitter) v1
         .getOutputCommitter("v12Out1");
@@ -1203,13 +1220,13 @@ public class TestCommit {
     CountingOutputCommitter v12OutputCommitter2 = (CountingOutputCommitter) v1
         .getOutputCommitter("v12Out2");
     v12OutputCommitter2.unblockCommit();
-    Assert.assertEquals(DAGState.RUNNING, dag.getState());
+    assertEquals(DAGState.RUNNING, dag.getState());
 
     CountingOutputCommitter v3OutputCommitter = (CountingOutputCommitter) v3
         .getOutputCommitter("v3Out");
     v3OutputCommitter.unblockCommit();
     waitUntil(dag, DAGState.SUCCEEDED);
-    Assert.assertTrue(dag.commitFutures.isEmpty());
+    assertTrue(dag.commitFutures.isEmpty());
     historyEventHandler.verifyVertexGroupCommitStartedEvent("uv12", 1);
     historyEventHandler.verifyVertexGroupCommitFinishedEvent("uv12", 1);
     historyEventHandler.verifyVertexGroupCommitStartedEvent("v1", 0);
@@ -1223,24 +1240,25 @@ public class TestCommit {
     historyEventHandler.verifyDAGCommitStartedEvent(dag.getID(), 0);
     historyEventHandler.verifyDAGFinishedEvent(dag.getID(), 1);
 
-    Assert.assertEquals(1, v12OutputCommitter1.initCounter);
-    Assert.assertEquals(1, v12OutputCommitter1.setupCounter);
-    Assert.assertEquals(1, v12OutputCommitter1.commitCounter);
-    Assert.assertEquals(0, v12OutputCommitter1.abortCounter);
+    assertEquals(1, v12OutputCommitter1.initCounter);
+    assertEquals(1, v12OutputCommitter1.setupCounter);
+    assertEquals(1, v12OutputCommitter1.commitCounter);
+    assertEquals(0, v12OutputCommitter1.abortCounter);
 
-    Assert.assertEquals(1, v12OutputCommitter2.initCounter);
-    Assert.assertEquals(1, v12OutputCommitter2.setupCounter);
-    Assert.assertEquals(1, v12OutputCommitter2.commitCounter);
-    Assert.assertEquals(0, v12OutputCommitter2.abortCounter);
+    assertEquals(1, v12OutputCommitter2.initCounter);
+    assertEquals(1, v12OutputCommitter2.setupCounter);
+    assertEquals(1, v12OutputCommitter2.commitCounter);
+    assertEquals(0, v12OutputCommitter2.abortCounter);
 
-    Assert.assertEquals(1, v3OutputCommitter.initCounter);
-    Assert.assertEquals(1, v3OutputCommitter.setupCounter);
-    Assert.assertEquals(1, v3OutputCommitter.commitCounter);
-    Assert.assertEquals(0, v3OutputCommitter.abortCounter);
+    assertEquals(1, v3OutputCommitter.initCounter);
+    assertEquals(1, v3OutputCommitter.setupCounter);
+    assertEquals(1, v3OutputCommitter.commitCounter);
+    assertEquals(0, v3OutputCommitter.abortCounter);
   }
 
   // commit of vertex group(v1,v2) fail and commit of v3 is not completed
-  @Test(timeout = 5000)
+  @Test
+  @Timeout(value = 5000, unit = TimeUnit.MILLISECONDS)
   public void testDAGCommitFail1_OnVertexSuccess() throws Exception {
     conf.setBoolean(TezConfiguration.TEZ_AM_COMMIT_ALL_OUTPUTS_ON_DAG_SUCCESS,
         false);
@@ -1257,23 +1275,23 @@ public class TestCommit {
         TaskState.SUCCEEDED));
     v3.handle(new VertexEventTaskCompleted(v3.getTask(0).getTaskID(),
         TaskState.SUCCEEDED));
-    Assert.assertEquals(VertexState.SUCCEEDED, v1.getState());
-    Assert.assertEquals(VertexState.SUCCEEDED, v2.getState());
-    Assert.assertEquals(VertexState.COMMITTING, v3.getState());
-    Assert.assertEquals(DAGState.RUNNING, dag.getState());
+    assertEquals(VertexState.SUCCEEDED, v1.getState());
+    assertEquals(VertexState.SUCCEEDED, v2.getState());
+    assertEquals(VertexState.COMMITTING, v3.getState());
+    assertEquals(DAGState.RUNNING, dag.getState());
 
     CountingOutputCommitter v12OutputCommitter = (CountingOutputCommitter) v1
         .getOutputCommitter("v12Out");
     v12OutputCommitter.unblockCommit();
     waitUntil(dag, DAGState.FAILED);
     // v3 is killed due to the commit failure of the vertex group (v1,v2)
-    Assert.assertEquals(VertexState.KILLED, v3.getState());
-    Assert.assertEquals(VertexTerminationCause.OTHER_VERTEX_FAILURE,
+    assertEquals(VertexState.KILLED, v3.getState());
+    assertEquals(VertexTerminationCause.OTHER_VERTEX_FAILURE,
         v3.getTerminationCause());
-    Assert.assertTrue(v3.commitFutures.isEmpty());
-    Assert.assertEquals(DAGTerminationCause.COMMIT_FAILURE,
+    assertTrue(v3.commitFutures.isEmpty());
+    assertEquals(DAGTerminationCause.COMMIT_FAILURE,
         dag.getTerminationCause());
-    Assert.assertTrue(dag.commitFutures.isEmpty());
+    assertTrue(dag.commitFutures.isEmpty());
     historyEventHandler.verifyVertexGroupCommitStartedEvent("uv12", 1);
     historyEventHandler.verifyVertexGroupCommitFinishedEvent("uv12", 0);
     historyEventHandler.verifyVertexCommitStartedEvent(v1.getVertexId(), 0);
@@ -1285,21 +1303,22 @@ public class TestCommit {
     historyEventHandler.verifyDAGCommitStartedEvent(dag.getID(), 0);
     historyEventHandler.verifyDAGFinishedEvent(dag.getID(), 1);
 
-    Assert.assertEquals(1, v12OutputCommitter.initCounter);
-    Assert.assertEquals(1, v12OutputCommitter.setupCounter);
-    Assert.assertEquals(1, v12OutputCommitter.commitCounter);
-    Assert.assertEquals(1, v12OutputCommitter.abortCounter);
+    assertEquals(1, v12OutputCommitter.initCounter);
+    assertEquals(1, v12OutputCommitter.setupCounter);
+    assertEquals(1, v12OutputCommitter.commitCounter);
+    assertEquals(1, v12OutputCommitter.abortCounter);
 
     CountingOutputCommitter v3OutputCommitter = (CountingOutputCommitter) v3
         .getOutputCommitter("v3Out");
-    Assert.assertEquals(1, v3OutputCommitter.initCounter);
-    Assert.assertEquals(1, v3OutputCommitter.setupCounter);
+    assertEquals(1, v3OutputCommitter.initCounter);
+    assertEquals(1, v3OutputCommitter.setupCounter);
     // commit may not have started, so can't verify commitCounter
-    Assert.assertEquals(1, v3OutputCommitter.abortCounter);
+    assertEquals(1, v3OutputCommitter.abortCounter);
   }
 
   // commit of vertex v3 fail and commit of vertex group (v1,v2) is not completed
-  @Test(timeout = 5000)
+  @Test
+  @Timeout(value = 5000, unit = TimeUnit.MILLISECONDS)
   public void testDAGCommitFail2_OnVertexSuccess() throws Exception {
     conf.setBoolean(TezConfiguration.TEZ_AM_COMMIT_ALL_OUTPUTS_ON_DAG_SUCCESS,
         false);
@@ -1316,23 +1335,23 @@ public class TestCommit {
         TaskState.SUCCEEDED));
     v3.handle(new VertexEventTaskCompleted(v3.getTask(0).getTaskID(),
         TaskState.SUCCEEDED));
-    Assert.assertEquals(VertexState.SUCCEEDED, v1.getState());
-    Assert.assertEquals(VertexState.SUCCEEDED, v2.getState());
-    Assert.assertEquals(VertexState.COMMITTING, v3.getState());
-    Assert.assertEquals(DAGState.RUNNING, dag.getState());
+    assertEquals(VertexState.SUCCEEDED, v1.getState());
+    assertEquals(VertexState.SUCCEEDED, v2.getState());
+    assertEquals(VertexState.COMMITTING, v3.getState());
+    assertEquals(DAGState.RUNNING, dag.getState());
 
     CountingOutputCommitter v3OutputCommitter = (CountingOutputCommitter) v3
         .getOutputCommitter("v3Out");
     v3OutputCommitter.unblockCommit();
     waitUntil(dag, DAGState.FAILED);
 
-    Assert.assertEquals(VertexState.FAILED, v3.getState());
-    Assert.assertEquals(VertexTerminationCause.COMMIT_FAILURE,
+    assertEquals(VertexState.FAILED, v3.getState());
+    assertEquals(VertexTerminationCause.COMMIT_FAILURE,
         v3.getTerminationCause());
-    Assert.assertTrue(v3.commitFutures.isEmpty());
-    Assert.assertEquals(DAGTerminationCause.VERTEX_FAILURE,
+    assertTrue(v3.commitFutures.isEmpty());
+    assertEquals(DAGTerminationCause.VERTEX_FAILURE,
         dag.getTerminationCause());
-    Assert.assertTrue(dag.commitFutures.isEmpty());
+    assertTrue(dag.commitFutures.isEmpty());
     historyEventHandler.verifyVertexGroupCommitStartedEvent("uv12", 1);
     historyEventHandler.verifyVertexGroupCommitFinishedEvent("uv12", 0);
     historyEventHandler.verifyVertexCommitStartedEvent(v1.getVertexId(), 0);
@@ -1346,19 +1365,20 @@ public class TestCommit {
 
     CountingOutputCommitter v12OutputCommitter = (CountingOutputCommitter) v1
         .getOutputCommitter("v12Out");
-    Assert.assertEquals(1, v12OutputCommitter.initCounter);
-    Assert.assertEquals(1, v12OutputCommitter.setupCounter);
+    assertEquals(1, v12OutputCommitter.initCounter);
+    assertEquals(1, v12OutputCommitter.setupCounter);
     // commit may not have started, so can't verify commitCounter
-    Assert.assertEquals(1, v12OutputCommitter.abortCounter);
+    assertEquals(1, v12OutputCommitter.abortCounter);
 
-    Assert.assertEquals(1, v3OutputCommitter.initCounter);
-    Assert.assertEquals(1, v3OutputCommitter.setupCounter);
-    Assert.assertEquals(1, v3OutputCommitter.commitCounter);
-    Assert.assertEquals(1, v3OutputCommitter.abortCounter);
+    assertEquals(1, v3OutputCommitter.initCounter);
+    assertEquals(1, v3OutputCommitter.setupCounter);
+    assertEquals(1, v3OutputCommitter.commitCounter);
+    assertEquals(1, v3OutputCommitter.abortCounter);
   }
 
   // vertex group (v1,v2) succeeded first and then commit of vertex v3 fail
-  @Test (timeout = 5000)
+  @Test
+  @Timeout(value = 5000, unit = TimeUnit.MILLISECONDS)
   public void testDAGCommitFail3_OnVertexSuccess() throws Exception {
     conf.setBoolean(TezConfiguration.TEZ_AM_COMMIT_ALL_OUTPUTS_ON_DAG_SUCCESS,
         false);
@@ -1375,10 +1395,10 @@ public class TestCommit {
         TaskState.SUCCEEDED));
     v3.handle(new VertexEventTaskCompleted(v3.getTask(0).getTaskID(),
         TaskState.SUCCEEDED));
-    Assert.assertEquals(VertexState.SUCCEEDED, v1.getState());
-    Assert.assertEquals(VertexState.SUCCEEDED, v2.getState());
-    Assert.assertEquals(VertexState.COMMITTING, v3.getState());
-    Assert.assertEquals(DAGState.RUNNING, dag.getState());
+    assertEquals(VertexState.SUCCEEDED, v1.getState());
+    assertEquals(VertexState.SUCCEEDED, v2.getState());
+    assertEquals(VertexState.COMMITTING, v3.getState());
+    assertEquals(DAGState.RUNNING, dag.getState());
 
     CountingOutputCommitter v12OutputCommitter = (CountingOutputCommitter) v1
         .getOutputCommitter("v12Out");
@@ -1391,13 +1411,13 @@ public class TestCommit {
     v3OutputCommitter.unblockCommit();
     waitUntil(dag, DAGState.FAILED);
 
-    Assert.assertEquals(VertexState.FAILED, v3.getState());
-    Assert.assertEquals(VertexTerminationCause.COMMIT_FAILURE,
+    assertEquals(VertexState.FAILED, v3.getState());
+    assertEquals(VertexTerminationCause.COMMIT_FAILURE,
         v3.getTerminationCause());
-    Assert.assertTrue(v3.commitFutures.isEmpty());
-    Assert.assertEquals(DAGTerminationCause.VERTEX_FAILURE,
+    assertTrue(v3.commitFutures.isEmpty());
+    assertEquals(DAGTerminationCause.VERTEX_FAILURE,
         dag.getTerminationCause());
-    Assert.assertTrue(dag.commitFutures.isEmpty());
+    assertTrue(dag.commitFutures.isEmpty());
     historyEventHandler.verifyVertexGroupCommitStartedEvent("uv12", 1);
     historyEventHandler.verifyVertexGroupCommitFinishedEvent("uv12", 1);
     historyEventHandler.verifyVertexCommitStartedEvent(v1.getVertexId(), 0);
@@ -1409,19 +1429,20 @@ public class TestCommit {
     historyEventHandler.verifyDAGCommitStartedEvent(dag.getID(), 0);
     historyEventHandler.verifyDAGFinishedEvent(dag.getID(), 1);
 
-    Assert.assertEquals(1, v12OutputCommitter.initCounter);
-    Assert.assertEquals(1, v12OutputCommitter.setupCounter);
-    Assert.assertEquals(1, v12OutputCommitter.commitCounter);
-    Assert.assertEquals(1, v12OutputCommitter.abortCounter);
+    assertEquals(1, v12OutputCommitter.initCounter);
+    assertEquals(1, v12OutputCommitter.setupCounter);
+    assertEquals(1, v12OutputCommitter.commitCounter);
+    assertEquals(1, v12OutputCommitter.abortCounter);
 
-    Assert.assertEquals(1, v3OutputCommitter.initCounter);
-    Assert.assertEquals(1, v3OutputCommitter.setupCounter);
-    Assert.assertEquals(1, v3OutputCommitter.commitCounter);
-    Assert.assertEquals(1, v3OutputCommitter.abortCounter);
+    assertEquals(1, v3OutputCommitter.initCounter);
+    assertEquals(1, v3OutputCommitter.setupCounter);
+    assertEquals(1, v3OutputCommitter.commitCounter);
+    assertEquals(1, v3OutputCommitter.abortCounter);
   }
 
   // commit of vertex v3 succeeded first and then commit of vertex group(v1,v2) fail
-  @Test(timeout = 5000)
+  @Test
+  @Timeout(value = 5000, unit = TimeUnit.MILLISECONDS)
   public void testDAGCommitFail4_OnVertexSuccess() throws Exception {
     conf.setBoolean(TezConfiguration.TEZ_AM_COMMIT_ALL_OUTPUTS_ON_DAG_SUCCESS,
         false);
@@ -1438,26 +1459,26 @@ public class TestCommit {
         TaskState.SUCCEEDED));
     v3.handle(new VertexEventTaskCompleted(v3.getTask(0).getTaskID(),
         TaskState.SUCCEEDED));
-    Assert.assertEquals(VertexState.SUCCEEDED, v1.getState());
-    Assert.assertEquals(VertexState.SUCCEEDED, v2.getState());
-    Assert.assertEquals(VertexState.COMMITTING, v3.getState());
-    Assert.assertEquals(DAGState.RUNNING, dag.getState());
+    assertEquals(VertexState.SUCCEEDED, v1.getState());
+    assertEquals(VertexState.SUCCEEDED, v2.getState());
+    assertEquals(VertexState.COMMITTING, v3.getState());
+    assertEquals(DAGState.RUNNING, dag.getState());
 
     CountingOutputCommitter v3OutputCommitter = (CountingOutputCommitter) v3
         .getOutputCommitter("v3Out");
     v3OutputCommitter.unblockCommit();
     waitForCommitCompleted(dag, new OutputKey("v3Out", "vertex3", true));
     waitUntil(v3, VertexState.SUCCEEDED);
-    Assert.assertTrue(v3.commitFutures.isEmpty());
+    assertTrue(v3.commitFutures.isEmpty());
 
     CountingOutputCommitter v12OutputCommitter = (CountingOutputCommitter) v1
         .getOutputCommitter("v12Out");
     v12OutputCommitter.unblockCommit();
     waitUntil(dag, DAGState.FAILED);
 
-    Assert.assertEquals(DAGTerminationCause.COMMIT_FAILURE,
+    assertEquals(DAGTerminationCause.COMMIT_FAILURE,
         dag.getTerminationCause());
-    Assert.assertTrue(dag.commitFutures.isEmpty());
+    assertTrue(dag.commitFutures.isEmpty());
     historyEventHandler.verifyVertexGroupCommitStartedEvent("uv12", 1);
     historyEventHandler.verifyVertexGroupCommitFinishedEvent("uv12", 0);
     historyEventHandler.verifyVertexCommitStartedEvent(v1.getVertexId(), 0);
@@ -1469,18 +1490,19 @@ public class TestCommit {
     historyEventHandler.verifyDAGCommitStartedEvent(dag.getID(), 0);
     historyEventHandler.verifyDAGFinishedEvent(dag.getID(), 1);
 
-    Assert.assertEquals(1, v12OutputCommitter.initCounter);
-    Assert.assertEquals(1, v12OutputCommitter.setupCounter);
-    Assert.assertEquals(1, v12OutputCommitter.commitCounter);
-    Assert.assertEquals(1, v12OutputCommitter.abortCounter);
+    assertEquals(1, v12OutputCommitter.initCounter);
+    assertEquals(1, v12OutputCommitter.setupCounter);
+    assertEquals(1, v12OutputCommitter.commitCounter);
+    assertEquals(1, v12OutputCommitter.abortCounter);
 
-    Assert.assertEquals(1, v3OutputCommitter.initCounter);
-    Assert.assertEquals(1, v3OutputCommitter.setupCounter);
-    Assert.assertEquals(1, v3OutputCommitter.commitCounter);
-    Assert.assertEquals(1, v3OutputCommitter.abortCounter);
+    assertEquals(1, v3OutputCommitter.initCounter);
+    assertEquals(1, v3OutputCommitter.setupCounter);
+    assertEquals(1, v3OutputCommitter.commitCounter);
+    assertEquals(1, v3OutputCommitter.abortCounter);
   }
 
-  @Test (timeout = 5000)
+  @Test
+  @Timeout(value = 5000, unit = TimeUnit.MILLISECONDS)
   public void testDAGInternalErrorWhileCommiting_OnDAGSuccess() throws Exception {
     conf.setBoolean(TezConfiguration.TEZ_AM_COMMIT_ALL_OUTPUTS_ON_DAG_SUCCESS,
         true);
@@ -1501,7 +1523,7 @@ public class TestCommit {
     dag.handle(new DAGEvent(dag.getID(), DAGEventType.INTERNAL_ERROR));
     waitUntil(dag, DAGState.ERROR);
 
-    Assert.assertEquals(DAGTerminationCause.INTERNAL_ERROR, dag.getTerminationCause());
+    assertEquals(DAGTerminationCause.INTERNAL_ERROR, dag.getTerminationCause());
     historyEventHandler.verifyVertexGroupCommitStartedEvent("uv12", 0);
     historyEventHandler.verifyVertexGroupCommitFinishedEvent("uv12", 0);
     historyEventHandler.verifyVertexCommitStartedEvent(v1.getVertexId(), 0);
@@ -1517,26 +1539,28 @@ public class TestCommit {
         .getOutputCommitter("v12Out");
     CountingOutputCommitter v3OutputCommitter = (CountingOutputCommitter) v3
         .getOutputCommitter("v3Out");
-    Assert.assertEquals(1, v12OutputCommitter.initCounter);
-    Assert.assertEquals(1, v12OutputCommitter.setupCounter);
+    assertEquals(1, v12OutputCommitter.initCounter);
+    assertEquals(1, v12OutputCommitter.setupCounter);
     // commit may not have started, so can't verify commitCounter
     // TODO abort it when internal error happens TEZ-2250
-    // Assert.assertEquals(0, v12OutputCommitter.abortCounter);
+    // assertEquals(0, v12OutputCommitter.abortCounter);
 
-    Assert.assertEquals(1, v3OutputCommitter.initCounter);
-    Assert.assertEquals(1, v3OutputCommitter.setupCounter);
+    assertEquals(1, v3OutputCommitter.initCounter);
+    assertEquals(1, v3OutputCommitter.setupCounter);
     // commit may not have started, so can't verify commitCounter
     // TODO abort it when internal error happens TEZ-2250
-    // Assert.assertEquals(0, v3OutputCommitter.abortCounter);
+    // assertEquals(0, v3OutputCommitter.abortCounter);
   }
 
 
-  @Test(timeout = 5000)
+  @Test
+  @Timeout(value = 5000, unit = TimeUnit.MILLISECONDS)
   public void testDAGKilledWhileCommitting1_OnDAGSuccess() throws Exception {
     _testDAGTerminatedWhileCommitting1_OnDAGSuccess(DAGTerminationCause.DAG_KILL);
   }
 
-  @Test(timeout = 5000)
+  @Test
+  @Timeout(value = 5000, unit = TimeUnit.MILLISECONDS)
   public void testServiceErrorWhileCommitting1_OnDAGSuccess() throws Exception {
     _testDAGTerminatedWhileCommitting1_OnDAGSuccess(DAGTerminationCause.SERVICE_PLUGIN_ERROR);
   }
@@ -1563,12 +1587,11 @@ public class TestCommit {
     dag.handle(new DAGEventTerminateDag(dag.getID(), terminationCause, null));
     waitUntil(dag, terminationCause.getFinishedState());
 
-    Assert.assertEquals(VertexState.SUCCEEDED, v1.getState());
-    Assert.assertEquals(VertexState.SUCCEEDED, v2.getState());
-    Assert.assertEquals(VertexState.SUCCEEDED, v3.getState());
-    Assert
-        .assertEquals(terminationCause, dag.getTerminationCause());
-    Assert.assertTrue(dag.commitFutures.isEmpty());
+    assertEquals(VertexState.SUCCEEDED, v1.getState());
+    assertEquals(VertexState.SUCCEEDED, v2.getState());
+    assertEquals(VertexState.SUCCEEDED, v3.getState());
+    assertEquals(terminationCause, dag.getTerminationCause());
+    assertTrue(dag.commitFutures.isEmpty());
     historyEventHandler.verifyVertexGroupCommitStartedEvent("uv12", 0);
     historyEventHandler.verifyVertexGroupCommitFinishedEvent("uv12", 0);
     historyEventHandler.verifyVertexCommitStartedEvent(v1.getVertexId(), 0);
@@ -1584,24 +1607,26 @@ public class TestCommit {
         .getOutputCommitter("v12Out");
     CountingOutputCommitter v3OutputCommitter = (CountingOutputCommitter) v3
         .getOutputCommitter("v3Out");
-    Assert.assertEquals(1, v12OutputCommitter.initCounter);
-    Assert.assertEquals(1, v12OutputCommitter.setupCounter);
+    assertEquals(1, v12OutputCommitter.initCounter);
+    assertEquals(1, v12OutputCommitter.setupCounter);
     // commit may not have started, so can't verify commitCounter
-    Assert.assertEquals(1, v12OutputCommitter.abortCounter);
+    assertEquals(1, v12OutputCommitter.abortCounter);
 
-    Assert.assertEquals(1, v3OutputCommitter.initCounter);
-    Assert.assertEquals(1, v3OutputCommitter.setupCounter);
+    assertEquals(1, v3OutputCommitter.initCounter);
+    assertEquals(1, v3OutputCommitter.setupCounter);
     // commit may not have started, so can't verify commitCounter
-    Assert.assertEquals(1, v3OutputCommitter.abortCounter);
+    assertEquals(1, v3OutputCommitter.abortCounter);
   }
 
 
-  @Test(timeout = 5000)
+  @Test
+  @Timeout(value = 5000, unit = TimeUnit.MILLISECONDS)
   public void testDAGKilledWhileCommitting1_OnVertexSuccess() throws Exception {
     _testDAGTerminatedWhileCommitting1_OnVertexSuccess(DAGTerminationCause.DAG_KILL);
   }
 
-  @Test(timeout = 5000)
+  @Test
+  @Timeout(value = 5000, unit = TimeUnit.MILLISECONDS)
   public void testServiceErrorWhileCommitting1_OnVertexSuccess() throws Exception {
     _testDAGTerminatedWhileCommitting1_OnVertexSuccess(DAGTerminationCause.SERVICE_PLUGIN_ERROR);
   }
@@ -1624,9 +1649,9 @@ public class TestCommit {
         TaskState.SUCCEEDED));
     v3.handle(new VertexEventTaskCompleted(v3.getTask(0).getTaskID(),
         TaskState.SUCCEEDED));
-    Assert.assertEquals(VertexState.COMMITTING, v3.getState());
+    assertEquals(VertexState.COMMITTING, v3.getState());
     // dag is still in RUNNING because v3 has not completed
-    Assert.assertEquals(DAGState.RUNNING, dag.getState());
+    assertEquals(DAGState.RUNNING, dag.getState());
     CountingOutputCommitter v3OutputCommitter = (CountingOutputCommitter) v3
         .getOutputCommitter("v3Out");
     v3OutputCommitter.unblockCommit();
@@ -1635,13 +1660,12 @@ public class TestCommit {
     dag.handle(new DAGEventTerminateDag(dag.getID(), terminationCause, null));
     waitUntil(dag, terminationCause.getFinishedState());
 
-    Assert.assertEquals(VertexState.SUCCEEDED, v1.getState());
-    Assert.assertEquals(VertexState.SUCCEEDED, v2.getState());
-    Assert.assertEquals(VertexState.SUCCEEDED, v3.getState());
-    Assert.assertEquals(terminationCause.getFinishedState(), dag.getState());
-    Assert
-        .assertEquals(terminationCause, dag.getTerminationCause());
-    Assert.assertTrue(dag.commitFutures.isEmpty());
+    assertEquals(VertexState.SUCCEEDED, v1.getState());
+    assertEquals(VertexState.SUCCEEDED, v2.getState());
+    assertEquals(VertexState.SUCCEEDED, v3.getState());
+    assertEquals(terminationCause.getFinishedState(), dag.getState());
+    assertEquals(terminationCause, dag.getTerminationCause());
+    assertTrue(dag.commitFutures.isEmpty());
     historyEventHandler.verifyVertexGroupCommitStartedEvent("uv12", 1);
     historyEventHandler.verifyVertexGroupCommitFinishedEvent("uv12", 0);
     historyEventHandler.verifyVertexCommitStartedEvent(v1.getVertexId(), 0);
@@ -1656,23 +1680,25 @@ public class TestCommit {
     CountingOutputCommitter v12OutputCommitter = (CountingOutputCommitter) v1
         .getOutputCommitter("v12Out");
 
-    Assert.assertEquals(1, v12OutputCommitter.initCounter);
-    Assert.assertEquals(1, v12OutputCommitter.setupCounter);
+    assertEquals(1, v12OutputCommitter.initCounter);
+    assertEquals(1, v12OutputCommitter.setupCounter);
     // commit may not have started, so can't verify commitCounter
-    Assert.assertEquals(1, v12OutputCommitter.abortCounter);
+    assertEquals(1, v12OutputCommitter.abortCounter);
 
-    Assert.assertEquals(1, v3OutputCommitter.initCounter);
-    Assert.assertEquals(1, v3OutputCommitter.setupCounter);
-    Assert.assertEquals(1, v3OutputCommitter.commitCounter);
-    Assert.assertEquals(1, v3OutputCommitter.abortCounter);
+    assertEquals(1, v3OutputCommitter.initCounter);
+    assertEquals(1, v3OutputCommitter.setupCounter);
+    assertEquals(1, v3OutputCommitter.commitCounter);
+    assertEquals(1, v3OutputCommitter.abortCounter);
   }
 
-  @Test(timeout = 5000)
+  @Test
+  @Timeout(value = 5000, unit = TimeUnit.MILLISECONDS)
   public void testDAGKilledWhileRunning_OnVertexSuccess() throws Exception {
     _testDAGKilledWhileRunning_OnVertexSuccess(DAGTerminationCause.DAG_KILL);
   }
 
-  @Test(timeout = 5000)
+  @Test
+  @Timeout(value = 5000, unit = TimeUnit.MILLISECONDS)
   public void testServiceErrorWhileRunning_OnVertexSuccess() throws Exception {
     _testDAGKilledWhileRunning_OnVertexSuccess(DAGTerminationCause.SERVICE_PLUGIN_ERROR);
   }
@@ -1694,21 +1720,20 @@ public class TestCommit {
         TaskState.SUCCEEDED));
     v3.handle(new VertexEventTaskCompleted(v3.getTask(0).getTaskID(),
         TaskState.SUCCEEDED));
-    Assert.assertEquals(VertexState.COMMITTING, v3.getState());
+    assertEquals(VertexState.COMMITTING, v3.getState());
     // dag is still in RUNNING because v3 has not completed
-    Assert.assertEquals(DAGState.RUNNING, dag.getState());
+    assertEquals(DAGState.RUNNING, dag.getState());
     dag.handle(new DAGEventTerminateDag(dag.getID(), terminationCause, null));
     waitUntil(dag, terminationCause.getFinishedState());
 
-    Assert.assertEquals(VertexState.SUCCEEDED, v1.getState());
-    Assert.assertEquals(VertexState.SUCCEEDED, v2.getState());
-    Assert.assertEquals(VertexState.KILLED, v3.getState());
-    Assert.assertEquals(VertexTerminationCause.DAG_TERMINATED, v3.getTerminationCause());
-    Assert.assertTrue(v3.commitFutures.isEmpty());
-    Assert.assertEquals(terminationCause.getFinishedState(), dag.getState());
-    Assert
-        .assertEquals(terminationCause, dag.getTerminationCause());
-    Assert.assertTrue(dag.commitFutures.isEmpty());
+    assertEquals(VertexState.SUCCEEDED, v1.getState());
+    assertEquals(VertexState.SUCCEEDED, v2.getState());
+    assertEquals(VertexState.KILLED, v3.getState());
+    assertEquals(VertexTerminationCause.DAG_TERMINATED, v3.getTerminationCause());
+    assertTrue(v3.commitFutures.isEmpty());
+    assertEquals(terminationCause.getFinishedState(), dag.getState());
+    assertEquals(terminationCause, dag.getTerminationCause());
+    assertTrue(dag.commitFutures.isEmpty());
     // commit uv12 may not have started, so can't verify the VertexGroupCommitStartedEvent
     historyEventHandler.verifyVertexGroupCommitFinishedEvent("uv12", 0);
     historyEventHandler.verifyVertexCommitStartedEvent(v1.getVertexId(), 0);
@@ -1725,18 +1750,19 @@ public class TestCommit {
     CountingOutputCommitter v3OutputCommitter = (CountingOutputCommitter) v3
         .getOutputCommitter("v3Out");
 
-    Assert.assertEquals(1, v12OutputCommitter.initCounter);
-    Assert.assertEquals(1, v12OutputCommitter.setupCounter);
+    assertEquals(1, v12OutputCommitter.initCounter);
+    assertEquals(1, v12OutputCommitter.setupCounter);
     // commit may not have started, so can't verify commitCounter
-    Assert.assertEquals(1, v12OutputCommitter.abortCounter);
+    assertEquals(1, v12OutputCommitter.abortCounter);
 
-    Assert.assertEquals(1, v3OutputCommitter.initCounter);
-    Assert.assertEquals(1, v3OutputCommitter.setupCounter);
+    assertEquals(1, v3OutputCommitter.initCounter);
+    assertEquals(1, v3OutputCommitter.setupCounter);
     // commit may not have started, so can't verify commitCounter
-    Assert.assertEquals(1, v3OutputCommitter.abortCounter);
+    assertEquals(1, v3OutputCommitter.abortCounter);
   }
 
-  @Test(timeout = 5000)
+  @Test
+  @Timeout(value = 5000, unit = TimeUnit.MILLISECONDS)
   public void testDAGCommitVertexRerunWhileCommitting_OnDAGSuccess() throws Exception {
     conf.setBoolean(TezConfiguration.TEZ_AM_COMMIT_ALL_OUTPUTS_ON_DAG_SUCCESS,
         true);
@@ -1762,12 +1788,12 @@ public class TestCommit {
     // reschedueled task is killed
     v1.handle(new VertexEventTaskCompleted(newTaskId, TaskState.KILLED));
     waitUntil(dag, DAGState.FAILED);
-    Assert.assertEquals(VertexState.FAILED, v1.getState());
-    Assert.assertEquals(DAGState.FAILED, dag.getState());
-    Assert.assertEquals(VertexTerminationCause.VERTEX_RERUN_IN_COMMITTING, v1.getTerminationCause());
+    assertEquals(VertexState.FAILED, v1.getState());
+    assertEquals(DAGState.FAILED, dag.getState());
+    assertEquals(VertexTerminationCause.VERTEX_RERUN_IN_COMMITTING, v1.getTerminationCause());
 
-    Assert.assertEquals(DAGTerminationCause.VERTEX_RERUN_IN_COMMITTING, dag.getTerminationCause());
-    Assert.assertTrue(dag.commitFutures.isEmpty());
+    assertEquals(DAGTerminationCause.VERTEX_RERUN_IN_COMMITTING, dag.getTerminationCause());
+    assertTrue(dag.commitFutures.isEmpty());
     historyEventHandler.verifyVertexGroupCommitStartedEvent("uv12", 0);
     historyEventHandler.verifyVertexGroupCommitFinishedEvent("uv12", 0);
     historyEventHandler.verifyVertexCommitStartedEvent(v1.getVertexId(), 0);
@@ -1784,18 +1810,19 @@ public class TestCommit {
         .getOutputCommitter("v12Out");
     CountingOutputCommitter v3OutputCommitter = (CountingOutputCommitter) v3
         .getOutputCommitter("v3Out");
-    Assert.assertEquals(1, v12OutputCommitter.initCounter);
-    Assert.assertEquals(1, v12OutputCommitter.setupCounter);
+    assertEquals(1, v12OutputCommitter.initCounter);
+    assertEquals(1, v12OutputCommitter.setupCounter);
     // commit may not have started, so can't verify commitCounter
-    Assert.assertEquals(1, v12OutputCommitter.abortCounter);
+    assertEquals(1, v12OutputCommitter.abortCounter);
 
-    Assert.assertEquals(1, v3OutputCommitter.initCounter);
-    Assert.assertEquals(1, v3OutputCommitter.setupCounter);
+    assertEquals(1, v3OutputCommitter.initCounter);
+    assertEquals(1, v3OutputCommitter.setupCounter);
     // commit may not have started, so can't verify commitCounter
-    Assert.assertEquals(1, v3OutputCommitter.abortCounter);
+    assertEquals(1, v3OutputCommitter.abortCounter);
   }
 
-  @Test(timeout = 5000)
+  @Test
+  @Timeout(value = 5000, unit = TimeUnit.MILLISECONDS)
   public void testDAGCommitInternalErrorWhileCommiting_OnDAGSuccess() throws Exception {
     conf.setBoolean(TezConfiguration.TEZ_AM_COMMIT_ALL_OUTPUTS_ON_DAG_SUCCESS,
         true);
@@ -1816,7 +1843,7 @@ public class TestCommit {
     dag.handle(new DAGEvent(dag.getID(), DAGEventType.INTERNAL_ERROR));
     waitUntil(dag, DAGState.ERROR);
 
-    Assert.assertEquals(DAGTerminationCause.INTERNAL_ERROR, dag.getTerminationCause());
+    assertEquals(DAGTerminationCause.INTERNAL_ERROR, dag.getTerminationCause());
     historyEventHandler.verifyVertexGroupCommitStartedEvent("uv12", 0);
     historyEventHandler.verifyVertexGroupCommitFinishedEvent("uv12", 0);
     historyEventHandler.verifyVertexCommitStartedEvent(v1.getVertexId(), 0);
@@ -1832,18 +1859,19 @@ public class TestCommit {
         .getOutputCommitter("v12Out");
     CountingOutputCommitter v3OutputCommitter = (CountingOutputCommitter) v3
         .getOutputCommitter("v3Out");
-    Assert.assertEquals(1, v12OutputCommitter.initCounter);
-    Assert.assertEquals(1, v12OutputCommitter.setupCounter);
+    assertEquals(1, v12OutputCommitter.initCounter);
+    assertEquals(1, v12OutputCommitter.setupCounter);
     // commit may not have started, so can't verify commitCounter
-    Assert.assertEquals(1, v12OutputCommitter.abortCounter);
+    assertEquals(1, v12OutputCommitter.abortCounter);
 
-    Assert.assertEquals(1, v3OutputCommitter.initCounter);
-    Assert.assertEquals(1, v3OutputCommitter.setupCounter);
+    assertEquals(1, v3OutputCommitter.initCounter);
+    assertEquals(1, v3OutputCommitter.setupCounter);
     // commit may not have started, so can't verify commitCounter
-    Assert.assertEquals(1, v3OutputCommitter.abortCounter);
+    assertEquals(1, v3OutputCommitter.abortCounter);
   }
 
-  @Test (timeout = 5000)
+  @Test
+  @Timeout(value = 5000, unit = TimeUnit.MILLISECONDS)
   public void testVertexGroupCommitFinishedEventFail_OnVertexSuccess() throws Exception {
     conf.setBoolean(TezConfiguration.TEZ_AM_COMMIT_ALL_OUTPUTS_ON_DAG_SUCCESS,
         false);
@@ -1879,26 +1907,27 @@ public class TestCommit {
     historyEventHandler.verifyDAGCommitStartedEvent(dag.getID(), 0);
     historyEventHandler.verifyDAGFinishedEvent(dag.getID(), 1);
 
-    Assert.assertEquals(DAGState.FAILED, dag.getState());
-    Assert.assertEquals(DAGTerminationCause.RECOVERY_FAILURE,
+    assertEquals(DAGState.FAILED, dag.getState());
+    assertEquals(DAGTerminationCause.RECOVERY_FAILURE,
         dag.getTerminationCause());
-    Assert.assertTrue(dag.commitFutures.isEmpty());
-    Assert.assertEquals(VertexState.KILLED, v3.getState());
-    Assert.assertEquals(VertexTerminationCause.OTHER_VERTEX_FAILURE, v3.getTerminationCause());
-    Assert.assertTrue(v3.commitFutures.isEmpty());
+    assertTrue(dag.commitFutures.isEmpty());
+    assertEquals(VertexState.KILLED, v3.getState());
+    assertEquals(VertexTerminationCause.OTHER_VERTEX_FAILURE, v3.getTerminationCause());
+    assertTrue(v3.commitFutures.isEmpty());
 
-    Assert.assertEquals(1, v12OutputCommitter.initCounter);
-    Assert.assertEquals(1, v12OutputCommitter.setupCounter);
-    Assert.assertEquals(1, v12OutputCommitter.commitCounter);
-    Assert.assertEquals(1, v12OutputCommitter.abortCounter);
+    assertEquals(1, v12OutputCommitter.initCounter);
+    assertEquals(1, v12OutputCommitter.setupCounter);
+    assertEquals(1, v12OutputCommitter.commitCounter);
+    assertEquals(1, v12OutputCommitter.abortCounter);
 
-    Assert.assertEquals(1, v3OutputCommitter.initCounter);
-    Assert.assertEquals(1, v3OutputCommitter.setupCounter);
+    assertEquals(1, v3OutputCommitter.initCounter);
+    assertEquals(1, v3OutputCommitter.setupCounter);
     // commit may not have started, so can't verify commitCounter
-    Assert.assertEquals(1, v3OutputCommitter.abortCounter);
+    assertEquals(1, v3OutputCommitter.abortCounter);
   }
 
-  @Test(timeout = 5000)
+  @Test
+  @Timeout(value = 5000, unit = TimeUnit.MILLISECONDS)
   public void testDAGCommitStartedEventFail_OnDAGSuccess() throws Exception {
     conf.setBoolean(TezConfiguration.TEZ_AM_COMMIT_ALL_OUTPUTS_ON_DAG_SUCCESS,
         true);
@@ -1918,8 +1947,8 @@ public class TestCommit {
     v3.handle(new VertexEventTaskCompleted(v3.getTask(0).getTaskID(),
         TaskState.SUCCEEDED));
     waitUntil(dag, DAGState.FAILED);
-    Assert.assertEquals(DAGTerminationCause.RECOVERY_FAILURE, dag.getTerminationCause());
-    Assert.assertTrue(dag.commitFutures.isEmpty());
+    assertEquals(DAGTerminationCause.RECOVERY_FAILURE, dag.getTerminationCause());
+    assertTrue(dag.commitFutures.isEmpty());
     historyEventHandler.verifyVertexGroupCommitStartedEvent("uv12", 0);
     historyEventHandler.verifyVertexGroupCommitFinishedEvent("uv12", 0);
     historyEventHandler.verifyVertexCommitStartedEvent(v1.getVertexId(), 0);
@@ -1935,25 +1964,27 @@ public class TestCommit {
         .getOutputCommitter("v12Out");
     CountingOutputCommitter v3OutputCommitter = (CountingOutputCommitter) v3
         .getOutputCommitter("v3Out");
-    Assert.assertEquals(1, v12OutputCommitter.initCounter);
-    Assert.assertEquals(1, v12OutputCommitter.setupCounter);
+    assertEquals(1, v12OutputCommitter.initCounter);
+    assertEquals(1, v12OutputCommitter.setupCounter);
     // commit has not started
-    Assert.assertEquals(0, v12OutputCommitter.commitCounter);
-    Assert.assertEquals(1, v12OutputCommitter.abortCounter);
+    assertEquals(0, v12OutputCommitter.commitCounter);
+    assertEquals(1, v12OutputCommitter.abortCounter);
 
-    Assert.assertEquals(1, v3OutputCommitter.initCounter);
-    Assert.assertEquals(1, v3OutputCommitter.setupCounter);
+    assertEquals(1, v3OutputCommitter.initCounter);
+    assertEquals(1, v3OutputCommitter.setupCounter);
     // commit has not started
-    Assert.assertEquals(0, v12OutputCommitter.commitCounter);
-    Assert.assertEquals(1, v3OutputCommitter.abortCounter);
+    assertEquals(0, v12OutputCommitter.commitCounter);
+    assertEquals(1, v3OutputCommitter.abortCounter);
   }
 
-  @Test(timeout = 5000)
+  @Test
+  @Timeout(value = 5000, unit = TimeUnit.MILLISECONDS)
   public void testCommitCanceled_OnDAGSuccess() throws Exception {
     _testCommitCanceled_OnDAGSuccess(DAGTerminationCause.DAG_KILL);
   }
 
-  @Test(timeout = 5000)
+  @Test
+  @Timeout(value = 5000, unit = TimeUnit.MILLISECONDS)
   public void testCommitCanceled_OnDAGSuccess2() throws Exception {
     _testCommitCanceled_OnDAGSuccess(DAGTerminationCause.SERVICE_PLUGIN_ERROR);
   }
@@ -1983,14 +2014,14 @@ public class TestCommit {
         TaskState.SUCCEEDED));
     waitUntil(dag, DAGState.COMMITTING);
     // mean the commits have been submitted to ThreadPool
-    Assert.assertEquals(2, dag.commitFutures.size());
+    assertEquals(2, dag.commitFutures.size());
 
     dag.handle(new DAGEventTerminateDag(dag.getID(), terminationCause, null));
     waitUntil(dag, terminationCause.getFinishedState());
 
-    Assert.assertEquals(terminationCause, dag.getTerminationCause());
+    assertEquals(terminationCause, dag.getTerminationCause());
     // mean the commits have been canceled
-    Assert.assertTrue(dag.commitFutures.isEmpty());
+    assertTrue(dag.commitFutures.isEmpty());
     historyEventHandler.verifyVertexGroupCommitStartedEvent("uv12", 0);
     historyEventHandler.verifyVertexGroupCommitFinishedEvent("uv12", 0);
     historyEventHandler.verifyVertexCommitStartedEvent(v1.getVertexId(), 0);
@@ -2006,17 +2037,17 @@ public class TestCommit {
         .getOutputCommitter("v12Out");
     CountingOutputCommitter v3OutputCommitter = (CountingOutputCommitter) v3
         .getOutputCommitter("v3Out");
-    Assert.assertEquals(1, v12OutputCommitter.initCounter);
-    Assert.assertEquals(1, v12OutputCommitter.setupCounter);
+    assertEquals(1, v12OutputCommitter.initCounter);
+    assertEquals(1, v12OutputCommitter.setupCounter);
     // commit is not started because ControlledThreadPoolExecutor wait before schedule tasks
-    Assert.assertEquals(0, v12OutputCommitter.commitCounter);
-    Assert.assertEquals(1, v12OutputCommitter.abortCounter);
+    assertEquals(0, v12OutputCommitter.commitCounter);
+    assertEquals(1, v12OutputCommitter.abortCounter);
 
-    Assert.assertEquals(1, v3OutputCommitter.initCounter);
-    Assert.assertEquals(1, v3OutputCommitter.setupCounter);
+    assertEquals(1, v3OutputCommitter.initCounter);
+    assertEquals(1, v3OutputCommitter.setupCounter);
     // commit is not started because ControlledThreadPoolExecutor  wait before schedule tasks
-    Assert.assertEquals(0, v3OutputCommitter.commitCounter);
-    Assert.assertEquals(1, v3OutputCommitter.abortCounter);
+    assertEquals(0, v3OutputCommitter.commitCounter);
+    assertEquals(1, v3OutputCommitter.abortCounter);
 
   }
 
@@ -2066,7 +2097,7 @@ public class TestCommit {
           }
         }
       }
-      Assert.assertEquals(expectedTimes, actualTimes);
+      assertEquals(expectedTimes, actualTimes);
     }
 
     public void verifyVertexGroupCommitFinishedEvent(String groupName, int expectedTimes) {
@@ -2079,7 +2110,7 @@ public class TestCommit {
           }
         }
       }
-      Assert.assertEquals(expectedTimes, actualTimes);
+      assertEquals(expectedTimes, actualTimes);
     }
 
     public void verifyVertexCommitStartedEvent(TezVertexID vertexId, int expectedTimes) {
@@ -2092,7 +2123,7 @@ public class TestCommit {
           }
         }
       }
-      Assert.assertEquals(expectedTimes, actualTimes);
+      assertEquals(expectedTimes, actualTimes);
     }
 
     public void verifyVertexFinishedEvent(TezVertexID vertexId, int expectedTimes) {
@@ -2105,7 +2136,7 @@ public class TestCommit {
           }
         }
       }
-      Assert.assertEquals(expectedTimes, actualTimes);
+      assertEquals(expectedTimes, actualTimes);
     }
 
     public void verifyDAGCommitStartedEvent(TezDAGID dagId, int expectedTimes) {
@@ -2118,7 +2149,7 @@ public class TestCommit {
           }
         }
       }
-      Assert.assertEquals(expectedTimes, actualTimes);
+      assertEquals(expectedTimes, actualTimes);
     }
 
     public void verifyDAGFinishedEvent(TezDAGID dagId, int expectedTimes) {
@@ -2131,7 +2162,7 @@ public class TestCommit {
           }
         }
       }
-      Assert.assertEquals(expectedTimes, actualTimes);
+      assertEquals(expectedTimes, actualTimes);
     }
   }
 

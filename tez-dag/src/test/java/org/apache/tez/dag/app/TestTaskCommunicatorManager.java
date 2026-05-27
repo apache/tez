@@ -18,10 +18,11 @@
  */
 package org.apache.tez.dag.app;
 
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertFalse;
-import static org.junit.Assert.assertTrue;
-import static org.junit.Assert.fail;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertInstanceOf;
+import static org.junit.jupiter.api.Assertions.assertTrue;
+import static org.junit.jupiter.api.Assertions.fail;
 import static org.mockito.Mockito.RETURNS_DEEP_STUBS;
 import static org.mockito.Mockito.any;
 import static org.mockito.Mockito.doReturn;
@@ -42,6 +43,7 @@ import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
+import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicInteger;
 
@@ -77,22 +79,24 @@ import org.apache.tez.serviceplugins.api.TaskCommunicator;
 import org.apache.tez.serviceplugins.api.TaskCommunicatorContext;
 import org.apache.tez.serviceplugins.api.TaskCommunicatorDescriptor;
 
-import org.junit.After;
-import org.junit.Before;
-import org.junit.Test;
+import org.junit.jupiter.api.AfterEach;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.Timeout;
 import org.mockito.ArgumentCaptor;
 import org.mockito.invocation.InvocationOnMock;
 import org.mockito.stubbing.Answer;
 
 public class TestTaskCommunicatorManager {
 
-  @Before
-  @After
+  @BeforeEach
+  @AfterEach
   public void resetForNextTest() {
     TaskCommManagerForMultipleCommTest.reset();
   }
 
-  @Test(timeout = 5000)
+  @Test
+  @Timeout(value = 5000, unit = TimeUnit.MILLISECONDS)
   public void testNoTaskCommSpecified() throws IOException, TezException {
 
     AppContext appContext = mock(AppContext.class);
@@ -109,7 +113,8 @@ public class TestTaskCommunicatorManager {
 
   }
 
-  @Test(timeout = 5000)
+  @Test
+  @Timeout(value = 5000, unit = TimeUnit.MILLISECONDS)
   public void testCustomTaskCommSpecified() throws IOException, TezException {
 
     AppContext appContext = mock(AppContext.class);
@@ -144,7 +149,8 @@ public class TestTaskCommunicatorManager {
     }
   }
 
-  @Test(timeout = 5000)
+  @Test
+  @Timeout(value = 5000, unit = TimeUnit.MILLISECONDS)
   public void testMultipleTaskComms() throws IOException, TezException {
 
     AppContext appContext = mock(AppContext.class);
@@ -188,7 +194,8 @@ public class TestTaskCommunicatorManager {
     }
   }
 
-  @Test(timeout = 5000)
+  @Test
+  @Timeout(value = 5000, unit = TimeUnit.MILLISECONDS)
   public void testEventRouting() throws Exception {
 
     AppContext appContext = mock(AppContext.class, RETURNS_DEEP_STUBS);
@@ -247,7 +254,8 @@ public class TestTaskCommunicatorManager {
   }
 
   @SuppressWarnings("unchecked")
-  @Test(timeout = 5000)
+  @Test
+  @Timeout(value = 5000, unit = TimeUnit.MILLISECONDS)
   public void testReportFailureFromTaskCommunicator() throws TezException {
     String dagName = DAG_NAME;
     EventHandler eventHandler = mock(EventHandler.class);
@@ -279,7 +287,7 @@ public class TestTaskCommunicatorManager {
       verify(eventHandler, times(1)).handle(argumentCaptor.capture());
 
       Event rawEvent = argumentCaptor.getValue();
-      assertTrue(rawEvent instanceof DAGEventTerminateDag);
+      assertInstanceOf(DAGEventTerminateDag.class, rawEvent);
       DAGEventTerminateDag killEvent = (DAGEventTerminateDag) rawEvent;
       assertTrue(killEvent.getDiagnosticInfo().contains("ReportError"));
       assertTrue(killEvent.getDiagnosticInfo()
@@ -296,7 +304,7 @@ public class TestTaskCommunicatorManager {
       verify(eventHandler, times(1)).handle(argumentCaptor.capture());
       rawEvent = argumentCaptor.getValue();
 
-      assertTrue(rawEvent instanceof DAGAppMasterEventUserServiceFatalError);
+      assertInstanceOf(DAGAppMasterEventUserServiceFatalError.class, rawEvent);
       DAGAppMasterEventUserServiceFatalError event =
           (DAGAppMasterEventUserServiceFatalError) rawEvent;
       assertEquals(DAGAppMasterEventType.TASK_COMMUNICATOR_SERVICE_FATAL_ERROR, event.getType());
@@ -312,7 +320,8 @@ public class TestTaskCommunicatorManager {
   }
 
   @SuppressWarnings("unchecked")
-  @Test(timeout = 5000)
+  @Test
+  @Timeout(value = 5000, unit = TimeUnit.MILLISECONDS)
   public void testTaskCommunicatorUserError() {
     TaskCommunicatorContextImpl taskCommContext = mock(TaskCommunicatorContextImpl.class);
     TaskCommunicator taskCommunicator = mock(TaskCommunicator.class, new ExceptionAnswer());
@@ -344,7 +353,7 @@ public class TestTaskCommunicatorManager {
       verify(eventHandler, times(1)).handle(argumentCaptor.capture());
 
       Event rawEvent = argumentCaptor.getValue();
-      assertTrue(rawEvent instanceof DAGAppMasterEventUserServiceFatalError);
+      assertInstanceOf(DAGAppMasterEventUserServiceFatalError.class, rawEvent);
       DAGAppMasterEventUserServiceFatalError event =
           (DAGAppMasterEventUserServiceFatalError) rawEvent;
 
@@ -362,7 +371,7 @@ public class TestTaskCommunicatorManager {
       verify(eventHandler, times(2)).handle(argumentCaptor.capture());
 
       rawEvent = argumentCaptor.getAllValues().get(1);
-      assertTrue(rawEvent instanceof DAGAppMasterEventUserServiceFatalError);
+      assertInstanceOf(DAGAppMasterEventUserServiceFatalError.class, rawEvent);
       event = (DAGAppMasterEventUserServiceFatalError) rawEvent;
 
       assertEquals(DAGAppMasterEventType.TASK_COMMUNICATOR_SERVICE_FATAL_ERROR, event.getType());
@@ -432,7 +441,7 @@ public class TestTaskCommunicatorManager {
                                             int taskCommIndex) throws TezException {
       numTaskComms.incrementAndGet();
       boolean added = taskCommIndices.add(taskCommIndex);
-      assertTrue("Cannot add multiple taskComms with the same index", added);
+      assertTrue(added, "Cannot add multiple taskComms with the same index");
       taskCommNames.add(taskCommDescriptor.getEntityName());
       return super.createTaskCommunicator(taskCommDescriptor, taskCommIndex);
     }

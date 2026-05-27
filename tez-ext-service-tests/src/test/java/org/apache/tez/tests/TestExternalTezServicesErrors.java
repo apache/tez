@@ -18,12 +18,13 @@
  */
 package org.apache.tez.tests;
 
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertTrue;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import java.io.IOException;
 import java.util.EnumSet;
 import java.util.List;
+import java.util.concurrent.TimeUnit;
 
 import org.apache.hadoop.fs.Path;
 import org.apache.hadoop.yarn.api.records.ApplicationAttemptId;
@@ -62,9 +63,10 @@ import org.apache.tez.serviceplugins.api.TaskSchedulerDescriptor;
 import com.google.common.collect.Lists;
 import com.google.common.collect.Sets;
 
-import org.junit.AfterClass;
-import org.junit.BeforeClass;
-import org.junit.Test;
+import org.junit.jupiter.api.AfterAll;
+import org.junit.jupiter.api.BeforeAll;
+import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.Timeout;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -125,7 +127,7 @@ public class TestExternalTezServicesErrors {
   private static String TEST_ROOT_DIR = "target" + Path.SEPARATOR + TestExternalTezServicesErrors.class.getName()
       + "-tmpDir";
 
-  @BeforeClass
+  @BeforeAll
   public static void setup() throws Exception {
 
     extServiceTestHelper = new ExternalTezServiceTestHelper(TEST_ROOT_DIR);
@@ -202,33 +204,37 @@ public class TestExternalTezServicesErrors {
     extServiceTestHelper.shutdownSharedTezClient();
   }
 
-  @AfterClass
+  @AfterAll
   public static void tearDown() throws IOException, TezException {
     extServiceTestHelper.tearDownAll();
   }
 
-  @Test(timeout = 90000)
+  @Test
+  @Timeout(value = 90000, unit = TimeUnit.MILLISECONDS)
   public void testContainerLauncherThrowError() throws Exception {
     testFatalError("_testContainerLauncherError_", EXECUTION_CONTEXT_LAUNCHER_THROW,
         SUFFIX_LAUNCHER, Lists.newArrayList("Service Error",
             DAGAppMasterEventType.CONTAINER_LAUNCHER_SERVICE_FATAL_ERROR.name()));
   }
 
-  @Test(timeout = 90000)
+  @Test
+  @Timeout(value = 90000, unit = TimeUnit.MILLISECONDS)
   public void testTaskCommunicatorThrowError() throws Exception {
     testFatalError("_testContainerLauncherError_", EXECUTION_CONTEXT_TASKCOMM_THROW,
         SUFFIX_TASKCOMM, Lists.newArrayList("Service Error",
             DAGAppMasterEventType.TASK_COMMUNICATOR_SERVICE_FATAL_ERROR.name()));
   }
 
-  @Test(timeout = 90000)
+  @Test
+  @Timeout(value = 90000, unit = TimeUnit.MILLISECONDS)
   public void testTaskSchedulerThrowError() throws Exception {
     testFatalError("_testContainerLauncherError_", EXECUTION_CONTEXT_SCHEDULER_THROW,
         SUFFIX_SCHEDULER, Lists.newArrayList("Service Error",
             DAGAppMasterEventType.TASK_SCHEDULER_SERVICE_FATAL_ERROR.name()));
   }
 
-  @Test (timeout = 150000)
+  @Test
+  @Timeout(value = 150000, unit = TimeUnit.MILLISECONDS)
   public void testNonFatalErrors() throws IOException, TezException, InterruptedException {
     String methodName = "testNonFatalErrors";
     TezConfiguration tezClientConf = new TezConfiguration(extServiceTestHelper.getConfForJobs());
@@ -252,7 +258,8 @@ public class TestExternalTezServicesErrors {
     }
   }
 
-  @Test(timeout = 90000)
+  @Test
+  @Timeout(value = 90000, unit = TimeUnit.MILLISECONDS)
   public void testContainerLauncherReportFatalError() throws Exception {
     testFatalError("_testContainerLauncherReportFatalError_",
         EXECUTION_CONTEXT_LAUNCHER_REPORT_FATAL, SUFFIX_LAUNCHER, Lists
@@ -260,14 +267,16 @@ public class TestExternalTezServicesErrors {
                 ServicePluginErrorDefaults.INCONSISTENT_STATE.name()));
   }
 
-  @Test(timeout = 90000)
+  @Test
+  @Timeout(value = 90000, unit = TimeUnit.MILLISECONDS)
   public void testTaskCommReportFatalError() throws Exception {
     testFatalError("_testTaskCommReportFatalError_", EXECUTION_CONTEXT_TASKCOMM_REPORT_FATAL,
         SUFFIX_TASKCOMM, Lists.newArrayList(ErrorPluginConfiguration.REPORT_FATAL_ERROR_MESSAGE,
             ServicePluginErrorDefaults.INCONSISTENT_STATE.name()));
   }
 
-  @Test(timeout = 90000)
+  @Test
+  @Timeout(value = 90000, unit = TimeUnit.MILLISECONDS)
   public void testTaskSchedulerReportFatalError() throws Exception {
     testFatalError("_testTaskSchedulerReportFatalError_",
         EXECUTION_CONTEXT_SCHEDULER_REPORT_FATAL, SUFFIX_SCHEDULER,

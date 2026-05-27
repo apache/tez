@@ -18,6 +18,14 @@
  */
 package org.apache.tez.dag.api;
 
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertNotNull;
+import static org.junit.jupiter.api.Assertions.assertNull;
+import static org.junit.jupiter.api.Assertions.assertThrows;
+import static org.junit.jupiter.api.Assertions.assertTrue;
+import static org.junit.jupiter.api.Assertions.fail;
+
 import java.nio.ByteBuffer;
 import java.util.Arrays;
 import java.util.Collections;
@@ -25,6 +33,7 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
+import java.util.concurrent.TimeUnit;
 
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.yarn.api.records.LocalResource;
@@ -45,8 +54,8 @@ import com.google.common.collect.Lists;
 import com.google.common.collect.Maps;
 import com.google.common.collect.Sets;
 
-import org.junit.Assert;
-import org.junit.Test;
+import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.Timeout;
 
 public class TestDAGVerify {
 
@@ -61,7 +70,8 @@ public class TestDAGVerify {
   //    v1
   //    |
   //    v2
-  @Test(timeout = 5000)
+  @Test
+  @Timeout(value = 5000, unit = TimeUnit.MILLISECONDS)
   public void testVerifyScatterGather() {
     Vertex v1 = Vertex.create("v1",
         ProcessorDescriptor.create(dummyProcessorClassName),
@@ -81,7 +91,8 @@ public class TestDAGVerify {
     dag.verify();
   }
 
-  @Test(timeout = 5000)
+  @Test
+  @Timeout(value = 5000, unit = TimeUnit.MILLISECONDS)
   public void testVerifyCustomEdge() {
     Vertex v1 = Vertex.create("v1",
         ProcessorDescriptor.create(dummyProcessorClassName),
@@ -102,7 +113,8 @@ public class TestDAGVerify {
     dag.verify();
   }
 
-  @Test(timeout = 5000)
+  @Test
+  @Timeout(value = 5000, unit = TimeUnit.MILLISECONDS)
   public void testVerifyOneToOne() {
     Vertex v1 = Vertex.create("v1",
         ProcessorDescriptor.create(dummyProcessorClassName),
@@ -122,7 +134,8 @@ public class TestDAGVerify {
     dag.verify();
   }
 
-  @Test(timeout = 5000)
+  @Test
+  @Timeout(value = 5000, unit = TimeUnit.MILLISECONDS)
   // v1 (known) -> v2 (-1) -> v3 (-1)
   public void testVerifyOneToOneInferParallelism() {
     Vertex v1 = Vertex.create("v1",
@@ -151,11 +164,12 @@ public class TestDAGVerify {
     dag.addEdge(e1);
     dag.addEdge(e2);
     dag.verify();
-    Assert.assertEquals(dummyTaskCount, v2.getParallelism());
-    Assert.assertEquals(dummyTaskCount, v3.getParallelism());
+    assertEquals(dummyTaskCount, v2.getParallelism());
+    assertEquals(dummyTaskCount, v3.getParallelism());
   }
 
-  @Test(timeout = 5000)
+  @Test
+  @Timeout(value = 5000, unit = TimeUnit.MILLISECONDS)
   // v1 (known) -> v2 (-1) -> v3 (-1)
   // The test checks resiliency to ordering of the vertices/edges
   public void testVerifyOneToOneInferParallelismReverseOrder() {
@@ -185,11 +199,12 @@ public class TestDAGVerify {
     dag.addEdge(e2);
     dag.addEdge(e1);
     dag.verify();
-    Assert.assertEquals(dummyTaskCount, v2.getParallelism());
-    Assert.assertEquals(dummyTaskCount, v3.getParallelism());
+    assertEquals(dummyTaskCount, v2.getParallelism());
+    assertEquals(dummyTaskCount, v3.getParallelism());
   }
 
-  @Test(timeout = 5000)
+  @Test
+  @Timeout(value = 5000, unit = TimeUnit.MILLISECONDS)
   public void testVerifyOneToOneNoInferParallelism() {
     Vertex v1 = Vertex.create("v1",
         ProcessorDescriptor.create(dummyProcessorClassName),
@@ -210,10 +225,11 @@ public class TestDAGVerify {
     dag.addVertex(v2);
     dag.addEdge(e1);
     dag.verify();
-    Assert.assertEquals(-1, v2.getParallelism());
+    assertEquals(-1, v2.getParallelism());
   }
 
-  @Test(timeout = 5000)
+  @Test
+  @Timeout(value = 5000, unit = TimeUnit.MILLISECONDS)
   // v1 (-1) -> v2 (known) -> v3 (-1)
   public void testVerifyOneToOneIncorrectParallelism1() {
     Vertex v1 = Vertex.create("v1",
@@ -243,14 +259,15 @@ public class TestDAGVerify {
     dag.addEdge(e2);
     try {
       dag.verify();
-      Assert.assertTrue(false);
+      fail();
     } catch (TezUncheckedException e) {
-      Assert.assertTrue(e.getMessage().contains(
+      assertTrue(e.getMessage().contains(
           "1-1 Edge. Destination vertex parallelism must match source vertex"));
     }
   }
 
-  @Test(timeout = 5000)
+  @Test
+  @Timeout(value = 5000, unit = TimeUnit.MILLISECONDS)
   // v1 (-1) -> v3 (-1), v2 (known) -> v3 (-1)
   // order of edges should not matter
   public void testVerifyOneToOneIncorrectParallelism2() {
@@ -291,14 +308,15 @@ public class TestDAGVerify {
     dag.addEdge(e3);
     try {
       dag.verify();
-      Assert.fail();
+      fail();
     } catch (TezUncheckedException e) {
-      Assert.assertTrue(e.getMessage().contains(
+      assertTrue(e.getMessage().contains(
           "1-1 Edge. Destination vertex parallelism must match source vertex"));
     }
   }
 
-  @Test(timeout = 5000)
+  @Test
+  @Timeout(value = 5000, unit = TimeUnit.MILLISECONDS)
   public void testVerifyBroadcast() {
     Vertex v1 = Vertex.create("v1",
         ProcessorDescriptor.create(dummyProcessorClassName),
@@ -318,7 +336,8 @@ public class TestDAGVerify {
     dag.verify();
   }
 
-  @Test(timeout = 5000)
+  @Test
+  @Timeout(value = 5000, unit = TimeUnit.MILLISECONDS)
   public void testVerify3() {
     Vertex v1 = Vertex.create("v1",
         ProcessorDescriptor.create(dummyProcessorClassName),
@@ -338,7 +357,8 @@ public class TestDAGVerify {
     dag.verify();
   }
 
-  @Test(timeout = 5000)
+  @Test
+  @Timeout(value = 5000, unit = TimeUnit.MILLISECONDS)
   public void testVerify4() {
     Vertex v1 = Vertex.create("v1",
         ProcessorDescriptor.create(dummyProcessorClassName),
@@ -363,7 +383,8 @@ public class TestDAGVerify {
   //       v2   ^
   //      |  |  ^
   //    v3    v4
-  @Test(timeout = 5000)
+  @Test
+  @Timeout(value = 5000, unit = TimeUnit.MILLISECONDS)
   public void testCycle1() {
     IllegalStateException ex=null;
     Vertex v1 = Vertex.create("v1",
@@ -413,9 +434,9 @@ public class TestDAGVerify {
     catch (IllegalStateException e){
       ex = e;
     }
-    Assert.assertNotNull(ex);
+    assertNotNull(ex);
     System.out.println(ex.getMessage());
-    Assert.assertTrue(ex.getMessage().startsWith("DAG contains a cycle"));
+    assertTrue(ex.getMessage().startsWith("DAG contains a cycle"));
   }
 
   //     v1
@@ -423,7 +444,8 @@ public class TestDAGVerify {
   //    -> v2
   //    ^  | |
   //    v3    v4
-  @Test(timeout = 5000)
+  @Test
+  @Timeout(value = 5000, unit = TimeUnit.MILLISECONDS)
   public void testCycle2() {
     IllegalStateException ex=null;
     Vertex v1 = Vertex.create("v1",
@@ -473,13 +495,14 @@ public class TestDAGVerify {
     catch (IllegalStateException e){
       ex = e;
     }
-    Assert.assertNotNull(ex);
+    assertNotNull(ex);
     System.out.println(ex.getMessage());
-    Assert.assertTrue(ex.getMessage().startsWith("DAG contains a cycle"));
+    assertTrue(ex.getMessage().startsWith("DAG contains a cycle"));
   }
 
   // v1 -> v1
-  @Test(timeout = 5000)
+  @Test
+  @Timeout(value = 5000, unit = TimeUnit.MILLISECONDS)
   public void testSelfCycle(){
     IllegalStateException ex=null;
     Vertex v1 = Vertex.create("v1",
@@ -499,12 +522,13 @@ public class TestDAGVerify {
     catch (IllegalStateException e){
       ex = e;
     }
-    Assert.assertNotNull(ex);
+    assertNotNull(ex);
     System.out.println(ex.getMessage());
-    Assert.assertTrue(ex.getMessage().startsWith("DAG contains a self-cycle"));
+    assertTrue(ex.getMessage().startsWith("DAG contains a self-cycle"));
   }
 
-  @Test(timeout = 5000)
+  @Test
+  @Timeout(value = 5000, unit = TimeUnit.MILLISECONDS)
   public void repeatedVertexName() {
     IllegalStateException ex=null;
     Vertex v1 = Vertex.create("v1",
@@ -522,12 +546,13 @@ public class TestDAGVerify {
     catch (IllegalStateException e){
       ex = e;
     }
-    Assert.assertNotNull(ex);
+    assertNotNull(ex);
     System.out.println(ex.getMessage());
-    Assert.assertTrue(ex.getMessage().startsWith("Vertex v1 already defined"));
+    assertTrue(ex.getMessage().startsWith("Vertex v1 already defined"));
   }
 
-  @Test(expected = IllegalStateException.class, timeout = 5000)
+  @Test
+  @Timeout(value = 5000, unit = TimeUnit.MILLISECONDS)
   public void testInputAndInputVertexNameCollision() {
     Vertex v1 = Vertex.create("v1",
         ProcessorDescriptor.create("MapProcessor"),
@@ -548,10 +573,11 @@ public class TestDAGVerify {
     dag.addVertex(v1);
     dag.addVertex(v2);
     dag.addEdge(e1);
-    dag.verify();
+    assertThrows(IllegalStateException.class, dag::verify);
   }
 
-  @Test(expected = IllegalStateException.class, timeout = 5000)
+  @Test
+  @Timeout(value = 5000, unit = TimeUnit.MILLISECONDS)
   public void testOutputAndOutputVertexNameCollision() {
     Vertex v1 = Vertex.create("v1",
         ProcessorDescriptor.create("MapProcessor"),
@@ -572,10 +598,11 @@ public class TestDAGVerify {
     dag.addVertex(v1);
     dag.addVertex(v2);
     dag.addEdge(e1);
-    dag.verify();
+    assertThrows(IllegalStateException.class, dag::verify);
   }
 
-  @Test(expected = IllegalStateException.class, timeout = 5000)
+  @Test
+  @Timeout(value = 5000, unit = TimeUnit.MILLISECONDS)
   public void testOutputAndVertexNameCollision() {
     Vertex v1 = Vertex.create("v1",
         ProcessorDescriptor.create("MapProcessor"),
@@ -589,10 +616,11 @@ public class TestDAGVerify {
     DAG dag = DAG.create("DAG-testOutputAndVertexNameCollision");
     dag.addVertex(v1);
     dag.addVertex(v2);
-    dag.verify();
+    assertThrows(IllegalStateException.class, dag::verify);
   }
 
-  @Test(expected = IllegalStateException.class, timeout = 5000)
+  @Test
+  @Timeout(value = 5000, unit = TimeUnit.MILLISECONDS)
   public void testInputAndVertexNameCollision() {
     Vertex v1 = Vertex.create("v1",
         ProcessorDescriptor.create("MapProcessor"),
@@ -606,13 +634,14 @@ public class TestDAGVerify {
     DAG dag = DAG.create("DAG-testInputAndVertexNameCollision");
     dag.addVertex(v1);
     dag.addVertex(v2);
-    dag.verify();
+    assertThrows(IllegalStateException.class, dag::verify);
   }
 
   //  v1  v2
   //   |  |
   //    v3
-  @Test(timeout = 5000)
+  @Test
+  @Timeout(value = 5000, unit = TimeUnit.MILLISECONDS)
   public void BinaryInputAllowed() {
     Vertex v1 = Vertex.create("v1",
         ProcessorDescriptor.create("MapProcessor"),
@@ -642,7 +671,8 @@ public class TestDAGVerify {
     dag.verify();
   }
 
-  @Test(timeout = 5000)
+  @Test
+  @Timeout(value = 5000, unit = TimeUnit.MILLISECONDS)
   public void testVertexGroupWithMultipleOutputEdges() {
     Vertex v1 = Vertex.create("v1",
         ProcessorDescriptor.create("Processor"),
@@ -687,15 +717,16 @@ public class TestDAGVerify {
       dag.verify();  // should be OK when called multiple times
     }
 
-    Assert.assertEquals(2, v1.getOutputVertices().size());
-    Assert.assertEquals(2, v2.getOutputVertices().size());
-    Assert.assertTrue(v1.getOutputVertices().contains(v3));
-    Assert.assertTrue(v1.getOutputVertices().contains(v4));
-    Assert.assertTrue(v2.getOutputVertices().contains(v3));
-    Assert.assertTrue(v2.getOutputVertices().contains(v4));
+    assertEquals(2, v1.getOutputVertices().size());
+    assertEquals(2, v2.getOutputVertices().size());
+    assertTrue(v1.getOutputVertices().contains(v3));
+    assertTrue(v1.getOutputVertices().contains(v4));
+    assertTrue(v2.getOutputVertices().contains(v3));
+    assertTrue(v2.getOutputVertices().contains(v4));
   }
 
-  @Test(timeout = 5000)
+  @Test
+  @Timeout(value = 5000, unit = TimeUnit.MILLISECONDS)
   public void testVertexGroup() {
     Vertex v1 = Vertex.create("v1",
         ProcessorDescriptor.create("Processor"),
@@ -749,35 +780,36 @@ public class TestDAGVerify {
     // for the first Group v1 and v2 should get connected to v4 and also have 1 output
     // for the second Group v2 and v3 should get connected to v5
     // the Group place holders should disappear
-    Assert.assertNull(dag.getVertex(uv12.getGroupName()));
-    Assert.assertNull(dag.getVertex(uv23.getGroupName()));
-    Assert.assertFalse(dag.edges.contains(e1));
-    Assert.assertFalse(dag.edges.contains(e2));
-    Assert.assertEquals(1, v1.getOutputs().size());
-    Assert.assertEquals(1, v2.getOutputs().size());
-    Assert.assertEquals(outDesc, v1.getOutputs().get(0).getIODescriptor());
-    Assert.assertEquals(outDesc, v2.getOutputs().get(0).getIODescriptor());
-    Assert.assertEquals(1, v1.getOutputVertices().size());
-    Assert.assertEquals(1, v3.getOutputVertices().size());
-    Assert.assertEquals(2, v2.getOutputVertices().size());
-    Assert.assertTrue(v1.getOutputVertices().contains(v4));
-    Assert.assertTrue(v3.getOutputVertices().contains(v5));
-    Assert.assertTrue(v2.getOutputVertices().contains(v4));
-    Assert.assertTrue(v2.getOutputVertices().contains(v5));
-    Assert.assertEquals(2, v4.getInputVertices().size());
-    Assert.assertTrue(v4.getInputVertices().contains(v1));
-    Assert.assertTrue(v4.getInputVertices().contains(v2));
-    Assert.assertEquals(2, v5.getInputVertices().size());
-    Assert.assertTrue(v5.getInputVertices().contains(v2));
-    Assert.assertTrue(v5.getInputVertices().contains(v3));
-    Assert.assertEquals(1, v4.getGroupInputs().size());
-    Assert.assertTrue(v4.getGroupInputs().containsKey(groupName1));
-    Assert.assertEquals(1, v5.getGroupInputs().size());
-    Assert.assertTrue(v5.getGroupInputs().containsKey(groupName2));
-    Assert.assertEquals(2, dag.vertexGroups.size());
+    assertNull(dag.getVertex(uv12.getGroupName()));
+    assertNull(dag.getVertex(uv23.getGroupName()));
+    assertFalse(dag.edges.contains(e1));
+    assertFalse(dag.edges.contains(e2));
+    assertEquals(1, v1.getOutputs().size());
+    assertEquals(1, v2.getOutputs().size());
+    assertEquals(outDesc, v1.getOutputs().get(0).getIODescriptor());
+    assertEquals(outDesc, v2.getOutputs().get(0).getIODescriptor());
+    assertEquals(1, v1.getOutputVertices().size());
+    assertEquals(1, v3.getOutputVertices().size());
+    assertEquals(2, v2.getOutputVertices().size());
+    assertTrue(v1.getOutputVertices().contains(v4));
+    assertTrue(v3.getOutputVertices().contains(v5));
+    assertTrue(v2.getOutputVertices().contains(v4));
+    assertTrue(v2.getOutputVertices().contains(v5));
+    assertEquals(2, v4.getInputVertices().size());
+    assertTrue(v4.getInputVertices().contains(v1));
+    assertTrue(v4.getInputVertices().contains(v2));
+    assertEquals(2, v5.getInputVertices().size());
+    assertTrue(v5.getInputVertices().contains(v2));
+    assertTrue(v5.getInputVertices().contains(v3));
+    assertEquals(1, v4.getGroupInputs().size());
+    assertTrue(v4.getGroupInputs().containsKey(groupName1));
+    assertEquals(1, v5.getGroupInputs().size());
+    assertTrue(v5.getGroupInputs().containsKey(groupName2));
+    assertEquals(2, dag.vertexGroups.size());
   }
 
-  @Test(timeout = 5000)
+  @Test
+  @Timeout(value = 5000, unit = TimeUnit.MILLISECONDS)
   public void testVertexGroupOneToOne() {
     Vertex v1 = Vertex.create("v1",
         ProcessorDescriptor.create("Processor"),
@@ -828,13 +860,14 @@ public class TestDAGVerify {
       dag.verify();  // should be OK when called multiple times
     }
 
-    Assert.assertEquals(dummyTaskCount, v5.getParallelism());
+    assertEquals(dummyTaskCount, v5.getParallelism());
   }
 
   //   v1
   //  |  |
   //  v2  v3
-  @Test(timeout = 5000)
+  @Test
+  @Timeout(value = 5000, unit = TimeUnit.MILLISECONDS)
   public void BinaryOutput() {
     IllegalStateException ex = null;
     try {
@@ -868,10 +901,11 @@ public class TestDAGVerify {
     catch (IllegalStateException e){
       ex = e;
     }
-    Assert.assertNull(ex);
+    assertNull(ex);
   }
 
-  @Test(timeout = 5000)
+  @Test
+  @Timeout(value = 5000, unit = TimeUnit.MILLISECONDS)
   public void testDagWithNoVertices() {
     IllegalStateException ex=null;
     try {
@@ -881,14 +915,15 @@ public class TestDAGVerify {
     catch (IllegalStateException e){
       ex = e;
     }
-    Assert.assertNotNull(ex);
+    assertNotNull(ex);
     System.out.println(ex.getMessage());
-    Assert.assertTrue(ex.getMessage()
+    assertTrue(ex.getMessage()
         .startsWith("Invalid dag containing 0 vertices"));
   }
 
   @SuppressWarnings("unused")
-  @Test(timeout = 5000)
+  @Test
+  @Timeout(value = 5000, unit = TimeUnit.MILLISECONDS)
   public void testInvalidVertexConstruction() {
     {
       Vertex v1 = Vertex.create("v1",
@@ -902,11 +937,10 @@ public class TestDAGVerify {
       Vertex v1 = Vertex.create("v1",
           ProcessorDescriptor.create("MapProcessor"),
           -2, dummyTaskResource);
-      Assert.fail("Expected exception for 0 parallelism");
+      fail("Expected exception for 0 parallelism");
     } catch (IllegalArgumentException e) {
-      Assert
-          .assertTrue(e
-              .getMessage()
+      assertTrue(
+          e.getMessage()
               .startsWith(
                   "Parallelism should be -1 if determined by the AM, otherwise should be >= 0"));
     }
@@ -914,13 +948,14 @@ public class TestDAGVerify {
       Vertex v1 = Vertex.create("v1",
           ProcessorDescriptor.create("MapProcessor"),
           1, null);
-      Assert.fail("Expected exception for 0 parallelism");
+      fail("Expected exception for 0 parallelism");
     } catch (IllegalArgumentException e) {
-      Assert.assertTrue(e.getMessage().startsWith("Resource cannot be null"));
+      assertTrue(e.getMessage().startsWith("Resource cannot be null"));
     }
   }
 
-  @Test(timeout = 5000)
+  @Test
+  @Timeout(value = 5000, unit = TimeUnit.MILLISECONDS)
   public void testMultipleRootInputsAllowed() {
     DAG dag = DAG.create("DAG-testMultipleRootInputsAllowed");
     ProcessorDescriptor pd1 = ProcessorDescriptor.create("processor1")
@@ -944,7 +979,8 @@ public class TestDAGVerify {
   }
 
 
-  @Test(timeout = 5000)
+  @Test
+  @Timeout(value = 5000, unit = TimeUnit.MILLISECONDS)
   public void testDAGCreateDataInference() {
     Vertex v1 = Vertex.create("v1", ProcessorDescriptor.create(dummyProcessorClassName));
     Map<String, LocalResource> lrs1 = Maps.newHashMap();
@@ -971,16 +1007,17 @@ public class TestDAGVerify {
     dag.addVertex(v1);
     dag.addTaskLocalFiles(lrs1);
     DAGPlan dagPlan = dag.createDag(new TezConfiguration(), null, null, null, true);
-    Assert.assertEquals(lrName1, dagPlan.getLocalResource(0).getName());
+    assertEquals(lrName1, dagPlan.getLocalResource(0).getName());
     VertexPlan vPlan = dagPlan.getVertex(0);
     PlanTaskConfiguration taskPlan = vPlan.getTaskConfig();
-    Assert.assertEquals(dummyTaskCount, taskPlan.getNumTasks());
-    Assert.assertEquals(TezConfiguration.TEZ_TASK_RESOURCE_MEMORY_MB_DEFAULT, taskPlan.getMemoryMb());
-    Assert.assertEquals(lrName2, taskPlan.getLocalResource(0).getName());
-    Assert.assertEquals(dummyTaskCount, vPlan.getTaskLocationHintCount());
+    assertEquals(dummyTaskCount, taskPlan.getNumTasks());
+    assertEquals(TezConfiguration.TEZ_TASK_RESOURCE_MEMORY_MB_DEFAULT, taskPlan.getMemoryMb());
+    assertEquals(lrName2, taskPlan.getLocalResource(0).getName());
+    assertEquals(dummyTaskCount, vPlan.getTaskLocationHintCount());
   }
 
-  @Test(timeout = 5000)
+  @Test
+  @Timeout(value = 5000, unit = TimeUnit.MILLISECONDS)
   public void testInferredFilesFail() {
     Vertex v1 = Vertex.create("v1",
         ProcessorDescriptor.create(dummyProcessorClassName),
@@ -999,9 +1036,9 @@ public class TestDAGVerify {
     // Allowed since the LR is the same.
     try {
       v1.addTaskLocalFiles(lrs2);
-      Assert.fail();
+      fail();
     } catch (TezUncheckedException e) {
-      Assert.assertTrue(e.getMessage().contains("Duplicate Resources found with different size"));
+      assertTrue(e.getMessage().contains("Duplicate Resources found with different size"));
     }
 
     DataSourceDescriptor ds = DataSourceDescriptor.create(InputDescriptor.create("I.class"),
@@ -1013,20 +1050,21 @@ public class TestDAGVerify {
     dag.addTaskLocalFiles(lrs);
     try {
       dag.addTaskLocalFiles(lrs2);
-      Assert.fail();
+      fail();
     } catch (TezUncheckedException e) {
-      Assert.assertTrue(e.getMessage().contains("Duplicate Resources found with different size"));
+      assertTrue(e.getMessage().contains("Duplicate Resources found with different size"));
     }
     try {
       // data source will add duplicate common files to vertex
       dag.createDag(new TezConfiguration(), null, null, null, true);
-      Assert.fail();
+      fail();
     } catch (TezUncheckedException e) {
-      Assert.assertTrue(e.getMessage().contains("Duplicate Resources found with different size"));
+      assertTrue(e.getMessage().contains("Duplicate Resources found with different size"));
     }
   }
 
-  @Test(timeout = 5000)
+  @Test
+  @Timeout(value = 5000, unit = TimeUnit.MILLISECONDS)
   public void testDAGAccessControls() {
     DAG dag = DAG.create("DAG-testDAGAccessControls");
     ProcessorDescriptor pd1 = ProcessorDescriptor.create("processor1")
@@ -1043,27 +1081,28 @@ public class TestDAGVerify {
 
     Configuration conf = new Configuration(false);
     DAGPlan dagPlan = dag.createDag(conf, null, null, null, true);
-    Assert.assertNull(conf.get(TezConstants.TEZ_DAG_VIEW_ACLS));
-    Assert.assertNull(conf.get(TezConstants.TEZ_DAG_MODIFY_ACLS));
+    assertNull(conf.get(TezConstants.TEZ_DAG_VIEW_ACLS));
+    assertNull(conf.get(TezConstants.TEZ_DAG_MODIFY_ACLS));
 
     ACLInfo aclInfo = dagPlan.getAclInfo();
-    Assert.assertEquals(Collections.singletonList("u1"), aclInfo.getUsersWithViewAccessList());
-    Assert.assertEquals(Collections.singletonList("g1"), aclInfo.getGroupsWithViewAccessList());
-    Assert.assertEquals(Collections.singletonList("*"), aclInfo.getUsersWithModifyAccessList());
-    Assert.assertEquals(Collections.singletonList("g2"), aclInfo.getGroupsWithModifyAccessList());
+    assertEquals(Collections.singletonList("u1"), aclInfo.getUsersWithViewAccessList());
+    assertEquals(Collections.singletonList("g1"), aclInfo.getGroupsWithViewAccessList());
+    assertEquals(Collections.singletonList("*"), aclInfo.getUsersWithModifyAccessList());
+    assertEquals(Collections.singletonList("g2"), aclInfo.getGroupsWithModifyAccessList());
   }
 
   // v1 has input initializer
-  @Test(timeout = 5000)
+  @Test
+  @Timeout(value = 5000, unit = TimeUnit.MILLISECONDS)
   public void testDAGInvalidParallelism1() {
     DAG dag = DAG.create("DAG-testDAGInvalidParallelism1");
     Vertex v1 = Vertex.create("v1", ProcessorDescriptor.create(dummyProcessorClassName));
     dag.addVertex(v1);
     try {
       dag.verify();
-      Assert.fail();
+      fail();
     } catch (Exception e) {
-      Assert.assertEquals(
+      assertEquals(
           "v1 has -1 tasks but does not have input initializers, 1-1 uninited sources or custom vertex manager to set it at runtime",
           e.getMessage());
     }
@@ -1075,16 +1114,17 @@ public class TestDAGVerify {
   }
 
   // v1 has custom vertex manager
-  @Test(timeout = 5000)
+  @Test
+  @Timeout(value = 5000, unit = TimeUnit.MILLISECONDS)
   public void testDAGInvalidParallelism2() {
     DAG dag = DAG.create("DAG-testDAGInvalidParallelism2");
     Vertex v1 = Vertex.create("v1", ProcessorDescriptor.create(dummyProcessorClassName));
     dag.addVertex(v1);
     try {
       dag.verify();
-      Assert.fail();
+      fail();
     } catch (Exception e) {
-      Assert.assertEquals(
+      assertEquals(
           "v1 has -1 tasks but does not have input initializers, 1-1 uninited sources or custom vertex manager to set it at runtime",
           e.getMessage());
     }
@@ -1094,16 +1134,17 @@ public class TestDAGVerify {
   }
 
   // v1 has 1-1 united source vertex v0 which has input initializer
-  @Test(timeout = 5000)
+  @Test
+  @Timeout(value = 5000, unit = TimeUnit.MILLISECONDS)
   public void testDAGInvalidParallelism3() {
     DAG dag = DAG.create("DAG-testDAGInvalidParallelism3");
     Vertex v1 = Vertex.create("v1", ProcessorDescriptor.create(dummyProcessorClassName));
     dag.addVertex(v1);
     try {
       dag.verify();
-      Assert.fail();
+      fail();
     } catch (Exception e) {
-      Assert.assertEquals(
+      assertEquals(
           "v1 has -1 tasks but does not have input initializers, 1-1 uninited sources or custom vertex manager to set it at runtime",
           e.getMessage());
     }
@@ -1128,9 +1169,9 @@ public class TestDAGVerify {
     dag.addVertex(v1);
     try {
       dag.verify();
-      Assert.fail();
+      fail();
     } catch (Exception e) {
-      Assert.assertEquals(
+      assertEquals(
           "v1 has -1 tasks but does not have input initializers, 1-1 uninited sources or custom vertex manager to set it at runtime",
           e.getMessage());
     }
@@ -1169,7 +1210,8 @@ public class TestDAGVerify {
   }
 
   // Verifies failure in case of a file size difference. Does not verify sha differences.
-  @Test(timeout = 5000)
+  @Test
+  @Timeout(value = 5000, unit = TimeUnit.MILLISECONDS)
   public void testDAGWithConflictingResource() {
     DAG dag = DAG.create("DAG-testDAGWithConflictingResource");
     Map<String, LocalResource> localResourceMap = new HashMap<>();
@@ -1188,9 +1230,9 @@ public class TestDAGVerify {
 
     try {
       dag.verifyLocalResources(new TezConfiguration());
-      Assert.fail("should report failure on conflict resources");
+      fail("should report failure on conflict resources");
     } catch (Exception e) {
-      Assert.assertTrue(e.getMessage().contains("There is conflicting local resource"));
+      assertTrue(e.getMessage().contains("There is conflicting local resource"));
     }
   }
 }

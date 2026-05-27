@@ -18,16 +18,18 @@
  */
 package org.apache.tez.mapreduce.common;
 
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertNotNull;
-import static org.junit.Assert.assertNull;
-import static org.junit.Assert.assertTrue;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertInstanceOf;
+import static org.junit.jupiter.api.Assertions.assertNotNull;
+import static org.junit.jupiter.api.Assertions.assertNull;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import java.io.DataInput;
 import java.io.DataOutput;
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.concurrent.TimeUnit;
 
 import org.apache.hadoop.classification.InterfaceAudience.Private;
 import org.apache.hadoop.conf.Configuration;
@@ -52,31 +54,36 @@ import org.apache.tez.runtime.api.events.InputDataInformationEvent;
 
 import com.google.protobuf.ByteString;
 
-import org.junit.Test;
+import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.Timeout;
 
 public class TestMRInputAMSplitGenerator {
 
   private static String SPLITS_LENGTHS = "splits.length";
 
-  @Test(timeout = 5000)
+  @Test
+  @Timeout(value = 5000, unit = TimeUnit.MILLISECONDS)
   public void testGroupSplitsDisabledSortSplitsEnabled()
       throws Exception {
     testGroupSplitsAndSortSplits(false, true);
   }
 
-  @Test(timeout = 5000)
+  @Test
+  @Timeout(value = 5000, unit = TimeUnit.MILLISECONDS)
   public void testGroupSplitsDisabledSortSplitsDisabled()
       throws Exception {
     testGroupSplitsAndSortSplits(false, false);
   }
 
-  @Test(timeout = 5000)
+  @Test
+  @Timeout(value = 5000, unit = TimeUnit.MILLISECONDS)
   public void testGroupSplitsEnabledSortSplitsEnabled()
       throws Exception {
     testGroupSplitsAndSortSplits(true, true);
   }
 
-  @Test(timeout = 5000)
+  @Test
+  @Timeout(value = 5000, unit = TimeUnit.MILLISECONDS)
   public void testGroupSplitsEnabledSortSplitsDisabled()
           throws Exception {
     testGroupSplitsAndSortSplits(true, false);
@@ -102,12 +109,12 @@ public class TestMRInputAMSplitGenerator {
 
     List<Event> events = splitGenerator.initialize();
 
-    assertTrue(events.get(0) instanceof InputConfigureVertexTasksEvent);
+    assertInstanceOf(InputConfigureVertexTasksEvent.class, events.get(0));
     boolean shuffled = false;
     InputSplit previousIs = null;
     int numRawInputSplits = 0;
     for (int i = 1; i < events.size(); i++) {
-      assertTrue(events.get(i) instanceof InputDataInformationEvent);
+      assertInstanceOf(InputDataInformationEvent.class, events.get(i));
       InputDataInformationEvent diEvent = (InputDataInformationEvent) (events.get(i));
       assertNull(diEvent.getDeserializedUserPayload());
       assertNotNull(diEvent.getUserPayload());
@@ -118,13 +125,12 @@ public class TestMRInputAMSplitGenerator {
       if (groupSplitsEnabled) {
         numRawInputSplits += ((TezGroupedSplit)is).getGroupedSplits().size();
         for (InputSplit inputSplit : ((TezGroupedSplit)is).getGroupedSplits()) {
-          assertTrue(inputSplit instanceof InputSplitForTest);
+          assertInstanceOf(InputSplitForTest.class, inputSplit);
         }
-        assertTrue(((TezGroupedSplit)is).getGroupedSplits().get(0)
-            instanceof InputSplitForTest);
+        assertInstanceOf(InputSplitForTest.class, ((TezGroupedSplit) is).getGroupedSplits().get(0));
       } else {
         numRawInputSplits++;
-        assertTrue(is instanceof InputSplitForTest);
+        assertInstanceOf(InputSplitForTest.class, is);
       }
       // The splits in the list returned from InputFormat has ascending
       // size in order.

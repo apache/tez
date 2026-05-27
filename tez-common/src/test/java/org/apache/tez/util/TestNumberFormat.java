@@ -18,14 +18,18 @@
  */
 package org.apache.tez.util;
 
-import java.text.NumberFormat;
+import static org.junit.jupiter.api.Assertions.assertEquals;
 
-import org.junit.Assert;
-import org.junit.Test;
+import java.text.NumberFormat;
+import java.util.concurrent.TimeUnit;
+
+import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.Timeout;
 
 public class TestNumberFormat {
 
-  @Test(timeout = 1000)
+  @Test
+  @Timeout(value = 1000, unit = TimeUnit.MILLISECONDS)
   public void testLongWithPadding() throws Exception {
     FastNumberFormat fastNumberFormat = FastNumberFormat.getInstance();
     fastNumberFormat.setMinimumIntegerDigits(6);
@@ -33,8 +37,9 @@ public class TestNumberFormat {
     numberFormat.setGroupingUsed(false);
     numberFormat.setMinimumIntegerDigits(6);
     long[] testLongs = {1, 23, 456, 7890, 12345, 678901, 2345689, 0, -0, -1, -23, -456, -7890, -12345, -678901, -2345689};
-    for (long l: testLongs) {
-      Assert.assertEquals("Number formats should be equal", numberFormat.format(l), fastNumberFormat.format(l));
+    for (long l : testLongs) {
+      assertEquals(
+          numberFormat.format(l), fastNumberFormat.format(l), "Number formats should be equal");
     }
   }
 }

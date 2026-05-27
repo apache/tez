@@ -18,6 +18,12 @@
  */
 package org.apache.tez.runtime.library.common.shuffle;
 
+import static org.junit.jupiter.api.Assertions.assertArrayEquals;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertInstanceOf;
+import static org.junit.jupiter.api.Assertions.assertTrue;
+import static org.junit.jupiter.api.Assertions.fail;
 import static org.mockito.Mockito.any;
 import static org.mockito.Mockito.anyInt;
 import static org.mockito.Mockito.anyString;
@@ -73,29 +79,11 @@ import org.apache.tez.runtime.library.shuffle.impl.ShuffleUserPayloads;
 import com.google.common.collect.Lists;
 import com.google.protobuf.ByteString;
 
-import org.junit.Assert;
-import org.junit.Before;
-import org.junit.Test;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
 import org.mockito.ArgumentMatchers;
 import org.slf4j.Logger;
 
-/**
- * Licensed to the Apache Software Foundation (ASF) under one
- * or more contributor license agreements.  See the NOTICE file
- * distributed with this work for additional information
- * regarding copyright ownership.  The ASF licenses this file
- * to you under the Apache License, Version 2.0 (the
- * "License"); you may not use this file except in compliance
- * with the License.  You may obtain a copy of the License at
- * <p/>
- * http://www.apache.org/licenses/LICENSE-2.0
- * <p/>
- * Unless required by applicable law or agreed to in writing, software
- * distributed under the License is distributed on an "AS IS" BASIS,
- * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
- * See the License for the specific language governing permissions and
- * limitations under the License.
- */
 public class TestShuffleUtils {
 
   private OutputContext outputContext;
@@ -138,7 +126,7 @@ public class TestShuffleUtils {
   }
 
 
-  @Before
+  @BeforeEach
   public void setup() throws Exception {
     conf = new Configuration();
     outputContext = createTezOutputContext();
@@ -192,24 +180,25 @@ public class TestShuffleUtils {
         outputContext, spillId, new TezSpillRecord(indexFile, conf),
             physicalOutputs, true, pathComponent, null, false, auxiliaryService, TezCommonUtils.newBestCompressionDeflater());
 
-    Assert.assertTrue(events.size() == 1);
-    Assert.assertTrue(events.get(0) instanceof CompositeDataMovementEvent);
+    assertEquals(1, events.size());
+    assertInstanceOf(CompositeDataMovementEvent.class, events.get(0));
 
     CompositeDataMovementEvent cdme = (CompositeDataMovementEvent) events.get(0);
-    Assert.assertTrue(cdme.getCount() == physicalOutputs);
-    Assert.assertTrue(cdme.getSourceIndexStart() == 0);
+    assertEquals(physicalOutputs, cdme.getCount());
+    assertEquals(0, cdme.getSourceIndexStart());
 
     ByteBuffer payload = cdme.getUserPayload();
     ShuffleUserPayloads.DataMovementEventPayloadProto dmeProto =
         ShuffleUserPayloads.DataMovementEventPayloadProto.parseFrom(ByteString.copyFrom(payload));
 
-    Assert.assertTrue(dmeProto.getSpillId() == 0);
-    Assert.assertTrue(dmeProto.hasLastEvent() && !dmeProto.getLastEvent());
+    assertEquals(0, dmeProto.getSpillId());
+    assertTrue(dmeProto.hasLastEvent() && !dmeProto.getLastEvent());
 
     byte[] emptyPartitions = TezCommonUtils.decompressByteStringToByteArray(dmeProto.getEmptyPartitions());
     BitSet emptyPartitionsBitSet = TezUtilsInternal.fromByteArray(emptyPartitions);
-    Assert.assertTrue("emptyPartitionBitSet cardinality (expecting 5) = " + emptyPartitionsBitSet
-        .cardinality(), emptyPartitionsBitSet.cardinality() == 5);
+    assertEquals(5, emptyPartitionsBitSet.cardinality(),
+        "emptyPartitionBitSet cardinality (expecting 5) = " + emptyPartitionsBitSet
+            .cardinality());
 
     events.clear();
 
@@ -233,26 +222,27 @@ public class TestShuffleUtils {
         outputContext, spillId, new TezSpillRecord(indexFile, conf),
             physicalOutputs, true, pathComponent, null, false, auxiliaryService, TezCommonUtils.newBestCompressionDeflater());
 
-    Assert.assertTrue(events.size() == 2); //one for VM
-    Assert.assertTrue(events.get(0) instanceof VertexManagerEvent);
-    Assert.assertTrue(events.get(1) instanceof CompositeDataMovementEvent);
+    assertEquals(2, events.size()); //one for VM
+    assertInstanceOf(VertexManagerEvent.class, events.get(0));
+    assertInstanceOf(CompositeDataMovementEvent.class, events.get(1));
 
     CompositeDataMovementEvent cdme = (CompositeDataMovementEvent) events.get(1);
-    Assert.assertTrue(cdme.getCount() == physicalOutputs);
-    Assert.assertTrue(cdme.getSourceIndexStart() == 0);
+    assertEquals(physicalOutputs, cdme.getCount());
+    assertEquals(0, cdme.getSourceIndexStart());
 
     ShuffleUserPayloads.DataMovementEventPayloadProto dmeProto =
         ShuffleUserPayloads.DataMovementEventPayloadProto.parseFrom(ByteString.copyFrom( cdme.getUserPayload()));
 
     //With final merge, spill details should not be present
-    Assert.assertFalse(dmeProto.hasSpillId());
-    Assert.assertFalse(dmeProto.hasLastEvent() || dmeProto.getLastEvent());
+    assertFalse(dmeProto.hasSpillId());
+    assertFalse(dmeProto.hasLastEvent() || dmeProto.getLastEvent());
 
     byte[]  emptyPartitions = TezCommonUtils.decompressByteStringToByteArray(dmeProto
         .getEmptyPartitions());
     BitSet  emptyPartitionsBitSet = TezUtilsInternal.fromByteArray(emptyPartitions);
-    Assert.assertTrue("emptyPartitionBitSet cardinality (expecting 5) = " + emptyPartitionsBitSet
-        .cardinality(), emptyPartitionsBitSet.cardinality() == 5);
+    assertEquals(5, emptyPartitionsBitSet.cardinality(),
+        "emptyPartitionBitSet cardinality (expecting 5) = " + emptyPartitionsBitSet
+            .cardinality());
 
   }
 
@@ -260,7 +250,7 @@ public class TestShuffleUtils {
   public void testGenerateOnSpillEvent_With_All_EmptyPartitions() throws Exception {
     List<Event> events = Lists.newLinkedList();
 
-    //Create an index file with all empty partitions
+    // Create an index file with all empty partitions
     Path indexFile = createIndexFile(10, true);
 
     boolean finalMergeDisabled = false;
@@ -268,37 +258,52 @@ public class TestShuffleUtils {
     int spillId = 0;
     int physicalOutputs = 10;
     String pathComponent = "/attempt_x_y_0/file.out";
-    String auxiliaryService = conf.get(TezConfiguration.TEZ_AM_SHUFFLE_AUXILIARY_SERVICE_ID,
-        TezConfiguration.TEZ_AM_SHUFFLE_AUXILIARY_SERVICE_ID_DEFAULT);
+    String auxiliaryService =
+        conf.get(
+            TezConfiguration.TEZ_AM_SHUFFLE_AUXILIARY_SERVICE_ID,
+            TezConfiguration.TEZ_AM_SHUFFLE_AUXILIARY_SERVICE_ID_DEFAULT);
 
-    //normal code path where we do final merge all the time
-    ShuffleUtils.generateEventOnSpill(events, finalMergeDisabled, isLastEvent,
-        outputContext, spillId, new TezSpillRecord(indexFile, conf),
-            physicalOutputs, true, pathComponent, null, false, auxiliaryService, TezCommonUtils.newBestCompressionDeflater());
+    // normal code path where we do final merge all the time
+    ShuffleUtils.generateEventOnSpill(
+        events,
+        finalMergeDisabled,
+        isLastEvent,
+        outputContext,
+        spillId,
+        new TezSpillRecord(indexFile, conf),
+        physicalOutputs,
+        true,
+        pathComponent,
+        null,
+        false,
+        auxiliaryService,
+        TezCommonUtils.newBestCompressionDeflater());
 
-    Assert.assertEquals(2, events.size()); //one for VM
-    Assert.assertTrue(events.get(0) instanceof VertexManagerEvent);
-    Assert.assertTrue(events.get(1) instanceof CompositeDataMovementEvent);
+    assertEquals(2, events.size()); // one for VM
+    assertInstanceOf(VertexManagerEvent.class, events.get(0));
+    assertInstanceOf(CompositeDataMovementEvent.class, events.get(1));
 
     CompositeDataMovementEvent cdme = (CompositeDataMovementEvent) events.get(1);
-    Assert.assertEquals(cdme.getCount(), physicalOutputs);
-    Assert.assertEquals(0, cdme.getSourceIndexStart());
+    assertEquals(cdme.getCount(), physicalOutputs);
+    assertEquals(0, cdme.getSourceIndexStart());
 
     ShuffleUserPayloads.DataMovementEventPayloadProto dmeProto =
-        ShuffleUserPayloads.DataMovementEventPayloadProto.parseFrom(ByteString.copyFrom( cdme.getUserPayload()));
+        ShuffleUserPayloads.DataMovementEventPayloadProto.parseFrom(
+            ByteString.copyFrom(cdme.getUserPayload()));
 
-    //spill details should be present
-    Assert.assertEquals(0, dmeProto.getSpillId());
-    Assert.assertTrue(dmeProto.hasLastEvent() && dmeProto.getLastEvent());
+    // spill details should be present
+    assertEquals(0, dmeProto.getSpillId());
+    assertTrue(dmeProto.hasLastEvent() && dmeProto.getLastEvent());
 
-    Assert.assertEquals("", dmeProto.getPathComponent());
+    assertEquals("", dmeProto.getPathComponent());
 
-    byte[]  emptyPartitions = TezCommonUtils.decompressByteStringToByteArray(dmeProto
-        .getEmptyPartitions());
-    BitSet  emptyPartitionsBitSet = TezUtilsInternal.fromByteArray(emptyPartitions);
-    Assert.assertEquals("emptyPartitionBitSet cardinality (expecting 10) = " + emptyPartitionsBitSet
-            .cardinality(), 10, emptyPartitionsBitSet.cardinality());
-
+    byte[] emptyPartitions =
+        TezCommonUtils.decompressByteStringToByteArray(dmeProto.getEmptyPartitions());
+    BitSet emptyPartitionsBitSet = TezUtilsInternal.fromByteArray(emptyPartitions);
+    assertEquals(
+        10,
+        emptyPartitionsBitSet.cardinality(),
+        "emptyPartitionBitSet cardinality (expecting 10) = " + emptyPartitionsBitSet.cardinality());
   }
 
   @Test
@@ -317,10 +322,10 @@ public class TestShuffleUtils {
     try {
       ShuffleUtils.shuffleToMemory(new byte[1024], new ByteArrayInputStream(header),
           1024, 128, mockCodec, false, 0, mock(Logger.class), null);
-      Assert.fail("shuffle was supposed to throw!");
+      fail("shuffle was supposed to throw!");
     } catch (IOException e) {
-      Assert.assertTrue(e.getCause() instanceof InternalError);
-      Assert.assertTrue(e.getMessage().contains(codecErrorMsg));
+      assertInstanceOf(InternalError.class, e.getCause());
+      assertTrue(e.getMessage().contains(codecErrorMsg));
     }
   }
 
@@ -340,10 +345,10 @@ public class TestShuffleUtils {
     try {
       ShuffleUtils.shuffleToMemory(new byte[1024], new ByteArrayInputStream(header),
           1024, 128, mockCodec, false, 0, mock(Logger.class), null);
-      Assert.fail("shuffle was supposed to throw!");
+      fail("shuffle was supposed to throw!");
     } catch (IOException e) {
-      Assert.assertTrue(e.getCause() instanceof IllegalArgumentException);
-      Assert.assertTrue(e.getMessage().contains(codecErrorMsg));
+      assertInstanceOf(IllegalArgumentException.class, e.getCause());
+      assertTrue(e.getMessage().contains(codecErrorMsg));
     }
     CompressionInputStream mockCodecStream1 = mock(CompressionInputStream.class);
     when(mockCodecStream1.read(any(byte[].class), anyInt(), anyInt()))
@@ -356,10 +361,10 @@ public class TestShuffleUtils {
     try {
       ShuffleUtils.shuffleToMemory(new byte[1024], new ByteArrayInputStream(header),
           1024, 128, mockCodec1, false, 0, mock(Logger.class), null);
-      Assert.fail("shuffle was supposed to throw!");
+      fail("shuffle was supposed to throw!");
     } catch (IOException e) {
-      Assert.assertTrue(e instanceof SocketTimeoutException);
-      Assert.assertTrue(e.getMessage().contains(codecErrorMsg));
+      assertInstanceOf(SocketTimeoutException.class, e);
+      assertTrue(e.getMessage().contains(codecErrorMsg));
     }
     CompressionInputStream mockCodecStream2 = mock(CompressionInputStream.class);
     when(mockCodecStream2.read(any(byte[].class), anyInt(), anyInt()))
@@ -372,10 +377,10 @@ public class TestShuffleUtils {
     try {
       ShuffleUtils.shuffleToMemory(new byte[1024], new ByteArrayInputStream(header),
           1024, 128, mockCodec2, false, 0, mock(Logger.class), null);
-      Assert.fail("shuffle was supposed to throw!");
+      fail("shuffle was supposed to throw!");
     } catch (IOException e) {
-      Assert.assertTrue(e.getCause() instanceof InternalError);
-      Assert.assertTrue(e.getMessage().contains(codecErrorMsg));
+      assertInstanceOf(InternalError.class, e.getCause());
+      assertTrue(e.getMessage().contains(codecErrorMsg));
     }
   }
 
@@ -389,14 +394,14 @@ public class TestShuffleUtils {
     ByteArrayOutputStream baos = new ByteArrayOutputStream();
     ShuffleUtils.shuffleToDisk(baos, "somehost", in,
         bogusData.length, 2000, mock(Logger.class), null, false, 0, false);
-    Assert.assertArrayEquals(bogusData, baos.toByteArray());
+    assertArrayEquals(bogusData, baos.toByteArray());
 
     // verify sending same stream of zeroes with validation generates an exception
     in.reset();
     try {
       ShuffleUtils.shuffleToDisk(mock(OutputStream.class), "somehost", in,
           bogusData.length, 2000, mock(Logger.class), null, false, 0, true);
-      Assert.fail("shuffle was supposed to throw!");
+      fail("shuffle was supposed to throw!");
     } catch (IOException e) {
     }
   }

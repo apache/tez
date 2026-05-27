@@ -19,15 +19,16 @@
 package org.apache.tez.runtime.library.cartesianproduct;
 
 import static org.apache.tez.runtime.library.cartesianproduct.CartesianProductUserPayload.*;
-import static org.junit.Assert.assertArrayEquals;
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertNotNull;
-import static org.junit.Assert.assertNull;
+import static org.junit.jupiter.api.Assertions.assertArrayEquals;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertNotNull;
+import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 
 import java.nio.ByteBuffer;
 import java.util.Map;
+import java.util.concurrent.TimeUnit;
 
 import org.apache.tez.dag.api.EdgeManagerPluginContext;
 import org.apache.tez.dag.api.EdgeManagerPluginOnDemand.CompositeEventRouteMetadata;
@@ -36,14 +37,15 @@ import org.apache.tez.dag.api.UserPayload;
 
 import com.google.protobuf.ByteString;
 
-import org.junit.Before;
-import org.junit.Test;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.Timeout;
 
 public class TestCartesianProductEdgeManagerPartitioned {
   private EdgeManagerPluginContext mockContext;
   private CartesianProductEdgeManagerPartitioned edgeManager;
 
-  @Before
+  @BeforeEach
   public void setup() {
     mockContext = mock(EdgeManagerPluginContext.class);
     edgeManager = new CartesianProductEdgeManagerPartitioned(mockContext);
@@ -53,7 +55,8 @@ public class TestCartesianProductEdgeManagerPartitioned {
    * Vertex v0 has 2 tasks which generate 3 partitions
    * Vertex v1 has 3 tasks which generate 4 partitions
    */
-  @Test(timeout = 5000)
+  @Test
+  @Timeout(value = 5000, unit = TimeUnit.MILLISECONDS)
   public void testTwoWay() throws Exception {
     CartesianProductConfigProto.Builder builder = CartesianProductConfigProto.newBuilder();
     builder.setIsPartitioned(true).addSources("v0").addSources("v1")
@@ -145,7 +148,8 @@ public class TestCartesianProductEdgeManagerPartitioned {
    * Vertex v0 has 2 tasks which generate 3 partitions
    * Vertex v1 has 3 tasks which generate 4 partitions
    */
-  @Test(timeout = 5000)
+  @Test
+  @Timeout(value = 5000, unit = TimeUnit.MILLISECONDS)
   public void testTwoWayWithFilter() throws Exception {
     CartesianProductConfigProto.Builder builder = CartesianProductConfigProto.newBuilder();
     ByteBuffer buffer = ByteBuffer.allocate(2).putChar('>');
@@ -212,7 +216,8 @@ public class TestCartesianProductEdgeManagerPartitioned {
    * Vertex v1 has 3 tasks which generate 3 partitions
    * Vertex v2 has 4 tasks which generate 2 partitions
    */
-  @Test(timeout = 5000)
+  @Test
+  @Timeout(value = 5000, unit = TimeUnit.MILLISECONDS)
   public void testThreeWay() throws Exception {
     CartesianProductConfigProto.Builder builder = CartesianProductConfigProto.newBuilder();
     builder.setIsPartitioned(true).addSources("v0").addSources("v1").addSources("v2")
