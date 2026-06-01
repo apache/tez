@@ -149,17 +149,4 @@
     </plugins>
   </build>
 
-  <profiles>
-    <profile>
-      <id>hadoop27</id>
-      <dependencies>
-        <dependency>
-          <groupId>org.apache.tez</groupId>
-          <artifactId>tez-yarn-timeline-history</artifactId>
-          <version>${project.version}</version>
-        </dependency>
-      </dependencies>
-    </profile>
-  </profiles>
-
 </project>
