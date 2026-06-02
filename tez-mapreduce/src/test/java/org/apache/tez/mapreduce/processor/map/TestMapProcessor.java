@@ -25,6 +25,7 @@ import java.util.Collections;
 import java.util.concurrent.Executors;
 import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.TimeUnit;
+import java.util.concurrent.atomic.AtomicInteger;
 
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.fs.FileSystem;
@@ -34,6 +35,10 @@ import org.apache.hadoop.io.DataInputBuffer;
 import org.apache.hadoop.io.LongWritable;
 import org.apache.hadoop.io.Text;
 import org.apache.hadoop.mapred.JobConf;
+import org.apache.hadoop.mapred.MapReduceBase;
+import org.apache.hadoop.mapred.Mapper;
+import org.apache.hadoop.mapred.OutputCollector;
+import org.apache.hadoop.mapred.Reporter;
 import org.apache.hadoop.mapreduce.MRConfig;
 import org.apache.tez.common.MRFrameworkConfigs;
 import org.apache.tez.common.TezRuntimeFrameworkConfigs;
@@ -197,12 +202,38 @@ public class TestMapProcessor {
     reader.close();
   }
 
+  /**
+   * A mapper that sleeps briefly every N records to ensure progress updates
+   * can be captured by the test's monitoring thread.
+   */
+  public static class SlowMapper extends MapReduceBase
+      implements Mapper<LongWritable, Text, LongWritable, Text> {
+    private static final int N = 100;
+    private final AtomicInteger counter = new AtomicInteger(0);
+
+    @Override
+    public void map(LongWritable key, Text value,
+        OutputCollector<LongWritable, Text> output, Reporter reporter)
+        throws IOException {
+      output.collect(key, value);
+      if (counter.incrementAndGet() % N == 0) {
+        try {
+          Thread.sleep(1);
+        } catch (InterruptedException e) {
+          Thread.currentThread().interrupt();
+        }
+      }
+    }
+  }
+
   @Test(timeout = 30000)
   public void testMapProcessorProgress() throws Exception {
     String dagName = "mrdag0";
     String vertexName = MultiStageMRConfigUtil.getInitialMapVertexName();
     JobConf jobConf = new JobConf(defaultConf);
     setUpJobConf(jobConf);
+
+    jobConf.setMapperClass(SlowMapper.class);
 
     MRHelpers.translateMRConfToTez(jobConf);
     jobConf.setInt(MRJobConfig.APPLICATION_ATTEMPT_ID, 0);
