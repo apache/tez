@@ -17,9 +17,9 @@
  */
 
 /**
- * Data model types used by the Tez Javadoc doclets.
+ * Custom Javadoc doclets for Tez (e.g. config documentation generator).
  */
 @Private
-package org.apache.tez.tools.javadoc.model;
+package org.apache.tez.tools.javadoc.doclet;
 
 import org.apache.hadoop.classification.InterfaceAudience.Private;

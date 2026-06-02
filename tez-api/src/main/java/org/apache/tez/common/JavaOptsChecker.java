@@ -65,15 +65,6 @@ public class JavaOptsChecker {
     }
 
     if (gcOpts.size() > 1) {
-      // Handle special case for " -XX:+UseParNewGC -XX:+UseConcMarkSweepGC "
-      // which can be specified together.
-      if (gcOpts.size() == 2) {
-        if (gcOpts.contains("UseParNewGC")
-          && gcOpts.contains("UseConcMarkSweepGC")) {
-          return;
-        }
-      }
-
       LOG.debug("Found clashing GC opts, conflicting GC Values={}", gcOpts);
 
       throw new TezException("Invalid/conflicting GC options found,"

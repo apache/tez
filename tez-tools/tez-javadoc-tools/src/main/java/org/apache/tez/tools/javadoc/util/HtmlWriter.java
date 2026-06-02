@@ -1,4 +1,4 @@
-/**
+/*
  * Licensed to the Apache Software Foundation (ASF) under one
  * or more contributor license agreements.  See the NOTICE file
  * distributed with this work for additional information
@@ -7,22 +7,19 @@
  * "License"); you may not use this file except in compliance
  * with the License.  You may obtain a copy of the License at
  *
- *     http://www.apache.org/licenses/LICENSE-2.0
+ *   http://www.apache.org/licenses/LICENSE-2.0
  *
- * Unless required by applicable law or agreed to in writing, software
- * distributed under the License is distributed on an "AS IS" BASIS,
- * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
- * See the License for the specific language governing permissions and
- * limitations under the License.
+ * Unless required by applicable law or agreed to in writing,
+ * software distributed under the License is distributed on an
+ * "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
+ * KIND, either express or implied.  See the License for the
+ * specific language governing permissions and limitations
+ * under the License.
  */
-
 package org.apache.tez.tools.javadoc.util;
 
-import java.io.File;
-import java.io.FileOutputStream;
-import java.io.IOException;
-import java.io.OutputStreamWriter;
-import java.io.PrintWriter;
+import java.io.*;
+import java.nio.charset.StandardCharsets;
 
 import org.apache.tez.tools.javadoc.model.Config;
 import org.apache.tez.tools.javadoc.model.ConfigProperty;
@@ -40,7 +37,7 @@ public class HtmlWriter extends Writer {
 
     try {
       File file = new File(config.getConfigName() + ".html");
-      out = new PrintWriter(new OutputStreamWriter(new FileOutputStream(file), "UTF-8"));
+      out = new PrintWriter(new OutputStreamWriter(new FileOutputStream(file), StandardCharsets.UTF_8));
 
       out.println("<?xml version=\"1.0\" encoding=\"ISO-8859-1\" standalone=\"no\" ?>");
       out.println("<!DOCTYPE html PUBLIC \"-//W3C//DTD XHTML 1.0 Strict//EN\"");
@@ -134,8 +131,8 @@ public class HtmlWriter extends Writer {
         out.println("<td>" + configProperty.getType() + "</td>");
 
         out.println(
-            "<td class=\"" + (configProperty.isPrivate() ? "td_private_true" : "td_private_false")
-                + "\">" + configProperty.isPrivate() + "</td>");
+            "<td class=\"" + (configProperty.isPrivate() ? "td_private_true" : "td_private_false") + "\">"
+                + configProperty.isPrivate() + "</td>");
         out.println(
             "<td class=\"" + (configProperty.isEvolving() ? "td_evolve_true" : "td_evolve_false") + "\">"
                 + configProperty.isEvolving() + "</td>");
