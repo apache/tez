@@ -103,6 +103,15 @@
     </dependency>
     <dependency>
       <groupId>org.apache.hadoop</groupId>
+      <artifactId>hadoop-hdfs-client</artifactId>
+    </dependency>
+    <dependency>
+      <groupId>org.apache.hadoop</groupId>
+      <artifactId>hadoop-hdfs</artifactId>
+      <scope>test</scope>
+    </dependency>
+    <dependency>
+      <groupId>org.apache.hadoop</groupId>
       <artifactId>hadoop-hdfs</artifactId>
       <scope>test</scope>
       <type>test-jar</type>
@@ -221,38 +230,4 @@
     </plugins>
   </reporting>
 
-  <profiles>
-    <profile>
-      <id>hadoop27</id>
-      <activation>
-        <activeByDefault>false</activeByDefault>
-      </activation>
-      <dependencies>
-        <dependency>
-          <groupId>org.apache.hadoop</groupId>
-          <artifactId>hadoop-hdfs</artifactId>
-          <scope>runtime</scope>
-       </dependency>
-      </dependencies>
-    </profile>
-    <profile>
-      <id>hadoop28</id>
-      <activation>
-        <activeByDefault>true</activeByDefault>
-      </activation>
-      <dependencies>
-        <dependency>
-          <groupId>org.apache.hadoop</groupId>
-          <artifactId>hadoop-hdfs-client</artifactId>
-          <version>${hadoop.version}</version>
-       </dependency>
-       <dependency>
-          <groupId>org.apache.hadoop</groupId>
-          <artifactId>hadoop-hdfs</artifactId>
-          <scope>test</scope>
-          <version>${hadoop.version}</version>
-       </dependency>
-      </dependencies>
-    </profile>
-  </profiles>
 </project>

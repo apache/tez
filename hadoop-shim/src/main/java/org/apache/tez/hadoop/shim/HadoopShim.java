@@ -25,6 +25,16 @@ import org.apache.hadoop.classification.InterfaceStability.Unstable;
 import org.apache.hadoop.yarn.api.protocolrecords.RegisterApplicationMasterResponse;
 import org.apache.hadoop.yarn.api.records.FinalApplicationStatus;
 
+/**
+ * An interoperability layer to handle API variations across different versions of Apache Hadoop.
+ *
+ * <p>NOTE TO DEVELOPERS: This shim framework dynamically loads version-specific implementations
+ * (via {@code HadoopShimsLoader}) at runtime. While the legacy Hadoop 2.x specific shims have been
+ * removed, the core framework is intentionally retained. It provides a generic, extensible
+ * mechanism to seamlessly handle any breaking API changes or missing features that may arise in
+ * future Hadoop versions, ensuring Tez maintains broad compatibility without tying the codebase to
+ * a single Hadoop API signature.
+ */
 @Public
 @Unstable
 public abstract class HadoopShim {

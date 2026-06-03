@@ -25,7 +25,14 @@ import java.util.concurrent.Executor;
 import com.google.common.util.concurrent.MoreExecutors;
 
 /**
- * A interoperability layer to work with multiple versions of guava.
+ * An interoperability layer to work with multiple versions of guava.
+ *
+ * <p>NOTE TO DEVELOPERS: Reflection is used here to dynamically bind to the available executor
+ * method at runtime. Guava v18.0 deprecated and removed {@code sameThreadExecutor()}, replacing it
+ * with {@code directExecutor()}. By using reflection, Tez can remain safely compatible with both
+ * older and newer versions of Guava provided by the underlying Hadoop environment, without forcing
+ * a strict compile-time dependency on a specific Guava version. Do not replace this with a direct
+ * method call unless the minimum supported Guava version across all environments is >= 18.0.
  */
 public final class GuavaShim {
 

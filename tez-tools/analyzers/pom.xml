@@ -29,25 +29,8 @@
   <artifactId>tez-perf-analyzer</artifactId>
   <packaging>pom</packaging>
 
-  <profiles>
-    <profile>
-      <id>hadoop27</id>
-      <activation>
-        <activeByDefault>false</activeByDefault>
-      </activation>
-      <modules>
-        <module>job-analyzer</module>
-      </modules>
-    </profile>
-    <profile>
-      <id>hadoop28</id>
-      <activation>
-        <activeByDefault>true</activeByDefault>
-      </activation>
-      <modules>
-        <module>job-analyzer</module>
-      </modules>
-    </profile>
-  </profiles>
+  <modules>
+    <module>job-analyzer</module>
+  </modules>
 
 </project>
