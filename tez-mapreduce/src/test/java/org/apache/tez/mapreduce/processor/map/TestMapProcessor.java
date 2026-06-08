@@ -265,8 +265,8 @@ public class TestMapProcessor {
     try (TezSharedExecutor sharedExecutor = new TezSharedExecutor(jobConf);
          ScheduledExecutorService scheduler = Executors.newScheduledThreadPool(1)) {
 
-      final LogicalIOProcessorRuntimeTask task = MapUtils.createLogicalTask
-          (localFs, workDir, jobConf, 0,
+      final LogicalIOProcessorRuntimeTask task = MapUtils.createLogicalTask(
+          localFs, workDir, jobConf, 0,
               new Path(workDir, "map0"), new TestUmbilical(), dagName, vertexName,
               Collections.singletonList(mapInputSpec),
               Collections.singletonList(mapOutputSpec), sharedExecutor);
