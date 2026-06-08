@@ -157,49 +157,49 @@ public class TestMapProcessor {
         OutputDescriptor.create(OrderedPartitionedKVOutput.class.getName())
             .setUserPayload(TezUtils.createUserPayloadFromConf(jobConf)), 1);
 
-    TezSharedExecutor sharedExecutor = new TezSharedExecutor(jobConf);
-    LogicalIOProcessorRuntimeTask task = MapUtils.createLogicalTask(localFs, workDir, jobConf, 0,
-        new Path(workDir, "map0"), new TestUmbilical(), dagName, vertexName,
-        Collections.singletonList(mapInputSpec), Collections.singletonList(mapOutputSpec),
-        sharedExecutor);
+    try (TezSharedExecutor sharedExecutor = new TezSharedExecutor(jobConf)) {
+      LogicalIOProcessorRuntimeTask task = MapUtils.createLogicalTask(localFs, workDir, jobConf, 0,
+          new Path(workDir, "map0"), new TestUmbilical(), dagName, vertexName,
+          Collections.singletonList(mapInputSpec), Collections.singletonList(mapOutputSpec),
+          sharedExecutor);
 
-    task.initialize();
-    task.run();
-    task.close();
-    sharedExecutor.shutdownNow();
+      task.initialize();
+      task.run();
+      task.close();
 
-    OutputContext outputContext = task.getOutputContexts().iterator().next();
-    TezTaskOutput mapOutputs = new TezTaskOutputFiles(
-        jobConf, outputContext.getUniqueIdentifier(),
-        outputContext.getDagIdentifier());
+      OutputContext outputContext = task.getOutputContexts().iterator().next();
+      TezTaskOutput mapOutputs = new TezTaskOutputFiles(
+          jobConf, outputContext.getUniqueIdentifier(),
+          outputContext.getDagIdentifier());
 
 
-    // TODO NEWTEZ FIXME OutputCommitter verification
+      // TODO NEWTEZ FIXME OutputCommitter verification
 //    MRTask mrTask = (MRTask)t.getProcessor();
 //    Assert.assertEquals(TezNullOutputCommitter.class.getName(), mrTask
 //        .getCommitter().getClass().getName());
 //    t.close();
 
-    Path mapOutputFile = getMapOutputFile(jobConf, outputContext);
-    LOG.info("mapOutputFile = " + mapOutputFile);
-    IFile.Reader reader =
-        new IFile.Reader(localFs, mapOutputFile, null, null, null, false, 0, -1);
-    LongWritable key = new LongWritable();
-    Text value = new Text();
-    DataInputBuffer keyBuf = new DataInputBuffer();
-    DataInputBuffer valueBuf = new DataInputBuffer();
-    long prev = Long.MIN_VALUE;
-    while (reader.nextRawKey(keyBuf)) {
-      reader.nextRawValue(valueBuf);
-      key.readFields(keyBuf);
-      value.readFields(valueBuf);
-      if (prev != Long.MIN_VALUE) {
-        assert(prev <= key.get());
-        prev = key.get();
+      Path mapOutputFile = getMapOutputFile(jobConf, outputContext);
+      LOG.info("mapOutputFile = " + mapOutputFile);
+      IFile.Reader reader =
+          new IFile.Reader(localFs, mapOutputFile, null, null, null, false, 0, -1);
+      LongWritable key = new LongWritable();
+      Text value = new Text();
+      DataInputBuffer keyBuf = new DataInputBuffer();
+      DataInputBuffer valueBuf = new DataInputBuffer();
+      long prev = Long.MIN_VALUE;
+      while (reader.nextRawKey(keyBuf)) {
+        reader.nextRawValue(valueBuf);
+        key.readFields(keyBuf);
+        value.readFields(valueBuf);
+        if (prev != Long.MIN_VALUE) {
+          assert(prev <= key.get());
+          prev = key.get();
+        }
+        LOG.info("key = " + key.get() + "; value = " + value);
       }
-      LOG.info("key = " + key.get() + "; value = " + value);
+      reader.close();
     }
-    reader.close();
   }
 
   /**
@@ -262,29 +262,29 @@ public class TestMapProcessor {
         OutputDescriptor.create(OrderedPartitionedKVOutput.class.getName())
             .setUserPayload(TezUtils.createUserPayloadFromConf(jobConf)), 1);
 
-    TezSharedExecutor sharedExecutor = new TezSharedExecutor(jobConf);
-    final LogicalIOProcessorRuntimeTask task = MapUtils.createLogicalTask
-        (localFs, workDir, jobConf, 0,
-            new Path(workDir, "map0"), new TestUmbilical(), dagName, vertexName,
-            Collections.singletonList(mapInputSpec),
-            Collections.singletonList(mapOutputSpec), sharedExecutor);
+    try (TezSharedExecutor sharedExecutor = new TezSharedExecutor(jobConf);
+         ScheduledExecutorService scheduler = Executors.newScheduledThreadPool(1)) {
 
-    ScheduledExecutorService scheduler = Executors.newScheduledThreadPool(1);
-    scheduler.scheduleAtFixedRate(() -> {
-      float prog = task.getProgress();
-      if (prog > 0.0f && prog < 1.0f) {
-        progressLatch.countDown();
-      }
-    }, 0, 1, TimeUnit.MILLISECONDS);
+      final LogicalIOProcessorRuntimeTask task = MapUtils.createLogicalTask
+          (localFs, workDir, jobConf, 0,
+              new Path(workDir, "map0"), new TestUmbilical(), dagName, vertexName,
+              Collections.singletonList(mapInputSpec),
+              Collections.singletonList(mapOutputSpec), sharedExecutor);
 
-    task.initialize();
-    task.run();
+      scheduler.scheduleAtFixedRate(() -> {
+        float prog = task.getProgress();
+        if (prog > 0.0f && prog < 1.0f) {
+          progressLatch.countDown();
+        }
+      }, 0, 1, TimeUnit.MILLISECONDS);
 
-    GenericTestUtils.waitFor(() -> progressLatch.getCount() == 0, 10, 5000,
-        "Progress update between 0.0 and 1.0 was never captured");
+      task.initialize();
+      task.run();
 
-    scheduler.shutdownNow();
-    task.close();
-    sharedExecutor.shutdownNow();
+      GenericTestUtils.waitFor(() -> progressLatch.getCount() == 0, 10, 5000,
+          "Progress update between 0.0 and 1.0 was never captured");
+
+      task.close();
+    }
   }
 }

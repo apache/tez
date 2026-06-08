@@ -47,7 +47,7 @@ import com.google.common.util.concurrent.ThreadFactoryBuilder;
  */
 @Private
 @Unstable
-public class TezSharedExecutor implements TezExecutors {
+public class TezSharedExecutor implements TezExecutors, AutoCloseable {
 
   // The shared executor service which will be used to execute all the tasks.
   private final ThreadPoolExecutor service;
@@ -94,6 +94,11 @@ public class TezSharedExecutor implements TezExecutors {
   public void shutdownNow() {
     service.shutdownNow();
     poller.interrupt();
+  }
+
+  @Override
+  public void close() {
+    this.shutdownNow();
   }
 
   @Override
