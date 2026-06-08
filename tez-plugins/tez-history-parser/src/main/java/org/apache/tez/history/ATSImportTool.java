@@ -23,8 +23,12 @@ import static org.apache.hadoop.classification.InterfaceStability.Evolving;
 import java.io.File;
 import java.io.FileOutputStream;
 import java.io.IOException;
+import java.net.HttpURLConnection;
 import java.net.URI;
 import java.net.URISyntaxException;
+import java.net.URL;
+import java.net.URLEncoder;
+import java.nio.charset.StandardCharsets;
 import java.util.Iterator;
 import java.util.Objects;
 import java.util.zip.ZipEntry;
@@ -46,6 +50,7 @@ import org.apache.commons.io.IOUtils;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.conf.Configured;
 import org.apache.hadoop.http.HttpConfig;
+import org.apache.hadoop.security.UserGroupInformation;
 import org.apache.hadoop.util.Tool;
 import org.apache.hadoop.util.ToolRunner;
 import org.apache.hadoop.yarn.conf.YarnConfiguration;
@@ -63,6 +68,8 @@ import com.google.common.base.Strings;
 import org.codehaus.jettison.json.JSONArray;
 import org.codehaus.jettison.json.JSONException;
 import org.codehaus.jettison.json.JSONObject;
+import org.glassfish.jersey.client.ClientConfig;
+import org.glassfish.jersey.client.HttpUrlConnectorProvider;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -285,7 +292,7 @@ public class ATSImportTool extends Configured implements Tool {
         LOG.info("Response entity={}", entity);
       }
     } catch (Exception ignore) {
-        LOG.debug("Failed to read error response entity", ignore);
+      LOG.debug("Failed to read error response entity", ignore);
     }
   }
 
@@ -313,9 +320,21 @@ public class ATSImportTool extends Configured implements Tool {
 
   private Client getHttpClient() {
     if (httpClient == null) {
-      return ClientBuilder.newClient();
+      ClientConfig config = new ClientConfig();
+      config.connectorProvider(new HttpUrlConnectorProvider()
+          .connectionFactory(new PseudoAuthenticatedURLConnectionFactory()));
+      return ClientBuilder.newClient(config);
     }
     return httpClient;
+  }
+
+  static class PseudoAuthenticatedURLConnectionFactory implements HttpUrlConnectorProvider.ConnectionFactory {
+    @Override
+    public HttpURLConnection getConnection(URL url) throws IOException {
+      String tokenString = (url.getQuery() == null ? "?" : "&") + "user.name=" +
+          URLEncoder.encode(UserGroupInformation.getCurrentUser().getShortUserName(), StandardCharsets.UTF_8);
+      return (HttpURLConnection) (new URL(url.toString() + tokenString)).openConnection();
+    }
   }
 
   @Override

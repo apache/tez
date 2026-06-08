@@ -166,7 +166,7 @@ public class TestATSHistoryWithACLs {
             ? jsonObject.getJSONObject("domain")
             : jsonObject;
       } else if (clazz == TimelineEntity.class) {
-        // TimelineEntity is annotated @XmlRootElement(name="entity"), Jersey 2/Jackson wrap it
+        // TimelineEntity is annotated @XmlRootElement(name="entity"), Jersey 2/Jackson wraps it
         effectiveJson = jsonObject.has("entity")
             ? jsonObject.getJSONObject("entity")
             : jsonObject;

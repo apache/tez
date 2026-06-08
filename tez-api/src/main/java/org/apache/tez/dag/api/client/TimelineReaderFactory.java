@@ -25,6 +25,7 @@ import java.lang.reflect.Method;
 import java.net.HttpURLConnection;
 import java.net.URI;
 import java.net.URL;
+import java.net.URLEncoder;
 import java.security.GeneralSecurityException;
 
 import javax.net.ssl.HostnameVerifier;
@@ -36,7 +37,6 @@ import javax.ws.rs.client.ClientBuilder;
 import org.apache.hadoop.classification.InterfaceAudience;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.security.UserGroupInformation;
-import org.apache.hadoop.security.authentication.client.AuthenticatedURL;
 import org.apache.hadoop.security.authentication.client.Authenticator;
 import org.apache.hadoop.security.authentication.client.ConnectionConfigurator;
 import org.apache.hadoop.security.ssl.SSLFactory;
@@ -47,7 +47,6 @@ import com.google.common.annotations.VisibleForTesting;
 
 import org.glassfish.jersey.client.ClientConfig;
 import org.glassfish.jersey.client.HttpUrlConnectorProvider;
-import org.glassfish.jersey.client.HttpUrlConnectorProvider.ConnectionFactory;
 import org.glassfish.jersey.jackson.JacksonFeature;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -161,6 +160,9 @@ public final class TimelineReaderFactory {
     @Override
     public Client getHttpClient() throws IOException {
       Authenticator authenticator;
+      UserGroupInformation ugi = UserGroupInformation.getCurrentUser();
+      UserGroupInformation realUgi = ugi.getRealUser();
+      String doAsUser;
       ClientConfig clientConfig = new ClientConfig().register(JacksonFeature.class);
       ConnectionConfigurator connectionConfigurator = getNewConnectionConf(useHttps,
               connTimeout, sslFactory);
@@ -172,17 +174,21 @@ public final class TimelineReaderFactory {
         throw new IOException("Failed to get authenticator", e);
       }
 
-      ConnectionFactory factory = url -> {
-        try {
-          return new AuthenticatedURL(authenticator)
-                    .openConnection(url, new AuthenticatedURL.Token());
-        } catch (Exception e) {
-          throw new IOException("Hadoop Authentication failed", e);
-        }
-      };
+      if (realUgi != null) {
+        doAsUser = ugi.getShortUserName();
+      } else {
+        doAsUser = null;
+      }
 
-      HttpUrlConnectorProvider connectorProvider = new HttpUrlConnectorProvider().connectionFactory(factory);
-      clientConfig.connectorProvider(connectorProvider);
+      HttpUrlConnectorProvider.ConnectionFactory connectionFactory;
+      try {
+        connectionFactory = new TokenAuthenticatedURLConnectionFactory(connectionConfigurator, authenticator,
+                doAsUser);
+      } catch (TezException e) {
+        throw new IOException("Fail to create TokenAuthenticatedURLConnectionFactory", e);
+      }
+
+      clientConfig.connectorProvider(new HttpUrlConnectorProvider().connectionFactory(connectionFactory));
       return ClientBuilder.newClient(clientConfig);
     }
 
@@ -196,6 +202,42 @@ public final class TimelineReaderFactory {
       }
 
       return ReflectionUtils.createClazzInstance(authenticatorClazzName);
+    }
+
+    private static class TokenAuthenticatedURLConnectionFactory implements HttpUrlConnectorProvider.ConnectionFactory {
+
+      private final Authenticator authenticator;
+      private final ConnectionConfigurator connConfigurator;
+      private final String doAsUser;
+      private final Object token;
+
+      public TokenAuthenticatedURLConnectionFactory(ConnectionConfigurator connConfigurator,
+                                                    Authenticator authenticator,
+                                                    String doAsUser) throws TezException {
+        this.connConfigurator = connConfigurator;
+        this.authenticator = authenticator;
+        this.doAsUser = doAsUser;
+        this.token = ReflectionUtils.createClazzInstance(
+            DELEGATION_TOKEN_AUTHENTICATED_URL_TOKEN_CLASS_NAME, null, null);
+      }
+
+      @Override
+      public HttpURLConnection getConnection(URL url) throws IOException {
+        try {
+          HttpURLConnection authenticatedURL = ReflectionUtils.createClazzInstance(
+              DELEGATION_TOKEN_AUTHENTICATED_URL_CLAZZ_NAME, new Class[] {
+              delegationTokenAuthenticatorClazz,
+              ConnectionConfigurator.class
+          }, new Object[] {
+              authenticator,
+              connConfigurator
+          });
+          return ReflectionUtils.invokeMethod(authenticatedURL,
+              delegationTokenAuthenticateURLOpenConnectionMethod, url, token, doAsUser);
+        } catch (Exception e) {
+          throw new IOException(e);
+        }
+      }
     }
 
     @Override
@@ -225,10 +267,33 @@ public final class TimelineReaderFactory {
     @Override
     public Client getHttpClient() {
       ClientConfig config = new ClientConfig().register(JacksonFeature.class);
+      HttpUrlConnectorProvider.ConnectionFactory urlFactory =
+          new PseudoAuthenticatedURLConnectionFactory(connectionConf);
+      config.connectorProvider(new HttpUrlConnectorProvider().connectionFactory(urlFactory));
       return ClientBuilder.newClient(config);
     }
 
-    // PseudoAuthenticatedURLConnectionFactory removed in Jersey 2 migration
+    @VisibleForTesting
+    protected static class PseudoAuthenticatedURLConnectionFactory
+        implements HttpUrlConnectorProvider.ConnectionFactory {
+      private final ConnectionConfigurator connectionConf;
+
+      public PseudoAuthenticatedURLConnectionFactory(ConnectionConfigurator connectionConf) {
+        this.connectionConf = connectionConf;
+      }
+
+      @Override
+      public HttpURLConnection getConnection(URL url) throws IOException {
+        String tokenString = (url.getQuery() == null ? "?" : "&") + "user.name=" +
+            URLEncoder.encode(UserGroupInformation.getCurrentUser().getShortUserName(), "UTF8");
+
+        HttpURLConnection httpURLConnection =
+            (HttpURLConnection) (new URL(url + tokenString)).openConnection();
+        this.connectionConf.configure(httpURLConnection);
+
+        return httpURLConnection;
+      }
+    }
 
     @Override
     public void close() {
