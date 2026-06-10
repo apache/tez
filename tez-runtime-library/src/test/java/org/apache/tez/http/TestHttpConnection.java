@@ -27,6 +27,7 @@ import static org.mockito.Mockito.when;
 
 import java.io.IOException;
 import java.net.ConnectException;
+import java.net.URI;
 import java.net.URISyntaxException;
 import java.net.URL;
 import java.nio.channels.ClosedByInterruptException;
@@ -76,7 +77,7 @@ public class TestHttpConnection {
             return t;
           }
         });
-    url = new URL(NOT_HOSTED_URL);
+    url = URI.create(NOT_HOSTED_URL).toURL();
     tokenSecretManager = mock(JobTokenSecretManager.class);
     when(tokenSecretManager.computeHash(any())).thenReturn("1234".getBytes());
   }

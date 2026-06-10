@@ -21,6 +21,7 @@ package org.apache.tez.dag.app.web;
 import java.io.IOException;
 import java.io.PrintWriter;
 import java.net.MalformedURLException;
+import java.net.URI;
 import java.net.URL;
 import java.util.ArrayList;
 import java.util.Collection;
@@ -142,9 +143,9 @@ public class AMWebController extends Controller {
     String origin = request().getHeader(ORIGIN);
     if(origin == null) {
       try {
-        URL url = new URL(historyUrlBase);
+        URL url = URI.create(historyUrlBase).toURL();
         origin = url.getProtocol() + "://" + url.getAuthority();
-      } catch (MalformedURLException e) {
+      } catch (IllegalArgumentException | MalformedURLException e) {
         LOG.debug("Invalid url set for tez history url base: {}", historyUrlBase, e);
       }
     }

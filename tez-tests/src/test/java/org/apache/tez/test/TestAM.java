@@ -25,6 +25,7 @@ import static org.junit.Assert.assertTrue;
 import java.io.File;
 import java.io.IOException;
 import java.net.HttpURLConnection;
+import java.net.URI;
 import java.net.URL;
 
 import javax.servlet.http.HttpServletResponse;
@@ -138,12 +139,12 @@ public class TestAM {
     checkAddress(webUIAddress + "/prof-output");
 
     HttpURLConnection connection =
-        (HttpURLConnection) new URL(webUIAddress + "/prof-output?file=../etc/web").openConnection();
+        (HttpURLConnection) URI.create(webUIAddress + "/prof-output?file=../etc/web").toURL().openConnection();
     connection.connect();
     assertEquals(HttpServletResponse.SC_FORBIDDEN, connection.getResponseCode());
     assertTrue(new String(connection.getErrorStream().readAllBytes()).contains("Access denied: Invalid Path"));
 
-    URL url = new URL(webUIAddress);
+    URL url = URI.create(webUIAddress).toURL();
     IntegerRanges portRange = conf.getRange(TezConfiguration.TEZ_AM_WEBSERVICE_PORT_RANGE,
         TezConfiguration.TEZ_AM_WEBSERVICE_PORT_RANGE_DEFAULT);
     assertTrue("WebUIService port should be in the defined range (got: " + url.getPort() + ")",
@@ -159,7 +160,7 @@ public class TestAM {
   private void checkAddress(String url, int expectedCode) {
     boolean success = false;
     try {
-      HttpURLConnection connection = (HttpURLConnection) new URL(url).openConnection();
+      HttpURLConnection connection = (HttpURLConnection) URI.create(url).toURL().openConnection();
       connection.connect();
       success = (connection.getResponseCode() == expectedCode);
     } catch (Exception e) {

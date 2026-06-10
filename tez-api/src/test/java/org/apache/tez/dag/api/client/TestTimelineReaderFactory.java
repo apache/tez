@@ -21,7 +21,7 @@ package org.apache.tez.dag.api.client;
 import static org.mockito.Mockito.mock;
 
 import java.net.HttpURLConnection;
-import java.net.URL;
+import java.net.URI;
 
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.security.UserGroupInformation;
@@ -55,7 +55,7 @@ public class TestTimelineReaderFactory {
           .PseudoAuthenticatedURLConnectionFactory(connConf);
     String inputUrl = "http://host:8080/path";
     String expectedUrl = inputUrl + "?user.name=" + UserGroupInformation.getCurrentUser().getShortUserName();
-    HttpURLConnection httpURLConnection = connectionFactory.getHttpURLConnection(new URL(inputUrl));
+    HttpURLConnection httpURLConnection = connectionFactory.getHttpURLConnection(URI.create(inputUrl).toURL());
     Assert.assertEquals(expectedUrl, httpURLConnection.getURL().toString());
   }
 

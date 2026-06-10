@@ -28,6 +28,7 @@ import java.io.File;
 import java.io.FileNotFoundException;
 import java.io.IOException;
 import java.net.MalformedURLException;
+import java.net.URI;
 import java.net.URL;
 import java.nio.ByteBuffer;
 import java.util.ArrayList;
@@ -141,7 +142,7 @@ public class TestTezClientUtils {
     File lastFile = null;
     // Add one file and one directory.
     for (String path : classpaths) {
-      URL url = new URL("file://" + path);
+      URL url = URI.create("file://" + path).toURL();
       File file = FileUtils.toFile(url);
       if (lastFile == null) {
         lastFile = file;

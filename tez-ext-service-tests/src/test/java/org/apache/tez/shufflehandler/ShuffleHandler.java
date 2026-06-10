@@ -35,6 +35,7 @@ import java.io.FileNotFoundException;
 import java.io.IOException;
 import java.io.RandomAccessFile;
 import java.net.InetSocketAddress;
+import java.net.URI;
 import java.net.URL;
 import java.nio.channels.ClosedChannelException;
 import java.util.ArrayList;
@@ -427,7 +428,7 @@ public class ShuffleHandler {
       HttpResponse response = new DefaultHttpResponse(HTTP_1_1, OK);
       try {
         verifyRequest(jobId, ctx, request, response,
-            new URL("http", "", this.port, reqUri));
+            URI.create("http://:" + this.port + reqUri).toURL());
       } catch (IOException e) {
         LOG.warn("Shuffle failure ", e);
         sendError(ctx, e.getMessage(), UNAUTHORIZED);

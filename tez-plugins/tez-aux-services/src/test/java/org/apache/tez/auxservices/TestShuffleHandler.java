@@ -42,6 +42,7 @@ import java.io.IOException;
 import java.net.HttpURLConnection;
 import java.net.SocketAddress;
 import java.net.SocketException;
+import java.net.URI;
 import java.net.URL;
 import java.nio.ByteBuffer;
 import java.util.ArrayList;
@@ -392,9 +393,9 @@ public class TestShuffleHandler {
 
     // simulate a reducer that closes early by reading a single shuffle header
     // then closing the connection
-    URL url = new URL("http://127.0.0.1:"
+    URL url = URI.create("http://127.0.0.1:"
       + shuffleHandler.getConfig().get(ShuffleHandler.SHUFFLE_PORT_CONFIG_KEY)
-      + "/mapOutput?job=job_12345_1&dag=1&reduce=1&map=attempt_12345_1_m_1_0");
+      + "/mapOutput?job=job_12345_1&dag=1&reduce=1&map=attempt_12345_1_m_1_0").toURL();
     HttpURLConnection conn = (HttpURLConnection)url.openConnection();
     conn.setRequestProperty(ShuffleHeader.HTTP_HEADER_NAME,
         ShuffleHeader.DEFAULT_HTTP_HEADER_NAME);
@@ -522,8 +523,8 @@ public class TestShuffleHandler {
             + shuffleHandler.getConfig().get(
               ShuffleHandler.SHUFFLE_PORT_CONFIG_KEY);
     URL url =
-        new URL(shuffleBaseURL + "/mapOutput?job=job_12345_1&dag=1&reduce=1&"
-            + "map=attempt_12345_1_m_1_0");
+        URI.create(shuffleBaseURL + "/mapOutput?job=job_12345_1&dag=1&reduce=1&"
+            + "map=attempt_12345_1_m_1_0").toURL();
     HttpURLConnection conn = (HttpURLConnection) url.openConnection();
     conn.setRequestProperty(ShuffleHeader.HTTP_HEADER_NAME,
       ShuffleHeader.DEFAULT_HTTP_HEADER_NAME);
@@ -545,8 +546,8 @@ public class TestShuffleHandler {
 
     // For keepAlive via URL
     url =
-        new URL(shuffleBaseURL + "/mapOutput?job=job_12345_1&dag=1&reduce=1&"
-            + "map=attempt_12345_1_m_1_0&keepAlive=true");
+        URI.create(shuffleBaseURL + "/mapOutput?job=job_12345_1&dag=1&reduce=1&"
+            + "map=attempt_12345_1_m_1_0&keepAlive=true").toURL();
     conn = (HttpURLConnection) url.openConnection();
     conn.setRequestProperty(ShuffleHeader.HTTP_HEADER_NAME,
       ShuffleHeader.DEFAULT_HTTP_HEADER_NAME);
@@ -591,8 +592,8 @@ public class TestShuffleHandler {
               + shuffleHandler.getConfig().get(
                 ShuffleHandler.SHUFFLE_PORT_CONFIG_KEY);
       URL url =
-          new URL(shuffleBaseURL + "/mapOutput?job=job_12345_1&dag=1&reduce=1&"
-              + "map=attempt_12345_1_m_1_0");
+          URI.create(shuffleBaseURL + "/mapOutput?job=job_12345_1&dag=1&reduce=1&"
+              + "map=attempt_12345_1_m_1_0").toURL();
       conn = (HttpURLConnection) url.openConnection();
       conn.setRequestProperty(ShuffleHeader.HTTP_HEADER_NAME,
           ShuffleHeader.DEFAULT_HTTP_HEADER_NAME);
@@ -626,9 +627,9 @@ public class TestShuffleHandler {
 
     // simulate a reducer that closes early by reading a single shuffle header
     // then closing the connection
-    URL url = new URL("http://127.0.0.1:"
+    URL url = URI.create("http://127.0.0.1:"
       + shuffleHandler.getConfig().get(ShuffleHandler.SHUFFLE_PORT_CONFIG_KEY)
-      + "/mapOutput?job=job_12345_1&&dag=1reduce=1&map=attempt_12345_1_m_1_0");
+      + "/mapOutput?job=job_12345_1&&dag=1reduce=1&map=attempt_12345_1_m_1_0").toURL();
     for (int i = 0; i < failureNum; ++i) {
       HttpURLConnection conn = (HttpURLConnection)url.openConnection();
       conn.setRequestProperty(ShuffleHeader.HTTP_HEADER_NAME,
@@ -713,7 +714,7 @@ public class TestShuffleHandler {
            + shuffleHandler.getConfig().get(ShuffleHandler.SHUFFLE_PORT_CONFIG_KEY)
            + "/mapOutput?job=job_12345_1&dag=1&reduce=1&map=attempt_12345_1_m_"
            + i + "_0";
-      URL url = new URL(URLstring);
+      URL url = URI.create(URLstring).toURL();
       conns[i] = (HttpURLConnection)url.openConnection();
       conns[i].setRequestProperty(ShuffleHeader.HTTP_HEADER_NAME,
           ShuffleHeader.DEFAULT_HTTP_HEADER_NAME);
@@ -788,12 +789,12 @@ public class TestShuffleHandler {
               appId, ByteBuffer.wrap(outputBuffer.getData(), 0,
               outputBuffer.getLength())));
       URL url =
-          new URL(
+          URI.create(
               "http://127.0.0.1:"
                   + shuffleHandler.getConfig().get(
                   ShuffleHandler.SHUFFLE_PORT_CONFIG_KEY)
                   + "/mapOutput?job=job_12345_0001&dag=1&reduce=" + reducerIdStart + "-" + reducerIdEnd
-                  + "&map=attempt_12345_1_m_1_0");
+                  + "&map=attempt_12345_1_m_1_0").toURL();
       HttpURLConnection conn = (HttpURLConnection) url.openConnection();
       conn.setRequestProperty(ShuffleHeader.HTTP_HEADER_NAME,
           ShuffleHeader.DEFAULT_HTTP_HEADER_NAME);
@@ -886,9 +887,9 @@ public class TestShuffleHandler {
       jt.write(outputBuffer);
       shuffleHandler.initializeApplication(new ApplicationInitializationContext(user, appId,
           ByteBuffer.wrap(outputBuffer.getData(), 0, outputBuffer.getLength())));
-      URL url = new URL("http://127.0.0.1:" + shuffleHandler.getConfig().get(ShuffleHandler.SHUFFLE_PORT_CONFIG_KEY)
+      URL url = URI.create("http://127.0.0.1:" + shuffleHandler.getConfig().get(ShuffleHandler.SHUFFLE_PORT_CONFIG_KEY)
           + "/mapOutput?job=job_12345_0001&dag=1&reduce=" + reducerIdStart + "-" + reducerIdEnd + "&map="
-          + String.join(",", attemptIds));
+          + String.join(",", attemptIds)).toURL();
       LOG.info("Calling shuffle URL: {}", url);
       HttpURLConnection conn = (HttpURLConnection) url.openConnection();
       conn.setRequestProperty(ShuffleHeader.HTTP_HEADER_NAME, ShuffleHeader.DEFAULT_HTTP_HEADER_NAME);
@@ -966,12 +967,12 @@ public class TestShuffleHandler {
           appId, ByteBuffer.wrap(outputBuffer.getData(), 0,
             outputBuffer.getLength())));
       URL url =
-          new URL(
+          URI.create(
               "http://127.0.0.1:"
                   + shuffleHandler.getConfig().get(
                       ShuffleHandler.SHUFFLE_PORT_CONFIG_KEY)
                   + "/mapOutput?job=job_12345_0001&dag=1&reduce=" + reducerId
-                  + "&map=attempt_12345_1_m_1_0");
+                  + "&map=attempt_12345_1_m_1_0").toURL();
       HttpURLConnection conn = (HttpURLConnection) url.openConnection();
       conn.setRequestProperty(ShuffleHeader.HTTP_HEADER_NAME,
           ShuffleHeader.DEFAULT_HTTP_HEADER_NAME);
@@ -1206,10 +1207,10 @@ public class TestShuffleHandler {
 
   private static int getShuffleResponseCode(ShuffleHandler shuffle,
       Token<JobTokenIdentifier> jt) throws IOException {
-    URL url = new URL("http://127.0.0.1:"
+    URL url = URI.create("http://127.0.0.1:"
         + shuffle.getConfig().get(ShuffleHandler.SHUFFLE_PORT_CONFIG_KEY)
         + "/mapOutput?job=job_12345_0001&dag=1&reduce=0" +
-        "&map=attempt_12345_1_m_1_0");
+        "&map=attempt_12345_1_m_1_0").toURL();
     HttpURLConnection conn = (HttpURLConnection) url.openConnection();
     String encHash = SecureShuffleUtils.hashFromString(
         SecureShuffleUtils.buildMsgFrom(url),
@@ -1303,12 +1304,12 @@ public class TestShuffleHandler {
           appId, ByteBuffer.wrap(outputBuffer.getData(), 0,
           outputBuffer.getLength())));
       URL url =
-          new URL(
+          URI.create(
               "http://127.0.0.1:"
                   + shuffleHandler.getConfig().get(
                       ShuffleHandler.SHUFFLE_PORT_CONFIG_KEY)
                   + "/mapOutput?job=job_12345_0001&dag=1&reduce=" + reducerId
-                  + "&map=attempt_12345_1_m_1_0");
+                  + "&map=attempt_12345_1_m_1_0").toURL();
       HttpURLConnection conn = (HttpURLConnection) url.openConnection();
       conn.setRequestProperty(ShuffleHeader.HTTP_HEADER_NAME,
           ShuffleHeader.DEFAULT_HTTP_HEADER_NAME);
@@ -1380,11 +1381,11 @@ public class TestShuffleHandler {
               appId, ByteBuffer.wrap(outputBuffer.getData(), 0,
               outputBuffer.getLength())));
       URL url =
-          new URL(
+          URI.create(
               "http://127.0.0.1:"
                   + shuffleHandler.getConfig().get(
                   ShuffleHandler.SHUFFLE_PORT_CONFIG_KEY)
-                  + "/mapOutput?dagAction=delete&job=job_12345_0001&dag=1");
+                  + "/mapOutput?dagAction=delete&job=job_12345_0001&dag=1").toURL();
       HttpURLConnection conn = (HttpURLConnection) url.openConnection();
       conn.setRequestProperty(ShuffleHeader.HTTP_HEADER_NAME,
           ShuffleHeader.DEFAULT_HTTP_HEADER_NAME);
@@ -1472,11 +1473,11 @@ public class TestShuffleHandler {
                       appId, ByteBuffer.wrap(outputBuffer.getData(), 0,
                       outputBuffer.getLength())));
       URL url =
-              new URL(
+              URI.create(
                       "http://127.0.0.1:"
                               + shuffleHandler.getConfig().get(
                               ShuffleHandler.SHUFFLE_PORT_CONFIG_KEY)
-                              + "/mapOutput?vertexAction=delete&job=job_12345_0001&dag=1&vertex=00");
+                              + "/mapOutput?vertexAction=delete&job=job_12345_0001&dag=1&vertex=00").toURL();
       HttpURLConnection conn = (HttpURLConnection) url.openConnection();
       conn.setRequestProperty(ShuffleHeader.HTTP_HEADER_NAME,
               ShuffleHeader.DEFAULT_HTTP_HEADER_NAME);
@@ -1559,11 +1560,11 @@ public class TestShuffleHandler {
               appId, ByteBuffer.wrap(outputBuffer.getData(), 0,
               outputBuffer.getLength())));
       URL url =
-          new URL(
+          URI.create(
               "http://127.0.0.1:"
                   + shuffleHandler.getConfig().get(
                   ShuffleHandler.SHUFFLE_PORT_CONFIG_KEY)
-                  + "/mapOutput?taskAttemptAction=delete&job=job_12345_0001&dag=1&map=" + appAttemptId);
+                  + "/mapOutput?taskAttemptAction=delete&job=job_12345_0001&dag=1&map=" + appAttemptId).toURL();
       HttpURLConnection conn = (HttpURLConnection) url.openConnection();
       conn.setRequestProperty(ShuffleHeader.HTTP_HEADER_NAME,
           ShuffleHeader.DEFAULT_HTTP_HEADER_NAME);
@@ -1643,8 +1644,8 @@ public class TestShuffleHandler {
 
       String shuffleBaseURL = "http://127.0.0.1:"
           + shuffleHandler.getConfig().get(ShuffleHandler.SHUFFLE_PORT_CONFIG_KEY);
-      URL url = new URL(
-          shuffleBaseURL + "/mapOutput?job=job_12345_1&dag=1&reduce=1&map=attempt_12345_1_m_1_0");
+      URL url = URI.create(
+          shuffleBaseURL + "/mapOutput?job=job_12345_1&dag=1&reduce=1&map=attempt_12345_1_m_1_0").toURL();
       shuffleHandler.secretManager.addTokenForJob("job_12345_1",
           new Token<>("id".getBytes(), shuffleHandler.getSecret().getBytes(), null, null));
 

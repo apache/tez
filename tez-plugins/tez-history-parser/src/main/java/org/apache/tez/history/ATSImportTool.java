@@ -345,7 +345,7 @@ public class ATSImportTool extends Configured implements Tool {
     public HttpURLConnection getHttpURLConnection(URL url) throws IOException {
       String tokenString = (url.getQuery() == null ? "?" : "&") + "user.name=" +
           URLEncoder.encode(UserGroupInformation.getCurrentUser().getShortUserName(), "UTF8");
-      return (HttpURLConnection) (new URL(url.toString() + tokenString)).openConnection();
+      return (HttpURLConnection) URI.create(url.toString() + tokenString).toURL().openConnection();
     }
   }
 
