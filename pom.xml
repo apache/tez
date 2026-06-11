@@ -82,6 +82,11 @@
     <frontend-maven-plugin.version>1.15.0</frontend-maven-plugin.version>
     <guava.version>32.0.1-jre</guava.version>
     <hadoop.version>3.5.0</hadoop.version>
+    <!-- Align all Jackson modules with the version shipped by Hadoop 3.5.0 (2.18.6).
+         Importing jackson-bom in dependencyManagement ensures any transitive dependency
+         (e.g. avro) that pulls an older jackson-core is automatically overridden.
+         This is the Jackson project's recommended approach for version alignment. -->
+    <jackson.version>2.18.6</jackson.version>
     <jersey.version>2.46</jersey.version>
     <jettison.version>1.5.4</jettison.version>
     <jsr305.version>3.0.0</jsr305.version>
@@ -154,6 +159,18 @@
 
   <dependencyManagement>
     <dependencies>
+      <!-- Import jackson-bom to enforce a consistent Jackson version across all
+           transitive sources. avro 1.11.5 (via hadoop-common/mapreduce-client-common)
+           pulls in jackson-core 2.14.3 which lacks BufferRecycler.releaseToPool()
+           required by Jersey 2.46 in Hadoop 3.5.0+. The BOM overrides ALL transitive
+           jackson versions without needing per-library exclusions -->
+      <dependency>
+        <groupId>com.fasterxml.jackson</groupId>
+        <artifactId>jackson-bom</artifactId>
+        <version>${jackson.version}</version>
+        <type>pom</type>
+        <scope>import</scope>
+      </dependency>
       <dependency>
         <groupId>org.apache.tez</groupId>
         <artifactId>hadoop-shim</artifactId>

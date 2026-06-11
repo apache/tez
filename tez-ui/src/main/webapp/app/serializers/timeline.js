@@ -21,7 +21,7 @@ import Ember from 'ember';
 import LoaderSerializer from './loader';
 
 function getDiagnostics(source) {
-  var diagnostics = Ember.get(source, 'otherinfo.diagnostics') || "";
+  var diagnostics = Ember.get(source, 'otherInfo.diagnostics') || "";
 
   diagnostics = diagnostics.replace(/\t/g, "&emsp;&emsp;");
   diagnostics = diagnostics.replace(/\[/g, "<div>&#187; ");
@@ -31,24 +31,28 @@ function getDiagnostics(source) {
 }
 
 export default LoaderSerializer.extend({
-  primaryKey: 'entity',
+  // Hadoop 3.5.0 ATS v1 REST API uses camelCase field names:
+  //   entityId (was: entity), entityType (was: entitytype),
+  //   otherInfo (was: otherinfo), primaryFilters (was: primaryfilters),
+  //   relatedEntities (was: relatedentities), eventType (was: eventtype)
+  primaryKey: 'entityId',
 
   extractArrayPayload: function (payload) {
     return payload.entities;
   },
 
   maps: {
-    entityID: 'entity',
+    entityID: 'entityId',
 
-    atsStatus: 'otherinfo.status',
+    atsStatus: 'otherInfo.status',
 
-    startTime: 'otherinfo.startTime',
-    endTime: 'otherinfo.endTime',
+    startTime: 'otherInfo.startTime',
+    endTime: 'otherInfo.endTime',
 
     diagnostics: getDiagnostics,
 
     events: 'events',
 
-    _counterGroups: 'otherinfo.counters.counterGroups'
+    _counterGroups: 'otherInfo.counters.counterGroups'
   }
 });

@@ -21,41 +21,41 @@ import Ember from 'ember';
 import TimelineSerializer from './timeline';
 
 function getProcessorClass(source) {
-  var name = Ember.get(source, 'otherinfo.processorClassName') || "";
+  var name = Ember.get(source, 'otherInfo.processorClassName') || "";
   return name.substr(name.lastIndexOf('.') + 1);
 }
 
 export default TimelineSerializer.extend({
   maps: {
-    name: 'otherinfo.vertexName',
+    name: 'otherInfo.vertexName',
 
-    _initTime: 'otherinfo.initTime',
-    _startTime: 'otherinfo.startTime',
-    _endTime: 'otherinfo.endTime',
-    _firstTaskStartTime: 'otherinfo.stats.firstTaskStartTime',
-    _lastTaskFinishTime: 'otherinfo.stats.lastTaskFinishTime',
+    _initTime: 'otherInfo.initTime',
+    _startTime: 'otherInfo.startTime',
+    _endTime: 'otherInfo.endTime',
+    _firstTaskStartTime: 'otherInfo.stats.firstTaskStartTime',
+    _lastTaskFinishTime: 'otherInfo.stats.lastTaskFinishTime',
 
-    totalTasks: 'otherinfo.numTasks',
-    _failedTasks: 'otherinfo.numFailedTasks',
-    _succeededTasks: 'otherinfo.numSucceededTasks',
-    _killedTasks: 'otherinfo.numKilledTasks',
+    totalTasks: 'otherInfo.numTasks',
+    _failedTasks: 'otherInfo.numFailedTasks',
+    _succeededTasks: 'otherInfo.numSucceededTasks',
+    _killedTasks: 'otherInfo.numKilledTasks',
 
-    _failedTaskAttempts: 'otherinfo.numFailedTaskAttempts',
-    _killedTaskAttempts: 'otherinfo.numKilledTaskAttempts',
+    _failedTaskAttempts: 'otherInfo.numFailedTaskAttempts',
+    _killedTaskAttempts: 'otherInfo.numKilledTaskAttempts',
 
-    minDuration:  'otherinfo.stats.minTaskDuration',
-    maxDuration:  'otherinfo.stats.maxTaskDuration',
-    avgDuration:  'otherinfo.stats.avgTaskDuration',
+    minDuration:  'otherInfo.stats.minTaskDuration',
+    maxDuration:  'otherInfo.stats.maxTaskDuration',
+    avgDuration:  'otherInfo.stats.avgTaskDuration',
 
-    firstTasksToStart:  'otherinfo.stats.firstTasksToStart',
-    lastTasksToFinish:  'otherinfo.stats.lastTasksToFinish',
-    shortestDurationTasks:  'otherinfo.stats.shortestDurationTasks',
-    longestDurationTasks:  'otherinfo.stats.longestDurationTasks',
+    firstTasksToStart:  'otherInfo.stats.firstTasksToStart',
+    lastTasksToFinish:  'otherInfo.stats.lastTasksToFinish',
+    shortestDurationTasks:  'otherInfo.stats.shortestDurationTasks',
+    longestDurationTasks:  'otherInfo.stats.longestDurationTasks',
 
     processorClassName: getProcessorClass,
 
-    dagID: 'primaryfilters.TEZ_DAG_ID.0',
+    dagID: 'primaryFilters.TEZ_DAG_ID.0',
 
-    servicePlugin: 'otherinfo.servicePlugin',
+    servicePlugin: 'otherInfo.servicePlugin',
   }
 });

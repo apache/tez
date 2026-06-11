@@ -22,20 +22,20 @@ import TimelineSerializer from './timeline';
 
 export default TimelineSerializer.extend({
   maps: {
-    dagPlan: 'otherinfo.dagPlan',
+    dagPlan: 'otherInfo.dagPlan',
     callerData: 'callerData',
   },
 
   normalizeResourceHash: function (resourceHash) {
     var data = resourceHash.data,
         callerData = {},
-        dagInfo = Ember.get(data, "otherinfo.dagPlan.dagInfo"), // New style, from TEZ-2851
-        dagContext = Ember.get(data, "otherinfo.dagPlan.dagContext"); // Old style
+        dagInfo = Ember.get(data, "otherInfo.dagPlan.dagInfo"), // New style, from TEZ-2851
+        dagContext = Ember.get(data, "otherInfo.dagPlan.dagContext"); // Old style
 
     if(dagContext) {
       callerData.callerContext = Ember.String.classify((Ember.get(dagContext, "context")||"").toLowerCase());
       callerData.callerDescription = Ember.get(dagContext, "description");
-      callerData.callerType = Ember.get(dagContext, "callerType") || Ember.get(data, "otherinfo.callerType");
+      callerData.callerType = Ember.get(dagContext, "callerType") || Ember.get(data, "otherInfo.callerType");
     }
     else if(dagInfo) {
       let infoObj = {};
@@ -45,7 +45,7 @@ export default TimelineSerializer.extend({
         infoObj = dagInfo;
       }
 
-      callerData.callerContext = Ember.get(infoObj, "context") || Ember.get(data, "otherinfo.callerContext");
+      callerData.callerContext = Ember.get(infoObj, "context") || Ember.get(data, "otherInfo.callerContext");
       callerData.callerDescription = Ember.get(infoObj, "description") || Ember.get(dagInfo, "blob") || dagInfo;
     }
 

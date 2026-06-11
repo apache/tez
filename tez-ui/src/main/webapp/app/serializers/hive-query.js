@@ -21,11 +21,11 @@ import Ember from 'ember';
 import TimelineSerializer from './timeline';
 
 function getEndTime(source) {
-  var time = Ember.get(source, 'otherinfo.endTime'),
+  var time = Ember.get(source, 'otherInfo.endTime'),
       event = source.events;
 
   if(!time && event) {
-    event = event.findBy('eventtype', 'QUERY_COMPLETED');
+    event = event.findBy('eventType', 'QUERY_COMPLETED');
     if(event) {
       time = event.timestamp;
     }
@@ -35,7 +35,7 @@ function getEndTime(source) {
 }
 
 function getStatus(source) {
-  var status = Ember.get(source, 'otherinfo.STATUS');
+  var status = Ember.get(source, 'otherInfo.STATUS');
 
   switch(status) {
     case true:
@@ -49,70 +49,70 @@ function getStatus(source) {
 
 export default TimelineSerializer.extend({
   maps: {
-    queryText: 'otherinfo.QUERY.queryText',
+    queryText: 'otherInfo.QUERY.queryText',
 
-    dagID: 'primaryfilters.DAG_ID',
-    appID: 'primaryfilters.APP_ID',
-    sessionID: 'otherinfo.INVOKER_INFO',
-    operationID: 'primaryfilters.operationid.0',
-    llapAppID: 'otherinfo.LLAP_APP_ID',
+    dagID: 'primaryFilters.DAG_ID',
+    appID: 'primaryFilters.APP_ID',
+    sessionID: 'otherInfo.INVOKER_INFO',
+    operationID: 'primaryFilters.operationid.0',
+    llapAppID: 'otherInfo.LLAP_APP_ID',
 
-    instanceType: 'otherinfo.HIVE_INSTANCE_TYPE',
-    executionMode: 'primaryfilters.executionmode.0',
+    instanceType: 'otherInfo.HIVE_INSTANCE_TYPE',
+    executionMode: 'primaryFilters.executionmode.0',
 
-    domain: 'domain',
-    threadName: 'otherinfo.THREAD_NAME',
-    queue: 'primaryfilters.queue.0',
-    version: 'otherinfo.VERSION',
+    domain: 'domainId',
+    threadName: 'otherInfo.THREAD_NAME',
+    queue: 'primaryFilters.queue.0',
+    version: 'otherInfo.VERSION',
 
-    hiveAddress: 'otherinfo.HIVE_ADDRESS',
-    clientAddress: 'otherinfo.CLIENT_IP_ADDRESS',
+    hiveAddress: 'otherInfo.HIVE_ADDRESS',
+    clientAddress: 'otherInfo.CLIENT_IP_ADDRESS',
 
-    user: 'primaryfilters.user.0',
-    requestUser: 'primaryfilters.requestuser.0',
+    user: 'primaryFilters.user.0',
+    requestUser: 'primaryFilters.requestuser.0',
 
-    tablesRead: 'primaryfilters.tablesread',
-    tablesWritten: 'primaryfilters.tableswritten',
+    tablesRead: 'primaryFilters.tablesread',
+    tablesWritten: 'primaryFilters.tableswritten',
 
     status: getStatus,
 
-    configsJSON: "otherinfo.CONF",
+    configsJSON: "otherInfo.CONF",
 
-    startTime: 'starttime',
+    startTime: 'startTime',
     endTime: getEndTime,
 
-    perf: "otherinfo.PERF"
+    perf: "otherInfo.PERF"
   },
 
   extractAttributes: function (modelClass, resourceHash) {
     var data = resourceHash.data,
-        query = Ember.get(resourceHash, "data.otherinfo.QUERY"),
-        perf = Ember.get(resourceHash, "data.otherinfo.PERF");
+        query = Ember.get(resourceHash, "data.otherInfo.QUERY"),
+        perf = Ember.get(resourceHash, "data.otherInfo.PERF");
 
     if(query) {
       try{
-        data.otherinfo.QUERY = JSON.parse(query);
+        data.otherInfo.QUERY = JSON.parse(query);
       }catch(e){}
     }
 
-    if(!data.otherinfo.CLIENT_IP_ADDRESS) {
-      data.otherinfo.CLIENT_IP_ADDRESS = data.otherinfo.HIVE_ADDRESS;
+    if(!data.otherInfo.CLIENT_IP_ADDRESS) {
+      data.otherInfo.CLIENT_IP_ADDRESS = data.otherInfo.HIVE_ADDRESS;
     }
 
     if(perf) {
       try{
         let PERF = JSON.parse(perf);
         PERF["PostATSHook"] = PERF["PostHook.org.apache.hadoop.hive.ql.hooks.ATSHook"];
-        data.otherinfo.PERF = PERF;
+        data.otherInfo.PERF = PERF;
       }catch(e){}
     }
 
-    data.primaryfilters = data.primaryfilters || {};
-    if(!Ember.get(data, "primaryfilters.tablesread.length")) {
-      data.primaryfilters.tablesread = new Error("None");
+    data.primaryFilters = data.primaryFilters || {};
+    if(!Ember.get(data, "primaryFilters.tablesread.length")) {
+      data.primaryFilters.tablesread = new Error("None");
     }
-    if(!Ember.get(data, "primaryfilters.tableswritten.length")) {
-      data.primaryfilters.tableswritten = new Error("None");
+    if(!Ember.get(data, "primaryFilters.tableswritten.length")) {
+      data.primaryFilters.tableswritten = new Error("None");
     }
 
     return this._super(modelClass, resourceHash);

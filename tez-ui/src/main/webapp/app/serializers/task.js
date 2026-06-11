@@ -20,12 +20,12 @@ import TimelineSerializer from './timeline';
 
 export default TimelineSerializer.extend({
   maps: {
-    vertexID: 'primaryfilters.TEZ_VERTEX_ID.0',
-    dagID: 'primaryfilters.TEZ_DAG_ID.0',
+    vertexID: 'primaryFilters.TEZ_VERTEX_ID.0',
+    dagID: 'primaryFilters.TEZ_DAG_ID.0',
 
-    failedTaskAttempts: 'otherinfo.numFailedTaskAttempts',
+    failedTaskAttempts: 'otherInfo.numFailedTaskAttempts',
 
-    successfulAttemptID: 'otherinfo.successfulAttemptId',
-    attemptIDs: 'relatedentities.TEZ_TASK_ATTEMPT_ID',
+    successfulAttemptID: 'otherInfo.successfulAttemptId',
+    attemptIDs: 'relatedEntities.TEZ_TASK_ATTEMPT_ID',
   }
 });
