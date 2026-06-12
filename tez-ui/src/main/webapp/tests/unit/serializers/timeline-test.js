@@ -42,3 +42,42 @@ test('extractArrayPayload test', function(assert) {
 
   assert.equal(serializer.extractArrayPayload(testPayload), testPayload.entities);
 });
+
+test('getDiagnostics escapes HTML', function(assert) {
+  let serializer = this.subject(),
+      mapper = serializer.maps.diagnostics;
+
+  // Empty/missing diagnostics
+  assert.equal(mapper({}), "");
+  assert.equal(mapper({otherinfo: {}}), "");
+
+  // Script injection must be escaped
+  assert.equal(
+    mapper({otherinfo: {diagnostics: "<script>alert(1)</script>"}}),
+    "&lt;script&gt;alert(1)&lt;/script&gt;"
+  );
+
+  // IMG onerror injection must be escaped
+  assert.equal(
+    mapper({otherinfo: {diagnostics: "<img src=x onerror=alert(1)>"}}),
+    "&lt;img src=x onerror=alert(1)&gt;"
+  );
+
+  // Tab formatting still works after escaping
+  assert.equal(
+    mapper({otherinfo: {diagnostics: "\tindented"}}),
+    "&emsp;&emsp;indented"
+  );
+
+  // Bracket formatting still works after escaping
+  assert.equal(
+    mapper({otherinfo: {diagnostics: "[section]"}}),
+    "<div>&#187; section</div>"
+  );
+
+  // Ampersands in diagnostics are escaped
+  assert.equal(
+    mapper({otherinfo: {diagnostics: "a & b"}}),
+    "a &amp; b"
+  );
+});
