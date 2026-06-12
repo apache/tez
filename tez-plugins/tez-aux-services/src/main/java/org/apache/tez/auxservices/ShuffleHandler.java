@@ -29,8 +29,7 @@ import static io.netty.handler.codec.http.HttpResponseStatus.NOT_FOUND;
 import static io.netty.handler.codec.http.HttpResponseStatus.OK;
 import static io.netty.handler.codec.http.HttpResponseStatus.UNAUTHORIZED;
 import static io.netty.handler.codec.http.HttpVersion.HTTP_1_1;
-import static org.fusesource.leveldbjni.JniDBFactory.asString;
-import static org.fusesource.leveldbjni.JniDBFactory.bytes;
+import static java.nio.charset.StandardCharsets.UTF_8;
 
 import java.io.File;
 import java.io.FileNotFoundException;
@@ -90,7 +89,6 @@ import org.apache.hadoop.yarn.server.api.ApplicationTerminationContext;
 import org.apache.hadoop.yarn.server.api.AuxiliaryService;
 import org.apache.hadoop.yarn.server.records.Version;
 import org.apache.hadoop.yarn.server.records.impl.pb.VersionPBImpl;
-import org.apache.hadoop.yarn.server.utils.LeveldbIterator;
 import org.apache.tez.common.security.JobTokenIdentifier;
 import org.apache.tez.common.security.JobTokenSecretManager;
 import org.apache.tez.runtime.library.common.Constants;
@@ -150,10 +148,10 @@ import io.netty.handler.timeout.IdleStateHandler;
 import io.netty.util.CharsetUtil;
 import io.netty.util.concurrent.GlobalEventExecutor;
 
-import org.fusesource.leveldbjni.JniDBFactory;
-import org.fusesource.leveldbjni.internal.NativeDB;
 import org.iq80.leveldb.DB;
 import org.iq80.leveldb.DBException;
+import org.iq80.leveldb.DBFactory;
+import org.iq80.leveldb.DBIterator;
 import org.iq80.leveldb.Logger;
 import org.iq80.leveldb.Options;
 import org.slf4j.LoggerFactory;
@@ -211,6 +209,7 @@ public class ShuffleHandler extends AuxiliaryService {
   private JobTokenSecretManager secretManager;
 
   private DB stateDb = null;
+  private static final DBFactory DB_FACTORY = createDBFactory();
 
   public static final String TEZ_SHUFFLE_SERVICEID =
       "tez_shuffle";
@@ -644,6 +643,7 @@ public class ShuffleHandler extends AuxiliaryService {
     destroyPipeline();
     if (stateDb != null) {
       stateDb.close();
+      stateDb = null;
     }
     super.serviceStop();
   }
@@ -672,9 +672,9 @@ public class ShuffleHandler extends AuxiliaryService {
     if (recoveryRoot != null) {
       startStore(recoveryRoot);
       Pattern jobPattern = Pattern.compile(JobID.JOBID_REGEX);
-      LeveldbIterator iter = null;
+      DBIterator iter = null;
       try {
-        iter = new LeveldbIterator(stateDb);
+        iter = stateDb.iterator();
         iter.seek(bytes(JobID.JOB));
         while (iter.hasNext()) {
           Map.Entry<byte[],byte[]> entry = iter.next();
@@ -696,26 +696,23 @@ public class ShuffleHandler extends AuxiliaryService {
 
   private void startStore(Path recoveryRoot) throws IOException {
     Options options = new Options();
-    options.createIfMissing(false);
     options.logger(new LevelDBLogger());
     Path dbPath = new Path(recoveryRoot, STATE_DB_NAME);
     LOG.info("Using state database at " + dbPath + " for recovery");
     File dbfile = new File(dbPath.toString());
+    boolean dbExists = dbfile.exists();
+    options.createIfMissing(!dbExists);
     try {
-      stateDb = JniDBFactory.factory.open(dbfile, options);
-    } catch (NativeDB.DBException e) {
-      if (e.isNotFound() || e.getMessage().contains(" does not exist ")) {
-        LOG.info("Creating state database at " + dbfile);
-        options.createIfMissing(true);
-        try {
-          stateDb = JniDBFactory.factory.open(dbfile, options);
-          storeVersion();
-        } catch (DBException dbExc) {
-          throw new IOException("Unable to create state store", dbExc);
-        }
-      } else {
-        throw e;
+      stateDb = DB_FACTORY.open(dbfile, options);
+    } catch (Exception e) {
+      if (e instanceof IOException) {
+        throw (IOException) e;
       }
+      throw new IOException("Unable to open state store", e);
+    }
+    if (!dbExists) {
+      LOG.info("Created state database at " + dbfile);
+      storeVersion();
     }
     checkVersion();
   }
@@ -842,6 +839,27 @@ public class ShuffleHandler extends AuxiliaryService {
             + " from state store", e);
       }
     }
+  }
+
+  private static DBFactory createDBFactory() {
+    // Try native JNI LevelDB first (fastest), fall back to pure-Java iq80
+    try {
+      DBFactory jniFactory = org.fusesource.leveldbjni.JniDBFactory.factory;
+      LOG.info("Using JNI LevelDB factory");
+      return jniFactory;
+    } catch (Throwable t) {
+      LOG.info("Native LevelDB JNI library not available ({}), "
+          + "falling back to pure-Java implementation", t.getMessage());
+      return new org.iq80.leveldb.impl.Iq80DBFactory();
+    }
+  }
+
+  private static byte[] bytes(String value) {
+    return value.getBytes(UTF_8);
+  }
+
+  private static String asString(byte[] value) {
+    return new String(value, UTF_8);
   }
 
   private static class LevelDBLogger implements Logger {

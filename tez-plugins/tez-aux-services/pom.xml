@@ -49,6 +49,12 @@
       <groupId>org.apache.hadoop</groupId>
       <artifactId>hadoop-yarn-server-common</artifactId>
       <scope>provided</scope>
+      <exclusions>
+        <exclusion>
+          <groupId>org.fusesource.leveldbjni</groupId>
+          <artifactId>leveldbjni-all</artifactId>
+        </exclusion>
+      </exclusions>
     </dependency>
     <dependency>
       <groupId>org.apache.hadoop</groupId>
@@ -63,6 +69,10 @@
         <exclusion>
           <groupId>io.netty</groupId>
           <artifactId>*</artifactId>
+        </exclusion>
+        <exclusion>
+          <groupId>org.fusesource.leveldbjni</groupId>
+          <artifactId>leveldbjni-all</artifactId>
         </exclusion>
       </exclusions>
     </dependency>
@@ -90,6 +100,12 @@
       <groupId>org.apache.hadoop</groupId>
       <artifactId>hadoop-mapreduce-client-shuffle</artifactId>
       <scope>provided</scope>
+      <exclusions>
+        <exclusion>
+          <groupId>org.fusesource.leveldbjni</groupId>
+          <artifactId>leveldbjni-all</artifactId>
+        </exclusion>
+      </exclusions>
     </dependency>
     <dependency>
       <groupId>org.apache.tez</groupId>
@@ -110,9 +126,13 @@
       <scope>provided</scope>
     </dependency>
     <dependency>
-      <groupId>org.fusesource.leveldbjni</groupId>
+      <groupId>${leveldbjni.group}</groupId>
       <artifactId>leveldbjni-all</artifactId>
       <scope>provided</scope>
+    </dependency>
+    <dependency>
+      <groupId>org.iq80.leveldb</groupId>
+      <artifactId>leveldb</artifactId>
     </dependency>
     <dependency>
       <groupId>io.netty</groupId>
@@ -146,6 +166,10 @@
           <groupId>io.netty</groupId>
           <artifactId>*</artifactId>
         </exclusion>
+        <exclusion>
+          <groupId>org.fusesource.leveldbjni</groupId>
+          <artifactId>leveldbjni-all</artifactId>
+        </exclusion>
       </exclusions>
     </dependency>
    <dependency>
@@ -159,6 +183,12 @@
      <artifactId>hadoop-yarn-server-tests</artifactId>
      <scope>test</scope>
      <type>test-jar</type>
+     <exclusions>
+       <exclusion>
+         <groupId>org.fusesource.leveldbjni</groupId>
+         <artifactId>leveldbjni-all</artifactId>
+       </exclusion>
+     </exclusions>
    </dependency>
   <dependency>
      <groupId>org.apache.hadoop</groupId>
