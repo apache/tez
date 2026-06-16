@@ -42,6 +42,7 @@ import org.apache.hadoop.io.DataInputByteBuffer;
 import org.apache.hadoop.io.DataOutputBuffer;
 import org.apache.hadoop.io.compress.CompressionCodec;
 import org.apache.hadoop.security.token.Token;
+import org.apache.hadoop.thirdparty.protobuf.ByteString;
 import org.apache.tez.common.Preconditions;
 import org.apache.tez.common.TezCommonUtils;
 import org.apache.tez.common.TezUtilsInternal;
@@ -68,7 +69,6 @@ import org.apache.tez.runtime.library.utils.DATA_RANGE_IN_MB;
 import org.apache.tez.util.FastNumberFormat;
 
 import com.google.common.primitives.Ints;
-import com.google.protobuf.ByteString;
 
 import org.roaringbitmap.RoaringBitmap;
 import org.slf4j.Logger;
