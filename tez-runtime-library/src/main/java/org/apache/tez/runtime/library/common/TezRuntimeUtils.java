@@ -22,6 +22,7 @@ import java.io.IOException;
 import java.lang.reflect.Constructor;
 import java.lang.reflect.InvocationTargetException;
 import java.net.MalformedURLException;
+import java.net.URI;
 import java.net.URL;
 import java.nio.ByteBuffer;
 
@@ -168,7 +169,7 @@ public final class TezRuntimeUtils {
     sb.append(appId.replace("application", "job"));
     sb.append("&dag=");
     sb.append(dagIdentifier);
-    return new URL(sb.toString());
+    return URI.create(sb.toString()).toURL();
   }
 
   public static URL constructBaseURIForShuffleHandlerVertexComplete(
@@ -187,7 +188,7 @@ public final class TezRuntimeUtils {
     sb.append(dagIdentifier);
     sb.append("&vertex=");
     sb.append(vertexIdentifier);
-    return new URL(sb.toString());
+    return URI.create(sb.toString()).toURL();
   }
 
   public static URL constructBaseURIForShuffleHandlerTaskAttemptFailed(
@@ -206,7 +207,7 @@ public final class TezRuntimeUtils {
     sb.append(dagIdentifier);
     sb.append("&map=");
     sb.append(taskAttemptIdentifier);
-    return new URL(sb.toString());
+    return URI.create(sb.toString()).toURL();
   }
 
   public static HttpConnectionParams getHttpConnectionParams(Configuration conf) {

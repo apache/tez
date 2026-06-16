@@ -23,6 +23,7 @@ import static org.apache.hadoop.security.ssl.SSLFactory.Mode.CLIENT;
 import java.io.IOException;
 import java.lang.reflect.Method;
 import java.net.HttpURLConnection;
+import java.net.URI;
 import java.net.URL;
 import java.net.URLEncoder;
 import java.security.GeneralSecurityException;
@@ -284,7 +285,7 @@ public final class TimelineReaderFactory {
             URLEncoder.encode(UserGroupInformation.getCurrentUser().getShortUserName(), "UTF8");
 
         HttpURLConnection httpURLConnection =
-            (HttpURLConnection) (new URL(url + tokenString)).openConnection();
+            (HttpURLConnection) URI.create(url + tokenString).toURL().openConnection();
         this.connectionConf.configure(httpURLConnection);
 
         return httpURLConnection;

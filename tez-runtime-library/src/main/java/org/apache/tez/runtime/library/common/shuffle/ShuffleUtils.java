@@ -23,6 +23,7 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.io.OutputStream;
 import java.net.MalformedURLException;
+import java.net.URI;
 import java.net.URL;
 import java.nio.ByteBuffer;
 import java.text.DecimalFormat;
@@ -245,7 +246,7 @@ public final class ShuffleUtils {
     if (keepAlive) {
       url.append("&keepAlive=true");
     }
-    return new URL(url.toString());
+    return URI.create(url.toString()).toURL();
   }
 
   public static BaseHttpConnection getHttpConnection(boolean asyncHttp, URL url,

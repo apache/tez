@@ -24,6 +24,7 @@ import static org.junit.Assert.assertNull;
 import static org.junit.Assert.assertTrue;
 
 import java.io.IOException;
+import java.net.URI;
 import java.net.URL;
 import java.util.Collections;
 
@@ -77,7 +78,7 @@ public class TestReflectionUtils {
       assertTrue(localFs.createNewFile(p));
       String urlForm = p.toUri().toURL().toString();
       urlForm = urlForm.substring(0, urlForm.lastIndexOf('/') + 1);
-      URL url = new URL(urlForm);
+      URL url = URI.create(urlForm).toURL();
 
       ReflectionUtils.addResourcesToSystemClassLoader(Collections.singletonList(url));
 
