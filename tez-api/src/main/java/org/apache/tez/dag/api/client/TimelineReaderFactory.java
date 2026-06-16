@@ -288,7 +288,7 @@ public final class TimelineReaderFactory {
             URLEncoder.encode(UserGroupInformation.getCurrentUser().getShortUserName(), "UTF8");
 
         HttpURLConnection httpURLConnection =
-            (HttpURLConnection) (new URL(url + tokenString)).openConnection();
+            (HttpURLConnection) URI.create(url + tokenString).toURL().openConnection();
         this.connectionConf.configure(httpURLConnection);
 
         return httpURLConnection;
