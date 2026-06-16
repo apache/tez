@@ -22,6 +22,9 @@ import java.io.IOException;
 import java.io.OutputStream;
 import java.util.Collection;
 
+import org.apache.hadoop.thirdparty.protobuf.CodedInputStream;
+import org.apache.hadoop.thirdparty.protobuf.CodedOutputStream;
+import org.apache.hadoop.thirdparty.protobuf.ExtensionRegistry;
 import org.apache.tez.dag.history.HistoryEvent;
 import org.apache.tez.dag.history.HistoryEventType;
 import org.apache.tez.dag.history.SummaryEvent;
@@ -33,9 +36,6 @@ import org.apache.tez.dag.recovery.records.RecoveryProtos.VertexGroupCommitFinis
 
 import com.google.common.base.Function;
 import com.google.common.collect.Collections2;
-import com.google.protobuf.CodedInputStream;
-import com.google.protobuf.CodedOutputStream;
-import com.google.protobuf.ExtensionRegistry;
 
 public class VertexGroupCommitFinishedEvent implements HistoryEvent, SummaryEvent {
 
