@@ -44,22 +44,22 @@ test('atsStatus test', function(assert) {
       mapper = serializer.maps.atsStatus;
 
   assert.equal(mapper({
-    events: [{eventtype: "SOME_EVENT"}]
+    events: [{eventType: "SOME_EVENT"}]
   }), undefined);
 
   assert.equal(mapper({
-    events: [{eventtype: "DAG_STARTED"}]
+    events: [{eventType: "DAG_STARTED"}]
   }), "RUNNING");
 
   assert.equal(mapper({
-    otherinfo: {status: "STATUS1"},
-    primaryfilters: {status: ["STATUS2"]},
-    events: [{eventtype: "DAG_STARTED"}]
+    otherInfo: {status: "STATUS1"},
+    primaryFilters: {status: ["STATUS2"]},
+    events: [{eventType: "DAG_STARTED"}]
   }), "STATUS1");
 
   assert.equal(mapper({
-    primaryfilters: {status: ["STATUS2"]},
-    events: [{eventtype: "DAG_STARTED"}]
+    primaryFilters: {status: ["STATUS2"]},
+    events: [{eventType: "DAG_STARTED"}]
   }), "STATUS2");
 });
 
@@ -69,16 +69,16 @@ test('startTime test', function(assert) {
       testTimestamp = Date.now();
 
   assert.equal(mapper({
-    events: [{eventtype: "SOME_EVENT"}]
+    events: [{eventType: "SOME_EVENT"}]
   }), undefined);
 
   assert.equal(mapper({
-    events: [{eventtype: "DAG_STARTED", timestamp: testTimestamp}]
+    events: [{eventType: "DAG_STARTED", timestamp: testTimestamp}]
   }), testTimestamp);
 
   assert.equal(mapper({
-    otherinfo: {startTime: testTimestamp},
-    events: [{eventtype: "DAG_STARTED"}]
+    otherInfo: {startTime: testTimestamp},
+    events: [{eventType: "DAG_STARTED"}]
   }), testTimestamp);
 });
 
@@ -88,16 +88,16 @@ test('endTime test', function(assert) {
       testTimestamp = Date.now();
 
   assert.equal(mapper({
-    events: [{eventtype: "SOME_EVENT"}]
+    events: [{eventType: "SOME_EVENT"}]
   }), undefined);
 
   assert.equal(mapper({
-    events: [{eventtype: "DAG_FINISHED", timestamp: testTimestamp}]
+    events: [{eventType: "DAG_FINISHED", timestamp: testTimestamp}]
   }), testTimestamp);
 
   assert.equal(mapper({
-    otherinfo: {endTime: testTimestamp},
-    events: [{eventtype: "DAG_FINISHED"}]
+    otherInfo: {endTime: testTimestamp},
+    events: [{eventType: "DAG_FINISHED"}]
   }), testTimestamp);
 });
 
@@ -106,11 +106,11 @@ test('containerLogs test', function(assert) {
       mapper = serializer.maps.containerLogs;
 
   assert.deepEqual(mapper({
-    otherinfo: {},
+    otherInfo: {},
   }), [], "No logs");
 
   assert.deepEqual(mapper({
-	  otherinfo: {inProgressLogsURL_1: "http://foo", inProgressLogsURL_2: "https://bar"},
+    otherInfo: {inProgressLogsURL_1: "http://foo", inProgressLogsURL_2: "https://bar"},
   }), [{text: "1", href: "http://foo"}, {text: "2", href: "https://bar"}], "2 logs");
 });
 
@@ -119,7 +119,7 @@ test('vertexIdNameMap test', function(assert) {
       mapper = serializer.maps.vertexIdNameMap;
 
   let nameIdMap = {
-    otherinfo: {
+    otherInfo: {
       vertexNameIdMapping: {
         name1: "ID1",
         name2: "ID2",
@@ -150,7 +150,7 @@ test('normalizeResourceHash test', function(assert) {
   // dagContext test
   data = serializer.normalizeResourceHash({
     data: {
-      otherinfo: {
+      otherInfo: {
         dagPlan: {
           dagContext: callerInfo
         }
@@ -165,7 +165,7 @@ test('normalizeResourceHash test', function(assert) {
   // dagInfo test
   data = serializer.normalizeResourceHash({
     data: {
-      otherinfo: {
+      otherInfo: {
         dagPlan: {
           dagInfo: `{"context": "${callerInfo.context}", "description": "${callerInfo.description}"}`
         }
@@ -180,7 +180,7 @@ test('normalizeResourceHash test', function(assert) {
   // dagInfo.blob test
   data = serializer.normalizeResourceHash({
     data: {
-      otherinfo: {
+      otherInfo: {
         dagPlan: {
           dagInfo: {
             context: callerInfo.context,
@@ -198,7 +198,7 @@ test('normalizeResourceHash test', function(assert) {
   // dagContext have presidence over dagInfo
   data = serializer.normalizeResourceHash({
     data: {
-      otherinfo: {
+      otherInfo: {
         dagPlan: {
           dagContext: callerInfo,
           dagInfo: `{"context": "RandomContext", "description": "RandomDesc"}`

@@ -37,12 +37,12 @@ test('processorClassName test', function(assert) {
 
   assert.equal(processorClassName({}), "");
   assert.equal(processorClassName({
-    otherinfo: {
+    otherInfo: {
       processorClassName: "foo"
     }
   }), "foo");
   assert.equal(processorClassName({
-    otherinfo: {
+    otherInfo: {
       processorClassName: "a.b.foo"
     }
   }), "foo");

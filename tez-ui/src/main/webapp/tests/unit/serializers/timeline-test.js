@@ -31,6 +31,7 @@ test('Basic creation test', function(assert) {
   assert.ok(serializer.maps);
 
   assert.equal(Object.keys(serializer.get("maps")).length, 7);
+  assert.equal(serializer.primaryKey, 'entityId');
 });
 
 test('extractArrayPayload test', function(assert) {

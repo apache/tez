@@ -44,6 +44,6 @@ export default LoaderSerializer.extend({
     startTime: 'startedTime',
     endTime: 'finishedTime',
 
-    diagnostics: 'otherinfo.diagnostics',
+    diagnostics: 'diagnostics',
   }
 });

@@ -51,7 +51,7 @@ test('normalizeResourceHash test', function(assert) {
   // dagContext test
   data = serializer.normalizeResourceHash({
     data: {
-      otherinfo: {
+      otherInfo: {
         dagPlan: {
           dagContext: callerInfo
         }
@@ -66,7 +66,7 @@ test('normalizeResourceHash test', function(assert) {
   // dagInfo test
   data = serializer.normalizeResourceHash({
     data: {
-      otherinfo: {
+      otherInfo: {
         dagPlan: {
           dagInfo: `{"context": "${callerInfo.context}", "description": "${callerInfo.description}"}`
         }
@@ -81,7 +81,7 @@ test('normalizeResourceHash test', function(assert) {
   // dagInfo.blob test
   data = serializer.normalizeResourceHash({
     data: {
-      otherinfo: {
+      otherInfo: {
         dagPlan: {
           dagInfo: {
             context: callerInfo.context,
@@ -99,7 +99,7 @@ test('normalizeResourceHash test', function(assert) {
   // dagContext have presidence over dagInfo
   data = serializer.normalizeResourceHash({
     data: {
-      otherinfo: {
+      otherInfo: {
         dagPlan: {
           dagContext: callerInfo,
           dagInfo: `{"context": "RandomContext", "description": "RandomDesc"}`

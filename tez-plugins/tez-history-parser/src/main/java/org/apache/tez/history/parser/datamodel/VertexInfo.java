@@ -94,7 +94,7 @@ public class VertexInfo extends BaseInfo {
         jsonObject.getString(Constants.ENTITY_TYPE).equalsIgnoreCase
             (Constants.TEZ_VERTEX_ID));
 
-    vertexId = StringInterner.intern(jsonObject.optString(Constants.ENTITY));
+    vertexId = StringInterner.intern(jsonObject.optString(Constants.ENTITY_ID));
     taskInfoMap = Maps.newHashMap();
 
     inEdgeList = Lists.newLinkedList();

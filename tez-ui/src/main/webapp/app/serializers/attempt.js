@@ -21,7 +21,7 @@ import Ember from 'ember';
 import TimelineSerializer from './timeline';
 
 function createContainerLogURL(source) {
-  var logURL = Ember.get(source, 'otherinfo.inProgressLogsURL'),
+  var logURL = Ember.get(source, 'otherInfo.inProgressLogsURL'),
       yarnProtocol = this.get('env.app.yarnProtocol');
 
   if(logURL && logURL.indexOf("://") === -1) {
@@ -31,15 +31,15 @@ function createContainerLogURL(source) {
 
 export default TimelineSerializer.extend({
   maps: {
-    taskID: 'primaryfilters.TEZ_TASK_ID.0',
-    vertexID: 'primaryfilters.TEZ_VERTEX_ID.0',
-    dagID: 'primaryfilters.TEZ_DAG_ID.0',
+    taskID: 'primaryFilters.TEZ_TASK_ID.0',
+    vertexID: 'primaryFilters.TEZ_VERTEX_ID.0',
+    dagID: 'primaryFilters.TEZ_DAG_ID.0',
 
-    containerID: 'otherinfo.containerId',
-    nodeID: 'otherinfo.nodeId',
+    containerID: 'otherInfo.containerId',
+    nodeID: 'otherInfo.nodeId',
 
-    inProgressLogsURL: "otherinfo.inProgressLogsURL",
-    completedLogsURL: "otherinfo.completedLogsURL",
+    inProgressLogsURL: "otherInfo.inProgressLogsURL",
+    completedLogsURL: "otherInfo.completedLogsURL",
 
     containerLogURL: createContainerLogURL
   }

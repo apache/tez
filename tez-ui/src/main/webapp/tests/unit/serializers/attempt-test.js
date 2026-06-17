@@ -40,7 +40,7 @@ test('containerLogURL test', function(assert) {
   });
 
   assert.equal(serializer.maps.containerLogURL.call(serializer, {
-    otherinfo: {
+    otherInfo: {
       inProgressLogsURL: "abc.com/test/link",
     }
   }), "ptcl://abc.com/test/link");

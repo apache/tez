@@ -98,7 +98,7 @@ public class TaskAttemptInfo extends BaseInfo {
         jsonObject.getString(Constants.ENTITY_TYPE).equalsIgnoreCase
             (Constants.TEZ_TASK_ATTEMPT_ID));
 
-    taskAttemptId = StringInterner.intern(jsonObject.optString(Constants.ENTITY));
+    taskAttemptId = StringInterner.intern(jsonObject.optString(Constants.ENTITY_ID));
 
     //Parse additional Info
     final JSONObject otherInfoNode = jsonObject.getJSONObject(Constants.OTHER_INFO);

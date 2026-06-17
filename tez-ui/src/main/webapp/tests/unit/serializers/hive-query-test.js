@@ -36,12 +36,12 @@ test('getStatus test', function(assert) {
 
   assert.equal(getStatus({}), "RUNNING");
   assert.equal(getStatus({
-    otherinfo: {
+    otherInfo: {
       STATUS: true
     }
   }), "SUCCEEDED");
   assert.equal(getStatus({
-    otherinfo: {
+    otherInfo: {
       STATUS: false
     }
   }), "FAILED");
@@ -55,19 +55,19 @@ test('getEndTime test', function(assert) {
   assert.equal(getEndTime({}), undefined);
 
   assert.equal(getEndTime({
-    otherinfo: {
+    otherInfo: {
       endTime: endTime
     }
   }), endTime);
 
   assert.equal(getEndTime({
     events: [{
-      eventtype: 'X',
+      eventType: 'X',
     }, {
-      eventtype: 'QUERY_COMPLETED',
+      eventType: 'QUERY_COMPLETED',
       timestamp: endTime
     }, {
-      eventtype: 'Y',
+      eventType: 'Y',
     }]
   }), endTime);
 });
@@ -80,7 +80,7 @@ test('extractAttributes test', function(assert) {
       },
       testHiveAddress = "1.2.3.4",
       testData = {
-        otherinfo: {
+        otherInfo: {
           QUERY: JSON.stringify(testQuery),
           HIVE_ADDRESS: testHiveAddress
         }
@@ -91,15 +91,15 @@ test('extractAttributes test', function(assert) {
   }), {
     data: testData
   });
-  assert.deepEqual(testData.otherinfo.QUERY, testQuery);
+  assert.deepEqual(testData.otherInfo.QUERY, testQuery);
 
   //CLIENT_IP_ADDRESS set
-  assert.equal(testHiveAddress, testData.otherinfo.CLIENT_IP_ADDRESS);
+  assert.equal(testHiveAddress, testData.otherInfo.CLIENT_IP_ADDRESS);
 
   // Tables read & tables written
-  assert.ok(testData.primaryfilters);
-  assert.ok(testData.primaryfilters.tablesread instanceof Error);
-  assert.ok(testData.primaryfilters.tableswritten instanceof Error);
-  assert.equal(testData.primaryfilters.tablesread.message, "None");
-  assert.equal(testData.primaryfilters.tableswritten.message, "None");
+  assert.ok(testData.primaryFilters);
+  assert.ok(testData.primaryFilters.tablesread instanceof Error);
+  assert.ok(testData.primaryFilters.tableswritten instanceof Error);
+  assert.equal(testData.primaryFilters.tablesread.message, "None");
+  assert.equal(testData.primaryFilters.tableswritten.message, "None");
 });

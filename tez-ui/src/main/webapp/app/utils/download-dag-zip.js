@@ -454,7 +454,7 @@ export default function downloadDagZip(dag, options) {
 
     // need to handle no more entries , zero entries
     if (data.entities.length > batchSize) {
-      nextBatchStart = data.entities.pop().entity;
+      nextBatchStart = data.entities.pop().entityId;
     }
     obj[context.name] = data.entities;
 

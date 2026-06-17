@@ -24,11 +24,11 @@ import DAGInfoSerializer from './dag-info';
 var MoreObject = more.Object;
 
 function getStatus(source) {
-  var status = Ember.get(source, 'otherinfo.status') || Ember.get(source, 'primaryfilters.status.0'),
+  var status = Ember.get(source, 'otherInfo.status') || Ember.get(source, 'primaryFilters.status.0'),
       event = source.events;
 
   if(!status && event) {
-    if(event.findBy('eventtype', 'DAG_STARTED')) {
+    if(event.findBy('eventType', 'DAG_STARTED')) {
       status = 'RUNNING';
     }
   }
@@ -37,11 +37,11 @@ function getStatus(source) {
 }
 
 function getStartTime(source) {
-  var time = Ember.get(source, 'otherinfo.startTime'),
+  var time = Ember.get(source, 'otherInfo.startTime'),
       event = source.events;
 
   if(!time && event) {
-    event = event.findBy('eventtype', 'DAG_STARTED');
+    event = event.findBy('eventType', 'DAG_STARTED');
     if(event) {
       time = event.timestamp;
     }
@@ -51,11 +51,11 @@ function getStartTime(source) {
 }
 
 function getEndTime(source) {
-  var time = Ember.get(source, 'otherinfo.endTime'),
+  var time = Ember.get(source, 'otherInfo.endTime'),
       event = source.events;
 
   if(!time && event) {
-    event = event.findBy('eventtype', 'DAG_FINISHED');
+    event = event.findBy('eventType', 'DAG_FINISHED');
     if(event) {
       time = event.timestamp;
     }
@@ -66,7 +66,7 @@ function getEndTime(source) {
 
 function getContainerLogs(source) {
   var containerLogs = [],
-      otherinfo = Ember.get(source, 'otherinfo');
+      otherinfo = Ember.get(source, 'otherInfo');
 
   if(!otherinfo) {
     return undefined;
@@ -74,7 +74,7 @@ function getContainerLogs(source) {
 
   for (var key in otherinfo) {
     if (key.indexOf('inProgressLogsURL_') === 0) {
-      let logs = Ember.get(source, 'otherinfo.' + key);
+      let logs = Ember.get(source, 'otherInfo.' + key);
       if (logs.indexOf("://") === -1) {
         let yarnProtocol = this.get('env.app.yarnProtocol');
         logs = yarnProtocol + '://' + logs;
@@ -91,7 +91,7 @@ function getContainerLogs(source) {
 }
 
 function getIdNameMap(source) {
-  var nameIdMap = Ember.get(source, 'otherinfo.vertexNameIdMapping'),
+  var nameIdMap = Ember.get(source, 'otherInfo.vertexNameIdMapping'),
       idNameMap = {};
 
   if(nameIdMap) {
@@ -105,11 +105,11 @@ function getIdNameMap(source) {
 
 export default DAGInfoSerializer.extend({
   maps: {
-    name: 'primaryfilters.dagName.0',
+    name: 'primaryFilters.dagName.0',
 
-    submitter: 'primaryfilters.user.0',
+    submitter: 'primaryFilters.user.0',
 
-    callerID: 'primaryfilters.callerId.0',
+    callerID: 'primaryFilters.callerId.0',
 
     atsStatus: getStatus,
     // progress
@@ -119,16 +119,16 @@ export default DAGInfoSerializer.extend({
     // duration
 
     // appID
-    domain: 'domain',
+    domain: 'domainId',
 
-    queueName: 'otherinfo.queueName',
+    queueName: 'otherInfo.queueName',
 
     containerLogs: getContainerLogs,
 
     vertexIdNameMap: getIdNameMap,
-    vertexNameIdMap: 'otherinfo.vertexNameIdMapping',
+    vertexNameIdMap: 'otherInfo.vertexNameIdMapping',
 
-    amWsVersion: 'otherinfo.amWebServiceVersion',
-    failedTaskAttempts: 'otherinfo.numFailedTaskAttempts',
+    amWsVersion: 'otherInfo.amWebServiceVersion',
+    failedTaskAttempts: 'otherInfo.numFailedTaskAttempts',
   }
 });

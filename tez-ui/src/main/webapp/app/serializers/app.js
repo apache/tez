@@ -20,13 +20,13 @@ import TimelineSerializer from './timeline';
 
 export default TimelineSerializer.extend({
   maps: {
-    domain: 'domain',
-    user: 'otherinfo.user',
+    domain: 'domainId',
+    user: 'otherInfo.user',
 
-    buildTime: 'otherinfo.tezVersion.buildTime',
-    tezRevision: 'otherinfo.tezVersion.revision',
-    tezVersion: 'otherinfo.tezVersion.version',
+    buildTime: 'otherInfo.tezVersion.buildTime',
+    tezRevision: 'otherInfo.tezVersion.revision',
+    tezVersion: 'otherInfo.tezVersion.version',
 
-    configs: 'otherinfo.config',
+    configs: 'otherInfo.config',
   }
 });

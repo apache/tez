@@ -95,7 +95,7 @@ public class TestATSHttpClient {
 
     final String jsonDagData =
             "{ " +
-            "  otherinfo: { " +
+            "  otherInfo: { " +
             "    status: 'SUCCEEDED'," +
             "    diagnostics: 'SAMPLE_DIAGNOSTICS'," +
             "    counters: { counterGroups: [ " +
@@ -108,9 +108,9 @@ public class TestATSHttpClient {
             "}";
 
     final String jsonVertexData = "{entities:[ " +
-        "{otherinfo: {vertexName:'v1', numTasks:5,numFailedTasks:1,numSucceededTasks:2," +
+        "{otherInfo: {vertexName:'v1', numTasks:5,numFailedTasks:1,numSucceededTasks:2," +
           "numKilledTasks:3,numCompletedTasks:3}}," +
-        "{otherinfo: {vertexName:'v2',numTasks:10,numFailedTasks:1,numSucceededTasks:5," +
+        "{otherInfo: {vertexName:'v2',numTasks:10,numFailedTasks:1,numSucceededTasks:5," +
           "numKilledTasks:3,numCompletedTasks:4}}" +
         "]}";
 
@@ -151,7 +151,7 @@ public class TestATSHttpClient {
     Set<StatusGetOpts> statusOptions = new HashSet<StatusGetOpts>(1);
     statusOptions.add(StatusGetOpts.GET_COUNTERS);
 
-    final String jsonData = "{entities:[ {otherinfo:{numFailedTasks:1,numSucceededTasks:2," +
+    final String jsonData = "{entities:[ {otherInfo:{numFailedTasks:1,numSucceededTasks:2," +
         "status:'SUCCEEDED', vertexName:'vertex1name', numTasks:4, numKilledTasks: 3, " +
         "numCompletedTasks: 4, diagnostics: 'diagnostics1', " +
         "counters: { counterGroups: [ " +

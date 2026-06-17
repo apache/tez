@@ -52,10 +52,10 @@ public class TestTimelineReaderFactory {
     ConnectionConfigurator connConf = mock(ConnectionConfigurator.class);
     TimelineReaderPseudoAuthenticatedStrategy.PseudoAuthenticatedURLConnectionFactory
         connectionFactory = new TimelineReaderPseudoAuthenticatedStrategy
-          .PseudoAuthenticatedURLConnectionFactory(connConf);
+        .PseudoAuthenticatedURLConnectionFactory(connConf);
     String inputUrl = "http://host:8080/path";
     String expectedUrl = inputUrl + "?user.name=" + UserGroupInformation.getCurrentUser().getShortUserName();
-    HttpURLConnection httpURLConnection = connectionFactory.getHttpURLConnection(URI.create(inputUrl).toURL());
+    HttpURLConnection httpURLConnection = connectionFactory.getConnection(URI.create(inputUrl).toURL());
     Assert.assertEquals(expectedUrl, httpURLConnection.getURL().toString());
   }
 

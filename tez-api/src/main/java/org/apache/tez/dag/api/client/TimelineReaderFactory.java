@@ -31,11 +31,12 @@ import java.security.GeneralSecurityException;
 import javax.net.ssl.HostnameVerifier;
 import javax.net.ssl.HttpsURLConnection;
 import javax.net.ssl.SSLSocketFactory;
+import javax.ws.rs.client.Client;
+import javax.ws.rs.client.ClientBuilder;
 
 import org.apache.hadoop.classification.InterfaceAudience;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.security.UserGroupInformation;
-import org.apache.hadoop.security.authentication.client.AuthenticatedURL;
 import org.apache.hadoop.security.authentication.client.Authenticator;
 import org.apache.hadoop.security.authentication.client.ConnectionConfigurator;
 import org.apache.hadoop.security.ssl.SSLFactory;
@@ -43,13 +44,10 @@ import org.apache.tez.common.ReflectionUtils;
 import org.apache.tez.dag.api.TezException;
 
 import com.google.common.annotations.VisibleForTesting;
-import com.sun.jersey.api.client.Client;
-import com.sun.jersey.api.client.config.ClientConfig;
-import com.sun.jersey.api.client.config.DefaultClientConfig;
-import com.sun.jersey.client.urlconnection.HttpURLConnectionFactory;
-import com.sun.jersey.client.urlconnection.URLConnectionClientHandler;
-import com.sun.jersey.json.impl.provider.entity.JSONRootElementProvider;
 
+import org.glassfish.jersey.client.ClientConfig;
+import org.glassfish.jersey.client.HttpUrlConnectorProvider;
+import org.glassfish.jersey.jackson.JacksonFeature;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -165,7 +163,7 @@ public final class TimelineReaderFactory {
       UserGroupInformation ugi = UserGroupInformation.getCurrentUser();
       UserGroupInformation realUgi = ugi.getRealUser();
       String doAsUser;
-      ClientConfig clientConfig = new DefaultClientConfig(JSONRootElementProvider.App.class);
+      ClientConfig clientConfig = new ClientConfig().register(JacksonFeature.class);
       ConnectionConfigurator connectionConfigurator = getNewConnectionConf(useHttps,
               connTimeout, sslFactory);
 
@@ -182,14 +180,16 @@ public final class TimelineReaderFactory {
         doAsUser = null;
       }
 
-      HttpURLConnectionFactory connectionFactory;
+      HttpUrlConnectorProvider.ConnectionFactory connectionFactory;
       try {
         connectionFactory = new TokenAuthenticatedURLConnectionFactory(connectionConfigurator, authenticator,
                 doAsUser);
       } catch (TezException e) {
         throw new IOException("Fail to create TokenAuthenticatedURLConnectionFactory", e);
       }
-      return new Client(new URLConnectionClientHandler(connectionFactory), clientConfig);
+
+      clientConfig.connectorProvider(new HttpUrlConnectorProvider().connectionFactory(connectionFactory));
+      return ClientBuilder.newClient(clientConfig);
     }
 
     private static Authenticator getTokenAuthenticator() throws TezException {
@@ -204,12 +204,12 @@ public final class TimelineReaderFactory {
       return ReflectionUtils.createClazzInstance(authenticatorClazzName);
     }
 
-    private static class TokenAuthenticatedURLConnectionFactory implements HttpURLConnectionFactory {
+    private static class TokenAuthenticatedURLConnectionFactory implements HttpUrlConnectorProvider.ConnectionFactory {
 
       private final Authenticator authenticator;
       private final ConnectionConfigurator connConfigurator;
       private final String doAsUser;
-      private final AuthenticatedURL.Token token;
+      private final Object token;
 
       public TokenAuthenticatedURLConnectionFactory(ConnectionConfigurator connConfigurator,
                                                     Authenticator authenticator,
@@ -222,9 +222,9 @@ public final class TimelineReaderFactory {
       }
 
       @Override
-      public HttpURLConnection getHttpURLConnection(URL url) throws IOException {
+      public HttpURLConnection getConnection(URL url) throws IOException {
         try {
-          AuthenticatedURL authenticatedURL= ReflectionUtils.createClazzInstance(
+          HttpURLConnection authenticatedURL = ReflectionUtils.createClazzInstance(
               DELEGATION_TOKEN_AUTHENTICATED_URL_CLAZZ_NAME, new Class[] {
               delegationTokenAuthenticatorClazz,
               ConnectionConfigurator.class
@@ -266,13 +266,16 @@ public final class TimelineReaderFactory {
 
     @Override
     public Client getHttpClient() {
-      ClientConfig config = new DefaultClientConfig(JSONRootElementProvider.App.class);
-      HttpURLConnectionFactory urlFactory = new PseudoAuthenticatedURLConnectionFactory(connectionConf);
-      return new Client(new URLConnectionClientHandler(urlFactory), config);
+      ClientConfig config = new ClientConfig().register(JacksonFeature.class);
+      HttpUrlConnectorProvider.ConnectionFactory urlFactory =
+          new PseudoAuthenticatedURLConnectionFactory(connectionConf);
+      config.connectorProvider(new HttpUrlConnectorProvider().connectionFactory(urlFactory));
+      return ClientBuilder.newClient(config);
     }
 
     @VisibleForTesting
-    protected static class PseudoAuthenticatedURLConnectionFactory implements HttpURLConnectionFactory {
+    protected static class PseudoAuthenticatedURLConnectionFactory
+        implements HttpUrlConnectorProvider.ConnectionFactory {
       private final ConnectionConfigurator connectionConf;
 
       public PseudoAuthenticatedURLConnectionFactory(ConnectionConfigurator connectionConf) {
@@ -280,7 +283,7 @@ public final class TimelineReaderFactory {
       }
 
       @Override
-      public HttpURLConnection getHttpURLConnection(URL url) throws IOException {
+      public HttpURLConnection getConnection(URL url) throws IOException {
         String tokenString = (url.getQuery() == null ? "?" : "&") + "user.name=" +
             URLEncoder.encode(UserGroupInformation.getCurrentUser().getShortUserName(), "UTF8");
 
