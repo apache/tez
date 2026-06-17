@@ -21,6 +21,7 @@ package org.apache.tez.runtime.library.common.security;
 
 import java.io.IOException;
 import java.net.URL;
+import java.nio.charset.StandardCharsets;
 
 import javax.crypto.SecretKey;
 
@@ -29,8 +30,6 @@ import org.apache.hadoop.classification.InterfaceAudience;
 import org.apache.hadoop.classification.InterfaceStability;
 import org.apache.hadoop.io.WritableComparator;
 import org.apache.tez.common.security.JobTokenSecretManager;
-
-import com.google.common.base.Charsets;
 
 /**
  *
@@ -49,7 +48,7 @@ public final class SecureShuffleUtils {
    * Base64 encoded hash of msg
    */
   public static String generateHash(byte[] msg, SecretKey key) {
-    return new String(Base64.encodeBase64(generateByteHash(msg, key)), Charsets.UTF_8);
+    return new String(Base64.encodeBase64(generateByteHash(msg, key)), StandardCharsets.UTF_8);
   }
 
   /**
@@ -88,7 +87,7 @@ public final class SecureShuffleUtils {
    *
    */
   public static String hashFromString(String encStr, JobTokenSecretManager mgr) {
-    return new String(Base64.encodeBase64(mgr.computeHash(encStr.getBytes(Charsets.UTF_8))), Charsets.UTF_8);
+    return new String(Base64.encodeBase64(mgr.computeHash(encStr.getBytes(StandardCharsets.UTF_8))), StandardCharsets.UTF_8);
   }
 
   /**
@@ -102,8 +101,8 @@ public final class SecureShuffleUtils {
    * @param key        the key to use to generate the hash from the message
    */
   public static void verifyReply(String base64Hash, String msg, SecretKey key) throws IOException {
-    byte[] hash = Base64.decodeBase64(base64Hash.getBytes(Charsets.UTF_8));
-    boolean res = verifyHash(hash, msg.getBytes(Charsets.UTF_8), key);
+    byte[] hash = Base64.decodeBase64(base64Hash.getBytes(StandardCharsets.UTF_8));
+    boolean res = verifyHash(hash, msg.getBytes(StandardCharsets.UTF_8), key);
 
     if(!res) {
       throw new IOException("Verification of the hashReply failed");
@@ -118,9 +117,9 @@ public final class SecureShuffleUtils {
    */
   public static void verifyReply(String base64Hash, String msg, JobTokenSecretManager mgr)
       throws IOException {
-    byte[] hash = Base64.decodeBase64(base64Hash.getBytes(Charsets.UTF_8));
+    byte[] hash = Base64.decodeBase64(base64Hash.getBytes(StandardCharsets.UTF_8));
 
-    boolean res = verifyHash(hash, msg.getBytes(Charsets.UTF_8), mgr);
+    boolean res = verifyHash(hash, msg.getBytes(StandardCharsets.UTF_8), mgr);
 
     if(!res) {
       throw new IOException("Verification of the hashReply failed");

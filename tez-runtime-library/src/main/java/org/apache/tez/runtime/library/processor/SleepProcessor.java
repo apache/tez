@@ -21,6 +21,7 @@ package org.apache.tez.runtime.library.processor;
 import java.nio.ByteBuffer;
 import java.nio.charset.CharacterCodingException;
 import java.nio.charset.Charset;
+import java.nio.charset.StandardCharsets;
 import java.util.List;
 import java.util.Map;
 
@@ -32,8 +33,6 @@ import org.apache.tez.runtime.api.Event;
 import org.apache.tez.runtime.api.LogicalInput;
 import org.apache.tez.runtime.api.LogicalOutput;
 import org.apache.tez.runtime.api.ProcessorContext;
-
-import com.google.common.base.Charsets;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -115,7 +114,7 @@ public class SleepProcessor extends AbstractLogicalIOProcessor {
    */
   public static class SleepProcessorConfig {
     private int timeToSleepMS;
-    private final Charset charSet = Charsets.UTF_8;
+    private final Charset charSet = StandardCharsets.UTF_8;
 
     public SleepProcessorConfig() {
     }

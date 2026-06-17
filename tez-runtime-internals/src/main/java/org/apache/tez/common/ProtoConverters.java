@@ -19,6 +19,7 @@
 package org.apache.tez.common;
 
 import java.nio.ByteBuffer;
+import java.nio.charset.StandardCharsets;
 
 import org.apache.tez.runtime.api.events.CompositeDataMovementEvent;
 import org.apache.tez.runtime.api.events.CompositeRoutedDataMovementEvent;
@@ -30,7 +31,6 @@ import org.apache.tez.runtime.api.events.InputDataInformationEvent;
 import org.apache.tez.runtime.api.events.InputInitializerEvent;
 import org.apache.tez.runtime.api.events.VertexManagerEvent;
 
-import com.google.common.base.Charsets;
 import com.google.protobuf.ByteString;
 
 public final class ProtoConverters {
@@ -139,7 +139,7 @@ public final class ProtoConverters {
       builder.setUserPayload(ByteString.copyFrom(event.getUserPayload()));
     }
     if (event.getSerializedPath() != null) {
-      builder.setSerializedPath(ByteString.copyFrom(event.getSerializedPath().getBytes(Charsets.UTF_8)));
+      builder.setSerializedPath(ByteString.copyFrom(event.getSerializedPath().getBytes(StandardCharsets.UTF_8)));
     }
     return builder.build();
   }
