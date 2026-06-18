@@ -32,7 +32,9 @@ public class TestInputDataInformationEvent {
         InputDataInformationEvent.createWithSerializedPayload(0, ByteBuffer.wrap("payload1".getBytes()));
     // event created by createWithSerializedPayload should contain serialized payload
     // but not a path or a deserialized payload
-    Assert.assertEquals("payload1", StandardCharsets.UTF_8.decode(eventWithSerializedPayload.getUserPayload()).toString());
+    Assert.assertEquals(
+        "payload1",
+        StandardCharsets.UTF_8.decode(eventWithSerializedPayload.getUserPayload()).toString());
     Assert.assertNull(eventWithSerializedPayload.getSerializedPath());
     Assert.assertNull(eventWithSerializedPayload.getDeserializedUserPayload());
 

@@ -87,7 +87,9 @@ public final class SecureShuffleUtils {
    *
    */
   public static String hashFromString(String encStr, JobTokenSecretManager mgr) {
-    return new String(Base64.encodeBase64(mgr.computeHash(encStr.getBytes(StandardCharsets.UTF_8))), StandardCharsets.UTF_8);
+    return new String(
+        Base64.encodeBase64(mgr.computeHash(encStr.getBytes(StandardCharsets.UTF_8))),
+        StandardCharsets.UTF_8);
   }
 
   /**

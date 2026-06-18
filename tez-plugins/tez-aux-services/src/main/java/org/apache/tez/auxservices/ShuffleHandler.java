@@ -1471,8 +1471,7 @@ public class ShuffleHandler extends AuxiliaryService {
       SecureShuffleUtils.verifyReply(urlHashStr, enc_str, tokenSecret);
       // verification passed - encode the reply
       String reply =
-        SecureShuffleUtils.generateHash(urlHashStr.getBytes(StandardCharsets.UTF_8),
-            tokenSecret);
+          SecureShuffleUtils.generateHash(urlHashStr.getBytes(StandardCharsets.UTF_8), tokenSecret);
       response.headers().set(SecureShuffleUtils.HTTP_HEADER_REPLY_URL_HASH, reply);
       // Put shuffle version into http header
       response.headers().set(ShuffleHeader.HTTP_HEADER_NAME,
