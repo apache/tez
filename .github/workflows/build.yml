@@ -48,4 +48,6 @@ jobs:
         run: >
           mvn --batch-mode --no-transfer-progress clean install
           -DskipTests -Dmaven.javadoc.skip=true
-          ${{ runner.os == 'Linux' && runner.arch == 'ARM64' && '-pl !tez-ui' || '' }}
+          ${{ runner.os == 'Linux'
+          && runner.arch == 'ARM64'
+          && '-pl !tez-ui' || '' }}
