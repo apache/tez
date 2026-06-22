@@ -27,6 +27,11 @@ For older Tez versions, the compatibility is as follows:
 - Tez 0.8.3 and higher: Apache Hadoop 2.6.0 or higher.
 - Tez 0.5.0 to 0.8.2: Apache Hadoop 2.2.0 or higher.
 
+> **Note:** For a quick local setup, you can use the helper script
+  [tez_run_example.sh][2] which automates these installation,
+  configuration, and deployment steps to run a simple word count example
+  in a pseudo-distributed single-node cluster.
+
 1. Deploy Apache Hadoop using version of 3.5.0 or higher.
 
     - You need to change the value of the hadoop.version property in the
@@ -84,7 +89,7 @@ For older Tez versions, the compatibility is as follows:
       for more details on version compatibility and detecting mismatches.
 
 4. Optional: If running existing MapReduce jobs on Tez. Modify
-   mapred-site.xml to change "mapreduce.framework.name" property from
+   mapred-site.xml to change `mapreduce.framework.name` property from
    its default value of "yarn" to "yarn-tez"
 
 5. Configure the client node to include the tez-libraries in the hadoop
@@ -144,6 +149,10 @@ For older Tez versions, the compatibility is as follows:
     -DUSE_TEZ_SESSION=true <input1> <output1> <input2> <output2>
     ```
 
+    > **Note:** The [tez_run_example.sh][2] script mentioned above can also
+      be used to automatically set up a local environment and run the
+      `orderedwordcount` example.
+
 7. Submit a MR job as you normally would using something like:
 
     ```bash
@@ -155,7 +164,7 @@ For older Tez versions, the compatibility is as follows:
     This will use the TEZ DAG ApplicationMaster to run the MR job. This
     can be verified by looking at the AM’s logs from the YARN
     ResourceManager UI.
-    This needs mapred-site.xml to have "mapreduce.framework.name" set to
+    This needs mapred-site.xml to have `mapreduce.framework.name` set to
     "yarn-tez"
 
 ## Various ways to configure tez.lib.uris
@@ -307,6 +316,7 @@ following ways.
     ./hadoop-mapreduce/hadoop-x.y.z-SNAPSHOT/share/hadoop/mapreduce/lib/*
     ```
 
-## [Instructions for older Tez versions (pre 0.5.0)](./install_pre_0_5_0.html)
+### [Instructions for older Tez versions (pre 0.5.0)](./install_pre_0_5_0.html)
 
-[1]: <https://cwiki.apache.org/confluence/display/TEZ/Version+Compatibility>
+[1]: https://cwiki.apache.org/confluence/display/TEZ/Version+Compatibility
+[2]: https://github.com/apache/tez/blob/master/dev-support/bin/tez_run_example.sh
