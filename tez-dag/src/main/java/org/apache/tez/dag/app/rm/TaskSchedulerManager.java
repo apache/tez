@@ -227,8 +227,8 @@ public class TaskSchedulerManager extends AbstractService implements
     return getNumClusterNodes(false);
   }
 
-  public int getNumClusterNodes(boolean tryUpdate){
-    if (cachedNodeCount == -1 && tryUpdate){
+  public int getNumClusterNodes(boolean tryUpdate) {
+    if (cachedNodeCount == -1 || tryUpdate) {
       cachedNodeCount = countAllNodes();
     }
     return cachedNodeCount;
