@@ -705,9 +705,6 @@ public class ShuffleHandler extends AuxiliaryService {
     try {
       stateDb = DB_FACTORY.open(dbfile, options);
     } catch (Exception e) {
-      if (e instanceof IOException) {
-        throw (IOException) e;
-      }
       throw new IOException("Unable to open state store", e);
     }
     if (!dbExists) {
