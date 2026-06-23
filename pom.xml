@@ -87,6 +87,8 @@
     <jettison.version>1.5.4</jettison.version>
     <junit.version>4.13.2</junit.version>
     <junit.jupiter.version>5.9.3</junit.jupiter.version>
+    <leveldbjni.group>org.fusesource.leveldbjni</leveldbjni.group>
+    <leveldb.version>0.12</leveldb.version>
     <leveldbjni-all.version>1.8</leveldbjni-all.version>
     <lifecycle-mapping.version>1.0.0</lifecycle-mapping.version>
     <metrics-core.version>3.1.0</metrics-core.version>
@@ -938,9 +940,14 @@
         <version>${bouncycastle.version}</version>
       </dependency>
       <dependency>
-        <groupId>org.fusesource.leveldbjni</groupId>
+        <groupId>${leveldbjni.group}</groupId>
         <artifactId>leveldbjni-all</artifactId>
         <version>${leveldbjni-all.version}</version>
+      </dependency>
+      <dependency>
+        <groupId>org.iq80.leveldb</groupId>
+        <artifactId>leveldb</artifactId>
+        <version>${leveldb.version}</version>
       </dependency>
       <dependency>
         <groupId>org.xerial.snappy</groupId>
@@ -1485,6 +1492,18 @@
           </plugin>
         </plugins>
       </reporting>
+    </profile>
+    <profile>
+      <id>aarch64</id>
+      <properties>
+        <leveldbjni.group>org.openlabtesting.leveldbjni</leveldbjni.group>
+      </properties>
+      <activation>
+        <os>
+          <family>linux</family>
+          <arch>aarch64</arch>
+        </os>
+      </activation>
     </profile>
   </profiles>
 

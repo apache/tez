@@ -36,7 +36,7 @@ jobs:
     strategy:
       matrix:
         java-version: [21, 25]
-        os: [ubuntu-latest, macos-latest]
+        os: [ubuntu-latest, ubuntu-24.04-arm, macos-latest]
     runs-on: ${{ matrix.os }}
     steps:
       - uses: actions/checkout@v6
@@ -48,3 +48,6 @@ jobs:
         run: >
           mvn --batch-mode --no-transfer-progress clean install
           -DskipTests -Dmaven.javadoc.skip=true
+          ${{ runner.os == 'Linux'
+          && runner.arch == 'ARM64'
+          && '-pl !tez-ui' || '' }}
