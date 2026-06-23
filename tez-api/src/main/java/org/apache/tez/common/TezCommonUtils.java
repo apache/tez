@@ -575,8 +575,6 @@ public final class TezCommonUtils {
 
   public static int getJavaVersion() {
     String javaVersionString = System.getProperty("java.version");
-    return javaVersionString.split("\\.")[0].equals("1")
-      ? Integer.parseInt(javaVersionString.split("\\.")[1]) // "1.8" -> 8
-      : Integer.parseInt(javaVersionString.split("\\.")[0]); // "9.x" -> 9, "11.x" -> 11
+    return Integer.parseInt(javaVersionString.split("\\.")[0]); // "21.x" -> 21
   }
 }

@@ -36,7 +36,7 @@ public class TestJavaOptsChecker {
   @Test(timeout = 5000)
   public void testMultipleGC() {
     // Clashing GC values
-    String opts = "-XX:+UseConcMarkSweepGC -XX:+UseG1GC -XX:+UseParallelGC ";
+    String opts = "-XX:+UseSerialGC -XX:+UseG1GC -XX:+UseParallelGC ";
     try {
       javaOptsChecker.checkOpts(opts);
       Assert.fail("Expected check to fail with opts=" + opts);
@@ -49,7 +49,7 @@ public class TestJavaOptsChecker {
   @Test(timeout = 5000)
   public void testPositiveNegativeOpts() throws TezException {
     // Multiple positive GC values
-    String opts = "-XX:+UseConcMarkSweepGC -XX:+UseG1GC -XX:+UseParallelGC -XX:-UseG1GC ";
+    String opts = "-XX:+UseSerialGC -XX:+UseG1GC -XX:+UseParallelGC -XX:-UseG1GC ";
     try {
       javaOptsChecker.checkOpts(opts);
       Assert.fail("Expected check to fail with opts=" + opts);
@@ -83,32 +83,8 @@ public class TestJavaOptsChecker {
     javaOptsChecker.checkOpts(opts);
 
     // Invalid negative can be ignored
-    opts = " -XX:+UseG1GC -XX:+UseParallelGC -XX:-UseG1GC -XX:-UseConcMarkSweepGC ";
+    opts = " -XX:+UseG1GC -XX:+UseParallelGC -XX:-UseG1GC -XX:-UseSerialGC ";
     javaOptsChecker.checkOpts(opts);
-
-  }
-
-  @Test(timeout = 5000)
-  public void testSpecialCaseNonConflictingGCOptions() throws TezException {
-    String opts = " -XX:+UseParNewGC -XX:+UseConcMarkSweepGC ";
-    javaOptsChecker.checkOpts(opts);
-
-    opts += " -XX:+DisableExplicitGC ";
-    javaOptsChecker.checkOpts(opts);
-
-    opts += " -XX:-UseG1GC ";
-    javaOptsChecker.checkOpts(opts);
-
-    opts += " -XX:+UseG1GC ";
-    try {
-      javaOptsChecker.checkOpts(opts);
-      Assert.fail("Expected check to fail with opts=" + opts);
-    } catch (TezException e) {
-      Assert.assertTrue(e.getMessage(),
-          e.getMessage().contains("Invalid/conflicting GC options found"));
-    }
-
-
   }
 
 }

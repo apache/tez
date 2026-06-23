@@ -1488,7 +1488,6 @@
     </profile>
   </profiles>
 
-  <!-- TODO: TEZ-4597: IncludePublicAnnotationsStandardDoclet is not JDK9+ compatible -->
   <reporting>
     <plugins>
       <plugin>
