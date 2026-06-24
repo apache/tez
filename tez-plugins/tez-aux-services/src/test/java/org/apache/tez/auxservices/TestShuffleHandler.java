@@ -1642,8 +1642,8 @@ public class TestShuffleHandler {
       File taskAttemptDir = new File(taskAttemptDirStr);
 
       Assert.assertTrue("Dag Directory does not exist!", dagDir.exists());
-      HttpURLConnection conn = (HttpURLConnection) new URL(baseUrl
-          + "/mapOutput?dagAction=delete&job=job_12345_0001&dag=1").openConnection();
+      HttpURLConnection conn = (HttpURLConnection) URI.create(baseUrl
+          + "/mapOutput?dagAction=delete&job=job_12345_0001&dag=1").toURL().openConnection();
       conn.setRequestProperty(ShuffleHeader.HTTP_HEADER_NAME,
           ShuffleHeader.DEFAULT_HTTP_HEADER_NAME);
       conn.setRequestProperty(ShuffleHeader.HTTP_HEADER_VERSION,
@@ -1655,8 +1655,8 @@ public class TestShuffleHandler {
           "Dag Directory should NOT have been deleted after unauthenticated request",
           dagDir.exists());
 
-      conn = (HttpURLConnection) new URL(baseUrl
-          + "/mapOutput?vertexAction=delete&job=job_12345_0001&dag=1&vertex=00").openConnection();
+      conn = (HttpURLConnection) URI.create(baseUrl
+          + "/mapOutput?vertexAction=delete&job=job_12345_0001&dag=1&vertex=00").toURL().openConnection();
       conn.setRequestProperty(ShuffleHeader.HTTP_HEADER_NAME,
           ShuffleHeader.DEFAULT_HTTP_HEADER_NAME);
       conn.setRequestProperty(ShuffleHeader.HTTP_HEADER_VERSION,
@@ -1669,9 +1669,9 @@ public class TestShuffleHandler {
           dagDir.exists());
 
       Assert.assertTrue("Task Attempt Directory does not exist!", taskAttemptDir.exists());
-      conn = (HttpURLConnection) new URL(baseUrl
+      conn = (HttpURLConnection) URI.create(baseUrl
           + "/mapOutput?taskAttemptAction=delete&job=job_12345_0001&dag=1&map="
-          + appAttemptId).openConnection();
+          + appAttemptId).toURL().openConnection();
       conn.setRequestProperty(ShuffleHeader.HTTP_HEADER_NAME,
           ShuffleHeader.DEFAULT_HTTP_HEADER_NAME);
       conn.setRequestProperty(ShuffleHeader.HTTP_HEADER_VERSION,

@@ -1022,7 +1022,7 @@ public class ShuffleHandler extends AuxiliaryService {
           sendError(ctx, METHOD_NOT_ALLOWED);
           return;
       }
-      if (request.getUri() == null) {
+      if (request.uri() == null) {
         sendError(ctx, BAD_REQUEST);
         return;
       }
@@ -1071,7 +1071,7 @@ public class ShuffleHandler extends AuxiliaryService {
       if (isDeleteRequest) {
         try {
           verifyRequest(jobQ.get(0), ctx, request, new DefaultHttpResponse(HTTP_1_1, OK),
-              new URL("http", "", this.port, request.getUri()));
+              URI.create("http://:" + this.port + request.uri()).toURL());
         } catch (IOException e) {
           LOG.warn("Shuffle delete request authentication failure ", e);
           sendError(ctx, e.getMessage(), UNAUTHORIZED);
