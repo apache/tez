@@ -96,3 +96,54 @@ test('description test', function(assert) {
     assert.equal(model.get("description"), testDesc);
   });
 });
+
+test('description escapes HTML to prevent XSS', function(assert) {
+  let testVertexName = "TestVertexName",
+      model = this.subject({
+        name: testVertexName
+      });
+
+  Ember.run(function () {
+    // Script injection must be escaped
+    model.set("dag", Ember.Object.create({
+      vertices: [{
+        vertexName: testVertexName,
+        userPayloadAsText: JSON.stringify({
+          desc: "<script>alert(1)</script>"
+        })
+      }]
+    }));
+    assert.equal(model.get("description"), "&lt;script&gt;alert(1)&lt;/script&gt;");
+
+    // IMG onerror injection must be escaped
+    model.set("dag", Ember.Object.create({
+      vertices: [{
+        vertexName: testVertexName,
+        userPayloadAsText: JSON.stringify({
+          desc: "<img src=x onerror=alert(1)>"
+        })
+      }]
+    }));
+    assert.equal(model.get("description"), "&lt;img src=x onerror=alert(1)&gt;");
+
+    // Ampersands are escaped
+    model.set("dag", Ember.Object.create({
+      vertices: [{
+        vertexName: testVertexName,
+        userPayloadAsText: JSON.stringify({
+          desc: "a & b"
+        })
+      }]
+    }));
+    assert.equal(model.get("description"), "a &amp; b");
+
+    // Null/undefined desc returns undefined
+    model.set("dag", Ember.Object.create({
+      vertices: [{
+        vertexName: testVertexName,
+        userPayloadAsText: JSON.stringify({})
+      }]
+    }));
+    assert.equal(model.get("description"), undefined);
+  });
+});
