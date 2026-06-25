@@ -1022,6 +1022,10 @@ public class ShuffleHandler extends AuxiliaryService {
           sendError(ctx, METHOD_NOT_ALLOWED);
           return;
       }
+      if (request.uri() == null) {
+        sendError(ctx, BAD_REQUEST);
+        return;
+      }
       // Check whether the shuffle version is compatible
       if (!ShuffleHeader.DEFAULT_HTTP_HEADER_NAME.equals(
           request.headers().get(ShuffleHeader.HTTP_HEADER_NAME))
@@ -1053,6 +1057,27 @@ public class ShuffleHandler extends AuxiliaryService {
             "\n  dagId: " + dagIdQ +
             "\n  keepAlive: " + keepAliveParam);
       }
+      boolean isDeleteRequest =
+          notEmptyAndContains(dagCompletedQ, "delete") || notEmptyAndContains(vertexCompletedQ, "delete")
+              || notEmptyAndContains(taskAttemptFailedQ, "delete");
+      if (!isDeleteRequest && (mapIds == null || reduceRange == null) || jobQ == null || dagIdQ == null) {
+        sendError(ctx, "Required param job, dag, map and reduce", BAD_REQUEST);
+        return;
+      }
+      if (jobQ.size() != 1) {
+        sendError(ctx, "Too many job/reduce parameters", BAD_REQUEST);
+        return;
+      }
+      if (isDeleteRequest) {
+        try {
+          verifyRequest(jobQ.get(0), ctx, request, new DefaultHttpResponse(HTTP_1_1, OK),
+              URI.create("http://:" + this.port + request.uri()).toURL());
+        } catch (IOException e) {
+          LOG.warn("Shuffle delete request authentication failure ", e);
+          sendError(ctx, e.getMessage(), UNAUTHORIZED);
+          return;
+        }
+      }
       // If the request is for Dag Deletion, process the request and send OK.
       if (deleteDagDirectories(ctx.channel(), dagCompletedQ, jobQ, dagIdQ))  {
         return;
@@ -1061,14 +1086,6 @@ public class ShuffleHandler extends AuxiliaryService {
         return;
       }
       if (deleteTaskAttemptDirectories(ctx.channel(), taskAttemptFailedQ, jobQ, dagIdQ, mapIds)) {
-        return;
-      }
-      if (mapIds == null || reduceRange == null || jobQ == null || dagIdQ == null) {
-        sendError(ctx, "Required param job, dag, map and reduce", BAD_REQUEST);
-        return;
-      }
-      if (jobQ.size() != 1) {
-        sendError(ctx, "Too many job/reduce parameters", BAD_REQUEST);
         return;
       }
 
