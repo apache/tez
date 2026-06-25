@@ -91,10 +91,6 @@
                   <argument>run</argument>
                   <argument>test:mvn</argument>
                 </arguments>
-                <environmentVariables>
-                  <!-- workaround for systems using a newer OpenSSL (3+) which is incompatible with PhantomJS -->
-                  <OPENSSL_CONF>/dev/null</OPENSSL_CONF>
-                </environmentVariables>
               </configuration>
             </execution>
           </executions>
@@ -153,10 +149,6 @@
                   <argument>run</argument>
                   <argument>test:mvn</argument>
                 </arguments>
-                <environmentVariables>
-                  <!-- workaround for systems using a newer OpenSSL (3+) which is incompatible with PhantomJS -->
-                  <OPENSSL_CONF>/dev/null</OPENSSL_CONF>
-                </environmentVariables>
               </configuration>
             </execution>
           </executions>
