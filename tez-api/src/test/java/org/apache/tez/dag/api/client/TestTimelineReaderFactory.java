@@ -34,15 +34,15 @@ import org.junit.Test;
 
 public class TestTimelineReaderFactory {
 
-  // ensure on hadoop 2.6+ TimelineReaderTokenAuthenticatedStrategy is used.
+  // ensure TimelineReaderTokenAuthenticatedStrategy is used.
   @Test(timeout = 5000)
-  public void testShouldUseTokenDelegationAuthStrategyForHadoop26() throws TezException {
+  public void testShouldUseTokenDelegationAuthStrategy() throws TezException {
 
     String returnedClassName =
         TimelineReaderFactory.getTimelineReaderStrategy(mock(Configuration.class), false, 0)
             .getClass()
             .getCanonicalName();
-    Assert.assertEquals("should use pseudo auth on hadoop2.4",
+    Assert.assertEquals("should use token delegation auth",
         "org.apache.tez.dag.api.client.TimelineReaderFactory.TimelineReaderTokenAuthenticatedStrategy",
         returnedClassName);
   }

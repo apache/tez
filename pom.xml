@@ -785,6 +785,11 @@
       </dependency>
       <dependency>
         <groupId>org.apache.hadoop</groupId>
+        <artifactId>hadoop-hdfs-client</artifactId>
+        <version>${hadoop.version}</version>
+      </dependency>
+      <dependency>
+        <groupId>org.apache.hadoop</groupId>
         <artifactId>hadoop-hdfs</artifactId>
         <version>${hadoop.version}</version>
         <exclusions>
@@ -972,7 +977,6 @@
     <module>tez-ui</module>
     <module>tez-plugins</module>
     <module>tez-tools</module>
-    <module>hadoop-shim-impls</module>
     <module>tez-dist</module>
     <module>docs</module>
   </modules>
