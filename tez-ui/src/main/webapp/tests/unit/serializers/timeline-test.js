@@ -49,35 +49,35 @@ test('getDiagnostics escapes HTML', function(assert) {
 
   // Empty/missing diagnostics
   assert.equal(mapper({}), "");
-  assert.equal(mapper({otherinfo: {}}), "");
+  assert.equal(mapper({otherInfo: {}}), "");
 
   // Script injection must be escaped
   assert.equal(
-    mapper({otherinfo: {diagnostics: "<script>alert(1)</script>"}}),
+    mapper({otherInfo: {diagnostics: "<script>alert(1)</script>"}}),
     "&lt;script&gt;alert(1)&lt;/script&gt;"
   );
 
   // IMG onerror injection must be escaped
   assert.equal(
-    mapper({otherinfo: {diagnostics: "<img src=x onerror=alert(1)>"}}),
+    mapper({otherInfo: {diagnostics: "<img src=x onerror=alert(1)>"}}),
     "&lt;img src=x onerror=alert(1)&gt;"
   );
 
   // Tab formatting still works after escaping
   assert.equal(
-    mapper({otherinfo: {diagnostics: "\tindented"}}),
+    mapper({otherInfo: {diagnostics: "\tindented"}}),
     "&emsp;&emsp;indented"
   );
 
   // Bracket formatting still works after escaping
   assert.equal(
-    mapper({otherinfo: {diagnostics: "[section]"}}),
+    mapper({otherInfo: {diagnostics: "[section]"}}),
     "<div>&#187; section</div>"
   );
 
   // Ampersands in diagnostics are escaped
   assert.equal(
-    mapper({otherinfo: {diagnostics: "a & b"}}),
+    mapper({otherInfo: {diagnostics: "a & b"}}),
     "a &amp; b"
   );
 });
