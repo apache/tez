@@ -23,6 +23,9 @@ import LoaderSerializer from './loader';
 function getDiagnostics(source) {
   var diagnostics = Ember.get(source, 'otherInfo.diagnostics') || "";
 
+  // Escape HTML entities before adding formatting markup
+  diagnostics = Ember.Handlebars.Utils.escapeExpression(diagnostics);
+
   diagnostics = diagnostics.replace(/\t/g, "&emsp;&emsp;");
   diagnostics = diagnostics.replace(/\[/g, "<div>&#187; ");
   diagnostics = diagnostics.replace(/\]/g, "</div>");

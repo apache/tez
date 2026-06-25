@@ -151,7 +151,8 @@ export default AMTimelineModel.extend({
   description: Ember.computed("dag.vertices", "name", function () {
     try {
       let vertex = this.get("dag.vertices").findBy("vertexName", this.get("name"));
-      return JSON.parse(vertex.userPayloadAsText).desc;
+      let desc = JSON.parse(vertex.userPayloadAsText).desc;
+      return desc ? Ember.Handlebars.Utils.escapeExpression(desc) : undefined;
     }catch(e) {}
   }),
 
