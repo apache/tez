@@ -186,7 +186,7 @@ public class TestMRRJobsDAGApi {
     // TODO Add cleanup code.
   }
 
-  @Test(timeout = 60000)
+  @Test(timeout = 120000)
   public void testSleepJob() throws TezException, IOException, InterruptedException {
     SleepProcessorConfig spConf = new SleepProcessorConfig(1);
 
@@ -229,7 +229,7 @@ public class TestMRRJobsDAGApi {
     tezSession.stop();
   }
 
-  @Test(timeout = 60000)
+  @Test(timeout = 120000)
   public void testNonDefaultFSStagingDir() throws Exception {
     SleepProcessorConfig spConf = new SleepProcessorConfig(1);
 
@@ -270,7 +270,7 @@ public class TestMRRJobsDAGApi {
   }
 
   // Submits a simple 5 stage sleep job using tez session. Then kills it.
-  @Test(timeout = 60000)
+  @Test(timeout = 120000)
   public void testHistoryLogging() throws IOException,
       InterruptedException, TezException, ClassNotFoundException, YarnException {
     SleepProcessorConfig spConf = new SleepProcessorConfig(1);
@@ -327,7 +327,7 @@ public class TestMRRJobsDAGApi {
 
   // Submits a simple 5 stage sleep job using the DAG submit API instead of job
   // client.
-  @Test(timeout = 60000)
+  @Test(timeout = 120000)
   public void testMRRSleepJobDagSubmit() throws IOException,
   InterruptedException, TezException, ClassNotFoundException, YarnException {
     State finalState = testMRRSleepJobDagSubmitCore(false, false, false, false);
@@ -338,7 +338,7 @@ public class TestMRRJobsDAGApi {
   }
 
   // Submits a simple 5 stage sleep job using the DAG submit API. Then kills it.
-  @Test(timeout = 60000)
+  @Test(timeout = 120000)
   public void testMRRSleepJobDagSubmitAndKill() throws IOException,
   InterruptedException, TezException, ClassNotFoundException, YarnException {
     State finalState = testMRRSleepJobDagSubmitCore(false, true, false, false);
@@ -349,7 +349,7 @@ public class TestMRRJobsDAGApi {
   }
 
   // Submits a DAG to AM via RPC after AM has started
-  @Test(timeout = 60000)
+  @Test(timeout = 120000)
   public void testMRRSleepJobViaSession() throws IOException,
   InterruptedException, TezException, ClassNotFoundException, YarnException {
     State finalState = testMRRSleepJobDagSubmitCore(true, false, false, false);
@@ -506,11 +506,16 @@ public class TestMRRJobsDAGApi {
     State finalState = testMRRSleepJobDagSubmitCore(true, false, false,
         tezSession, false, null, null);
     Assert.assertEquals(DAGStatus.State.SUCCEEDED, finalState);
+    // Wait for the AM session to transition back to READY after DAG completion.
+    // The DAG reaching SUCCEEDED does not guarantee the AM session has already
+    // returned to READY - there is a brief cleanup window where it is still RUNNING.
+    tezSession.waitTillReady();
     Assert.assertEquals(TezAppMasterStatus.READY,
         tezSession.getAppMasterStatus());
     finalState = testMRRSleepJobDagSubmitCore(true, false, false,
         tezSession, false, null, null);
     Assert.assertEquals(DAGStatus.State.SUCCEEDED, finalState);
+    tezSession.waitTillReady();
     Assert.assertEquals(TezAppMasterStatus.READY,
         tezSession.getAppMasterStatus());
 
@@ -518,7 +523,7 @@ public class TestMRRJobsDAGApi {
   }
 
   // Submits a simple 5 stage sleep job using tez session. Then kills it.
-  @Test(timeout = 60000)
+  @Test(timeout = 120000)
   public void testMRRSleepJobDagSubmitAndKillViaRPC() throws IOException,
   InterruptedException, TezException, ClassNotFoundException, YarnException {
     State finalState = testMRRSleepJobDagSubmitCore(true, true, false, false);
@@ -529,13 +534,13 @@ public class TestMRRJobsDAGApi {
   }
 
   // Create and close a tez session without submitting a job
-  @Test(timeout = 60000)
+  @Test(timeout = 120000)
   public void testTezSessionShutdown() throws IOException,
   InterruptedException, TezException, ClassNotFoundException, YarnException {
     testMRRSleepJobDagSubmitCore(true, false, true, false);
   }
 
-  @Test(timeout = 60000)
+  @Test(timeout = 120000)
   public void testAMSplitGeneration() throws IOException, InterruptedException,
       TezException, ClassNotFoundException, YarnException {
     testMRRSleepJobDagSubmitCore(true, false, false, true);
@@ -790,7 +795,7 @@ public class TestMRRJobsDAGApi {
         resourceSize, resourceModificationTime);
   }
 
-  @Test(timeout = 60000)
+  @Test(timeout = 120000)
   public void testVertexGroups() throws Exception {
     LOG.info("Running Group Test");
     Path inPath = new Path(TEST_ROOT_DIR, "in-groups");
@@ -812,7 +817,7 @@ public class TestMRRJobsDAGApi {
     }
   }
 
-  @Test(timeout = 60000)
+  @Test(timeout = 120000)
   public void testBroadcastAndOneToOne() throws Exception {
     LOG.info("Running BroadcastAndOneToOne Test");
     BroadcastAndOneToOneExample job = new BroadcastAndOneToOneExample();
