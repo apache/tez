@@ -17,10 +17,8 @@
  */
 package org.apache.tez.auxservices;
 
-//import static org.apache.hadoop.test.MetricsAsserts.assertCounter;
-//import static org.apache.hadoop.test.MetricsAsserts.assertGauge;
-//import static org.apache.hadoop.test.MetricsAsserts.getMetrics;
 import org.apache.hadoop.util.DiskChecker.DiskErrorException;
+
 import static org.junit.Assert.assertTrue;
 import static io.netty.buffer.Unpooled.wrappedBuffer;
 import static org.junit.Assert.assertEquals;
@@ -42,6 +40,7 @@ import java.io.IOException;
 import java.net.HttpURLConnection;
 import java.net.SocketAddress;
 import java.net.SocketException;
+import java.net.URI;
 import java.net.URL;
 import java.nio.ByteBuffer;
 import java.util.ArrayList;
@@ -1351,6 +1350,12 @@ public class TestShuffleHandler {
         // replace the shuffle handler with one stubbed for testing
         return new Shuffle(conf) {
           @Override
+          protected void verifyRequest(String appid, ChannelHandlerContext ctx,
+              HttpRequest request, HttpResponse response, URL requestUri)
+              throws IOException {
+            // Do nothing.
+          }
+          @Override
           protected void sendError(ChannelHandlerContext ctx, String message,
                                    HttpResponseStatus status) {
             if (failureEncountered.compareAndSet(false, true)) {
@@ -1578,6 +1583,104 @@ public class TestShuffleHandler {
       }
       Assert.assertEquals("sendError called due to shuffle error",
           0, failures.size());
+    } finally {
+      shuffleHandler.close();
+      FileUtil.fullyDelete(TEST_DIR);
+    }
+  }
+
+  @Test(timeout = 10000)
+  public void testUnauthenticatedDeleteIsRejected() throws Exception {
+    Configuration conf = getInitialConf();
+    conf.setInt(ShuffleHandler.MAX_SHUFFLE_CONNECTIONS, 3);
+    conf.set(CommonConfigurationKeysPublic.HADOOP_SECURITY_AUTHENTICATION,
+        "simple");
+    UserGroupInformation.setConfiguration(conf);
+    conf.set(YarnConfiguration.NM_LOCAL_DIRS, TEST_DIR.getAbsolutePath());
+    ApplicationId appId = ApplicationId.newInstance(12345, 1);
+    String appAttemptId = "attempt_12345_1_m_1_0";
+    String user = "randomUser";
+    List<File> fileMap = new ArrayList<File>();
+    createShuffleHandlerFiles(TEST_DIR, user, appId.toString(), appAttemptId,
+        conf, fileMap);
+    // Use a real ShuffleHandler (no verifyRequest override) so authentication is enforced
+    ShuffleHandler shuffleHandler = new ShuffleHandler() {
+      private AuxiliaryLocalPathHandler pathHandler = new TestAuxiliaryLocalPathHandler();
+      @Override
+      public AuxiliaryLocalPathHandler getAuxiliaryLocalPathHandler() {
+        return pathHandler;
+      }
+    };
+    shuffleHandler.init(conf);
+    try {
+      shuffleHandler.start();
+      DataOutputBuffer outputBuffer = new DataOutputBuffer();
+      outputBuffer.reset();
+      Token<JobTokenIdentifier> jt =
+          new Token<JobTokenIdentifier>("identifier".getBytes(),
+              "password".getBytes(), new Text(user), new Text("shuffleService"));
+      jt.write(outputBuffer);
+      shuffleHandler
+          .initializeApplication(new ApplicationInitializationContext(user,
+              appId, ByteBuffer.wrap(outputBuffer.getData(), 0,
+              outputBuffer.getLength())));
+      String baseUrl = "http://127.0.0.1:"
+          + shuffleHandler.getConfig().get(ShuffleHandler.SHUFFLE_PORT_CONFIG_KEY);
+      String dagDirStr =
+          StringUtils.join(Path.SEPARATOR,
+              new String[] {TEST_DIR.getAbsolutePath(),
+                  ShuffleHandler.USERCACHE, user,
+                  ShuffleHandler.APPCACHE, appId.toString(), "dag_1/"});
+      File dagDir = new File(dagDirStr);
+      String taskAttemptDirStr =
+          StringUtils.join(Path.SEPARATOR,
+              new String[] {TEST_DIR.getAbsolutePath(),
+                  ShuffleHandler.USERCACHE, user,
+                  ShuffleHandler.APPCACHE, appId.toString(), "dag_1/output/",
+                  appAttemptId});
+      File taskAttemptDir = new File(taskAttemptDirStr);
+
+      Assert.assertTrue("Dag Directory does not exist!", dagDir.exists());
+      HttpURLConnection conn = (HttpURLConnection) URI.create(baseUrl
+          + "/mapOutput?dagAction=delete&job=job_12345_0001&dag=1").toURL().openConnection();
+      conn.setRequestProperty(ShuffleHeader.HTTP_HEADER_NAME,
+          ShuffleHeader.DEFAULT_HTTP_HEADER_NAME);
+      conn.setRequestProperty(ShuffleHeader.HTTP_HEADER_VERSION,
+          ShuffleHeader.DEFAULT_HTTP_HEADER_VERSION);
+      conn.connect();
+      Assert.assertEquals("Unauthenticated dag delete should return 401",
+          HttpURLConnection.HTTP_UNAUTHORIZED, conn.getResponseCode());
+      Assert.assertTrue(
+          "Dag Directory should NOT have been deleted after unauthenticated request",
+          dagDir.exists());
+
+      conn = (HttpURLConnection) URI.create(baseUrl
+          + "/mapOutput?vertexAction=delete&job=job_12345_0001&dag=1&vertex=00").toURL().openConnection();
+      conn.setRequestProperty(ShuffleHeader.HTTP_HEADER_NAME,
+          ShuffleHeader.DEFAULT_HTTP_HEADER_NAME);
+      conn.setRequestProperty(ShuffleHeader.HTTP_HEADER_VERSION,
+          ShuffleHeader.DEFAULT_HTTP_HEADER_VERSION);
+      conn.connect();
+      Assert.assertEquals("Unauthenticated vertex delete should return 401",
+          HttpURLConnection.HTTP_UNAUTHORIZED, conn.getResponseCode());
+      Assert.assertTrue(
+          "Dag Directory should NOT have been deleted after unauthenticated vertex delete request",
+          dagDir.exists());
+
+      Assert.assertTrue("Task Attempt Directory does not exist!", taskAttemptDir.exists());
+      conn = (HttpURLConnection) URI.create(baseUrl
+          + "/mapOutput?taskAttemptAction=delete&job=job_12345_0001&dag=1&map="
+          + appAttemptId).toURL().openConnection();
+      conn.setRequestProperty(ShuffleHeader.HTTP_HEADER_NAME,
+          ShuffleHeader.DEFAULT_HTTP_HEADER_NAME);
+      conn.setRequestProperty(ShuffleHeader.HTTP_HEADER_VERSION,
+          ShuffleHeader.DEFAULT_HTTP_HEADER_VERSION);
+      conn.connect();
+      Assert.assertEquals("Unauthenticated task attempt delete should return 401",
+          HttpURLConnection.HTTP_UNAUTHORIZED, conn.getResponseCode());
+      Assert.assertTrue(
+          "Task Attempt Directory should NOT have been deleted after unauthenticated request",
+          taskAttemptDir.exists());
     } finally {
       shuffleHandler.close();
       FileUtil.fullyDelete(TEST_DIR);

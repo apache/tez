@@ -263,6 +263,7 @@ public class DAGAppMaster extends AbstractService {
   private TaskHeartbeatHandler taskHeartbeatHandler;
   private TaskCommunicatorManagerInterface taskCommunicatorManager;
   private JobTokenSecretManager jobTokenSecretManager;
+  private JobTokenSecretManager shuffleJobTokenSecretManager;
   private Token<JobTokenIdentifier> sessionToken;
   private DagEventDispatcher dagEventDispatcher;
   private VertexEventDispatcher vertexEventDispatcher;
@@ -533,7 +534,11 @@ public class DAGAppMaster extends AbstractService {
     jobTokenSecretManager.addTokenForJob(
         appAttemptID.getApplicationId().toString(), sessionToken);
 
-
+    // Create a JobTokenSecretManager initialized with the session token's password
+    // for shuffle delete requests. The shuffle handler verifies requests using the
+    // token password, so the MAC must be initialized with it (as tasks do).
+    shuffleJobTokenSecretManager = new JobTokenSecretManager(
+        JobTokenSecretManager.createSecretKey(sessionToken.getPassword()), amConf);
 
     //service to handle requests to TaskUmbilicalProtocol
     taskCommunicatorManager = createTaskCommunicatorManager(context,
@@ -883,7 +888,7 @@ public class DAGAppMaster extends AbstractService {
       DAGAppMasterEventDagCleanup cleanupEvent = (DAGAppMasterEventDagCleanup) event;
       LOG.info("Cleaning up DAG: name=" + cleanupEvent.getDag().getName() + ", with id=" +
           cleanupEvent.getDag().getID());
-      containerLauncherManager.dagComplete(cleanupEvent.getDag().getID(), jobTokenSecretManager);
+      containerLauncherManager.dagComplete(cleanupEvent.getDag().getID(), shuffleJobTokenSecretManager);
       taskCommunicatorManager.dagComplete(cleanupEvent.getDag());
       nodes.dagComplete(cleanupEvent.getDag());
       containers.dagComplete(cleanupEvent.getDag());
@@ -2827,10 +2832,10 @@ public class DAGAppMaster extends AbstractService {
   }
 
   public void vertexComplete(TezVertexID completedVertexID, Set<NodeId> nodesList) {
-    getContainerLauncherManager().vertexComplete(completedVertexID, jobTokenSecretManager, nodesList);
+    getContainerLauncherManager().vertexComplete(completedVertexID, shuffleJobTokenSecretManager, nodesList);
   }
 
   public void taskAttemptFailed(TezTaskAttemptID attemptID, NodeId nodeId) {
-    getContainerLauncherManager().taskAttemptFailed(attemptID, jobTokenSecretManager, nodeId);
+    getContainerLauncherManager().taskAttemptFailed(attemptID, shuffleJobTokenSecretManager, nodeId);
   }
 }
