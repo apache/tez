@@ -18,8 +18,13 @@
  */
 package org.apache.tez.common.security;
 
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertTrue;
+
 import java.io.IOException;
 import java.util.Map;
+import java.util.concurrent.TimeUnit;
 
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.security.UserGroupInformation;
@@ -28,15 +33,16 @@ import org.apache.hadoop.yarn.conf.YarnConfiguration;
 import org.apache.tez.dag.api.TezConfiguration;
 import org.apache.tez.dag.api.records.DAGProtos.ACLInfo;
 
-import org.junit.Assert;
-import org.junit.Test;
+import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.Timeout;
 
 
 public class TestACLManager {
 
   private static final String[] noGroups = new String[0];
 
-  @Test(timeout = 5000)
+  @Test
+  @Timeout(value = 5000, unit = TimeUnit.MILLISECONDS)
   public void testCurrentUserACLChecks() {
     UserGroupInformation currentUser = UserGroupInformation.createUserForTesting("currentUser", noGroups);
     UserGroupInformation dagUser = UserGroupInformation.createUserForTesting("dagUser", noGroups);
@@ -46,36 +52,37 @@ public class TestACLManager {
 
     UserGroupInformation user = user1;
 
-    Assert.assertFalse(aclManager.checkAccess(user, ACLType.AM_VIEW_ACL));
-    Assert.assertFalse(aclManager.checkAccess(user, ACLType.AM_MODIFY_ACL));
+    assertFalse(aclManager.checkAccess(user, ACLType.AM_VIEW_ACL));
+    assertFalse(aclManager.checkAccess(user, ACLType.AM_MODIFY_ACL));
 
     user = currentUser;
-    Assert.assertTrue(aclManager.checkAccess(user, ACLType.AM_VIEW_ACL));
-    Assert.assertTrue(aclManager.checkAccess(user, ACLType.AM_MODIFY_ACL));
+    assertTrue(aclManager.checkAccess(user, ACLType.AM_VIEW_ACL));
+    assertTrue(aclManager.checkAccess(user, ACLType.AM_MODIFY_ACL));
 
     aclManager = new ACLManager(currentUser.getShortUserName(), new Configuration(false));
 
     user = user1;
-    Assert.assertFalse(aclManager.checkAccess(user, ACLType.AM_VIEW_ACL));
-    Assert.assertFalse(aclManager.checkAccess(user, ACLType.AM_MODIFY_ACL));
+    assertFalse(aclManager.checkAccess(user, ACLType.AM_VIEW_ACL));
+    assertFalse(aclManager.checkAccess(user, ACLType.AM_MODIFY_ACL));
 
     user = currentUser;
-    Assert.assertTrue(aclManager.checkAccess(user, ACLType.AM_VIEW_ACL));
-    Assert.assertTrue(aclManager.checkAccess(user, ACLType.AM_MODIFY_ACL));
+    assertTrue(aclManager.checkAccess(user, ACLType.AM_VIEW_ACL));
+    assertTrue(aclManager.checkAccess(user, ACLType.AM_MODIFY_ACL));
 
     ACLManager dagAclManager = new ACLManager(aclManager, dagUser.getShortUserName(),
         ACLInfo.getDefaultInstance());
     user = dagUser;
-    Assert.assertFalse(dagAclManager.checkAccess(user, ACLType.AM_VIEW_ACL));
-    Assert.assertFalse(dagAclManager.checkAccess(user, ACLType.AM_MODIFY_ACL));
-    Assert.assertTrue(dagAclManager.checkAccess(user, ACLType.DAG_VIEW_ACL));
-    Assert.assertTrue(dagAclManager.checkAccess(user, ACLType.DAG_MODIFY_ACL));
+    assertFalse(dagAclManager.checkAccess(user, ACLType.AM_VIEW_ACL));
+    assertFalse(dagAclManager.checkAccess(user, ACLType.AM_MODIFY_ACL));
+    assertTrue(dagAclManager.checkAccess(user, ACLType.DAG_VIEW_ACL));
+    assertTrue(dagAclManager.checkAccess(user, ACLType.DAG_MODIFY_ACL));
     user = user1;
-    Assert.assertFalse(dagAclManager.checkAccess(user, ACLType.DAG_VIEW_ACL));
-    Assert.assertFalse(dagAclManager.checkAccess(user, ACLType.DAG_MODIFY_ACL));
+    assertFalse(dagAclManager.checkAccess(user, ACLType.DAG_VIEW_ACL));
+    assertFalse(dagAclManager.checkAccess(user, ACLType.DAG_MODIFY_ACL));
   }
 
-  @Test(timeout = 5000)
+  @Test
+  @Timeout(value = 5000, unit = TimeUnit.MILLISECONDS)
   public void testOtherUserACLChecks() throws IOException {
     String[] groups1 = new String[] {"grp1", "grp2"};
     String[] groups2 = new String[] {"grp3", "grp4"};
@@ -100,24 +107,25 @@ public class TestACLManager {
 
     ACLManager aclManager = new ACLManager(currentUser.getShortUserName(), conf);
 
-    Assert.assertTrue(aclManager.checkAccess(currentUser, ACLType.AM_VIEW_ACL));
-    Assert.assertTrue(aclManager.checkAccess(user1, ACLType.AM_VIEW_ACL));
-    Assert.assertTrue(aclManager.checkAccess(user2, ACLType.AM_VIEW_ACL));
-    Assert.assertFalse(aclManager.checkAccess(user3, ACLType.AM_VIEW_ACL));
-    Assert.assertTrue(aclManager.checkAccess(user4, ACLType.AM_VIEW_ACL));
-    Assert.assertFalse(aclManager.checkAccess(user5,  ACLType.AM_VIEW_ACL));
-    Assert.assertFalse(aclManager.checkAccess(user6, ACLType.AM_VIEW_ACL));
+    assertTrue(aclManager.checkAccess(currentUser, ACLType.AM_VIEW_ACL));
+    assertTrue(aclManager.checkAccess(user1, ACLType.AM_VIEW_ACL));
+    assertTrue(aclManager.checkAccess(user2, ACLType.AM_VIEW_ACL));
+    assertFalse(aclManager.checkAccess(user3, ACLType.AM_VIEW_ACL));
+    assertTrue(aclManager.checkAccess(user4, ACLType.AM_VIEW_ACL));
+    assertFalse(aclManager.checkAccess(user5,  ACLType.AM_VIEW_ACL));
+    assertFalse(aclManager.checkAccess(user6, ACLType.AM_VIEW_ACL));
 
-    Assert.assertTrue(aclManager.checkAccess(currentUser, ACLType.AM_MODIFY_ACL));
-    Assert.assertFalse(aclManager.checkAccess(user1, ACLType.AM_MODIFY_ACL));
-    Assert.assertFalse(aclManager.checkAccess(user2, ACLType.AM_MODIFY_ACL));
-    Assert.assertTrue(aclManager.checkAccess(user3, ACLType.AM_MODIFY_ACL));
-    Assert.assertFalse(aclManager.checkAccess(user4, ACLType.AM_MODIFY_ACL));
-    Assert.assertTrue(aclManager.checkAccess(user5, ACLType.AM_MODIFY_ACL));
-    Assert.assertFalse(aclManager.checkAccess(user6, ACLType.AM_MODIFY_ACL));
+    assertTrue(aclManager.checkAccess(currentUser, ACLType.AM_MODIFY_ACL));
+    assertFalse(aclManager.checkAccess(user1, ACLType.AM_MODIFY_ACL));
+    assertFalse(aclManager.checkAccess(user2, ACLType.AM_MODIFY_ACL));
+    assertTrue(aclManager.checkAccess(user3, ACLType.AM_MODIFY_ACL));
+    assertFalse(aclManager.checkAccess(user4, ACLType.AM_MODIFY_ACL));
+    assertTrue(aclManager.checkAccess(user5, ACLType.AM_MODIFY_ACL));
+    assertFalse(aclManager.checkAccess(user6, ACLType.AM_MODIFY_ACL));
   }
 
-  @Test(timeout = 5000)
+  @Test
+  @Timeout(value = 5000, unit = TimeUnit.MILLISECONDS)
   public void testNoGroupsACLChecks() throws IOException {
     String[] groups1 = new String[] {"grp1", "grp2"};
     String[] groups2 = new String[] {"grp3", "grp4"};
@@ -140,24 +148,25 @@ public class TestACLManager {
     conf.set(TezConfiguration.TEZ_AM_MODIFY_ACLS, modifyACLs);
 
     ACLManager aclManager = new ACLManager(currentUser.getShortUserName(), conf);
-    Assert.assertTrue(aclManager.checkAccess(currentUser, ACLType.AM_VIEW_ACL));
-    Assert.assertTrue(aclManager.checkAccess(user1, ACLType.AM_VIEW_ACL));
-    Assert.assertFalse(aclManager.checkAccess(user2, ACLType.AM_VIEW_ACL));
-    Assert.assertFalse(aclManager.checkAccess(user3, ACLType.AM_VIEW_ACL));
-    Assert.assertTrue(aclManager.checkAccess(user4, ACLType.AM_VIEW_ACL));
-    Assert.assertFalse(aclManager.checkAccess(user5, ACLType.AM_VIEW_ACL));
-    Assert.assertFalse(aclManager.checkAccess(user6, ACLType.AM_VIEW_ACL));
+    assertTrue(aclManager.checkAccess(currentUser, ACLType.AM_VIEW_ACL));
+    assertTrue(aclManager.checkAccess(user1, ACLType.AM_VIEW_ACL));
+    assertFalse(aclManager.checkAccess(user2, ACLType.AM_VIEW_ACL));
+    assertFalse(aclManager.checkAccess(user3, ACLType.AM_VIEW_ACL));
+    assertTrue(aclManager.checkAccess(user4, ACLType.AM_VIEW_ACL));
+    assertFalse(aclManager.checkAccess(user5, ACLType.AM_VIEW_ACL));
+    assertFalse(aclManager.checkAccess(user6, ACLType.AM_VIEW_ACL));
 
-    Assert.assertTrue(aclManager.checkAccess(currentUser, ACLType.AM_MODIFY_ACL));
-    Assert.assertFalse(aclManager.checkAccess(user1, ACLType.AM_MODIFY_ACL));
-    Assert.assertFalse(aclManager.checkAccess(user2, ACLType.AM_MODIFY_ACL));
-    Assert.assertTrue(aclManager.checkAccess(user3, ACLType.AM_MODIFY_ACL));
-    Assert.assertFalse(aclManager.checkAccess(user4, ACLType.AM_MODIFY_ACL));
-    Assert.assertFalse(aclManager.checkAccess(user5, ACLType.AM_MODIFY_ACL));
-    Assert.assertFalse(aclManager.checkAccess(user6, ACLType.AM_MODIFY_ACL));
+    assertTrue(aclManager.checkAccess(currentUser, ACLType.AM_MODIFY_ACL));
+    assertFalse(aclManager.checkAccess(user1, ACLType.AM_MODIFY_ACL));
+    assertFalse(aclManager.checkAccess(user2, ACLType.AM_MODIFY_ACL));
+    assertTrue(aclManager.checkAccess(user3, ACLType.AM_MODIFY_ACL));
+    assertFalse(aclManager.checkAccess(user4, ACLType.AM_MODIFY_ACL));
+    assertFalse(aclManager.checkAccess(user5, ACLType.AM_MODIFY_ACL));
+    assertFalse(aclManager.checkAccess(user6, ACLType.AM_MODIFY_ACL));
   }
 
-  @Test(timeout = 5000)
+  @Test
+  @Timeout(value = 5000, unit = TimeUnit.MILLISECONDS)
   public void checkAMACLs() throws IOException {
     String[] groups1 = new String[] {"grp1", "grp2"};
     String[] groups2 = new String[] {"grp3", "grp4"};
@@ -187,48 +196,49 @@ public class TestACLManager {
 
     ACLManager aclManager = new ACLManager(currentUser.getShortUserName(), conf);
 
-    Assert.assertTrue(aclManager.checkAMViewAccess(currentUser));
-    Assert.assertTrue(aclManager.checkAMViewAccess(user1));
-    Assert.assertTrue(aclManager.checkAMViewAccess(user2));
-    Assert.assertFalse(aclManager.checkAMViewAccess(user3));
-    Assert.assertTrue(aclManager.checkAMViewAccess(user4));
-    Assert.assertFalse(aclManager.checkAMViewAccess(user5));
-    Assert.assertFalse(aclManager.checkAMViewAccess(user6));
-    Assert.assertTrue(aclManager.checkAMViewAccess(admuser1));
-    Assert.assertTrue(aclManager.checkAMViewAccess(admuser2));
+    assertTrue(aclManager.checkAMViewAccess(currentUser));
+    assertTrue(aclManager.checkAMViewAccess(user1));
+    assertTrue(aclManager.checkAMViewAccess(user2));
+    assertFalse(aclManager.checkAMViewAccess(user3));
+    assertTrue(aclManager.checkAMViewAccess(user4));
+    assertFalse(aclManager.checkAMViewAccess(user5));
+    assertFalse(aclManager.checkAMViewAccess(user6));
+    assertTrue(aclManager.checkAMViewAccess(admuser1));
+    assertTrue(aclManager.checkAMViewAccess(admuser2));
 
-    Assert.assertTrue(aclManager.checkAMModifyAccess(currentUser));
-    Assert.assertFalse(aclManager.checkAMModifyAccess(user1));
-    Assert.assertFalse(aclManager.checkAMModifyAccess(user2));
-    Assert.assertTrue(aclManager.checkAMModifyAccess(user3));
-    Assert.assertFalse(aclManager.checkAMModifyAccess(user4));
-    Assert.assertTrue(aclManager.checkAMModifyAccess(user5));
-    Assert.assertFalse(aclManager.checkAMModifyAccess(user6));
-    Assert.assertTrue(aclManager.checkAMModifyAccess(admuser1));
-    Assert.assertTrue(aclManager.checkAMModifyAccess(admuser2));
+    assertTrue(aclManager.checkAMModifyAccess(currentUser));
+    assertFalse(aclManager.checkAMModifyAccess(user1));
+    assertFalse(aclManager.checkAMModifyAccess(user2));
+    assertTrue(aclManager.checkAMModifyAccess(user3));
+    assertFalse(aclManager.checkAMModifyAccess(user4));
+    assertTrue(aclManager.checkAMModifyAccess(user5));
+    assertFalse(aclManager.checkAMModifyAccess(user6));
+    assertTrue(aclManager.checkAMModifyAccess(admuser1));
+    assertTrue(aclManager.checkAMModifyAccess(admuser2));
 
-    Assert.assertTrue(aclManager.checkDAGViewAccess(currentUser));
-    Assert.assertTrue(aclManager.checkDAGViewAccess(user1));
-    Assert.assertTrue(aclManager.checkDAGViewAccess(user2));
-    Assert.assertFalse(aclManager.checkDAGViewAccess(user3));
-    Assert.assertTrue(aclManager.checkDAGViewAccess(user4));
-    Assert.assertFalse(aclManager.checkDAGViewAccess(user5));
-    Assert.assertFalse(aclManager.checkDAGViewAccess(user6));
-    Assert.assertTrue(aclManager.checkDAGViewAccess(admuser1));
-    Assert.assertTrue(aclManager.checkDAGViewAccess(admuser2));
+    assertTrue(aclManager.checkDAGViewAccess(currentUser));
+    assertTrue(aclManager.checkDAGViewAccess(user1));
+    assertTrue(aclManager.checkDAGViewAccess(user2));
+    assertFalse(aclManager.checkDAGViewAccess(user3));
+    assertTrue(aclManager.checkDAGViewAccess(user4));
+    assertFalse(aclManager.checkDAGViewAccess(user5));
+    assertFalse(aclManager.checkDAGViewAccess(user6));
+    assertTrue(aclManager.checkDAGViewAccess(admuser1));
+    assertTrue(aclManager.checkDAGViewAccess(admuser2));
 
-    Assert.assertTrue(aclManager.checkDAGModifyAccess(currentUser));
-    Assert.assertFalse(aclManager.checkDAGModifyAccess(user1));
-    Assert.assertFalse(aclManager.checkDAGModifyAccess(user2));
-    Assert.assertTrue(aclManager.checkDAGModifyAccess(user3));
-    Assert.assertFalse(aclManager.checkDAGModifyAccess(user4));
-    Assert.assertTrue(aclManager.checkDAGModifyAccess(user5));
-    Assert.assertFalse(aclManager.checkDAGModifyAccess(user6));
-    Assert.assertTrue(aclManager.checkDAGModifyAccess(admuser1));
-    Assert.assertTrue(aclManager.checkDAGModifyAccess(admuser2));
+    assertTrue(aclManager.checkDAGModifyAccess(currentUser));
+    assertFalse(aclManager.checkDAGModifyAccess(user1));
+    assertFalse(aclManager.checkDAGModifyAccess(user2));
+    assertTrue(aclManager.checkDAGModifyAccess(user3));
+    assertFalse(aclManager.checkDAGModifyAccess(user4));
+    assertTrue(aclManager.checkDAGModifyAccess(user5));
+    assertFalse(aclManager.checkDAGModifyAccess(user6));
+    assertTrue(aclManager.checkDAGModifyAccess(admuser1));
+    assertTrue(aclManager.checkDAGModifyAccess(admuser2));
   }
 
-  @Test(timeout = 5000)
+  @Test
+  @Timeout(value = 5000, unit = TimeUnit.MILLISECONDS)
   public void checkDAGACLs() throws IOException {
     String[] groups1 = new String[] {"grp1", "grp2"};
     String[] groups2 = new String[] {"grp3", "grp4"};
@@ -271,53 +281,54 @@ public class TestACLManager {
     ACLManager aclManager = new ACLManager(amAclManager, dagUser.getShortUserName(),
         builder.build());
 
-    Assert.assertTrue(aclManager.checkAMViewAccess(currentUser));
-    Assert.assertFalse(aclManager.checkAMViewAccess(dagUser));
-    Assert.assertTrue(aclManager.checkAMViewAccess(user1));
-    Assert.assertTrue(aclManager.checkAMViewAccess(user2));
-    Assert.assertFalse(aclManager.checkAMViewAccess(user3));
-    Assert.assertTrue(aclManager.checkAMViewAccess(user4));
-    Assert.assertFalse(aclManager.checkAMViewAccess(user5));
-    Assert.assertFalse(aclManager.checkAMViewAccess(user6));
-    Assert.assertTrue(aclManager.checkAMViewAccess(admuser1));
-    Assert.assertTrue(aclManager.checkAMViewAccess(admuser2));
+    assertTrue(aclManager.checkAMViewAccess(currentUser));
+    assertFalse(aclManager.checkAMViewAccess(dagUser));
+    assertTrue(aclManager.checkAMViewAccess(user1));
+    assertTrue(aclManager.checkAMViewAccess(user2));
+    assertFalse(aclManager.checkAMViewAccess(user3));
+    assertTrue(aclManager.checkAMViewAccess(user4));
+    assertFalse(aclManager.checkAMViewAccess(user5));
+    assertFalse(aclManager.checkAMViewAccess(user6));
+    assertTrue(aclManager.checkAMViewAccess(admuser1));
+    assertTrue(aclManager.checkAMViewAccess(admuser2));
 
-    Assert.assertTrue(aclManager.checkAMModifyAccess(currentUser));
-    Assert.assertFalse(aclManager.checkAMModifyAccess(dagUser));
-    Assert.assertFalse(aclManager.checkAMModifyAccess(user1));
-    Assert.assertFalse(aclManager.checkAMModifyAccess(user2));
-    Assert.assertTrue(aclManager.checkAMModifyAccess(user3));
-    Assert.assertFalse(aclManager.checkAMModifyAccess(user4));
-    Assert.assertTrue(aclManager.checkAMModifyAccess(user5));
-    Assert.assertFalse(aclManager.checkAMModifyAccess(user6));
-    Assert.assertTrue(aclManager.checkAMModifyAccess(admuser1));
-    Assert.assertTrue(aclManager.checkAMModifyAccess(admuser2));
+    assertTrue(aclManager.checkAMModifyAccess(currentUser));
+    assertFalse(aclManager.checkAMModifyAccess(dagUser));
+    assertFalse(aclManager.checkAMModifyAccess(user1));
+    assertFalse(aclManager.checkAMModifyAccess(user2));
+    assertTrue(aclManager.checkAMModifyAccess(user3));
+    assertFalse(aclManager.checkAMModifyAccess(user4));
+    assertTrue(aclManager.checkAMModifyAccess(user5));
+    assertFalse(aclManager.checkAMModifyAccess(user6));
+    assertTrue(aclManager.checkAMModifyAccess(admuser1));
+    assertTrue(aclManager.checkAMModifyAccess(admuser2));
 
-    Assert.assertTrue(aclManager.checkDAGViewAccess(currentUser));
-    Assert.assertTrue(aclManager.checkDAGViewAccess(dagUser));
-    Assert.assertTrue(aclManager.checkDAGViewAccess(user1));
-    Assert.assertTrue(aclManager.checkDAGViewAccess(user2));
-    Assert.assertFalse(aclManager.checkDAGViewAccess(user3));
-    Assert.assertTrue(aclManager.checkDAGViewAccess(user4));
-    Assert.assertTrue(aclManager.checkDAGViewAccess(user5));
-    Assert.assertTrue(aclManager.checkDAGViewAccess(user6));
-    Assert.assertTrue(aclManager.checkDAGViewAccess(admuser1));
-    Assert.assertTrue(aclManager.checkDAGViewAccess(admuser2));
+    assertTrue(aclManager.checkDAGViewAccess(currentUser));
+    assertTrue(aclManager.checkDAGViewAccess(dagUser));
+    assertTrue(aclManager.checkDAGViewAccess(user1));
+    assertTrue(aclManager.checkDAGViewAccess(user2));
+    assertFalse(aclManager.checkDAGViewAccess(user3));
+    assertTrue(aclManager.checkDAGViewAccess(user4));
+    assertTrue(aclManager.checkDAGViewAccess(user5));
+    assertTrue(aclManager.checkDAGViewAccess(user6));
+    assertTrue(aclManager.checkDAGViewAccess(admuser1));
+    assertTrue(aclManager.checkDAGViewAccess(admuser2));
 
-    Assert.assertTrue(aclManager.checkDAGModifyAccess(currentUser));
-    Assert.assertTrue(aclManager.checkDAGModifyAccess(dagUser));
-    Assert.assertFalse(aclManager.checkDAGModifyAccess(user1));
-    Assert.assertFalse(aclManager.checkDAGModifyAccess(user2));
-    Assert.assertTrue(aclManager.checkDAGModifyAccess(user3));
-    Assert.assertFalse(aclManager.checkDAGModifyAccess(user4));
-    Assert.assertTrue(aclManager.checkDAGModifyAccess(user5));
-    Assert.assertTrue(aclManager.checkDAGModifyAccess(user6));
-    Assert.assertTrue(aclManager.checkDAGModifyAccess(admuser1));
-    Assert.assertTrue(aclManager.checkDAGModifyAccess(admuser2));
+    assertTrue(aclManager.checkDAGModifyAccess(currentUser));
+    assertTrue(aclManager.checkDAGModifyAccess(dagUser));
+    assertFalse(aclManager.checkDAGModifyAccess(user1));
+    assertFalse(aclManager.checkDAGModifyAccess(user2));
+    assertTrue(aclManager.checkDAGModifyAccess(user3));
+    assertFalse(aclManager.checkDAGModifyAccess(user4));
+    assertTrue(aclManager.checkDAGModifyAccess(user5));
+    assertTrue(aclManager.checkDAGModifyAccess(user6));
+    assertTrue(aclManager.checkDAGModifyAccess(admuser1));
+    assertTrue(aclManager.checkDAGModifyAccess(admuser2));
 
   }
 
-  @Test(timeout = 5000)
+  @Test
+  @Timeout(value = 5000, unit = TimeUnit.MILLISECONDS)
   public void testWildCardCheck() {
     Configuration conf = new Configuration(false);
     String viewACLs = "   *  ";
@@ -329,17 +340,18 @@ public class TestACLManager {
     UserGroupInformation u1 = UserGroupInformation.createUserForTesting("u1", noGroups);
 
     ACLManager aclManager = new ACLManager(a1.getShortUserName(), conf);
-    Assert.assertTrue(aclManager.checkAMViewAccess(a1));
-    Assert.assertTrue(aclManager.checkAMViewAccess(u1));
-    Assert.assertTrue(aclManager.checkAMModifyAccess(a1));
-    Assert.assertTrue(aclManager.checkAMModifyAccess(u1));
-    Assert.assertTrue(aclManager.checkDAGViewAccess(a1));
-    Assert.assertTrue(aclManager.checkDAGViewAccess(u1));
-    Assert.assertTrue(aclManager.checkDAGModifyAccess(a1));
-    Assert.assertTrue(aclManager.checkDAGModifyAccess(u1));
+    assertTrue(aclManager.checkAMViewAccess(a1));
+    assertTrue(aclManager.checkAMViewAccess(u1));
+    assertTrue(aclManager.checkAMModifyAccess(a1));
+    assertTrue(aclManager.checkAMModifyAccess(u1));
+    assertTrue(aclManager.checkDAGViewAccess(a1));
+    assertTrue(aclManager.checkDAGViewAccess(u1));
+    assertTrue(aclManager.checkDAGModifyAccess(a1));
+    assertTrue(aclManager.checkDAGModifyAccess(u1));
   }
 
-  @Test(timeout = 5000)
+  @Test
+  @Timeout(value = 5000, unit = TimeUnit.MILLISECONDS)
   public void testAdminWildCardCheck() {
     Configuration conf = new Configuration(false);
     String yarnAdminACLs = " *  ";
@@ -349,17 +361,18 @@ public class TestACLManager {
     UserGroupInformation u1 = UserGroupInformation.createUserForTesting("u1", noGroups);
 
     ACLManager aclManager = new ACLManager(a1.getShortUserName(), conf);
-    Assert.assertTrue(aclManager.checkAMViewAccess(a1));
-    Assert.assertTrue(aclManager.checkAMViewAccess(u1));
-    Assert.assertTrue(aclManager.checkAMModifyAccess(a1));
-    Assert.assertTrue(aclManager.checkAMModifyAccess(u1));
-    Assert.assertTrue(aclManager.checkDAGViewAccess(a1));
-    Assert.assertTrue(aclManager.checkDAGViewAccess(u1));
-    Assert.assertTrue(aclManager.checkDAGModifyAccess(a1));
-    Assert.assertTrue(aclManager.checkDAGModifyAccess(u1));
+    assertTrue(aclManager.checkAMViewAccess(a1));
+    assertTrue(aclManager.checkAMViewAccess(u1));
+    assertTrue(aclManager.checkAMModifyAccess(a1));
+    assertTrue(aclManager.checkAMModifyAccess(u1));
+    assertTrue(aclManager.checkDAGViewAccess(a1));
+    assertTrue(aclManager.checkDAGViewAccess(u1));
+    assertTrue(aclManager.checkDAGModifyAccess(a1));
+    assertTrue(aclManager.checkDAGModifyAccess(u1));
   }
 
-  @Test(timeout = 5000)
+  @Test
+  @Timeout(value = 5000, unit = TimeUnit.MILLISECONDS)
   public void testACLsDisabled() {
     Configuration conf = new Configuration(false);
     conf.setBoolean(TezConfiguration.TEZ_AM_ACLS_ENABLED, false);
@@ -372,27 +385,28 @@ public class TestACLManager {
     UserGroupInformation u1 = UserGroupInformation.createUserForTesting("u1", noGroups);
 
     ACLManager aclManager = new ACLManager(a1.getShortUserName(), conf);
-    Assert.assertTrue(aclManager.checkAMViewAccess(a1));
-    Assert.assertTrue(aclManager.checkAMViewAccess(u1));
-    Assert.assertTrue(aclManager.checkAMModifyAccess(a1));
-    Assert.assertTrue(aclManager.checkAMModifyAccess(u1));
-    Assert.assertTrue(aclManager.checkDAGViewAccess(a1));
-    Assert.assertTrue(aclManager.checkDAGViewAccess(u1));
-    Assert.assertTrue(aclManager.checkDAGModifyAccess(a1));
-    Assert.assertTrue(aclManager.checkDAGModifyAccess(u1));
+    assertTrue(aclManager.checkAMViewAccess(a1));
+    assertTrue(aclManager.checkAMViewAccess(u1));
+    assertTrue(aclManager.checkAMModifyAccess(a1));
+    assertTrue(aclManager.checkAMModifyAccess(u1));
+    assertTrue(aclManager.checkDAGViewAccess(a1));
+    assertTrue(aclManager.checkDAGViewAccess(u1));
+    assertTrue(aclManager.checkDAGModifyAccess(a1));
+    assertTrue(aclManager.checkDAGModifyAccess(u1));
 
     ACLManager dagAclManager = new ACLManager(aclManager, "dagUser", null);
-    Assert.assertTrue(dagAclManager.checkAMViewAccess(a1));
-    Assert.assertTrue(dagAclManager.checkAMViewAccess(u1));
-    Assert.assertTrue(dagAclManager.checkAMModifyAccess(a1));
-    Assert.assertTrue(dagAclManager.checkAMModifyAccess(u1));
-    Assert.assertTrue(dagAclManager.checkDAGViewAccess(a1));
-    Assert.assertTrue(dagAclManager.checkDAGViewAccess(u1));
-    Assert.assertTrue(dagAclManager.checkDAGModifyAccess(a1));
-    Assert.assertTrue(dagAclManager.checkDAGModifyAccess(u1));
+    assertTrue(dagAclManager.checkAMViewAccess(a1));
+    assertTrue(dagAclManager.checkAMViewAccess(u1));
+    assertTrue(dagAclManager.checkAMModifyAccess(a1));
+    assertTrue(dagAclManager.checkAMModifyAccess(u1));
+    assertTrue(dagAclManager.checkDAGViewAccess(a1));
+    assertTrue(dagAclManager.checkDAGViewAccess(u1));
+    assertTrue(dagAclManager.checkDAGModifyAccess(a1));
+    assertTrue(dagAclManager.checkDAGModifyAccess(u1));
   }
 
-  @Test(timeout = 5000)
+  @Test
+  @Timeout(value = 5000, unit = TimeUnit.MILLISECONDS)
   public void testConvertToYARNACLs() {
     String currentUser = "c1";
     Configuration conf = new Configuration(false);
@@ -402,18 +416,18 @@ public class TestACLManager {
     ACLManager aclManager = new ACLManager(currentUser, conf);
 
     Map<ApplicationAccessType, String> yarnAcls = aclManager.toYARNACls();
-    Assert.assertTrue(yarnAcls.containsKey(ApplicationAccessType.VIEW_APP));
-    Assert.assertEquals("c1,user1,user4 grp3,grp4",
+    assertTrue(yarnAcls.containsKey(ApplicationAccessType.VIEW_APP));
+    assertEquals("c1,user1,user4 grp3,grp4",
         yarnAcls.get(ApplicationAccessType.VIEW_APP));
-    Assert.assertTrue(yarnAcls.containsKey(ApplicationAccessType.MODIFY_APP));
-    Assert.assertEquals("*",
+    assertTrue(yarnAcls.containsKey(ApplicationAccessType.MODIFY_APP));
+    assertEquals("*",
         yarnAcls.get(ApplicationAccessType.MODIFY_APP));
 
     viewACLs = "   grp3,grp4  ";
     conf.set(TezConfiguration.TEZ_AM_VIEW_ACLS, viewACLs);
     ACLManager aclManager1 = new ACLManager(currentUser, conf);
     yarnAcls = aclManager1.toYARNACls();
-    Assert.assertEquals("c1 grp3,grp4",
+    assertEquals("c1 grp3,grp4",
         yarnAcls.get(ApplicationAccessType.VIEW_APP));
 
   }

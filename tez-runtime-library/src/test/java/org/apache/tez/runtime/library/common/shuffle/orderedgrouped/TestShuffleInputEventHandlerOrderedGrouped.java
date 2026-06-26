@@ -18,7 +18,9 @@
  */
 package org.apache.tez.runtime.library.common.shuffle.orderedgrouped;
 
-import static org.junit.Assert.assertTrue;
+import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertNotNull;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.Mockito.any;
 import static org.mockito.Mockito.anyInt;
 import static org.mockito.Mockito.anyString;
@@ -37,6 +39,7 @@ import java.util.Collections;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.concurrent.ExecutorService;
+import java.util.concurrent.TimeUnit;
 
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.io.Text;
@@ -58,14 +61,16 @@ import org.apache.tez.runtime.api.events.InputFailedEvent;
 import org.apache.tez.runtime.api.impl.ExecutionContextImpl;
 import org.apache.tez.runtime.library.common.CompositeInputAttemptIdentifier;
 import org.apache.tez.runtime.library.common.InputAttemptIdentifier;
+import org.apache.tez.runtime.library.common.InputAttemptIdentifier.SPILL_INFO;
 import org.apache.tez.runtime.library.common.shuffle.ShuffleUtils;
 import org.apache.tez.runtime.library.shuffle.impl.ShuffleUserPayloads;
 
 import com.google.protobuf.ByteString;
 
-import org.junit.After;
-import org.junit.Before;
-import org.junit.Test;
+import org.junit.jupiter.api.AfterEach;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.Timeout;
 import org.mockito.invocation.InvocationOnMock;
 import org.mockito.stubbing.Answer;
 
@@ -173,13 +178,13 @@ public class TestShuffleInputEventHandlerOrderedGrouped {
         .create(srcIndex, targetIndex, attemptNum, builder.build().toByteString().asReadOnlyByteBuffer());
   }
 
-  @Before
+  @BeforeEach
   public void setup() throws Exception {
     sharedExecutor = new TezSharedExecutor(new Configuration());
     setupScheduler(2);
   }
 
-  @After
+  @AfterEach
   public void cleanup() {
     sharedExecutor.shutdownNow();
   }
@@ -204,7 +209,8 @@ public class TestShuffleInputEventHandlerOrderedGrouped {
     mergeManager = mock(MergeManager.class);
   }
 
-  @Test (timeout = 10000)
+  @Test
+  @Timeout(value = 10000, unit = TimeUnit.MILLISECONDS)
   public void testPiplinedShuffleEvents() throws IOException, InterruptedException {
     //test with 2 events per input (2 inputs)
     int attemptNum = 0;
@@ -230,16 +236,16 @@ public class TestShuffleInputEventHandlerOrderedGrouped {
     assertTrue(scheduler.pipelinedShuffleInfoEventsMap.containsKey(id2.getInputIdentifier()));
 
     MapHost host = scheduler.getHost();
-    assertTrue(host != null);
+    assertNotNull(host);
     List<InputAttemptIdentifier> list = scheduler.getMapsForHost(host);
-    assertTrue(!list.isEmpty());
+    assertFalse(list.isEmpty());
     //Let the final_update event pass
     MapOutput output = MapOutput.createMemoryMapOutput(id2, mergeManager, 1000, true);
     scheduler.copySucceeded(id2, host, 1000, 10000, 10000, output, false);
-    assertTrue(!scheduler.isDone()); //we haven't downloaded id1 yet
+    assertFalse(scheduler.isDone()); //we haven't downloaded id1 yet
     output = MapOutput.createMemoryMapOutput(id1, mergeManager, 1000, true);
     scheduler.copySucceeded(id1, host, 1000, 10000, 10000, output, false);
-    assertTrue(!scheduler.isDone()); //we haven't downloaded another source yet
+    assertFalse(scheduler.isDone()); //we haven't downloaded another source yet
 
     //Send events for source 2
     attemptNum = 0;
@@ -253,16 +259,17 @@ public class TestShuffleInputEventHandlerOrderedGrouped {
     //Send final_update event (empty partition directly invoking copySucceeded).
     InputAttemptIdentifier id4 = new InputAttemptIdentifier(inputIdx,
         attemptNum, PATH_COMPONENT, false, InputAttemptIdentifier.SPILL_INFO.FINAL_UPDATE, 1);
-    assertTrue(!scheduler.isInputFinished(id4.getInputIdentifier()));
+    assertFalse(scheduler.isInputFinished(id4.getInputIdentifier()));
     scheduler.copySucceeded(id4, null, 0, 0, 0, null, false);
-    assertTrue(!scheduler.isDone()); //we haven't downloaded another id yet
+    assertFalse(scheduler.isDone()); //we haven't downloaded another id yet
     //Let the incremental event pass
     output = MapOutput.createMemoryMapOutput(id3, mergeManager, 1000, true);
     scheduler.copySucceeded(id3, host, 1000, 10000, 10000, output, false);
     assertTrue(scheduler.isDone());
   }
 
-  @Test (timeout = 5000)
+  @Test
+  @Timeout(value = 5000, unit = TimeUnit.MILLISECONDS)
   public void testPiplinedShuffleEvents_WithOutofOrderAttempts() throws IOException, InterruptedException {
     //Process attempt #1 first
     int attemptNum = 1;
@@ -273,15 +280,14 @@ public class TestShuffleInputEventHandlerOrderedGrouped {
 
     CompositeInputAttemptIdentifier id1 =
         new CompositeInputAttemptIdentifier(inputIdx, attemptNum,
-            PATH_COMPONENT, false, InputAttemptIdentifier.SPILL_INFO.INCREMENTAL_UPDATE, 0, 1);
+            PATH_COMPONENT, false, SPILL_INFO.INCREMENTAL_UPDATE, 0, 1);
 
     verify(scheduler, times(1)).addKnownMapOutput(eq(HOST), eq(PORT), eq(1), eq(id1));
-    assertTrue("Shuffle info events should not be empty for pipelined shuffle",
-        !scheduler.pipelinedShuffleInfoEventsMap.isEmpty());
+    assertFalse(scheduler.pipelinedShuffleInfoEventsMap.isEmpty(),
+        "Shuffle info events should not be empty for pipelined shuffle");
 
     int valuesInMapLocations = scheduler.mapLocations.values().size();
-    assertTrue("Maplocations should have values. current size: " + valuesInMapLocations,
-        valuesInMapLocations > 0);
+    assertTrue(valuesInMapLocations > 0, "Maplocations should have values. current size: " + valuesInMapLocations);
 
     // start scheduling for download
     scheduler.getMapsForHost(scheduler.mapLocations.values().iterator().next());
@@ -296,7 +302,8 @@ public class TestShuffleInputEventHandlerOrderedGrouped {
     verify(scheduler, times(1)).killSelf(any(), any());
   }
 
-  @Test (timeout = 5000)
+  @Test
+  @Timeout(value = 5000, unit = TimeUnit.MILLISECONDS)
   public void testPipelinedShuffle_WithObsoleteEvents() throws IOException, InterruptedException {
     //Process attempt #1 first
     int attemptNum = 1;
@@ -307,15 +314,14 @@ public class TestShuffleInputEventHandlerOrderedGrouped {
 
     CompositeInputAttemptIdentifier id1 =
         new CompositeInputAttemptIdentifier(inputIdx, attemptNum,
-            PATH_COMPONENT, false, InputAttemptIdentifier.SPILL_INFO.INCREMENTAL_UPDATE, 0, 1);
+            PATH_COMPONENT, false, SPILL_INFO.INCREMENTAL_UPDATE, 0, 1);
 
     verify(scheduler, times(1)).addKnownMapOutput(eq(HOST), eq(PORT), eq(1), eq(id1));
-    assertTrue("Shuffle info events should not be empty for pipelined shuffle",
-        !scheduler.pipelinedShuffleInfoEventsMap.isEmpty());
+    assertFalse(scheduler.pipelinedShuffleInfoEventsMap.isEmpty(),
+        "Shuffle info events should not be empty for pipelined shuffle");
 
     int valuesInMapLocations = scheduler.mapLocations.values().size();
-    assertTrue("Maplocations should have values. current size: " + valuesInMapLocations,
-        valuesInMapLocations > 0);
+    assertTrue(valuesInMapLocations > 0, "Maplocations should have values. current size: " + valuesInMapLocations);
 
     // start scheduling for download. Sets up scheduledForDownload in eventInfo.
     scheduler.getMapsForHost(scheduler.mapLocations.values().iterator().next());
@@ -331,7 +337,8 @@ public class TestShuffleInputEventHandlerOrderedGrouped {
     verify(scheduler, times(1)).killSelf(any(), any());
   }
 
-  @Test(timeout = 5000)
+  @Test
+  @Timeout(value = 5000, unit = TimeUnit.MILLISECONDS)
   public void basicTest() throws IOException {
     List<Event> events = new LinkedList<Event>();
     int srcIdx = 0;
@@ -344,11 +351,11 @@ public class TestShuffleInputEventHandlerOrderedGrouped {
     int partitionId = srcIdx;
     verify(scheduler).addKnownMapOutput(eq(HOST), eq(PORT), eq(partitionId),
         eq(expectedIdentifier));
-    assertTrue("Shuffle info events should be empty for regular shuffle codepath",
-        scheduler.pipelinedShuffleInfoEventsMap.isEmpty());
+    assertTrue(scheduler.pipelinedShuffleInfoEventsMap.isEmpty(), "Shuffle info events should be empty for regular shuffle codepath");
   }
 
-  @Test(timeout = 5000)
+  @Test
+  @Timeout(value = 5000, unit = TimeUnit.MILLISECONDS)
   public void testFailedEvent() throws IOException {
     List<Event> events = new LinkedList<Event>();
     int targetIdx = 1;
@@ -359,7 +366,8 @@ public class TestShuffleInputEventHandlerOrderedGrouped {
     verify(scheduler).obsoleteInput(eq(expectedIdentifier));
   }
 
-  @Test(timeout = 5000)
+  @Test
+  @Timeout(value = 5000, unit = TimeUnit.MILLISECONDS)
   public void testAllPartitionsEmpty() throws IOException {
     List<Event> events = new LinkedList<Event>();
     int srcIdx = 0;
@@ -373,7 +381,8 @@ public class TestShuffleInputEventHandlerOrderedGrouped {
             eq(0L), eq(0L), any(), eq(true));
   }
 
-  @Test(timeout = 5000)
+  @Test
+  @Timeout(value = 5000, unit = TimeUnit.MILLISECONDS)
   public void testCurrentPartitionEmpty() throws IOException {
     List<Event> events = new LinkedList<Event>();
     int srcIdx = 0;
@@ -387,7 +396,8 @@ public class TestShuffleInputEventHandlerOrderedGrouped {
         eq(0L), eq(0L), any(), eq(true));
   }
 
-  @Test(timeout = 5000)
+  @Test
+  @Timeout(value = 5000, unit = TimeUnit.MILLISECONDS)
   public void testOtherPartitionEmpty() throws IOException {
     List<Event> events = new LinkedList<Event>();
     int srcIdx = 0;

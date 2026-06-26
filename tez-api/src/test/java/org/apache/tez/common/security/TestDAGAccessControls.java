@@ -18,33 +18,40 @@
  */
 package org.apache.tez.common.security;
 
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertTrue;
+
+import java.util.concurrent.TimeUnit;
+
 import org.apache.hadoop.conf.Configuration;
 import org.apache.tez.dag.api.TezConfiguration;
 
 import com.google.common.collect.Sets;
 
-import org.junit.Assert;
-import org.junit.Test;
+import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.Timeout;
 
 public class TestDAGAccessControls {
 
-  @Test(timeout = 5000)
+  @Test
+  @Timeout(value = 5000, unit = TimeUnit.MILLISECONDS)
   public void testStringBasedConstructor() {
     DAGAccessControls dagAccessControls = new DAGAccessControls("u1 g1", "u2 g2");
 
-    Assert.assertEquals(1, dagAccessControls.getUsersWithViewACLs().size());
-    Assert.assertEquals(1, dagAccessControls.getUsersWithModifyACLs().size());
-    Assert.assertEquals(1, dagAccessControls.getGroupsWithViewACLs().size());
-    Assert.assertEquals(1, dagAccessControls.getGroupsWithModifyACLs().size());
+    assertEquals(1, dagAccessControls.getUsersWithViewACLs().size());
+    assertEquals(1, dagAccessControls.getUsersWithModifyACLs().size());
+    assertEquals(1, dagAccessControls.getGroupsWithViewACLs().size());
+    assertEquals(1, dagAccessControls.getGroupsWithModifyACLs().size());
 
-    Assert.assertTrue(dagAccessControls.getUsersWithViewACLs().contains("u1"));
-    Assert.assertTrue(dagAccessControls.getUsersWithModifyACLs().contains("u2"));
-    Assert.assertTrue(dagAccessControls.getGroupsWithViewACLs().contains("g1"));
-    Assert.assertTrue(dagAccessControls.getGroupsWithModifyACLs().contains("g2"));
+    assertTrue(dagAccessControls.getUsersWithViewACLs().contains("u1"));
+    assertTrue(dagAccessControls.getUsersWithModifyACLs().contains("u2"));
+    assertTrue(dagAccessControls.getGroupsWithViewACLs().contains("g1"));
+    assertTrue(dagAccessControls.getGroupsWithModifyACLs().contains("g2"));
   }
 
 
-  @Test(timeout=5000)
+  @Test
+  @Timeout(value = 5000, unit = TimeUnit.MILLISECONDS)
   public void testMergeIntoAmAcls() {
     DAGAccessControls dagAccessControls = new DAGAccessControls("u1 g1", "u2 g2");
     Configuration conf = new Configuration(false);
@@ -133,15 +140,15 @@ public class TestDAGAccessControls {
     String [] parts1 = expected.split(" ");
     String [] parts2 = obtained.split(" ");
 
-    Assert.assertEquals(parts1.length, parts2.length);
+    assertEquals(parts1.length, parts2.length);
 
-    Assert.assertEquals(
+    assertEquals(
         Sets.newHashSet(parts1[0].split(",")), Sets.newHashSet(parts2[0].split(",")));
 
     if (parts1.length < 2) {
       return;
     }
-    Assert.assertEquals(
+    assertEquals(
         Sets.newHashSet(parts1[1].split(",")), Sets.newHashSet(parts2[1].split(",")));
   }
 }

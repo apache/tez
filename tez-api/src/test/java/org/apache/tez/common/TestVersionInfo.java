@@ -18,8 +18,12 @@
  */
 package org.apache.tez.common;
 
-import org.junit.Assert;
-import org.junit.Test;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+
+import java.util.concurrent.TimeUnit;
+
+import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.Timeout;
 
 public class TestVersionInfo {
 
@@ -28,34 +32,38 @@ public class TestVersionInfo {
   private static final String BUILD_TIME = "20141024-1052";
   private static final String SCM_URL = "scm:git:https://gitbox.apache.org/repos/asf/tez.git";
 
-  @Test(timeout = 5000)
+  @Test
+  @Timeout(value = 5000, unit = TimeUnit.MILLISECONDS)
   public void testTest1File() {
     VersionInfo versionInfo = new VersionInfo("test1");
-    Assert.assertEquals(VERSION, versionInfo.getVersion());
-    Assert.assertEquals(REVISION, versionInfo.getRevision());
-    Assert.assertEquals(BUILD_TIME, versionInfo.getBuildTime());
-    Assert.assertEquals(SCM_URL, versionInfo.getSCMURL());
+    assertEquals(VERSION, versionInfo.getVersion());
+    assertEquals(REVISION, versionInfo.getRevision());
+    assertEquals(BUILD_TIME, versionInfo.getBuildTime());
+    assertEquals(SCM_URL, versionInfo.getSCMURL());
   }
 
-  @Test(timeout = 5000)
+  @Test
+  @Timeout(value = 5000, unit = TimeUnit.MILLISECONDS)
   public void testTest2File() {
     VersionInfo versionInfo = new VersionInfo("test2");
-    Assert.assertEquals(VERSION, versionInfo.getVersion());
-    Assert.assertEquals(REVISION, versionInfo.getRevision());
-    Assert.assertEquals(BUILD_TIME, versionInfo.getBuildTime());
-    Assert.assertEquals(VersionInfo.UNKNOWN, versionInfo.getSCMURL());
+    assertEquals(VERSION, versionInfo.getVersion());
+    assertEquals(REVISION, versionInfo.getRevision());
+    assertEquals(BUILD_TIME, versionInfo.getBuildTime());
+    assertEquals(VersionInfo.UNKNOWN, versionInfo.getSCMURL());
   }
 
-  @Test(timeout = 5000)
+  @Test
+  @Timeout(value = 5000, unit = TimeUnit.MILLISECONDS)
   public void testTest3File() {
     VersionInfo versionInfo = new VersionInfo("test3");
-    Assert.assertEquals(VERSION, versionInfo.getVersion());
-    Assert.assertEquals(REVISION, versionInfo.getRevision());
-    Assert.assertEquals("", versionInfo.getBuildTime());
-    Assert.assertEquals(SCM_URL, versionInfo.getSCMURL());
+    assertEquals(VERSION, versionInfo.getVersion());
+    assertEquals(REVISION, versionInfo.getRevision());
+    assertEquals("", versionInfo.getBuildTime());
+    assertEquals(SCM_URL, versionInfo.getSCMURL());
   }
 
-  @Test(timeout = 5000)
+  @Test
+  @Timeout(value = 5000, unit = TimeUnit.MILLISECONDS)
   public void testNonExistentFile() {
     VersionInfo versionInfo = new VersionInfo("test4");
   }

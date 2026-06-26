@@ -18,9 +18,12 @@
  */
 package org.apache.tez.mapreduce.hadoop;
 
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertNull;
-import static org.junit.Assert.assertTrue;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertNull;
+import static org.junit.jupiter.api.Assertions.assertTrue;
+
+import java.util.concurrent.TimeUnit;
 
 import org.apache.hadoop.mapred.JobConf;
 import org.apache.tez.dag.api.TezConfiguration;
@@ -28,11 +31,13 @@ import org.apache.tez.dag.library.vertexmanager.ShuffleVertexManager;
 import org.apache.tez.runtime.library.api.TezRuntimeConfiguration;
 import org.apache.tez.runtime.library.common.Constants;
 
-import org.junit.Test;
+import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.Timeout;
 
 public class TestDeprecatedKeys {
 
-  @Test(timeout = 5000)
+  @Test
+  @Timeout(value = 5000, unit = TimeUnit.MILLISECONDS)
   public void verifyReduceKeyTranslation() {
     JobConf jobConf = new JobConf();
 
@@ -61,15 +66,16 @@ public class TestDeprecatedKeys {
     assertEquals(0.22f,
         jobConf.getFloat(TezRuntimeConfiguration.TEZ_RUNTIME_SHUFFLE_MERGE_PERCENT, 0),
         0.01f);
-    assertEquals(true, jobConf.getBoolean(
+    assertTrue(jobConf.getBoolean(
         TezRuntimeConfiguration.TEZ_RUNTIME_SHUFFLE_ENABLE_MEMTOMEM, false));
     assertEquals(0.33f,
         jobConf.getFloat(TezRuntimeConfiguration.TEZ_RUNTIME_INPUT_POST_MERGE_BUFFER_PERCENT, 0),
         0.01f);
-    assertEquals(false, jobConf.getBoolean(TezConfiguration.TEZ_USER_CLASSPATH_FIRST, true));
+    assertFalse(jobConf.getBoolean(TezConfiguration.TEZ_USER_CLASSPATH_FIRST, true));
   }
 
-  @Test(timeout = 5000)
+  @Test
+  @Timeout(value = 5000, unit = TimeUnit.MILLISECONDS)
   /**
    * Set of keys that can be overridden at tez runtime
    */
@@ -113,22 +119,24 @@ public class TestDeprecatedKeys {
 
     assertEquals(1000, jobConf.getInt(TezRuntimeConfiguration.TEZ_RUNTIME_IO_SORT_FACTOR, 0));
     assertEquals(200, jobConf.getInt(TezRuntimeConfiguration.TEZ_RUNTIME_IO_SORT_MB, 100));
-    assertEquals(true, jobConf.getBoolean(TezRuntimeConfiguration.TEZ_RUNTIME_IFILE_READAHEAD, false));
+    assertTrue(jobConf.getBoolean(TezRuntimeConfiguration.TEZ_RUNTIME_IFILE_READAHEAD, false));
     assertEquals(20, jobConf.getInt(TezRuntimeConfiguration.TEZ_RUNTIME_IFILE_READAHEAD_BYTES, 0));
     assertEquals(10, jobConf.getInt(TezRuntimeConfiguration.TEZ_RUNTIME_INDEX_CACHE_MEMORY_LIMIT_BYTES, 0));
     assertEquals(20, jobConf.getInt(TezRuntimeConfiguration.TEZ_RUNTIME_COMBINE_MIN_SPILLS, 0));
     assertEquals(10, jobConf.getInt(Constants.TEZ_RUNTIME_TASK_MEMORY, 0));
     assertEquals(10, jobConf.getInt(TezRuntimeConfiguration.TEZ_RUNTIME_SHUFFLE_PARALLEL_COPIES, 0));
     assertEquals(10, jobConf.getInt(TezRuntimeConfiguration.TEZ_RUNTIME_SHUFFLE_FETCH_FAILURES_LIMIT, 0));
-    assertEquals(true, jobConf.getBoolean(TezRuntimeConfiguration.TEZ_RUNTIME_SHUFFLE_NOTIFY_READERROR, false));
+    assertTrue(
+        jobConf.getBoolean(TezRuntimeConfiguration.TEZ_RUNTIME_SHUFFLE_NOTIFY_READERROR, false));
     assertEquals(10, jobConf.getInt(TezRuntimeConfiguration.TEZ_RUNTIME_SHUFFLE_CONNECT_TIMEOUT, 0));
     assertEquals(10, jobConf.getInt(TezRuntimeConfiguration.TEZ_RUNTIME_SHUFFLE_READ_TIMEOUT, 0));
-    assertEquals(true, jobConf.getBoolean(TezRuntimeConfiguration.TEZ_RUNTIME_SHUFFLE_ENABLE_SSL, false));
+    assertTrue(jobConf.getBoolean(TezRuntimeConfiguration.TEZ_RUNTIME_SHUFFLE_ENABLE_SSL, false));
     assertEquals(10.0f, jobConf.getFloat(TezRuntimeConfiguration.TEZ_RUNTIME_SHUFFLE_FETCH_BUFFER_PERCENT, 0.0f), 0.0f);
     assertEquals(10.0f, jobConf.getFloat(TezRuntimeConfiguration.TEZ_RUNTIME_SHUFFLE_MEMORY_LIMIT_PERCENT, 0.0f), 0.0f);
     assertEquals(10.0f, jobConf.getFloat(TezRuntimeConfiguration.TEZ_RUNTIME_SHUFFLE_MERGE_PERCENT, 0.0f), 0.0f);
     assertEquals(10, jobConf.getInt(TezRuntimeConfiguration.TEZ_RUNTIME_SHUFFLE_MEMTOMEM_SEGMENTS, 0));
-    assertEquals(true, jobConf.getBoolean(TezRuntimeConfiguration.TEZ_RUNTIME_SHUFFLE_ENABLE_MEMTOMEM, false));
+    assertTrue(
+        jobConf.getBoolean(TezRuntimeConfiguration.TEZ_RUNTIME_SHUFFLE_ENABLE_MEMTOMEM, false));
     assertEquals(10.0f, jobConf.getFloat(TezRuntimeConfiguration.TEZ_RUNTIME_INPUT_POST_MERGE_BUFFER_PERCENT, 0.0f), 0.0f);
     assertEquals("DefaultSorter", jobConf.get(TezRuntimeConfiguration.TEZ_RUNTIME_INTERNAL_SORTER_CLASS, ""));
     assertEquals("groupComparator", jobConf.get(TezRuntimeConfiguration.TEZ_RUNTIME_GROUP_COMPARATOR_CLASS, ""));
@@ -136,7 +144,7 @@ public class TestDeprecatedKeys {
     assertEquals("DefaultSorter", jobConf.get(TezRuntimeConfiguration.TEZ_RUNTIME_INTERNAL_SORTER_CLASS, ""));
     assertTrue(jobConf.getBoolean(TezRuntimeConfiguration.TEZ_RUNTIME_COMPRESS, false));
     assertEquals(0.95f, jobConf.getFloat(ShuffleVertexManager.TEZ_SHUFFLE_VERTEX_MANAGER_MIN_SRC_FRACTION, 0.0f), 0.0f);
-    assertEquals(false, jobConf.getBoolean(TezConfiguration.TEZ_USER_CLASSPATH_FIRST, true));
+    assertFalse(jobConf.getBoolean(TezConfiguration.TEZ_USER_CLASSPATH_FIRST, true));
 
     assertNull(jobConf.get(MRConfig.MAPRED_IFILE_READAHEAD));
     assertNull(jobConf.get(MRConfig.MAPRED_IFILE_READAHEAD_BYTES));

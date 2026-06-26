@@ -18,15 +18,16 @@
  */
 package org.apache.tez.mapreduce.common;
 
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertNotNull;
-import static org.junit.Assert.assertNull;
-import static org.junit.Assert.assertTrue;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertInstanceOf;
+import static org.junit.jupiter.api.Assertions.assertNotNull;
+import static org.junit.jupiter.api.Assertions.assertNull;
 
 import java.io.DataInput;
 import java.io.DataOutput;
 import java.io.IOException;
 import java.util.List;
+import java.util.concurrent.TimeUnit;
 
 import org.apache.hadoop.classification.InterfaceAudience.Private;
 import org.apache.hadoop.conf.Configuration;
@@ -47,11 +48,13 @@ import org.apache.tez.runtime.api.events.InputUpdatePayloadEvent;
 
 import com.google.protobuf.ByteString;
 
-import org.junit.Test;
+import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.Timeout;
 
 public class TestMRInputSplitDistributor {
 
-  @Test(timeout = 5000)
+  @Test
+  @Timeout(value = 5000, unit = TimeUnit.MILLISECONDS)
   public void testSerializedPayload() throws IOException {
 
     Configuration conf = new Configuration(false);
@@ -77,9 +80,9 @@ public class TestMRInputSplitDistributor {
     List<Event> events = splitDist.initialize();
 
     assertEquals(3, events.size());
-    assertTrue(events.get(0) instanceof InputUpdatePayloadEvent);
-    assertTrue(events.get(1) instanceof InputDataInformationEvent);
-    assertTrue(events.get(2) instanceof InputDataInformationEvent);
+    assertInstanceOf(InputUpdatePayloadEvent.class, events.get(0));
+    assertInstanceOf(InputDataInformationEvent.class, events.get(1));
+    assertInstanceOf(InputDataInformationEvent.class, events.get(2));
 
     InputDataInformationEvent diEvent1 = (InputDataInformationEvent) (events.get(1));
     InputDataInformationEvent diEvent2 = (InputDataInformationEvent) (events.get(2));
@@ -92,16 +95,17 @@ public class TestMRInputSplitDistributor {
 
     MRSplitProto event1Proto = MRSplitProto.parseFrom(ByteString.copyFrom(diEvent1.getUserPayload()));
     InputSplit is1 = MRInputUtils.getOldSplitDetailsFromEvent(event1Proto, new Configuration());
-    assertTrue(is1 instanceof InputSplitForTest);
+    assertInstanceOf(InputSplitForTest.class, is1);
     assertEquals(1, ((InputSplitForTest) is1).identifier);
 
     MRSplitProto event2Proto = MRSplitProto.parseFrom(ByteString.copyFrom(diEvent2.getUserPayload()));
     InputSplit is2 = MRInputUtils.getOldSplitDetailsFromEvent(event2Proto, new Configuration());
-    assertTrue(is2 instanceof InputSplitForTest);
+    assertInstanceOf(InputSplitForTest.class, is2);
     assertEquals(2, ((InputSplitForTest) is2).identifier);
   }
 
-  @Test(timeout = 5000)
+  @Test
+  @Timeout(value = 5000, unit = TimeUnit.MILLISECONDS)
   public void testDeserializedPayload() throws IOException {
 
     Configuration conf = new Configuration(false);
@@ -127,9 +131,9 @@ public class TestMRInputSplitDistributor {
     List<Event> events = splitDist.initialize();
 
     assertEquals(3, events.size());
-    assertTrue(events.get(0) instanceof InputUpdatePayloadEvent);
-    assertTrue(events.get(1) instanceof InputDataInformationEvent);
-    assertTrue(events.get(2) instanceof InputDataInformationEvent);
+    assertInstanceOf(InputUpdatePayloadEvent.class, events.get(0));
+    assertInstanceOf(InputDataInformationEvent.class, events.get(1));
+    assertInstanceOf(InputDataInformationEvent.class, events.get(2));
 
     InputDataInformationEvent diEvent1 = (InputDataInformationEvent) (events.get(1));
     InputDataInformationEvent diEvent2 = (InputDataInformationEvent) (events.get(2));
@@ -140,10 +144,10 @@ public class TestMRInputSplitDistributor {
     assertNotNull(diEvent1.getDeserializedUserPayload());
     assertNotNull(diEvent2.getDeserializedUserPayload());
 
-    assertTrue(diEvent1.getDeserializedUserPayload() instanceof InputSplitForTest);
+    assertInstanceOf(InputSplitForTest.class, diEvent1.getDeserializedUserPayload());
     assertEquals(1, ((InputSplitForTest) diEvent1.getDeserializedUserPayload()).identifier);
 
-    assertTrue(diEvent2.getDeserializedUserPayload() instanceof InputSplitForTest);
+    assertInstanceOf(InputSplitForTest.class, diEvent2.getDeserializedUserPayload());
     assertEquals(2, ((InputSplitForTest) diEvent2.getDeserializedUserPayload()).identifier);
   }
 

@@ -18,8 +18,11 @@
  */
 package org.apache.tez.dag.history;
 
-import org.junit.Assert;
-import org.junit.Test;
+import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertTrue;
+
+import org.junit.jupiter.api.Test;
+
 
 public class TestHistoryEventType {
 
@@ -29,9 +32,9 @@ public class TestHistoryEventType {
       if (eventType.name().startsWith("AM_")
           || eventType.name().startsWith("APP_")
           || eventType.name().startsWith("CONTAINER_")) {
-        Assert.assertFalse(HistoryEventType.isDAGSpecificEvent(eventType));
+        assertFalse(HistoryEventType.isDAGSpecificEvent(eventType));
       } else {
-        Assert.assertTrue(HistoryEventType.isDAGSpecificEvent(eventType));
+        assertTrue(HistoryEventType.isDAGSpecificEvent(eventType));
       }
     }
   }

@@ -18,6 +18,11 @@
  */
 package org.apache.tez.mapreduce.hadoop;
 
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertTrue;
+import static org.junit.jupiter.api.Assertions.fail;
+
 import java.io.IOException;
 import java.nio.file.Files;
 import java.util.ArrayList;
@@ -25,6 +30,7 @@ import java.util.Arrays;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
+import java.util.concurrent.TimeUnit;
 
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.fs.FSDataOutputStream;
@@ -49,11 +55,11 @@ import org.apache.tez.runtime.api.events.InputDataInformationEvent;
 
 import com.google.protobuf.ByteString;
 
-import org.junit.After;
-import org.junit.Assert;
-import org.junit.Before;
-import org.junit.BeforeClass;
-import org.junit.Test;
+import org.junit.jupiter.api.AfterEach;
+import org.junit.jupiter.api.BeforeAll;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.Timeout;
 
 public class TestMRInputHelpers {
 
@@ -69,7 +75,7 @@ public class TestMRInputHelpers {
   private static Path testRootDir;
   private static Path localTestRootDir;
 
-  @BeforeClass
+  @BeforeAll
   public static void setup() throws IOException {
     testRootDir = new Path(Files.createTempDirectory(TestMRHelpers.class.getName()).toString());
     localTestRootDir = new Path(Files.createTempDirectory(TestMRHelpers.class.getName() + "-local").toString());
@@ -107,7 +113,7 @@ public class TestMRInputHelpers {
     remoteFs.mkdirs(new Path("/tmp/splitsDirOld/"));
     testFilePath = remoteFs.makeQualified(new Path("/tmp/input/test.xml"));
     FileStatus fsStatus = remoteFs.getFileStatus(testFilePath);
-    Assert.assertTrue(fsStatus.getLen() > 0);
+    assertTrue(fsStatus.getLen() > 0);
 
     oldSplitsDir = remoteFs.makeQualified(new Path("/tmp/splitsDirOld/"));
     newSplitsDir = remoteFs.makeQualified(new Path("/tmp/splitsDirNew/"));
@@ -116,14 +122,15 @@ public class TestMRInputHelpers {
   }
 
 
-  @Test(timeout = 5000)
+  @Test
+  @Timeout(value = 5000, unit = TimeUnit.MILLISECONDS)
   public void testNewSplitsGen() throws Exception {
 
     DataSourceDescriptor dataSource = generateDataSourceDescriptorMapReduce(newSplitsDir);
 
-    Assert.assertTrue(dataSource.getAdditionalLocalFiles()
+    assertTrue(dataSource.getAdditionalLocalFiles()
         .containsKey(MRInputHelpers.JOB_SPLIT_RESOURCE_NAME));
-    Assert.assertTrue(dataSource.getAdditionalLocalFiles()
+    assertTrue(dataSource.getAdditionalLocalFiles()
         .containsKey(MRInputHelpers.JOB_SPLIT_METAINFO_RESOURCE_NAME));
 
     RemoteIterator<LocatedFileStatus> files =
@@ -142,24 +149,25 @@ public class TestMRInputHelpers {
       } else if (fName.equals(MRInputHelpers.JOB_SPLIT_METAINFO_RESOURCE_NAME)) {
         foundMetaFile = true;
       } else {
-        Assert.fail("Found invalid file in splits dir, filename=" + fName);
+        fail("Found invalid file in splits dir, filename=" + fName);
       }
-      Assert.assertTrue(status.getLen() > 0);
+      assertTrue(status.getLen() > 0);
     }
 
-    Assert.assertEquals(2, totalFilesFound);
-    Assert.assertTrue(foundSplitsFile);
-    Assert.assertTrue(foundMetaFile);
+    assertEquals(2, totalFilesFound);
+    assertTrue(foundSplitsFile);
+    assertTrue(foundMetaFile);
 
     verifyLocationHints(newSplitsDir, dataSource.getLocationHint().getTaskLocationHints());
   }
 
-  @Test(timeout = 5000)
+  @Test
+  @Timeout(value = 5000, unit = TimeUnit.MILLISECONDS)
   public void testOldSplitsGen() throws Exception {
     DataSourceDescriptor dataSource = generateDataSourceDescriptorMapRed(oldSplitsDir);
-    Assert.assertTrue(
+    assertTrue(
         dataSource.getAdditionalLocalFiles().containsKey(MRInputHelpers.JOB_SPLIT_RESOURCE_NAME));
-    Assert.assertTrue(dataSource.getAdditionalLocalFiles()
+    assertTrue(dataSource.getAdditionalLocalFiles()
         .containsKey(MRInputHelpers.JOB_SPLIT_METAINFO_RESOURCE_NAME));
 
     RemoteIterator<LocatedFileStatus> files =
@@ -178,28 +186,29 @@ public class TestMRInputHelpers {
       } else if (fName.equals(MRInputHelpers.JOB_SPLIT_METAINFO_RESOURCE_NAME)) {
         foundMetaFile = true;
       } else {
-        Assert.fail("Found invalid file in splits dir, filename=" + fName);
+        fail("Found invalid file in splits dir, filename=" + fName);
       }
-      Assert.assertTrue(status.getLen() > 0);
+      assertTrue(status.getLen() > 0);
     }
 
-    Assert.assertEquals(2, totalFilesFound);
-    Assert.assertTrue(foundSplitsFile);
-    Assert.assertTrue(foundMetaFile);
+    assertEquals(2, totalFilesFound);
+    assertTrue(foundSplitsFile);
+    assertTrue(foundMetaFile);
 
     verifyLocationHints(oldSplitsDir, dataSource.getLocationHint().getTaskLocationHints());
   }
 
-  @Test(timeout = 5000)
+  @Test
+  @Timeout(value = 5000, unit = TimeUnit.MILLISECONDS)
   public void testInputSplitLocalResourceCreation() throws Exception {
     DataSourceDescriptor dataSource = generateDataSourceDescriptorMapRed(oldSplitsDir);
 
     Map<String, LocalResource> localResources = dataSource.getAdditionalLocalFiles();
 
-    Assert.assertEquals(2, localResources.size());
-    Assert.assertTrue(localResources.containsKey(
+    assertEquals(2, localResources.size());
+    assertTrue(localResources.containsKey(
         MRInputHelpers.JOB_SPLIT_RESOURCE_NAME));
-    Assert.assertTrue(localResources.containsKey(
+    assertTrue(localResources.containsKey(
         MRInputHelpers.JOB_SPLIT_METAINFO_RESOURCE_NAME));
   }
 
@@ -211,7 +220,7 @@ public class TestMRInputHelpers {
         InputDataInformationEvent.createWithSerializedPayload(0, proto.toByteString().asReadOnlyByteBuffer());
     MRSplitProto protoFromEvent = MRInputHelpers.getProto(initEvent, new JobConf(conf));
 
-    Assert.assertEquals(proto, protoFromEvent);
+    assertEquals(proto, protoFromEvent);
   }
 
   @Test
@@ -227,16 +236,16 @@ public class TestMRInputHelpers {
     }
 
     // event file is present on fs
-    Assert.assertTrue("Event file should be present on fs", localFs.exists(serializedPath));
+    assertTrue(localFs.exists(serializedPath), "Event file should be present on fs");
 
     InputDataInformationEvent initEvent =
         InputDataInformationEvent.createWithSerializedPath(0, serializedPath.toUri().toString());
     MRSplitProto protoFromEvent = MRInputHelpers.getProto(initEvent, new JobConf(conf));
 
-    Assert.assertEquals(proto, protoFromEvent);
+    assertEquals(proto, protoFromEvent);
 
     // event file is deleted after read
-    Assert.assertFalse("Event file should be deleted after read", localFs.exists(serializedPath));
+    assertFalse(localFs.exists(serializedPath), "Event file should be deleted after read");
   }
 
   private void verifyLocationHints(Path inputSplitsDir,
@@ -255,7 +264,7 @@ public class TestMRInputHelpers {
       );
     }
 
-    Assert.assertEquals(locationHints, actual);
+    assertEquals(locationHints, actual);
   }
 
   private DataSourceDescriptor generateDataSourceDescriptorMapReduce(Path inputSplitsDir)
@@ -280,7 +289,8 @@ public class TestMRInputHelpers {
     return MRInputHelpers.configureMRInputWithLegacySplitGeneration(jobConf, inputSplitsDir, true);
   }
 
-  @Test(timeout = 5000)
+  @Test
+  @Timeout(value = 5000, unit = TimeUnit.MILLISECONDS)
   public void testInputSplitLocalResourceCreationWithDifferentFS() throws Exception {
     Path splitsDir = localFs.resolvePath(localTestRootDir);
 
@@ -288,23 +298,23 @@ public class TestMRInputHelpers {
 
     Map<String, LocalResource> localResources = dataSource.getAdditionalLocalFiles();
 
-    Assert.assertEquals(2, localResources.size());
-    Assert.assertTrue(localResources.containsKey(
+    assertEquals(2, localResources.size());
+    assertTrue(localResources.containsKey(
         MRInputHelpers.JOB_SPLIT_RESOURCE_NAME));
-    Assert.assertTrue(localResources.containsKey(
+    assertTrue(localResources.containsKey(
         MRInputHelpers.JOB_SPLIT_METAINFO_RESOURCE_NAME));
 
     for (LocalResource lr : localResources.values()) {
-      Assert.assertFalse(lr.getResource().getScheme().contains(remoteFs.getScheme()));
+      assertFalse(lr.getResource().getScheme().contains(remoteFs.getScheme()));
     }
   }
 
-  @Before
+  @BeforeEach
   public void before() throws IOException {
     localFs.mkdirs(localTestRootDir);
   }
 
-  @After
+  @AfterEach
   public void after() throws IOException {
     localFs.delete(localTestRootDir, true);
   }

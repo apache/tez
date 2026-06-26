@@ -18,9 +18,17 @@
  */
 package org.apache.tez.common;
 
+import static org.junit.jupiter.api.Assertions.assertArrayEquals;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertNotNull;
+import static org.junit.jupiter.api.Assertions.assertTrue;
+import static org.junit.jupiter.api.Assertions.fail;
+
 import java.io.File;
 import java.io.IOException;
 import java.util.Map;
+import java.util.concurrent.TimeUnit;
 
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.fs.CommonConfigurationKeys;
@@ -38,10 +46,10 @@ import org.apache.tez.dag.api.TezUncheckedException;
 
 import com.google.common.collect.Maps;
 
-import org.junit.AfterClass;
-import org.junit.Assert;
-import org.junit.BeforeClass;
-import org.junit.Test;
+import org.junit.jupiter.api.AfterAll;
+import org.junit.jupiter.api.BeforeAll;
+import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.Timeout;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -58,7 +66,7 @@ public class TestTezCommonUtils {
   private static FileSystem remoteFs = null;
   private static final Logger LOG = LoggerFactory.getLogger(TestTezCommonUtils.class);
 
-  @BeforeClass
+  @BeforeAll
   public static void setup() throws Exception {
     conf.set(TezConfiguration.TEZ_AM_STAGING_DIR, STAGE_DIR);
     LOG.info("Starting mini clusters");
@@ -74,7 +82,7 @@ public class TestTezCommonUtils {
     }
   }
 
-  @AfterClass
+  @AfterAll
   public static void afterClass() throws InterruptedException {
     if (dfsCluster != null) {
       try {
@@ -87,23 +95,25 @@ public class TestTezCommonUtils {
   }
 
   // Testing base staging dir
-  @Test(timeout = 5000)
+  @Test
+  @Timeout(value = 5000, unit = TimeUnit.MILLISECONDS)
   public void testTezBaseStagingPath() throws Exception {
     Configuration localConf = new Configuration();
     // Check if default works with localFS
     localConf.set(TezConfiguration.TEZ_AM_STAGING_DIR, LOCAL_STAGING_DIR.getAbsolutePath());
     localConf.set("fs.defaultFS", "file:///");
     Path stageDir = TezCommonUtils.getTezBaseStagingPath(localConf);
-    Assert.assertEquals("file:" + LOCAL_STAGING_DIR, stageDir.toString());
+    assertEquals("file:" + LOCAL_STAGING_DIR, stageDir.toString());
 
     // check if user set something, indeed works
     conf.set(TezConfiguration.TEZ_AM_STAGING_DIR, STAGE_DIR);
     stageDir = TezCommonUtils.getTezBaseStagingPath(conf);
-    Assert.assertEquals(stageDir.toString(), RESOLVED_STAGE_DIR);
+    assertEquals(stageDir.toString(), RESOLVED_STAGE_DIR);
   }
 
   // Testing System staging dir if createed
-  @Test(timeout = 5000)
+  @Test
+  @Timeout(value = 5000, unit = TimeUnit.MILLISECONDS)
   public void testCreateTezSysStagingPath() throws Exception {
     String strAppId = "testAppId";
     String expectedStageDir = RESOLVED_STAGE_DIR + Path.SEPARATOR
@@ -116,24 +126,26 @@ public class TestTezCommonUtils {
     if (fs.exists(stagePath)) {
       fs.delete(stagePath, true);
     }
-    Assert.assertFalse(fs.exists(stagePath));
+    assertFalse(fs.exists(stagePath));
     Path stageDir = TezCommonUtils.createTezSystemStagingPath(conf, strAppId);
-    Assert.assertEquals(stageDir.toString(), expectedStageDir);
-    Assert.assertTrue(fs.exists(stagePath));
+    assertEquals(stageDir.toString(), expectedStageDir);
+    assertTrue(fs.exists(stagePath));
   }
 
   // Testing System staging dir
-  @Test(timeout = 5000)
+  @Test
+  @Timeout(value = 5000, unit = TimeUnit.MILLISECONDS)
   public void testTezSysStagingPath() throws Exception {
     String strAppId = "testAppId";
     Path stageDir = TezCommonUtils.getTezSystemStagingPath(conf, strAppId);
     String expectedStageDir = RESOLVED_STAGE_DIR + Path.SEPARATOR
         + TezCommonUtils.TEZ_SYSTEM_SUB_DIR + Path.SEPARATOR + strAppId;
-    Assert.assertEquals(stageDir.toString(), expectedStageDir);
+    assertEquals(stageDir.toString(), expectedStageDir);
   }
 
   // Testing conf staging dir
-  @Test(timeout = 5000)
+  @Test
+  @Timeout(value = 5000, unit = TimeUnit.MILLISECONDS)
   public void testTezConfStagingPath() throws Exception {
     String strAppId = "testAppId";
     Path stageDir = TezCommonUtils.getTezSystemStagingPath(conf, strAppId);
@@ -141,11 +153,12 @@ public class TestTezCommonUtils {
     String expectedDir = RESOLVED_STAGE_DIR + Path.SEPARATOR
         + TezCommonUtils.TEZ_SYSTEM_SUB_DIR + Path.SEPARATOR + strAppId + Path.SEPARATOR
         + TezConstants.TEZ_PB_BINARY_CONF_NAME;
-    Assert.assertEquals(confStageDir.toString(), expectedDir);
+    assertEquals(confStageDir.toString(), expectedDir);
   }
 
   // Testing session jars staging dir
-  @Test(timeout = 5000)
+  @Test
+  @Timeout(value = 5000, unit = TimeUnit.MILLISECONDS)
   public void testTezSessionJarStagingPath() throws Exception {
     String strAppId = "testAppId";
     Path stageDir = TezCommonUtils.getTezSystemStagingPath(conf, strAppId);
@@ -153,11 +166,12 @@ public class TestTezCommonUtils {
     String expectedDir = RESOLVED_STAGE_DIR + Path.SEPARATOR
         + TezCommonUtils.TEZ_SYSTEM_SUB_DIR + Path.SEPARATOR + strAppId + Path.SEPARATOR
         + TezConstants.TEZ_AM_LOCAL_RESOURCES_PB_FILE_NAME;
-    Assert.assertEquals(confStageDir.toString(), expectedDir);
+    assertEquals(confStageDir.toString(), expectedDir);
   }
 
   // Testing bin plan staging dir
-  @Test(timeout = 5000)
+  @Test
+  @Timeout(value = 5000, unit = TimeUnit.MILLISECONDS)
   public void testTezBinPlanStagingPath() throws Exception {
     String strAppId = "testAppId";
     Path stageDir = TezCommonUtils.getTezSystemStagingPath(conf, strAppId);
@@ -165,11 +179,12 @@ public class TestTezCommonUtils {
     String expectedDir = RESOLVED_STAGE_DIR + Path.SEPARATOR
         + TezCommonUtils.TEZ_SYSTEM_SUB_DIR + Path.SEPARATOR + strAppId + Path.SEPARATOR
         + TezConstants.TEZ_PB_PLAN_BINARY_NAME;
-    Assert.assertEquals(confStageDir.toString(), expectedDir);
+    assertEquals(confStageDir.toString(), expectedDir);
   }
 
   // Testing text plan staging dir
-  @Test(timeout = 5000)
+  @Test
+  @Timeout(value = 5000, unit = TimeUnit.MILLISECONDS)
   public void testTezTextPlanStagingPath() throws Exception {
     String strAppId = "testAppId";
     String dagPBName = "testDagPBName";
@@ -179,11 +194,12 @@ public class TestTezCommonUtils {
     String expectedDir = RESOLVED_STAGE_DIR + Path.SEPARATOR
         + TezCommonUtils.TEZ_SYSTEM_SUB_DIR + Path.SEPARATOR + strAppId + Path.SEPARATOR
         + strAppId + "-" + dagPBName + "-" + TezConstants.TEZ_PB_PLAN_TEXT_NAME;
-    Assert.assertEquals(confStageDir.toString(), expectedDir);
+    assertEquals(confStageDir.toString(), expectedDir);
   }
 
   // Testing recovery path staging dir
-  @Test(timeout = 5000)
+  @Test
+  @Timeout(value = 5000, unit = TimeUnit.MILLISECONDS)
   public void testTezRecoveryStagingPath() throws Exception {
     String strAppId = "testAppId";
     Path stageDir = TezCommonUtils.getTezSystemStagingPath(conf, strAppId);
@@ -191,11 +207,12 @@ public class TestTezCommonUtils {
     String expectedDir = RESOLVED_STAGE_DIR + Path.SEPARATOR
         + TezCommonUtils.TEZ_SYSTEM_SUB_DIR + Path.SEPARATOR + strAppId + Path.SEPARATOR
         + TezConstants.DAG_RECOVERY_DATA_DIR_NAME;
-    Assert.assertEquals(confStageDir.toString(), expectedDir);
+    assertEquals(confStageDir.toString(), expectedDir);
   }
 
   // Testing app attempt specific recovery path staging dir
-  @Test(timeout = 5000)
+  @Test
+  @Timeout(value = 5000, unit = TimeUnit.MILLISECONDS)
   public void testTezAttemptRecoveryStagingPath() throws Exception {
     String strAppId = "testAppId";
     Path stageDir = TezCommonUtils.getTezSystemStagingPath(conf, strAppId);
@@ -205,11 +222,12 @@ public class TestTezCommonUtils {
     String expectedDir = RESOLVED_STAGE_DIR + Path.SEPARATOR
         + TezCommonUtils.TEZ_SYSTEM_SUB_DIR + Path.SEPARATOR + strAppId + Path.SEPARATOR
         + TezConstants.DAG_RECOVERY_DATA_DIR_NAME + Path.SEPARATOR + "2";
-    Assert.assertEquals(recoveryStageDir.toString(), expectedDir);
+    assertEquals(recoveryStageDir.toString(), expectedDir);
   }
 
   // Testing DAG specific recovery path staging dir
-  @Test(timeout = 5000)
+  @Test
+  @Timeout(value = 5000, unit = TimeUnit.MILLISECONDS)
   public void testTezDAGRecoveryStagingPath() throws Exception {
     String strAppId = "testAppId";
     Path stageDir = TezCommonUtils.getTezSystemStagingPath(conf, strAppId);
@@ -222,11 +240,12 @@ public class TestTezCommonUtils {
         + TezCommonUtils.TEZ_SYSTEM_SUB_DIR + Path.SEPARATOR + strAppId + Path.SEPARATOR
         + TezConstants.DAG_RECOVERY_DATA_DIR_NAME + Path.SEPARATOR + "2" + Path.SEPARATOR
         + "dag_123" + TezConstants.DAG_RECOVERY_RECOVER_FILE_SUFFIX;
-    Assert.assertEquals(expectedDir, dagRecoveryPathj.toString());
+    assertEquals(expectedDir, dagRecoveryPathj.toString());
   }
 
   // Testing Summary recovery path staging dir
-  @Test(timeout = 5000)
+  @Test
+  @Timeout(value = 5000, unit = TimeUnit.MILLISECONDS)
   public void testTezSummaryRecoveryStagingPath() throws Exception {
     String strAppId = "testAppId";
     Path stageDir = TezCommonUtils.getTezSystemStagingPath(conf, strAppId);
@@ -238,26 +257,29 @@ public class TestTezCommonUtils {
         + TezCommonUtils.TEZ_SYSTEM_SUB_DIR + Path.SEPARATOR + strAppId + Path.SEPARATOR
         + TezConstants.DAG_RECOVERY_DATA_DIR_NAME + Path.SEPARATOR + "2" + Path.SEPARATOR
         + TezConstants.DAG_RECOVERY_SUMMARY_FILE_SUFFIX;
-    Assert.assertEquals(expectedDir, summaryRecoveryPathj.toString());
+    assertEquals(expectedDir, summaryRecoveryPathj.toString());
   }
 
   // This test is running here to leverage existing mini cluster
-  @Test(timeout = 5000)
+  @Test
+  @Timeout(value = 5000, unit = TimeUnit.MILLISECONDS)
   public void testLocalResourceVisibility() throws Exception {
     TestTezClientUtils.testLocalResourceVisibility(dfsCluster.getFileSystem(), conf);
   }
 
-  @Test(timeout = 5000)
+  @Test
+  @Timeout(value = 5000, unit = TimeUnit.MILLISECONDS)
   public void testStringTokenize() {
     String s = "foo:bar:xyz::too";
     String[] expectedTokens = { "foo", "bar" , "xyz" , "too"};
     String[] tokens = new String[4];
     TezCommonUtils.tokenizeString(s, ":").toArray(tokens);
-    Assert.assertArrayEquals(expectedTokens, tokens);
+    assertArrayEquals(expectedTokens, tokens);
   }
 
 
-  @Test(timeout = 5000)
+  @Test
+  @Timeout(value = 5000, unit = TimeUnit.MILLISECONDS)
   public void testAddAdditionalLocalResources() {
     String lrName = "LR";
     Map<String, LocalResource> originalLrs;
@@ -289,9 +311,9 @@ public class TestTezCommonUtils {
         LocalResourceType.FILE, LocalResourceVisibility.PUBLIC, 100, 1));
     try {
       TezCommonUtils.addAdditionalLocalResources(additionalLrs, originalLrs, "");
-      Assert.fail("Duplicate LRs with different sizes expected to fail");
+      fail("Duplicate LRs with different sizes expected to fail");
     } catch (TezUncheckedException e) {
-      Assert.assertTrue(e.getMessage().contains("Duplicate Resources found with different size"));
+      assertTrue(e.getMessage().contains("Duplicate Resources found with different size"));
     }
 
     // Different path, same size, diff timestamp
@@ -314,56 +336,57 @@ public class TestTezCommonUtils {
         LocalResourceType.FILE, LocalResourceVisibility.PUBLIC, 100, 1));
     try {
       TezCommonUtils.addAdditionalLocalResources(additionalLrs, originalLrs, "");
-      Assert.fail("Duplicate LRs with different sizes expected to fail");
+      fail("Duplicate LRs with different sizes expected to fail");
     } catch (TezUncheckedException e) {
-      Assert.assertTrue(e.getMessage().contains("Duplicate Resources found with different size"));
+      assertTrue(e.getMessage().contains("Duplicate Resources found with different size"));
     }
 
   }
 
-  @Test (timeout = 5000)
+  @Test
+  @Timeout(value = 5000, unit = TimeUnit.MILLISECONDS)
   public void testAMClientHeartBeatTimeout() {
     TezConfiguration conf = new TezConfiguration(false);
 
     // -1 for any negative value
-    Assert.assertEquals(-1,
+    assertEquals(-1,
         TezCommonUtils.getAMClientHeartBeatTimeoutMillis(conf));
     conf.setInt(TezConfiguration.TEZ_AM_CLIENT_HEARTBEAT_TIMEOUT_SECS, -2);
-    Assert.assertEquals(-1,
+    assertEquals(-1,
         TezCommonUtils.getAMClientHeartBeatTimeoutMillis(conf));
 
     // For any value > 0 but less than min, revert to min
     conf.setInt(TezConfiguration.TEZ_AM_CLIENT_HEARTBEAT_TIMEOUT_SECS,
         TezConstants.TEZ_AM_CLIENT_HEARTBEAT_TIMEOUT_SECS_MINIMUM - 1);
-    Assert.assertEquals(TezConstants.TEZ_AM_CLIENT_HEARTBEAT_TIMEOUT_SECS_MINIMUM * 1000,
+    assertEquals(TezConstants.TEZ_AM_CLIENT_HEARTBEAT_TIMEOUT_SECS_MINIMUM * 1000,
         TezCommonUtils.getAMClientHeartBeatTimeoutMillis(conf));
 
     // For val > min, should remain val as configured
     conf.setInt(TezConfiguration.TEZ_AM_CLIENT_HEARTBEAT_TIMEOUT_SECS,
         TezConstants.TEZ_AM_CLIENT_HEARTBEAT_TIMEOUT_SECS_MINIMUM * 2);
-    Assert.assertEquals(TezConstants.TEZ_AM_CLIENT_HEARTBEAT_TIMEOUT_SECS_MINIMUM * 2000,
+    assertEquals(TezConstants.TEZ_AM_CLIENT_HEARTBEAT_TIMEOUT_SECS_MINIMUM * 2000,
         TezCommonUtils.getAMClientHeartBeatTimeoutMillis(conf));
 
     conf = new TezConfiguration(false);
-    Assert.assertEquals(-1, TezCommonUtils.getAMClientHeartBeatPollIntervalMillis(conf, -1, 10));
-    Assert.assertEquals(-1, TezCommonUtils.getAMClientHeartBeatPollIntervalMillis(conf, -123, 10));
-    Assert.assertEquals(-1, TezCommonUtils.getAMClientHeartBeatPollIntervalMillis(conf, 0, 10));
+    assertEquals(-1, TezCommonUtils.getAMClientHeartBeatPollIntervalMillis(conf, -1, 10));
+    assertEquals(-1, TezCommonUtils.getAMClientHeartBeatPollIntervalMillis(conf, -123, 10));
+    assertEquals(-1, TezCommonUtils.getAMClientHeartBeatPollIntervalMillis(conf, 0, 10));
 
     // min poll interval is 1000
-    Assert.assertEquals(1000, TezCommonUtils.getAMClientHeartBeatPollIntervalMillis(conf, 600, 10));
+    assertEquals(1000, TezCommonUtils.getAMClientHeartBeatPollIntervalMillis(conf, 600, 10));
 
     // Poll interval is heartbeat interval/10
-    Assert.assertEquals(2000,
+    assertEquals(2000,
         TezCommonUtils.getAMClientHeartBeatPollIntervalMillis(conf, 20000, 10));
 
     // Configured poll interval ignored
     conf.setInt(TezConfiguration.TEZ_AM_CLIENT_HEARTBEAT_POLL_INTERVAL_MILLIS, -1);
-    Assert.assertEquals(4000,
+    assertEquals(4000,
         TezCommonUtils.getAMClientHeartBeatPollIntervalMillis(conf, 20000, 5));
 
     // Positive poll interval is allowed
     conf.setInt(TezConfiguration.TEZ_AM_CLIENT_HEARTBEAT_POLL_INTERVAL_MILLIS, 2000);
-    Assert.assertEquals(2000,
+    assertEquals(2000,
         TezCommonUtils.getAMClientHeartBeatPollIntervalMillis(conf, 20000, 5));
 
 
@@ -376,7 +399,7 @@ public class TestTezCommonUtils {
     conf.set(TezConfiguration.TEZ_JVM_SYSTEM_PROPERTIES_TO_LOG, " ");
     String value = TezCommonUtils.getSystemPropertiesToLog(conf);
     for(String key: TezConfiguration.TEZ_JVM_SYSTEM_PROPERTIES_TO_LOG_DEFAULT) {
-      Assert.assertTrue(value.contains(key));
+      assertTrue(value.contains(key));
     }
 
     // test logging of selected keys
@@ -385,32 +408,33 @@ public class TestTezCommonUtils {
     String version = "java.version";
     conf.set(TezConfiguration.TEZ_JVM_SYSTEM_PROPERTIES_TO_LOG, classpath + ", " + os);
     value = TezCommonUtils.getSystemPropertiesToLog(conf);
-    Assert.assertNotNull(value);
-    Assert.assertTrue(value.contains(classpath));
-    Assert.assertTrue(value.contains(os));
-    Assert.assertFalse(value.contains(version));
+    assertNotNull(value);
+    assertTrue(value.contains(classpath));
+    assertTrue(value.contains(os));
+    assertFalse(value.contains(version));
   }
 
-  @Test(timeout=5000)
+  @Test
+  @Timeout(value = 5000, unit = TimeUnit.MILLISECONDS)
   public void testGetDAGSessionTimeout() {
     Configuration conf = new Configuration(false);
-    Assert.assertEquals(TezConfiguration.TEZ_SESSION_AM_DAG_SUBMIT_TIMEOUT_SECS_DEFAULT*1000,
+    assertEquals(TezConfiguration.TEZ_SESSION_AM_DAG_SUBMIT_TIMEOUT_SECS_DEFAULT*1000,
         TezCommonUtils.getDAGSessionTimeout(conf));
 
     // set to 1 month - * 1000 guaranteed to cross positive integer boundary
     conf.setInt(TezConfiguration.TEZ_SESSION_AM_DAG_SUBMIT_TIMEOUT_SECS,
         24 * 60 * 60 * 30);
-    Assert.assertEquals(86400l*1000*30,
+    assertEquals(86400l*1000*30,
         TezCommonUtils.getDAGSessionTimeout(conf));
 
     // set to negative val
     conf.setInt(TezConfiguration.TEZ_SESSION_AM_DAG_SUBMIT_TIMEOUT_SECS,
         -24 * 60 * 60 * 30);
-    Assert.assertEquals(-1,
+    assertEquals(-1,
         TezCommonUtils.getDAGSessionTimeout(conf));
 
     conf.setInt(TezConfiguration.TEZ_SESSION_AM_DAG_SUBMIT_TIMEOUT_SECS, 0);
-    Assert.assertEquals(1000,
+    assertEquals(1000,
         TezCommonUtils.getDAGSessionTimeout(conf));
 
   }
@@ -426,7 +450,7 @@ public class TestTezCommonUtils {
     FileSystem remoteFileSystem = miniDFS.getFileSystem();
     Path path = new Path(TEST_ROOT_DIR + "/testMkDirForAM");
     TezCommonUtils.mkDirForAM(remoteFileSystem, path);
-    Assert.assertEquals(TezCommonUtils.TEZ_AM_DIR_PERMISSION, remoteFileSystem.getFileStatus(path).getPermission());
+    assertEquals(TezCommonUtils.TEZ_AM_DIR_PERMISSION, remoteFileSystem.getFileStatus(path).getPermission());
     miniDFS.shutdown();
   }
 }

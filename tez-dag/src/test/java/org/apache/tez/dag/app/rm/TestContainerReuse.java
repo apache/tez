@@ -18,9 +18,9 @@
  */
 package org.apache.tez.dag.app.rm;
 
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertNull;
-import static org.junit.Assert.assertTrue;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertNull;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.Mockito.any;
 import static org.mockito.Mockito.doAnswer;
 import static org.mockito.Mockito.doReturn;
@@ -36,6 +36,7 @@ import java.util.HashMap;
 import java.util.Map;
 import java.util.Set;
 import java.util.concurrent.ExecutionException;
+import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicBoolean;
 
 import org.apache.hadoop.conf.Configuration;
@@ -96,8 +97,9 @@ import com.google.common.collect.Lists;
 import com.google.common.collect.Maps;
 import com.google.common.collect.Sets;
 
-import org.junit.BeforeClass;
-import org.junit.Test;
+import org.junit.jupiter.api.BeforeAll;
+import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.Timeout;
 import org.mockito.ArgumentCaptor;
 import org.mockito.invocation.InvocationOnMock;
 import org.mockito.stubbing.Answer;
@@ -107,12 +109,13 @@ import org.slf4j.LoggerFactory;
 public class TestContainerReuse {
   private static final Logger LOG = LoggerFactory.getLogger(TestContainerReuse.class);
 
-  @BeforeClass
+  @BeforeAll
   public static void setup() {
     MockDNSToSwitchMapping.initializeMockRackResolver();
   }
 
-  @Test(timeout = 15000l)
+  @Test
+  @org.junit.jupiter.api.Timeout(value = 15000, unit = java.util.concurrent.TimeUnit.MILLISECONDS)
   public void testDelayedReuseContainerBecomesAvailable()
       throws IOException, InterruptedException, ExecutionException {
     LOG.info("Test testDelayedReuseContainerBecomesAvailable");
@@ -244,12 +247,13 @@ public class TestContainerReuse {
         exception = e;
       }
     }
-    assertTrue("containerHost2 was not released", exception == null);
+    assertNull(exception, "containerHost2 was not released");
     taskScheduler.shutdown();
     taskSchedulerManager.close();
   }
 
-  @Test(timeout = 15000l)
+  @Test
+  @org.junit.jupiter.api.Timeout(value = 15000, unit = java.util.concurrent.TimeUnit.MILLISECONDS)
   public void testDelayedReuseContainerNotAvailable()
       throws IOException, InterruptedException, ExecutionException {
     LOG.info("Test testDelayedReuseContainerNotAvailable");
@@ -354,7 +358,8 @@ public class TestContainerReuse {
     taskSchedulerManager.close();
   }
 
-  @Test(timeout = 10000l)
+  @Test
+  @org.junit.jupiter.api.Timeout(value = 10000, unit = java.util.concurrent.TimeUnit.MILLISECONDS)
   public void testSimpleReuse() throws IOException, InterruptedException, ExecutionException {
     LOG.info("Test testSimpleReuse");
     Configuration tezConf = new Configuration();
@@ -504,7 +509,8 @@ public class TestContainerReuse {
     dag.onFinish();
   }
 
-  @Test(timeout = 10000l)
+  @Test
+  @org.junit.jupiter.api.Timeout(value = 10000, unit = java.util.concurrent.TimeUnit.MILLISECONDS)
   public void testReuseWithTaskSpecificLaunchCmdOption() throws IOException, InterruptedException, ExecutionException {
     LOG.info("Test testReuseWithTaskSpecificLaunchCmdOption");
     Configuration tezConf = new Configuration();
@@ -695,7 +701,8 @@ public class TestContainerReuse {
     taskSchedulerManager.close();
   }
 
-  @Test(timeout = 30000l)
+  @Test
+  @org.junit.jupiter.api.Timeout(value = 30000, unit = java.util.concurrent.TimeUnit.MILLISECONDS)
   public void testReuseNonLocalRequest()
       throws IOException, InterruptedException, ExecutionException {
     LOG.info("Test testReuseNonLocalRequest");
@@ -818,7 +825,8 @@ public class TestContainerReuse {
     taskSchedulerManager.close();
   }
 
-  @Test(timeout = 30000l)
+  @Test
+  @org.junit.jupiter.api.Timeout(value = 30000, unit = java.util.concurrent.TimeUnit.MILLISECONDS)
   public void testReuseAcrossVertices()
       throws IOException, InterruptedException, ExecutionException {
     LOG.info("Test testReuseAcrossVertices");
@@ -941,7 +949,8 @@ public class TestContainerReuse {
     taskSchedulerManager.close();
   }
 
-  @Test(timeout = 30000l)
+  @Test
+  @org.junit.jupiter.api.Timeout(value = 30000, unit = java.util.concurrent.TimeUnit.MILLISECONDS)
   public void testReuseLocalResourcesChanged() throws IOException, InterruptedException, ExecutionException {
     LOG.info("Test testReuseLocalResourcesChanged");
     Configuration tezConf = new Configuration();
@@ -1100,7 +1109,8 @@ public class TestContainerReuse {
     taskSchedulerManager.close();
   }
 
-  @Test(timeout = 30000l)
+  @Test
+  @org.junit.jupiter.api.Timeout(value = 30000, unit = java.util.concurrent.TimeUnit.MILLISECONDS)
   public void testReuseConflictLocalResources() throws IOException, InterruptedException, ExecutionException {
     LOG.info("Test testReuseLocalResourcesChanged");
     Configuration tezConf = new Configuration();
@@ -1338,7 +1348,8 @@ public class TestContainerReuse {
     taskSchedulerManager.close();
   }
 
-  @Test(timeout = 10000l)
+  @Test
+  @org.junit.jupiter.api.Timeout(value = 10000, unit = java.util.concurrent.TimeUnit.MILLISECONDS)
   public void testAssignmentOnShutdown()
       throws IOException, InterruptedException, ExecutionException {
     LOG.info("Test testAssignmentOnShutdown");
@@ -1409,7 +1420,8 @@ public class TestContainerReuse {
     taskSchedulerManager.close();
   }
 
-  @Test(timeout=5000)
+  @Test
+  @Timeout(value = 5000, unit = TimeUnit.MILLISECONDS)
   public void testDifferentResourceContainerReuse() throws Exception {
     Configuration tezConf = new Configuration();
     tezConf.setBoolean(TezConfiguration.TEZ_AM_CONTAINER_REUSE_ENABLED, true);
@@ -1547,7 +1559,8 @@ public class TestContainerReuse {
     taskSchedulerManager.close();
   }
 
-  @Test(timeout=5000)
+  @Test
+  @Timeout(value = 5000, unit = TimeUnit.MILLISECONDS)
   public void testEnvironmentVarsContainerReuse() throws Exception {
     Configuration tezConf = new Configuration();
     tezConf.setBoolean(TezConfiguration.TEZ_AM_CONTAINER_REUSE_ENABLED, true);

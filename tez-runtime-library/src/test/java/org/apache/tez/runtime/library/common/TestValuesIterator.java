@@ -18,10 +18,10 @@
  */
 package org.apache.tez.runtime.library.common;
 
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertFalse;
-import static org.junit.Assert.assertTrue;
-import static org.junit.Assert.fail;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertTrue;
+import static org.junit.jupiter.api.Assertions.fail;
 import static org.mockito.Mockito.doReturn;
 import static org.mockito.Mockito.mock;
 
@@ -37,6 +37,7 @@ import java.util.Map;
 import java.util.Random;
 import java.util.Set;
 import java.util.TreeMap;
+import java.util.concurrent.TimeUnit;
 
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.fs.CommonConfigurationKeys;
@@ -80,11 +81,10 @@ import com.google.common.collect.LinkedListMultimap;
 import com.google.common.collect.ListMultimap;
 import com.google.common.collect.Lists;
 
-import org.junit.After;
-import org.junit.Before;
-import org.junit.Test;
-import org.junit.runner.RunWith;
-import org.junit.runners.Parameterized;
+import org.junit.jupiter.api.AfterEach;
+import org.junit.jupiter.api.Timeout;
+import org.junit.jupiter.params.*;
+import org.junit.jupiter.params.provider.*;
 import org.mockito.internal.util.collections.Sets;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -107,7 +107,6 @@ import org.slf4j.LoggerFactory;
  * limitations under the License.
  */
 
-@RunWith(Parameterized.class)
 public class TestValuesIterator {
 
   private static final Logger LOG = LoggerFactory.getLogger(TestValuesIterator.class);
@@ -123,13 +122,13 @@ public class TestValuesIterator {
   static final Random rnd = new Random();
 
   private SerializationContext serializationContext;
-  final RawComparator comparator;
-  final RawComparator correctComparator;
-  final boolean expectedTestResult;
+  RawComparator comparator;
+  RawComparator correctComparator;
+  boolean expectedTestResult;
 
   int mergeFactor;
   //For storing original data
-  final ListMultimap<Writable, Writable> originalData;
+  ListMultimap<Writable, Writable> originalData;
 
   TezRawKeyValueIterator rawKeyValueIterator;
 
@@ -137,26 +136,17 @@ public class TestValuesIterator {
   Path tmpDir;
   Path[] streamPaths; //merge stream paths
 
-  /**
-   * Constructor
-   *
-   * @param serializationClassName serialization class to be used
-   * @param key                    key class name
-   * @param val                    value class name
-   * @param comparator             to be used
-   * @param correctComparator      (real comparator to be used for correct results)
-   * @param testResult             expected result
-   * @throws IOException
-   */
-  public TestValuesIterator(String serializationClassName, Class<?> key, Class<?> val,
+  public void setupInit(String serializationClassName, Class<?> key, Class<?> val,
       TestWithComparator comparator, TestWithComparator correctComparator, boolean testResult)
-      throws IOException {
+      throws Exception {
     this.comparator = getComparator(comparator);
     this.correctComparator =
         (correctComparator == null) ? this.comparator : getComparator(correctComparator);
     this.expectedTestResult = testResult;
     originalData = LinkedListMultimap.create();
     setupConf(key, val, serializationClassName);
+    fs.mkdirs(baseDir);
+    tmpDir = new Path(baseDir, "tmp");
   }
 
   private void setupConf(Class<?> key, Class<?> val, String serializationClassName) throws IOException {
@@ -178,37 +168,43 @@ public class TestValuesIterator {
     serializationContext.applyToConf(conf);
   }
 
-  @Before
-  public void setup() throws Exception {
-    fs.mkdirs(baseDir);
-    tmpDir = new Path(baseDir, "tmp");
-  }
-
-  @After
+  @AfterEach
   public void cleanup() throws Exception {
     fs.delete(baseDir, true);
     originalData.clear();
   }
 
-  @Test(timeout = 20000)
-  public void testIteratorWithInMemoryReader() throws IOException, InterruptedException {
+  @ParameterizedTest(name = "test[{0}, {1}, {2}, {3}, {4}, {5}]")
+  @MethodSource("getParameters")
+  @Timeout(value = 20000, unit = TimeUnit.MILLISECONDS)
+  public void testIteratorWithInMemoryReader(String serializationClassName, Class<?> key, Class<?> val, TestWithComparator comparator, TestWithComparator correctComparator, boolean testResult) throws Exception {
+    setupInit(serializationClassName, key, val, comparator, correctComparator, testResult);
     ValuesIterator iterator = createIterator(true);
     verifyIteratorData(iterator);
   }
 
-  @Test(timeout = 20000)
-  public void testIteratorWithIFileReader() throws IOException, InterruptedException {
+  @ParameterizedTest(name = "test[{0}, {1}, {2}, {3}, {4}, {5}]")
+  @MethodSource("getParameters")
+  @Timeout(value = 20000, unit = TimeUnit.MILLISECONDS)
+  public void testIteratorWithIFileReader(String serializationClassName, Class<?> key, Class<?> val, TestWithComparator comparator, TestWithComparator correctComparator, boolean testResult) throws Exception {
+    setupInit(serializationClassName, key, val, comparator, correctComparator, testResult);
     ValuesIterator iterator = createIterator(false);
     verifyIteratorData(iterator);
   }
 
-  @Test(timeout = 20000)
-  public void testCountedIteratorWithInmemoryReader() throws IOException, InterruptedException {
+  @ParameterizedTest(name = "test[{0}, {1}, {2}, {3}, {4}, {5}]")
+  @MethodSource("getParameters")
+  @Timeout(value = 20000, unit = TimeUnit.MILLISECONDS)
+  public void testCountedIteratorWithInmemoryReader(String serializationClassName, Class<?> key, Class<?> val, TestWithComparator comparator, TestWithComparator correctComparator, boolean testResult) throws Exception {
+    setupInit(serializationClassName, key, val, comparator, correctComparator, testResult);
     verifyCountedIteratorReader(true);
   }
 
-  @Test(timeout = 20000)
-  public void testCountedIteratorWithIFileReader() throws IOException, InterruptedException {
+  @ParameterizedTest(name = "test[{0}, {1}, {2}, {3}, {4}, {5}]")
+  @MethodSource("getParameters")
+  @Timeout(value = 20000, unit = TimeUnit.MILLISECONDS)
+  public void testCountedIteratorWithIFileReader(String serializationClassName, Class<?> key, Class<?> val, TestWithComparator comparator, TestWithComparator correctComparator, boolean testResult) throws Exception {
+    setupInit(serializationClassName, key, val, comparator, correctComparator, testResult);
     verifyCountedIteratorReader(false);
   }
 
@@ -228,13 +224,16 @@ public class TestValuesIterator {
     }
   }
 
-  @Test(timeout = 20000)
-  public void testIteratorWithIFileReaderEmptyPartitions() throws IOException, InterruptedException {
+  @ParameterizedTest(name = "test[{0}, {1}, {2}, {3}, {4}, {5}]")
+  @MethodSource("getParameters")
+  @Timeout(value = 20000, unit = TimeUnit.MILLISECONDS)
+  public void testIteratorWithIFileReaderEmptyPartitions(String serializationClassName, Class<?> key, Class<?> val, TestWithComparator comparator, TestWithComparator correctComparator, boolean testResult) throws Exception {
+    setupInit(serializationClassName, key, val, comparator, correctComparator, testResult);
     ValuesIterator iterator = createEmptyIterator(false);
-    assertTrue(iterator.moveToNext() == false);
+    assertFalse(iterator.moveToNext());
 
     iterator = createEmptyIterator(true);
-    assertTrue(iterator.moveToNext() == false);
+    assertFalse(iterator.moveToNext());
   }
 
   private void getNextFromFinishedIterator(ValuesIterator iterator) {
@@ -324,7 +323,7 @@ public class TestValuesIterator {
         valueCount++;
       }
       sequence.add(valueCount);
-      assertTrue("At least 1 value per key", valueCount > 0);
+      assertTrue(valueCount > 0, "At least 1 value per key");
     }
     if (expectedTestResult) {
       assertTrue(result);
@@ -403,7 +402,7 @@ public class TestValuesIterator {
         serializationContext.getValueClass(), conf, keyCounter, tupleCounter);
   }
 
-  @Parameterized.Parameters(name = "test[{0}, {1}, {2}, {3} {4} {5} {6}]")
+
   public static Collection<Object[]> getParameters() {
     Collection<Object[]> parameters = new ArrayList<Object[]>();
 

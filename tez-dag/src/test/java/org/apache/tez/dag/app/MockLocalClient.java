@@ -26,6 +26,7 @@ import org.apache.hadoop.yarn.api.records.ContainerId;
 import org.apache.hadoop.yarn.util.Clock;
 import org.apache.tez.client.LocalClient;
 
+
 public class MockLocalClient extends LocalClient {
   MockDAGAppMaster mockApp;
   AtomicBoolean mockAppLauncherGoFlag;

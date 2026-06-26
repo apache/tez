@@ -18,29 +18,35 @@
  */
 package org.apache.tez.dag.app.dag.impl;
 
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertTrue;
+
+import java.util.concurrent.TimeUnit;
+
 import org.apache.hadoop.yarn.api.records.ApplicationId;
 import org.apache.tez.dag.api.oldrecords.TaskState;
 import org.apache.tez.dag.records.TezDAGID;
 import org.apache.tez.dag.records.TezTaskID;
 import org.apache.tez.dag.records.TezVertexID;
 
-import org.junit.Assert;
-import org.junit.Test;
+import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.Timeout;
 
 public class TestVertexStats {
 
-  @Test(timeout = 5000)
+  @Test
+  @Timeout(value = 5000, unit = TimeUnit.MILLISECONDS)
   public void testBasicStats() {
     VertexStats stats = new VertexStats();
-    Assert.assertEquals(-1, stats.firstTaskStartTime);
-    Assert.assertEquals(-1, stats.lastTaskFinishTime);
-    Assert.assertEquals(-1, stats.minTaskDuration);
-    Assert.assertEquals(-1, stats.maxTaskDuration);
-    Assert.assertTrue(-1 == stats.avgTaskDuration);
-    Assert.assertEquals(0, stats.getFirstTasksToStart().size());
-    Assert.assertEquals(0, stats.getLastTasksToFinish().size());
-    Assert.assertEquals(0, stats.getShortestDurationTasks().size());
-    Assert.assertEquals(0, stats.getLongestDurationTasks().size());
+    assertEquals(-1, stats.firstTaskStartTime);
+    assertEquals(-1, stats.lastTaskFinishTime);
+    assertEquals(-1, stats.minTaskDuration);
+    assertEquals(-1, stats.maxTaskDuration);
+    assertEquals(-1, stats.avgTaskDuration);
+    assertEquals(0, stats.getFirstTasksToStart().size());
+    assertEquals(0, stats.getLastTasksToFinish().size());
+    assertEquals(0, stats.getShortestDurationTasks().size());
+    assertEquals(0, stats.getLongestDurationTasks().size());
 
     TezVertexID tezVertexID = TezVertexID.getInstance(
         TezDAGID.getInstance(
@@ -54,108 +60,108 @@ public class TestVertexStats {
 
     stats.updateStats(new TaskReportImpl(tezTaskID1,
         TaskState.SUCCEEDED, 1, 100, 200));
-    Assert.assertEquals(100, stats.firstTaskStartTime);
-    Assert.assertEquals(200, stats.lastTaskFinishTime);
-    Assert.assertEquals(100, stats.minTaskDuration);
-    Assert.assertEquals(100, stats.maxTaskDuration);
-    Assert.assertTrue(100 == stats.avgTaskDuration);
-    Assert.assertTrue(stats.firstTasksToStart.contains(tezTaskID1));
-    Assert.assertTrue(stats.lastTasksToFinish.contains(tezTaskID1));
-    Assert.assertTrue(stats.shortestDurationTasks.contains(tezTaskID1));
-    Assert.assertTrue(stats.longestDurationTasks.contains(tezTaskID1));
-    Assert.assertEquals(1, stats.firstTasksToStart.size());
-    Assert.assertEquals(1, stats.lastTasksToFinish.size());
-    Assert.assertEquals(1, stats.shortestDurationTasks.size());
-    Assert.assertEquals(1, stats.longestDurationTasks.size());
+    assertEquals(100, stats.firstTaskStartTime);
+    assertEquals(200, stats.lastTaskFinishTime);
+    assertEquals(100, stats.minTaskDuration);
+    assertEquals(100, stats.maxTaskDuration);
+    assertEquals(100, stats.avgTaskDuration);
+    assertTrue(stats.firstTasksToStart.contains(tezTaskID1));
+    assertTrue(stats.lastTasksToFinish.contains(tezTaskID1));
+    assertTrue(stats.shortestDurationTasks.contains(tezTaskID1));
+    assertTrue(stats.longestDurationTasks.contains(tezTaskID1));
+    assertEquals(1, stats.firstTasksToStart.size());
+    assertEquals(1, stats.lastTasksToFinish.size());
+    assertEquals(1, stats.shortestDurationTasks.size());
+    assertEquals(1, stats.longestDurationTasks.size());
 
     stats.updateStats(new TaskReportImpl(tezTaskID2,
         TaskState.FAILED, 1, 150, 300));
-    Assert.assertEquals(100, stats.firstTaskStartTime);
-    Assert.assertEquals(300, stats.lastTaskFinishTime);
-    Assert.assertEquals(100, stats.minTaskDuration);
-    Assert.assertEquals(100, stats.maxTaskDuration);
-    Assert.assertTrue(100 == stats.avgTaskDuration);
-    Assert.assertTrue(stats.firstTasksToStart.contains(tezTaskID1));
-    Assert.assertTrue(stats.lastTasksToFinish.contains(tezTaskID2));
-    Assert.assertTrue(stats.shortestDurationTasks.contains(tezTaskID1));
-    Assert.assertTrue(stats.longestDurationTasks.contains(tezTaskID1));
-    Assert.assertEquals(1, stats.firstTasksToStart.size());
-    Assert.assertEquals(1, stats.lastTasksToFinish.size());
-    Assert.assertEquals(1, stats.shortestDurationTasks.size());
-    Assert.assertEquals(1, stats.longestDurationTasks.size());
+    assertEquals(100, stats.firstTaskStartTime);
+    assertEquals(300, stats.lastTaskFinishTime);
+    assertEquals(100, stats.minTaskDuration);
+    assertEquals(100, stats.maxTaskDuration);
+    assertEquals(100, stats.avgTaskDuration);
+    assertTrue(stats.firstTasksToStart.contains(tezTaskID1));
+    assertTrue(stats.lastTasksToFinish.contains(tezTaskID2));
+    assertTrue(stats.shortestDurationTasks.contains(tezTaskID1));
+    assertTrue(stats.longestDurationTasks.contains(tezTaskID1));
+    assertEquals(1, stats.firstTasksToStart.size());
+    assertEquals(1, stats.lastTasksToFinish.size());
+    assertEquals(1, stats.shortestDurationTasks.size());
+    assertEquals(1, stats.longestDurationTasks.size());
 
     stats.updateStats(new TaskReportImpl(tezTaskID3,
         TaskState.RUNNING, 1, 50, 550));
-    Assert.assertEquals(50, stats.firstTaskStartTime);
-    Assert.assertEquals(550, stats.lastTaskFinishTime);
-    Assert.assertEquals(100, stats.minTaskDuration);
-    Assert.assertEquals(100, stats.maxTaskDuration);
-    Assert.assertTrue(100 == stats.avgTaskDuration);
-    Assert.assertTrue(stats.shortestDurationTasks.contains(tezTaskID1));
-    Assert.assertTrue(stats.longestDurationTasks.contains(tezTaskID1));
-    Assert.assertTrue(stats.firstTasksToStart.contains(tezTaskID3));
-    Assert.assertTrue(stats.lastTasksToFinish.contains(tezTaskID3));
-    Assert.assertEquals(1, stats.firstTasksToStart.size());
-    Assert.assertEquals(1, stats.lastTasksToFinish.size());
-    Assert.assertEquals(1, stats.shortestDurationTasks.size());
-    Assert.assertEquals(1, stats.longestDurationTasks.size());
+    assertEquals(50, stats.firstTaskStartTime);
+    assertEquals(550, stats.lastTaskFinishTime);
+    assertEquals(100, stats.minTaskDuration);
+    assertEquals(100, stats.maxTaskDuration);
+    assertEquals(100, stats.avgTaskDuration);
+    assertTrue(stats.shortestDurationTasks.contains(tezTaskID1));
+    assertTrue(stats.longestDurationTasks.contains(tezTaskID1));
+    assertTrue(stats.firstTasksToStart.contains(tezTaskID3));
+    assertTrue(stats.lastTasksToFinish.contains(tezTaskID3));
+    assertEquals(1, stats.firstTasksToStart.size());
+    assertEquals(1, stats.lastTasksToFinish.size());
+    assertEquals(1, stats.shortestDurationTasks.size());
+    assertEquals(1, stats.longestDurationTasks.size());
 
     stats.updateStats(new TaskReportImpl(tezTaskID4,
         TaskState.SUCCEEDED, 1, 50, 450));
-    Assert.assertEquals(50, stats.firstTaskStartTime);
-    Assert.assertEquals(550, stats.lastTaskFinishTime);
-    Assert.assertEquals(100, stats.minTaskDuration);
-    Assert.assertEquals(400, stats.maxTaskDuration);
-    Assert.assertTrue(250 == stats.avgTaskDuration);
-    Assert.assertTrue(stats.firstTasksToStart.contains(tezTaskID4));
-    Assert.assertTrue(stats.firstTasksToStart.contains(tezTaskID3));
-    Assert.assertTrue(stats.lastTasksToFinish.contains(tezTaskID3));
-    Assert.assertTrue(stats.shortestDurationTasks.contains(tezTaskID1));
-    Assert.assertTrue(stats.longestDurationTasks.contains(tezTaskID4));
-    Assert.assertEquals(2, stats.firstTasksToStart.size());
-    Assert.assertEquals(1, stats.lastTasksToFinish.size());
-    Assert.assertEquals(1, stats.shortestDurationTasks.size());
-    Assert.assertEquals(1, stats.longestDurationTasks.size());
+    assertEquals(50, stats.firstTaskStartTime);
+    assertEquals(550, stats.lastTaskFinishTime);
+    assertEquals(100, stats.minTaskDuration);
+    assertEquals(400, stats.maxTaskDuration);
+    assertEquals(250, stats.avgTaskDuration);
+    assertTrue(stats.firstTasksToStart.contains(tezTaskID4));
+    assertTrue(stats.firstTasksToStart.contains(tezTaskID3));
+    assertTrue(stats.lastTasksToFinish.contains(tezTaskID3));
+    assertTrue(stats.shortestDurationTasks.contains(tezTaskID1));
+    assertTrue(stats.longestDurationTasks.contains(tezTaskID4));
+    assertEquals(2, stats.firstTasksToStart.size());
+    assertEquals(1, stats.lastTasksToFinish.size());
+    assertEquals(1, stats.shortestDurationTasks.size());
+    assertEquals(1, stats.longestDurationTasks.size());
 
     stats.updateStats(new TaskReportImpl(tezTaskID5,
         TaskState.SUCCEEDED, 1, 50, 450));
-    Assert.assertEquals(50, stats.firstTaskStartTime);
-    Assert.assertEquals(550, stats.lastTaskFinishTime);
-    Assert.assertEquals(100, stats.minTaskDuration);
-    Assert.assertEquals(400, stats.maxTaskDuration);
-    Assert.assertTrue(300 == stats.avgTaskDuration);
-    Assert.assertTrue(stats.firstTasksToStart.contains(tezTaskID5));
-    Assert.assertTrue(stats.firstTasksToStart.contains(tezTaskID4));
-    Assert.assertTrue(stats.firstTasksToStart.contains(tezTaskID3));
-    Assert.assertTrue(stats.lastTasksToFinish.contains(tezTaskID3));
-    Assert.assertTrue(stats.shortestDurationTasks.contains(tezTaskID1));
-    Assert.assertTrue(stats.longestDurationTasks.contains(tezTaskID4));
-    Assert.assertTrue(stats.longestDurationTasks.contains(tezTaskID5));
-    Assert.assertEquals(3, stats.firstTasksToStart.size());
-    Assert.assertEquals(1, stats.lastTasksToFinish.size());
-    Assert.assertEquals(1, stats.shortestDurationTasks.size());
-    Assert.assertEquals(2, stats.longestDurationTasks.size());
+    assertEquals(50, stats.firstTaskStartTime);
+    assertEquals(550, stats.lastTaskFinishTime);
+    assertEquals(100, stats.minTaskDuration);
+    assertEquals(400, stats.maxTaskDuration);
+    assertEquals(300, stats.avgTaskDuration);
+    assertTrue(stats.firstTasksToStart.contains(tezTaskID5));
+    assertTrue(stats.firstTasksToStart.contains(tezTaskID4));
+    assertTrue(stats.firstTasksToStart.contains(tezTaskID3));
+    assertTrue(stats.lastTasksToFinish.contains(tezTaskID3));
+    assertTrue(stats.shortestDurationTasks.contains(tezTaskID1));
+    assertTrue(stats.longestDurationTasks.contains(tezTaskID4));
+    assertTrue(stats.longestDurationTasks.contains(tezTaskID5));
+    assertEquals(3, stats.firstTasksToStart.size());
+    assertEquals(1, stats.lastTasksToFinish.size());
+    assertEquals(1, stats.shortestDurationTasks.size());
+    assertEquals(2, stats.longestDurationTasks.size());
 
     stats.updateStats(new TaskReportImpl(tezTaskID6,
         TaskState.SUCCEEDED, 1, 450, 550));
-    Assert.assertEquals(50, stats.firstTaskStartTime);
-    Assert.assertEquals(550, stats.lastTaskFinishTime);
-    Assert.assertEquals(100, stats.minTaskDuration);
-    Assert.assertEquals(400, stats.maxTaskDuration);
-    Assert.assertTrue(250 == stats.avgTaskDuration);
-    Assert.assertTrue(stats.firstTasksToStart.contains(tezTaskID5));
-    Assert.assertTrue(stats.firstTasksToStart.contains(tezTaskID4));
-    Assert.assertTrue(stats.firstTasksToStart.contains(tezTaskID3));
-    Assert.assertTrue(stats.lastTasksToFinish.contains(tezTaskID3));
-    Assert.assertTrue(stats.lastTasksToFinish.contains(tezTaskID6));
-    Assert.assertTrue(stats.shortestDurationTasks.contains(tezTaskID1));
-    Assert.assertTrue(stats.shortestDurationTasks.contains(tezTaskID6));
-    Assert.assertTrue(stats.longestDurationTasks.contains(tezTaskID4));
-    Assert.assertTrue(stats.longestDurationTasks.contains(tezTaskID5));
-    Assert.assertEquals(3, stats.firstTasksToStart.size());
-    Assert.assertEquals(2, stats.lastTasksToFinish.size());
-    Assert.assertEquals(2, stats.shortestDurationTasks.size());
-    Assert.assertEquals(2, stats.longestDurationTasks.size());
+    assertEquals(50, stats.firstTaskStartTime);
+    assertEquals(550, stats.lastTaskFinishTime);
+    assertEquals(100, stats.minTaskDuration);
+    assertEquals(400, stats.maxTaskDuration);
+    assertEquals(250, stats.avgTaskDuration);
+    assertTrue(stats.firstTasksToStart.contains(tezTaskID5));
+    assertTrue(stats.firstTasksToStart.contains(tezTaskID4));
+    assertTrue(stats.firstTasksToStart.contains(tezTaskID3));
+    assertTrue(stats.lastTasksToFinish.contains(tezTaskID3));
+    assertTrue(stats.lastTasksToFinish.contains(tezTaskID6));
+    assertTrue(stats.shortestDurationTasks.contains(tezTaskID1));
+    assertTrue(stats.shortestDurationTasks.contains(tezTaskID6));
+    assertTrue(stats.longestDurationTasks.contains(tezTaskID4));
+    assertTrue(stats.longestDurationTasks.contains(tezTaskID5));
+    assertEquals(3, stats.firstTasksToStart.size());
+    assertEquals(2, stats.lastTasksToFinish.size());
+    assertEquals(2, stats.shortestDurationTasks.size());
+    assertEquals(2, stats.longestDurationTasks.size());
   }
 
 }

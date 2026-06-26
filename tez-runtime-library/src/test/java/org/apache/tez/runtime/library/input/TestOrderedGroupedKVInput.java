@@ -18,7 +18,9 @@
  */
 package org.apache.tez.runtime.library.input;
 
-import static org.junit.Assert.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertInstanceOf;
+import static org.junit.jupiter.api.Assertions.fail;
 import static org.mockito.Mockito.any;
 import static org.mockito.Mockito.doAnswer;
 import static org.mockito.Mockito.doReturn;
@@ -26,6 +28,7 @@ import static org.mockito.Mockito.doThrow;
 import static org.mockito.Mockito.mock;
 
 import java.io.IOException;
+import java.util.concurrent.TimeUnit;
 
 import org.apache.hadoop.conf.Configuration;
 import org.apache.tez.common.TezUtils;
@@ -38,14 +41,15 @@ import org.apache.tez.runtime.library.api.IOInterruptedException;
 import org.apache.tez.runtime.library.common.MemoryUpdateCallbackHandler;
 import org.apache.tez.runtime.library.common.shuffle.orderedgrouped.Shuffle;
 
-import org.junit.Assert;
-import org.junit.Test;
+import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.Timeout;
 import org.mockito.invocation.InvocationOnMock;
 import org.mockito.stubbing.Answer;
 
 public class TestOrderedGroupedKVInput {
 
-  @Test(timeout = 5000)
+  @Test
+  @Timeout(value = 5000, unit = TimeUnit.MILLISECONDS)
   public void testInterruptWhileAwaitingInput() throws IOException, TezException {
 
     InputContext inputContext = createMockInputContext();
@@ -56,9 +60,9 @@ public class TestOrderedGroupedKVInput {
 
     try {
       kvInput.getReader();
-      Assert.fail("getReader should not return since underlying inputs are not ready");
+      fail("getReader should not return since underlying inputs are not ready");
     } catch (IOException e) {
-      Assert.assertTrue(e instanceof IOInterruptedException);
+      assertInstanceOf(IOInterruptedException.class, e);
     }
 
   }
@@ -116,7 +120,7 @@ public class TestOrderedGroupedKVInput {
               (MemoryUpdateCallbackHandler) args[1];
           memUpdateCallbackHandler.memoryAssigned(200 * 1024 * 1024);
         } else {
-          Assert.fail();
+          fail();
         }
         return null;
       }
@@ -137,9 +141,9 @@ public class TestOrderedGroupedKVInput {
       try {
         doThrow(new InterruptedException()).when(shuffle).waitForInput();
       } catch (InterruptedException e) {
-        Assert.fail();
+        fail();
       } catch (TezException e) {
-        Assert.fail();
+        fail();
       }
       return shuffle;
     }

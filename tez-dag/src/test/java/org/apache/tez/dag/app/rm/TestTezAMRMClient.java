@@ -18,10 +18,14 @@
  */
 package org.apache.tez.dag.app.rm;
 
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.Mockito.mock;
 
 import java.util.Collection;
 import java.util.List;
+import java.util.concurrent.TimeUnit;
 
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.yarn.api.records.Priority;
@@ -32,36 +36,37 @@ import org.apache.hadoop.yarn.client.api.impl.AMRMClientImpl;
 import org.apache.hadoop.yarn.util.RackResolver;
 import org.apache.tez.common.MockDNSToSwitchMapping;
 
-import org.junit.After;
-import org.junit.Assert;
-import org.junit.Before;
-import org.junit.BeforeClass;
-import org.junit.Test;
+import org.junit.jupiter.api.AfterEach;
+import org.junit.jupiter.api.BeforeAll;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.Timeout;
 
 public class TestTezAMRMClient {
 
   private TezAMRMClientAsync amrmClient;
 
-  @BeforeClass
+  @BeforeAll
   public static void beforeClass() {
     MockDNSToSwitchMapping.initializeMockRackResolver();
   }
 
   @SuppressWarnings("unchecked")
-  @Before
+  @BeforeEach
   public void setup() {
     amrmClient = new TezAMRMClientAsync(new AMRMClientImpl(),
       1000, mock(AMRMClientAsync.CallbackHandler.class));
     RackResolver.init(new Configuration());
   }
 
-  @After
+  @AfterEach
   public void teardown() {
     amrmClient = null;
   }
 
   @SuppressWarnings("unchecked")
-  @Test(timeout=10000)
+  @Test
+  @Timeout(value = 10000, unit = TimeUnit.MILLISECONDS)
   public void testMatchingRequestsForTopPriority() {
     String[] hosts = { "host1" };
     String[] racks = { "rack1" };
@@ -78,21 +83,21 @@ public class TestTezAMRMClient {
     amrmClient.addContainerRequest(req2);
     amrmClient.addContainerRequest(req3);
 
-    Assert.assertTrue(amrmClient.getMatchingRequestsForTopPriority("host1",
+    assertTrue(amrmClient.getMatchingRequestsForTopPriority("host1",
       Resource.newInstance(1024, 1)).isEmpty());
 
     List<? extends Collection<AMRMClient.ContainerRequest>> ret =
       amrmClient.getMatchingRequestsForTopPriority("host1",
         Resource.newInstance(2048, 1));
-    Assert.assertFalse(ret.isEmpty());
-    Assert.assertEquals(req1, ret.get(0).iterator().next());
+    assertFalse(ret.isEmpty());
+    assertEquals(req1, ret.get(0).iterator().next());
 
     amrmClient.removeContainerRequest(req1);
 
     ret = amrmClient.getMatchingRequestsForTopPriority("host1",
         Resource.newInstance(1024, 1));
-    Assert.assertFalse(ret.isEmpty());
-    Assert.assertEquals(req2, ret.get(0).iterator().next());
+    assertFalse(ret.isEmpty());
+    assertEquals(req2, ret.get(0).iterator().next());
   }
 
 }

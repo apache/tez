@@ -18,6 +18,9 @@
  */
 package org.apache.tez.dag.api;
 
+import static org.junit.jupiter.api.Assertions.assertArrayEquals;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.mockito.Mockito.any;
 import static org.mockito.Mockito.eq;
 import static org.mockito.Mockito.spy;
@@ -28,25 +31,26 @@ import java.io.ByteArrayOutputStream;
 import java.io.DataInputStream;
 import java.io.DataOutputStream;
 import java.io.IOException;
+import java.util.concurrent.TimeUnit;
 
 import org.apache.commons.lang3.RandomStringUtils;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.io.DataOutputBuffer;
 import org.apache.tez.common.TezUtils;
 
-import org.junit.Assert;
-import org.junit.Test;
+import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.Timeout;
 
 public class TestEntityDescriptor {
 
   public void verifyResults(InputDescriptor entityDescriptor, InputDescriptor deserialized, UserPayload payload,
                              String confVal) throws IOException {
-    Assert.assertEquals(entityDescriptor.getClassName(), deserialized.getClassName());
+    assertEquals(entityDescriptor.getClassName(), deserialized.getClassName());
     // History text is not serialized when sending to tasks
-    Assert.assertNull(deserialized.getHistoryText());
-    Assert.assertArrayEquals(payload.deepCopyAsArray(), deserialized.getUserPayload().deepCopyAsArray());
+    assertNull(deserialized.getHistoryText());
+    assertArrayEquals(payload.deepCopyAsArray(), deserialized.getUserPayload().deepCopyAsArray());
     Configuration deserializedConf = TezUtils.createConfFromUserPayload(deserialized.getUserPayload());
-    Assert.assertEquals(confVal, deserializedConf.get("testKey"));
+    assertEquals(confVal, deserializedConf.get("testKey"));
   }
 
   public void testSingularWrite(InputDescriptor entityDescriptor, InputDescriptor deserialized, UserPayload payload,
@@ -74,7 +78,8 @@ public class TestEntityDescriptor {
     verifyResults(entityDescriptor, deserialized, payload, confVal);
   }
 
-  @Test (timeout=3000)
+  @Test
+  @Timeout(value = 3000, unit = TimeUnit.MILLISECONDS)
   public void testEntityDescriptorHadoopSerialization() throws IOException {
      /* This tests the alternate serialization code path
      * if the DataOutput is not DataOutputBuffer

@@ -18,9 +18,11 @@
  */
 package org.apache.tez.runtime.library.common.sort.impl.dflt;
 
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertTrue;
-import static org.junit.Assert.fail;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertNotNull;
+import static org.junit.jupiter.api.Assertions.assertNull;
+import static org.junit.jupiter.api.Assertions.assertTrue;
+import static org.junit.jupiter.api.Assertions.fail;
 import static org.mockito.Mockito.any;
 import static org.mockito.Mockito.anyLong;
 import static org.mockito.Mockito.atLeastOnce;
@@ -36,6 +38,7 @@ import java.util.ArrayList;
 import java.util.BitSet;
 import java.util.List;
 import java.util.concurrent.ThreadLocalRandom;
+import java.util.concurrent.TimeUnit;
 
 import org.apache.commons.lang3.RandomStringUtils;
 import org.apache.commons.lang3.StringUtils;
@@ -78,12 +81,12 @@ import org.apache.tez.util.StringInterner;
 
 import com.google.protobuf.ByteString;
 
-import org.junit.After;
-import org.junit.AfterClass;
-import org.junit.Assert;
-import org.junit.Before;
-import org.junit.Ignore;
-import org.junit.Test;
+import org.junit.jupiter.api.AfterAll;
+import org.junit.jupiter.api.AfterEach;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Disabled;
+import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.Timeout;
 import org.mockito.ArgumentCaptor;
 import org.mockito.invocation.InvocationOnMock;
 import org.mockito.stubbing.Answer;
@@ -99,7 +102,7 @@ public class TestDefaultSorter {
   private Configuration conf;
   private LocalDirAllocator dirAllocator;
 
-  @Before
+  @BeforeEach
   public void setup() throws IOException {
     conf = new Configuration();
     conf.set(CommonConfigurationKeys.FS_PERMISSIONS_UMASK_KEY, "077");
@@ -120,18 +123,19 @@ public class TestDefaultSorter {
     dirAllocator = new LocalDirAllocator(TezRuntimeFrameworkConfigs.LOCAL_DIRS);
   }
 
-  @AfterClass
+  @AfterAll
   public static void cleanup() throws IOException {
     localFs.delete(workingDir, true);
   }
 
-  @After
+  @AfterEach
   public void reset() throws IOException {
     cleanup();
     localFs.mkdirs(workingDir);
   }
 
-  @Test(timeout = 5000)
+  @Test
+  @Timeout(value = 5000, unit = TimeUnit.MILLISECONDS)
   public void testSortSpillPercent() throws Exception {
     OutputContext context = createTezOutputContext();
 
@@ -154,7 +158,7 @@ public class TestDefaultSorter {
 
 
   @Test
-  @Ignore
+  @Disabled
   /**
    * Disabling this, as this would need 2047 MB sort mb for testing.
    * Set DefaultSorter.MAX_IO_SORT_MB = 20467 for running this.
@@ -193,7 +197,7 @@ public class TestDefaultSorter {
   }
 
   @Test
-  @Ignore
+  @Disabled
   /**
    * Disabling this, as this would need 2047 MB io.sort.mb for testing.
    * Provide > 2GB to JVM when running this test to avoid OOM in string generation.
@@ -229,30 +233,31 @@ public class TestDefaultSorter {
     }
   }
 
-
-  @Test(timeout = 5000)
+  @Test
+  @Timeout(value = 5000, unit = TimeUnit.MILLISECONDS)
   public void testSortMBLimits() throws Exception {
 
-    assertTrue("Expected " + DefaultSorter.MAX_IO_SORT_MB,
-        DefaultSorter.computeSortBufferSize(4096, "") == DefaultSorter.MAX_IO_SORT_MB);
-    assertTrue("Expected " + DefaultSorter.MAX_IO_SORT_MB,
-        DefaultSorter.computeSortBufferSize(2047, "") == DefaultSorter.MAX_IO_SORT_MB);
-    assertTrue("Expected 1024", DefaultSorter.computeSortBufferSize(1024, "") == 1024);
+    assertEquals(DefaultSorter.MAX_IO_SORT_MB, DefaultSorter.computeSortBufferSize(4096, ""),
+        "Expected " + DefaultSorter.MAX_IO_SORT_MB);
+    assertEquals(DefaultSorter.MAX_IO_SORT_MB, DefaultSorter.computeSortBufferSize(2047, ""),
+        "Expected " + DefaultSorter.MAX_IO_SORT_MB);
+    assertEquals(1024, DefaultSorter.computeSortBufferSize(1024, ""), "Expected 1024");
 
     try {
       DefaultSorter.computeSortBufferSize(0, "");
       fail("Should have thrown error for setting buffer size to 0");
-    } catch(RuntimeException re) {
+    } catch (RuntimeException re) {
     }
 
     try {
       DefaultSorter.computeSortBufferSize(-100, "");
       fail("Should have thrown error for setting buffer size to negative value");
-    } catch(RuntimeException re) {
+    } catch (RuntimeException re) {
     }
   }
 
-  @Test(timeout = 30000)
+  @Test
+  @Timeout(value = 30000, unit = TimeUnit.MILLISECONDS)
   //Test TEZ-1977
   public void basicTest() throws IOException {
     OutputContext context = createTezOutputContext();
@@ -292,7 +297,8 @@ public class TestDefaultSorter {
     verifyOutputPermissions(context.getUniqueIdentifier());
   }
 
-  @Test(timeout = 30000)
+  @Test
+  @Timeout(value = 30000, unit = TimeUnit.MILLISECONDS)
   public void testEmptyCaseFileLengths() throws IOException {
     testEmptyCaseFileLengthsHelper(50, new String[] {"a", "b"}, new String[] {"1", "2"});
     testEmptyCaseFileLengthsHelper(50, new String[] {"a", "a"}, new String[] {"1", "2"});
@@ -311,7 +317,7 @@ public class TestDefaultSorter {
     String auxService = conf.get(TezConfiguration.TEZ_AM_SHUFFLE_AUXILIARY_SERVICE_ID, TezConfiguration.TEZ_AM_SHUFFLE_AUXILIARY_SERVICE_ID_DEFAULT);
     SorterWrapper sorterWrapper = new SorterWrapper(context, conf, numPartitions, handler.getMemoryAssigned());
     DefaultSorter sorter = sorterWrapper.getSorter();
-    assertEquals("Key and Values must have the same number of elements", keys.length, values.length);
+    assertEquals(keys.length, values.length, "Key and Values must have the same number of elements");
     BitSet keyRLEs = new BitSet(keys.length);
     for (int i = 0; i < keys.length; i++) {
       boolean isRLE = sorterWrapper.writeKeyValue(new Text(keys[i]), new Text(values[i]));
@@ -336,10 +342,9 @@ public class TestDefaultSorter {
           TezCommonUtils.decompressByteStringToByteArray(
               shufflePayload.getEmptyPartitions());
       BitSet emptyPartitionBitSet = TezUtilsInternal.fromByteArray(emptyPartitionsBytesString);
-      Assert.assertEquals("Number of empty partitions did not match!",
-          emptyPartitionBitSet.cardinality(), sorterWrapper.getEmptyPartitionsCount());
+      assertEquals(emptyPartitionBitSet.cardinality(), sorterWrapper.getEmptyPartitionsCount(), "Number of empty partitions did not match!");
     } else {
-      Assert.assertEquals(sorterWrapper.getEmptyPartitionsCount(), 0);
+      assertEquals(sorterWrapper.getEmptyPartitionsCount(), 0);
     }
     // Each non-empty partition adds 4 bytes for header, 2 bytes for EOF_MARKER, 4 bytes for checksum
     int expectedFileOutLength = sorterWrapper.getNonEmptyPartitionsCount() * 10;
@@ -349,7 +354,7 @@ public class TestDefaultSorter {
       // Each Record adds 1 byte for value length, 1 byte Text overhead (length), value.length bytes for value
       expectedFileOutLength += values[i].length() + 2;
     }
-    assertEquals("Unexpected Output File Size!", localFs.getFileStatus(sorter.getFinalOutputFile()).getLen(), expectedFileOutLength);
+    assertEquals(localFs.getFileStatus(sorter.getFinalOutputFile()).getLen(), expectedFileOutLength, "Unexpected Output File Size!");
     assertEquals(sorter.getNumSpills(), 1);
     verifyCounters(sorter, context);
   }
@@ -376,7 +381,8 @@ public class TestDefaultSorter {
     }
   }
 
-  @Test(timeout = 30000)
+  @Test
+  @Timeout(value = 30000, unit = TimeUnit.MILLISECONDS)
   public void testWithEmptyDataWithFinalMergeDisabled() throws IOException {
     OutputContext context = createTezOutputContext();
 
@@ -427,9 +433,9 @@ public class TestDefaultSorter {
     }
     sorterWrapper.close();
     if (numKeys == 0) {
-      assertTrue(sorter.getNumSpills() == 1);
+      assertEquals(1, sorter.getNumSpills());
     } else {
-      assertTrue(sorter.getNumSpills() == numKeys);
+      assertEquals(sorter.getNumSpills(), numKeys);
     }
     verifyCounters(sorter, context);
     verifyOutputPermissions(context.getUniqueIdentifier());
@@ -442,9 +448,9 @@ public class TestDefaultSorter {
             continue;
           }
           if (sendEmptyPartitionDetails) {
-            Assert.assertEquals("Unexpected raw length for " + i + "th partition", 0, tezIndexRecord.getRawLength());
+            assertEquals(0, tezIndexRecord.getRawLength(), "Unexpected raw length for " + i + "th partition");
           } else {
-            Assert.assertEquals("", tezIndexRecord.getRawLength(), 6);
+            assertEquals(tezIndexRecord.getRawLength(), 6, "");
           }
         }
       }
@@ -457,9 +463,9 @@ public class TestDefaultSorter {
         continue;
       }
       if (sendEmptyPartitionDetails) {
-        Assert.assertEquals("Unexpected raw length for " + i + "th partition", 0, tezIndexRecord.getRawLength());
+        assertEquals(0, tezIndexRecord.getRawLength(), "Unexpected raw length for " + i + "th partition");
       } else {
-        Assert.assertEquals("Unexpected raw length for " + i + "th partition", 6, tezIndexRecord.getRawLength());
+        assertEquals(6, tezIndexRecord.getRawLength(), "Unexpected raw length for " + i + "th partition");
       }
     }
   }
@@ -482,27 +488,30 @@ public class TestDefaultSorter {
       sorterWrapper.writeKeyValue(keys[i], values[i]);
     }
     sorterWrapper.close();
-    assertTrue(sorter.getNumSpills() == 1);
+    assertEquals(1, sorter.getNumSpills());
     verifyCounters(sorter, context);
 
     if (withStats) {
-      assertTrue(sorter.getPartitionStats() != null);
+      assertNotNull(sorter.getPartitionStats());
     } else {
-      assertTrue(sorter.getPartitionStats() == null);
+      assertNull(sorter.getPartitionStats());
     }
   }
 
-  @Test(timeout = 60000)
+  @Test
+  @Timeout(value = 60000, unit = TimeUnit.MILLISECONDS)
   public void testWithPartitionStats() throws IOException {
     testPartitionStats(true);
   }
 
-  @Test(timeout = 60000)
+  @Test
+  @Timeout(value = 60000, unit = TimeUnit.MILLISECONDS)
   public void testWithoutPartitionStats() throws IOException {
     testPartitionStats(false);
   }
 
-  @Test(timeout = 60000)
+  @Test
+  @Timeout(value = 60000, unit = TimeUnit.MILLISECONDS)
   @SuppressWarnings("unchecked")
   public void testWithSingleSpillWithFinalMergeDisabled() throws IOException {
     OutputContext context = createTezOutputContext();
@@ -522,7 +531,7 @@ public class TestDefaultSorter {
       sorterWrapper.writeKeyValue(keys[i], values[i]);
     }
     sorterWrapper.close();
-    assertTrue(sorter.getNumSpills() == 1);
+    assertEquals(1, sorter.getNumSpills());
     ArgumentCaptor<List> eventCaptor = ArgumentCaptor.forClass(List.class);
     verify(context, times(1)).sendEvents(eventCaptor.capture());
     List<Event> events = eventCaptor.getValue();
@@ -539,7 +548,8 @@ public class TestDefaultSorter {
     verifyCounters(sorter, context);
   }
 
-  @Test(timeout = 60000)
+  @Test
+  @Timeout(value = 60000, unit = TimeUnit.MILLISECONDS)
   @SuppressWarnings("unchecked")
   public void testWithMultipleSpillsWithFinalMergeDisabled() throws IOException {
     OutputContext context = createTezOutputContext();
@@ -575,7 +585,7 @@ public class TestDefaultSorter {
         spillIndex++;
       }
     }
-    assertTrue(spillIndex == spillCount);
+    assertEquals(spillIndex, spillCount);
     verifyCounters(sorter, context);
   }
 
@@ -584,10 +594,8 @@ public class TestDefaultSorter {
         + "/" + Constants.TEZ_RUNTIME_TASK_OUTPUT_FILENAME_STRING;
     Path outputPath = dirAllocator.getLocalPathToRead(subpath, conf);
     Path indexPath = dirAllocator.getLocalPathToRead(subpath + Constants.TEZ_RUNTIME_TASK_OUTPUT_INDEX_SUFFIX_STRING, conf);
-    Assert.assertEquals("Incorrect output permissions", (short)0640,
-        localFs.getFileStatus(outputPath).getPermission().toShort());
-    Assert.assertEquals("Incorrect index permissions", (short)0640,
-        localFs.getFileStatus(indexPath).getPermission().toShort());
+    assertEquals((short)0640, localFs.getFileStatus(outputPath).getPermission().toShort(), "Incorrect output permissions");
+    assertEquals((short)0640, localFs.getFileStatus(indexPath).getPermission().toShort(), "Incorrect index permissions");
   }
 
   private void verifyCounters(DefaultSorter sorter, OutputContext context) {
@@ -597,19 +605,19 @@ public class TestDefaultSorter {
     TezCounter additionalSpillBytesRead = context.getCounters().findCounter(TaskCounter.ADDITIONAL_SPILLS_BYTES_READ);
 
     if (sorter.isFinalMergeEnabled()) {
-      assertTrue(additionalSpills.getValue() == (sorter.getNumSpills() - 1));
+      assertEquals(additionalSpills.getValue(), (sorter.getNumSpills() - 1));
       //Number of files served by shuffle-handler
-      assertTrue(1 == numShuffleChunks.getValue());
+      assertEquals(1, numShuffleChunks.getValue());
       if (sorter.getNumSpills() > 1) {
         assertTrue(additionalSpillBytesRead.getValue() > 0);
         assertTrue(additionalSpillBytesWritten.getValue() > 0);
       }
     } else {
-      assertTrue(0 == additionalSpills.getValue());
+      assertEquals(0, additionalSpills.getValue());
       //Number of files served by shuffle-handler
-      assertTrue(sorter.getNumSpills() == numShuffleChunks.getValue());
-      assertTrue(additionalSpillBytesRead.getValue() == 0);
-      assertTrue(additionalSpillBytesWritten.getValue() == 0);
+      assertEquals(sorter.getNumSpills(), numShuffleChunks.getValue());
+      assertEquals(0, additionalSpillBytesRead.getValue());
+      assertEquals(0, additionalSpillBytesWritten.getValue());
     }
 
     TezCounter finalOutputBytes = context.getCounters().findCounter(TaskCounter.OUTPUT_BYTES_PHYSICAL);

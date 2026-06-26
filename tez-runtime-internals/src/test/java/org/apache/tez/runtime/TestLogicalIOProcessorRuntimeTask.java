@@ -18,10 +18,11 @@
  */
 package org.apache.tez.runtime;
 
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertNull;
-import static org.junit.Assert.assertTrue;
-import static org.junit.Assert.fail;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertNull;
+import static org.junit.jupiter.api.Assertions.assertTrue;
+import static org.junit.jupiter.api.Assertions.fail;
 import static org.mockito.Mockito.anyList;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.never;
@@ -36,6 +37,7 @@ import java.util.HashMap;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
+import java.util.concurrent.TimeUnit;
 
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.security.UserGroupInformation;
@@ -78,12 +80,14 @@ import com.google.common.collect.HashMultimap;
 import com.google.common.collect.Lists;
 import com.google.common.collect.Multimap;
 
-import org.junit.Test;
+import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.Timeout;
 
 
 public class TestLogicalIOProcessorRuntimeTask {
 
-  @Test(timeout = 5000)
+  @Test
+  @Timeout(value = 5000, unit = TimeUnit.MILLISECONDS)
   public void testAutoStart() throws Exception {
     TezDAGID dagId = createTezDagId();
     TezVertexID vertexId = createTezVertexId(dagId);
@@ -120,8 +124,8 @@ public class TestLogicalIOProcessorRuntimeTask {
       assertEquals(1, TestInput.startCount);
       assertEquals(0, TestOutput.startCount);
       // test that invocations of progress are counted correctly
-      assertEquals(true, lio1.getAndClearProgressNotification());
-      assertEquals(false, lio1.getAndClearProgressNotification()); // cleared after getting
+      assertTrue(lio1.getAndClearProgressNotification());
+      assertFalse(lio1.getAndClearProgressNotification()); // cleared after getting
       assertEquals(30, TestInput.vertexParallelism);
       assertEquals(0, TestOutput.vertexParallelism);
       assertEquals(30, lio1.getProcessorContext().getVertexParallelism());
@@ -251,17 +255,17 @@ public class TestLogicalIOProcessorRuntimeTask {
 
     lio.cleanup();
 
-    assertTrue(procContext.getUserPayload() == null);
-    assertTrue(procContext.getObjectRegistry() == null);
+    assertNull(procContext.getUserPayload());
+    assertNull(procContext.getObjectRegistry());
 
     for (InputContext inputContext : inputContexts) {
-      assertTrue(inputContext.getUserPayload() == null);
-      assertTrue(inputContext.getObjectRegistry() == null);
+      assertNull(inputContext.getUserPayload());
+      assertNull(inputContext.getObjectRegistry());
     }
 
     for (OutputContext outputContext : outputContexts) {
-      assertTrue(outputContext.getUserPayload() == null);
-      assertTrue(outputContext.getObjectRegistry() == null);
+      assertNull(outputContext.getUserPayload());
+      assertNull(outputContext.getObjectRegistry());
     }
     boolean localMode = lio.tezConf.getBoolean(TezConfiguration.TEZ_LOCAL_MODE,
         TezConfiguration.TEZ_LOCAL_MODE_DEFAULT);

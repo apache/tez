@@ -18,16 +18,17 @@
  */
 package org.apache.tez.runtime;
 
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertFalse;
-import static org.junit.Assert.assertNull;
-import static org.junit.Assert.assertTrue;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertNull;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
+import java.util.concurrent.TimeUnit;
 
 import org.apache.tez.runtime.api.AbstractLogicalInput;
 import org.apache.tez.runtime.api.Event;
@@ -40,14 +41,16 @@ import org.apache.tez.runtime.api.impl.TezMergedInputContextImpl;
 import com.google.common.collect.Lists;
 import com.google.common.collect.Sets;
 
-import org.junit.Test;
+import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.Timeout;
 
 
 public class TestInputReadyTracker {
 
   private static final long SLEEP_TIME = 200l;
 
-  @Test(timeout = 20000)
+  @Test
+  @Timeout(value = 20000, unit = TimeUnit.MILLISECONDS)
   public void testWithoutGrouping1() throws InterruptedException {
     InputReadyTracker inputReadyTracker = new InputReadyTracker();
 
@@ -78,7 +81,8 @@ public class TestInputReadyTracker {
     assertTrue(input1.isReady);
   }
 
-  @Test(timeout = 20000)
+  @Test
+  @Timeout(value = 20000, unit = TimeUnit.MILLISECONDS)
   public void testWithoutGrouping2() throws InterruptedException {
     InputReadyTracker inputReadyTracker = new InputReadyTracker();
 
@@ -140,7 +144,8 @@ public class TestInputReadyTracker {
     assertTrue(input2.isReady);
   }
 
-  @Test(timeout = 20000)
+  @Test
+  @Timeout(value = 20000, unit = TimeUnit.MILLISECONDS)
   public void testGrouped() throws InterruptedException {
     InputReadyTracker inputReadyTracker = new InputReadyTracker();
 

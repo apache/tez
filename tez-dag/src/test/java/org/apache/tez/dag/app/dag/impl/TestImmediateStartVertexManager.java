@@ -18,6 +18,7 @@
  */
 package org.apache.tez.dag.app.dag.impl;
 
+import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.mockito.Mockito.anyList;
 import static org.mockito.Mockito.anySet;
 import static org.mockito.Mockito.anyString;
@@ -30,6 +31,7 @@ import static org.mockito.Mockito.when;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
+import java.util.concurrent.TimeUnit;
 
 import org.apache.tez.dag.api.EdgeManagerPluginDescriptor;
 import org.apache.tez.dag.api.EdgeProperty;
@@ -42,15 +44,16 @@ import org.apache.tez.dag.api.event.VertexState;
 import org.apache.tez.dag.api.event.VertexStateUpdate;
 import org.apache.tez.runtime.api.TaskAttemptIdentifier;
 
-import org.junit.Assert;
-import org.junit.Test;
+import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.Timeout;
 import org.mockito.invocation.InvocationOnMock;
 import org.mockito.stubbing.Answer;
 
 public class TestImmediateStartVertexManager {
 
   @SuppressWarnings({ "unchecked", "rawtypes" })
-  @Test (timeout=5000)
+  @Test
+  @Timeout(value = 5000, unit = TimeUnit.MILLISECONDS)
   public void testBasic() {
     HashMap<String, EdgeProperty> mockInputVertices =
         new HashMap<String, EdgeProperty>();
@@ -113,7 +116,7 @@ public class TestImmediateStartVertexManager {
     manager.onVertexStateUpdated(new VertexStateUpdate(mockSrcVertexId3,
         VertexState.CONFIGURED));
     verify(mockContext, times(1)).scheduleTasks(anyList());
-    Assert.assertEquals(4, scheduledTasks.size());
+    assertEquals(4, scheduledTasks.size());
 
     // simulate race between onVertexStarted and notifications
     scheduledTasks.clear();
@@ -128,7 +131,7 @@ public class TestImmediateStartVertexManager {
     raceManager.initialize();
     raceManager.onVertexStarted(emptyCompletions);
     verify(mockContext, times(2)).scheduleTasks(anyList());
-    Assert.assertEquals(4, scheduledTasks.size());
+    assertEquals(4, scheduledTasks.size());
   }
 
 }

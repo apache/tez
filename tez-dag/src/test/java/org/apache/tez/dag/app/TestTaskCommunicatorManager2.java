@@ -18,8 +18,9 @@
  */
 package org.apache.tez.dag.app;
 
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertTrue;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertInstanceOf;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.Mockito.any;
 import static org.mockito.Mockito.anyInt;
 import static org.mockito.Mockito.doReturn;
@@ -34,6 +35,7 @@ import java.util.HashMap;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
+import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicInteger;
 
 import org.apache.hadoop.conf.Configuration;
@@ -75,13 +77,15 @@ import org.apache.tez.serviceplugins.api.TaskHeartbeatRequest;
 
 import com.google.common.collect.Lists;
 
-import org.junit.Test;
+import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.Timeout;
 import org.mockito.ArgumentCaptor;
 
 public class TestTaskCommunicatorManager2 {
 
   @SuppressWarnings("unchecked")
-  @Test(timeout = 5000)
+  @Test
+  @Timeout(value = 5000, unit = TimeUnit.MILLISECONDS)
   public void testTaskAttemptFailedKilled() throws IOException, TezException {
 
     TaskCommunicatorManagerWrapperForTest wrapper = new TaskCommunicatorManagerWrapperForTest();
@@ -107,8 +111,8 @@ public class TestTaskCommunicatorManager2 {
 
     ArgumentCaptor<Event> argumentCaptor = ArgumentCaptor.forClass(Event.class);
     verify(wrapper.getEventHandler(), times(2)).handle(argumentCaptor.capture());
-    assertTrue(argumentCaptor.getAllValues().get(0) instanceof TaskAttemptEventAttemptFailed);
-    assertTrue(argumentCaptor.getAllValues().get(1) instanceof TaskAttemptEventAttemptKilled);
+    assertInstanceOf(TaskAttemptEventAttemptFailed.class, argumentCaptor.getAllValues().get(0));
+    assertInstanceOf(TaskAttemptEventAttemptKilled.class, argumentCaptor.getAllValues().get(1));
     TaskAttemptEventAttemptFailed failedEvent =
         (TaskAttemptEventAttemptFailed) argumentCaptor.getAllValues().get(0);
     TaskAttemptEventAttemptKilled killedEvent =
@@ -125,7 +129,8 @@ public class TestTaskCommunicatorManager2 {
 
   // Tests fatal and non fatal
   @SuppressWarnings("unchecked")
-  @Test(timeout = 5000)
+  @Test
+  @Timeout(value = 5000, unit = TimeUnit.MILLISECONDS)
   public void testTaskAttemptFailureViaHeartbeat() throws IOException, TezException {
 
     TaskCommunicatorManagerWrapperForTest wrapper = new TaskCommunicatorManagerWrapperForTest();
@@ -160,7 +165,7 @@ public class TestTaskCommunicatorManager2 {
 
     ArgumentCaptor<Event> argumentCaptor = ArgumentCaptor.forClass(Event.class);
     verify(wrapper.getEventHandler(), times(1)).handle(argumentCaptor.capture());
-    assertTrue(argumentCaptor.getAllValues().get(0) instanceof TaskAttemptEventAttemptFailed);
+    assertInstanceOf(TaskAttemptEventAttemptFailed.class, argumentCaptor.getAllValues().get(0));
     TaskAttemptEventAttemptFailed failedEvent =
         (TaskAttemptEventAttemptFailed) argumentCaptor.getAllValues().get(0);
     assertEquals(TaskFailureType.NON_FATAL, failedEvent.getTaskFailureType());
@@ -183,7 +188,7 @@ public class TestTaskCommunicatorManager2 {
 
     argumentCaptor = ArgumentCaptor.forClass(Event.class);
     verify(wrapper.getEventHandler(), times(1)).handle(argumentCaptor.capture());
-    assertTrue(argumentCaptor.getAllValues().get(0) instanceof TaskAttemptEventAttemptFailed);
+    assertInstanceOf(TaskAttemptEventAttemptFailed.class, argumentCaptor.getAllValues().get(0));
     failedEvent = (TaskAttemptEventAttemptFailed) argumentCaptor.getAllValues().get(0);
     assertEquals(TaskFailureType.FATAL, failedEvent.getTaskFailureType());
     assertTrue(failedEvent.getDiagnosticInfo().contains("-fatal-"));
@@ -191,7 +196,8 @@ public class TestTaskCommunicatorManager2 {
 
   // Tests fatal and non fatal
   @SuppressWarnings("unchecked")
-  @Test(timeout = 5000)
+  @Test
+  @Timeout(value = 5000, unit = TimeUnit.MILLISECONDS)
   public void testTaskAttemptFailureViaContext() throws IOException, TezException {
     TaskCommunicatorManagerWrapperForTest wrapper = new TaskCommunicatorManagerWrapperForTest();
 
@@ -216,7 +222,7 @@ public class TestTaskCommunicatorManager2 {
             TaskAttemptEndReason.CONTAINER_EXITED, "--non-fatal--");
     ArgumentCaptor<Event> argumentCaptor = ArgumentCaptor.forClass(Event.class);
     verify(wrapper.getEventHandler(), times(1)).handle(argumentCaptor.capture());
-    assertTrue(argumentCaptor.getAllValues().get(0) instanceof TaskAttemptEventAttemptFailed);
+    assertInstanceOf(TaskAttemptEventAttemptFailed.class, argumentCaptor.getAllValues().get(0));
     TaskAttemptEventAttemptFailed failedEvent =
         (TaskAttemptEventAttemptFailed) argumentCaptor.getAllValues().get(0);
     assertEquals(TaskFailureType.NON_FATAL, failedEvent.getTaskFailureType());
@@ -230,7 +236,7 @@ public class TestTaskCommunicatorManager2 {
             "--fatal--");
     argumentCaptor = ArgumentCaptor.forClass(Event.class);
     verify(wrapper.getEventHandler(), times(1)).handle(argumentCaptor.capture());
-    assertTrue(argumentCaptor.getAllValues().get(0) instanceof TaskAttemptEventAttemptFailed);
+    assertInstanceOf(TaskAttemptEventAttemptFailed.class, argumentCaptor.getAllValues().get(0));
     failedEvent = (TaskAttemptEventAttemptFailed) argumentCaptor.getAllValues().get(0);
     assertEquals(TaskFailureType.FATAL, failedEvent.getTaskFailureType());
     assertTrue(failedEvent.getDiagnosticInfo().contains("--fatal--"));

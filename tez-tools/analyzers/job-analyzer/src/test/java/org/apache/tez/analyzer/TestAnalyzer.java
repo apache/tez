@@ -18,13 +18,15 @@
  */
 package org.apache.tez.analyzer;
 
-import static org.junit.Assert.assertTrue;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import java.io.File;
 import java.util.Arrays;
 import java.util.Collections;
 import java.util.List;
 import java.util.Random;
+import java.util.concurrent.TimeUnit;
 
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.fs.FileSystem;
@@ -64,10 +66,10 @@ import org.apache.tez.tests.MiniTezClusterWithTimeline;
 import com.google.common.base.Joiner;
 import com.google.common.collect.Lists;
 
-import org.junit.AfterClass;
-import org.junit.Assert;
-import org.junit.BeforeClass;
-import org.junit.Test;
+import org.junit.jupiter.api.AfterAll;
+import org.junit.jupiter.api.BeforeAll;
+import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.Timeout;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -92,7 +94,7 @@ public class TestAnalyzer {
   private boolean downloadedSimpleHistoryFile = false;
   private static String yarnTimelineAddress;
 
-  @BeforeClass
+  @BeforeAll
   public static void setupClass() throws Exception {
     conf = new Configuration();
     conf.setBoolean(DFSConfigKeys.DFS_NAMENODE_EDITS_NOEDITLOGCHANNELFLUSH, false);
@@ -106,7 +108,7 @@ public class TestAnalyzer {
     setupTezCluster();
   }
 
-  @AfterClass
+  @AfterAll
   public static void tearDownClass() throws Exception {
     LOG.info("Stopping mini clusters");
     if (miniTezCluster != null) {
@@ -245,7 +247,7 @@ public class TestAnalyzer {
       dagStatus = dagClient.getDAGStatus(null);
     }
 
-    Assert.assertEquals(finalState, dagStatus.getState());
+    assertEquals(finalState, dagStatus.getState());
   }
 
   private void verify(ApplicationId appId, int dagNum, List<StepCheck[]> steps) throws Exception {
@@ -263,7 +265,7 @@ public class TestAnalyzer {
       String[] args = { "--dagId=" + dagId, "--downloadDir=" + DOWNLOAD_DIR, "--yarnTimelineAddress=" + yarnTimelineAddress };
 
       int result = ATSImportTool.process(args);
-      assertTrue(result == 0);
+      assertEquals(0, result);
 
       //Parse ATS data and verify results
       //Parse downloaded contents
@@ -271,7 +273,7 @@ public class TestAnalyzer {
           + Path.SEPARATOR + dagId + ".zip");
       ATSFileParser parser = new ATSFileParser(Arrays.asList(downloadedFile));
       dagInfo = parser.getDAGData(dagId);
-      assertTrue(dagInfo.getDagId().equals(dagId));
+      assertEquals(dagInfo.getDagId(), dagId);
     } else {
       if (!downloadedSimpleHistoryFile) {
         downloadedSimpleHistoryFile = true;
@@ -290,7 +292,7 @@ public class TestAnalyzer {
       File localFile = new File(DOWNLOAD_DIR, HISTORY_TXT);
       SimpleHistoryParser parser = new SimpleHistoryParser(Arrays.asList(localFile));
       dagInfo = parser.getDAGData(dagId);
-      assertTrue(dagInfo.getDagId().equals(dagId));
+      assertEquals(dagInfo.getDagId(), dagId);
     }
     return dagInfo;
   }
@@ -316,47 +318,48 @@ public class TestAnalyzer {
     for (StepCheck[] steps : stepsOptions) {
       if (steps.length + 2 == criticalPath.size()) {
         foundMatchingLength = true;
-        Assert.assertEquals(CriticalPathStep.EntityType.VERTEX_INIT, criticalPath.get(0).getType());
-        Assert.assertEquals(criticalPath.get(1).getAttempt().getShortName(),
+        assertEquals(CriticalPathStep.EntityType.VERTEX_INIT, criticalPath.get(0).getType());
+        assertEquals(criticalPath.get(1).getAttempt().getShortName(),
             criticalPath.get(0).getAttempt().getShortName());
 
         for (int i=1; i<criticalPath.size() - 1; ++i) {
           StepCheck check = steps[i-1];
           CriticalPathStep step = criticalPath.get(i);
-          Assert.assertEquals(CriticalPathStep.EntityType.ATTEMPT, step.getType());
-          Assert.assertTrue(check.getAttemptDetail(),
-              step.getAttempt().getShortName().matches(check.getAttemptDetail()));
-          Assert.assertEquals(steps[i-1].getReason(), step.getReason());
+          assertEquals(EntityType.ATTEMPT, step.getType());
+          assertTrue(step.getAttempt().getShortName().matches(check.getAttemptDetail()), check.getAttemptDetail());
+          assertEquals(steps[i-1].getReason(), step.getReason());
           if (check.getErrCause() != null) {
-            Assert.assertEquals(check.getErrCause(),
+            assertEquals(check.getErrCause(),
                 TaskAttemptTerminationCause.valueOf(step.getAttempt().getTerminationCause()));
           }
           if (check.getNotesStr() != null) {
             String notes = Joiner.on("#").join(step.getNotes());
             for (String note : check.getNotesStr()) {
-              Assert.assertTrue(note, notes.contains(notes));
+              assertTrue(notes.contains(notes), note);
             }
           }
         }
 
-        Assert.assertEquals(CriticalPathStep.EntityType.DAG_COMMIT,
+        assertEquals(CriticalPathStep.EntityType.DAG_COMMIT,
             criticalPath.get(criticalPath.size() - 1).getType());
         break;
       }
     }
 
-    Assert.assertTrue(foundMatchingLength);
+    assertTrue(foundMatchingLength);
 
   }
 
-  @Test (timeout=300000)
+  @Test
+  @Timeout(value = 300000, unit = TimeUnit.MILLISECONDS)
   public void testWithATS() throws Exception {
     usingATS = true;
     createTezSessionATS();
     runTests();
   }
 
-  @Test (timeout=300000)
+  @Test
+  @Timeout(value = 300000, unit = TimeUnit.MILLISECONDS)
   public void testWithSimpleHistory() throws Exception {
     usingATS = false;
     createTezSessionSimpleHistory();

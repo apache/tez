@@ -17,11 +17,16 @@
  * under the License.
  */
 package org.apache.tez.auxservices;
+
 import static org.apache.tez.test.TestTezJobs.generateOrderedWordCountInput;
 import static org.apache.tez.test.TestTezJobs.verifyOutput;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import java.io.File;
 import java.io.IOException;
+import java.util.concurrent.TimeUnit;
 
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.fs.FileSystem;
@@ -40,10 +45,10 @@ import org.apache.tez.examples.OrderedWordCount;
 import org.apache.tez.runtime.library.api.TezRuntimeConfiguration;
 import org.apache.tez.test.MiniTezCluster;
 
-import org.junit.AfterClass;
-import org.junit.Assert;
-import org.junit.BeforeClass;
-import org.junit.Test;
+import org.junit.jupiter.api.AfterAll;
+import org.junit.jupiter.api.BeforeAll;
+import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.Timeout;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -58,7 +63,7 @@ public class TestShuffleHandlerJobs {
   private static FileSystem remoteFs;
   private static int NUM_NMS = 5;
   private static int NUM_DNS = 5;
-  @BeforeClass
+  @BeforeAll
   public static void setup() throws IOException {
     try {
       conf.setInt(YarnConfiguration.RM_AM_MAX_ATTEMPTS, 1);
@@ -94,7 +99,7 @@ public class TestShuffleHandlerJobs {
 
   }
 
-  @AfterClass
+  @AfterAll
   public static void tearDown() {
     if (tezCluster != null) {
       tezCluster.stop();
@@ -105,7 +110,8 @@ public class TestShuffleHandlerJobs {
       dfsCluster = null;
     }
   }
-  @Test(timeout = 300000)
+  @Test
+  @Timeout(value = 300000, unit = TimeUnit.MILLISECONDS)
   public void testOrderedWordCount() throws Exception {
     String inputDirStr = "/tmp/owc-input/";
     Path inputDir = new Path(inputDirStr);
@@ -128,8 +134,8 @@ public class TestShuffleHandlerJobs {
     tezSession.start();
     try {
       final OrderedWordCount job = new OrderedWordCount();
-      Assert.assertTrue("OrderedWordCount failed", job.run(tezConf, new String[]{"-counter",
-              inputDirStr, outputDirStr, "10"}, tezSession)==0);
+      assertEquals(0, job.run(tezConf, new String[]{"-counter",
+          inputDirStr, outputDirStr, "10"}, tezSession), "OrderedWordCount failed");
       verifyOutput(outputDir, remoteFs);
       tezSession.stop();
       ClientRMService rmService = tezCluster.getResourceManager().getClientRMService();
@@ -158,9 +164,9 @@ public class TestShuffleHandlerJobs {
         String dagPathStr = appPath + "/dag_1";
 
         File fs = new File(dagPathStr);
-        Assert.assertFalse(fs.exists());
+        assertFalse(fs.exists());
         fs = new File(appPath);
-        Assert.assertTrue(fs.exists());
+        assertTrue(fs.exists());
       }
     } finally {
       remoteFs.delete(stagingDirPath, true);

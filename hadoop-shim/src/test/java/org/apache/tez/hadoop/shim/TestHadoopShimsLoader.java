@@ -18,11 +18,15 @@
  */
 package org.apache.tez.hadoop.shim;
 
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertNotNull;
+import static org.junit.jupiter.api.Assertions.assertThrows;
+
 import org.apache.hadoop.conf.Configuration;
 import org.apache.tez.hadoop.shim.DummyShimProvider.DummyShim;
 
-import org.junit.Assert;
-import org.junit.Test;
+import org.junit.jupiter.api.Test;
+
 
 public class TestHadoopShimsLoader {
 
@@ -30,8 +34,8 @@ public class TestHadoopShimsLoader {
   public void testBasicLoader() {
     HadoopShimsLoader loader = new HadoopShimsLoader(new Configuration(false));
     HadoopShim shim = loader.getHadoopShim();
-    Assert.assertNotNull(shim);
-    Assert.assertEquals(DefaultHadoopShim.class, shim.getClass());
+    assertNotNull(shim);
+    assertEquals(DefaultHadoopShim.class, shim.getClass());
   }
 
   @Test
@@ -40,16 +44,19 @@ public class TestHadoopShimsLoader {
     conf.set(HadoopShimsLoader.TEZ_HADOOP_SHIM_PROVIDER_CLASS, DummyShimProvider.class.getName());
     HadoopShimsLoader loader = new HadoopShimsLoader(conf, true);
     HadoopShim shim = loader.getHadoopShim();
-    Assert.assertNotNull(shim);
-    Assert.assertEquals(DummyShim.class, shim.getClass());
+    assertNotNull(shim);
+    assertEquals(DummyShim.class, shim.getClass());
   }
 
-  @Test(expected = RuntimeException.class)
+  @Test
   public void testInvalidOverride() {
     Configuration conf = new Configuration(false);
     conf.set(HadoopShimsLoader.TEZ_HADOOP_SHIM_PROVIDER_CLASS, "org.apache.tez.foo");
-    HadoopShimsLoader loader = new HadoopShimsLoader(conf, true);
-    HadoopShim shim = loader.getHadoopShim();
+    assertThrows(
+        RuntimeException.class,
+        () -> {
+          HadoopShimsLoader loader = new HadoopShimsLoader(conf, true);
+          HadoopShim shim = loader.getHadoopShim();
+        });
   }
-
 }

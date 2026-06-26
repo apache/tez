@@ -18,15 +18,19 @@
  */
 package org.apache.tez.dag.app;
 
+import java.util.concurrent.TimeUnit;
+
 import org.apache.tez.serviceplugins.api.TaskCommunicator;
 
 import com.google.common.collect.Sets;
 
-import org.junit.Test;
+import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.Timeout;
 
 public class TestTaskCommunicatorWrapper {
 
-  @Test(timeout = 5000)
+  @Test
+  @Timeout(value = 5000, unit = TimeUnit.MILLISECONDS)
   public void testDelegation() throws Exception {
     PluginWrapperTestHelpers.testDelegation(TaskCommunicatorWrapper.class, TaskCommunicator.class,
         Sets.newHashSet("getTaskCommunicator"));

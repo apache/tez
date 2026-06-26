@@ -18,11 +18,16 @@
  */
 package org.apache.tez.dag.api.client;
 
-import static org.junit.Assert.*;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertInstanceOf;
+import static org.junit.jupiter.api.Assertions.assertThrows;
+import static org.junit.jupiter.api.Assertions.assertTrue;
+import static org.junit.jupiter.api.Assertions.fail;
 import static org.mockito.Mockito.*;
 
 import java.util.HashMap;
 import java.util.Map;
+import java.util.concurrent.TimeUnit;
 
 import org.apache.hadoop.yarn.api.records.LocalResource;
 import org.apache.hadoop.yarn.util.SystemClock;
@@ -36,14 +41,16 @@ import org.apache.tez.dag.app.DAGAppMasterState;
 import org.apache.tez.dag.app.dag.DAG;
 import org.apache.tez.dag.records.TezDAGID;
 
-import org.junit.Test;
+import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.Timeout;
 import org.mockito.ArgumentCaptor;
 import org.mockito.internal.util.collections.Sets;
 
 
 public class TestDAGClientHandler {
 
-  @Test(timeout = 5000)
+  @Test
+  @Timeout(value = 5000, unit = TimeUnit.MILLISECONDS)
   public void testDAGClientHandler() throws TezException {
 
     TezDAGID mockTezDAGId = mock(TezDAGID.class);
@@ -116,7 +123,7 @@ public class TestDAGClientHandler {
     verify(mockDagAM, times(1)).tryKillDAG(eventCaptor.capture(),
         contains("Sending client kill from"));
     assertEquals(1, eventCaptor.getAllValues().size());
-    assertTrue(eventCaptor.getAllValues().get(0) instanceof DAG);
+    assertInstanceOf(DAG.class, eventCaptor.getAllValues().get(0));
     assertEquals("dag_9999_0001_1",  ((DAG)eventCaptor.getAllValues().get(0)).getID().toString());
 
     // submitDAG
@@ -148,7 +155,7 @@ public class TestDAGClientHandler {
     assertEquals("dag_9999_0001_1", dagClientHandler.getDAG("dag_9999_0001_1").getID().toString());
   }
 
-  @Test(expected = NoCurrentDAGException.class)
+  @Test
   public void testNoCurrentDAGException() throws TezException {
     DAGAppMaster mockDagAM = getMockAm();
 
@@ -156,7 +163,9 @@ public class TestDAGClientHandler {
     when(mockDagAM.getContext().getCurrentDAG()).thenReturn(null);
 
     // so this should throw NoCurrentDAGException
-    new DAGClientHandler(mockDagAM).getDAG("dag_0000_0000_0");
+    assertThrows(NoCurrentDAGException.class, () -> {
+        new DAGClientHandler(mockDagAM).getDAG("dag_0000_0000_0");
+    });
   }
 
   private DAGAppMaster getMockAm() {

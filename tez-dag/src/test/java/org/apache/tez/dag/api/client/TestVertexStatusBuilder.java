@@ -18,22 +18,27 @@
  */
 package org.apache.tez.dag.api.client;
 
+import static org.junit.jupiter.api.Assertions.assertEquals;
+
+import java.util.concurrent.TimeUnit;
+
 import org.apache.tez.dag.api.records.DAGProtos;
 import org.apache.tez.dag.app.dag.VertexState;
 
-import org.junit.Assert;
-import org.junit.Test;
+import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.Timeout;
 
 public class TestVertexStatusBuilder {
 
-  @Test(timeout = 5000)
+  @Test
+  @Timeout(value = 5000, unit = TimeUnit.MILLISECONDS)
   public void testVertexStateConversion() {
     for (VertexState state : VertexState.values()) {
       DAGProtos.VertexStatusStateProto stateProto =
           VertexStatusBuilder.getProtoState(state);
       VertexStatus.State clientState =
           VertexStatus.getState(stateProto);
-      Assert.assertEquals(state.name(), clientState.name());
+      assertEquals(state.name(), clientState.name());
     }
   }
 

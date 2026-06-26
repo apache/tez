@@ -18,6 +18,9 @@
  */
 package org.apache.tez.common.security;
 
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertNotNull;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.Mockito.any;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.times;
@@ -28,6 +31,7 @@ import java.io.IOException;
 import java.net.InetSocketAddress;
 import java.net.URI;
 import java.net.URISyntaxException;
+import java.util.concurrent.TimeUnit;
 
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.fs.FileSystem;
@@ -40,9 +44,9 @@ import org.apache.hadoop.security.token.Token;
 import org.apache.hadoop.security.token.TokenIdentifier;
 import org.apache.hadoop.yarn.conf.YarnConfiguration;
 
-import org.junit.Assert;
-import org.junit.BeforeClass;
-import org.junit.Test;
+import org.junit.jupiter.api.BeforeAll;
+import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.Timeout;
 import org.mockito.invocation.InvocationOnMock;
 import org.mockito.stubbing.Answer;
 
@@ -52,7 +56,7 @@ public class TestTokenCache {
 
   private static String renewer;
 
-  @BeforeClass
+  @BeforeAll
   public static void setup() throws Exception {
     conf = new Configuration();
     conf.set(YarnConfiguration.RM_PRINCIPAL, "mapred/host@REALM");
@@ -61,7 +65,8 @@ public class TestTokenCache {
     renewer = Master.getMasterPrincipal(conf);
   }
 
-  @Test(timeout = 5000)
+  @Test
+  @Timeout(value = 5000, unit = TimeUnit.MILLISECONDS)
   @SuppressWarnings("deprecation")
   public void testBinaryCredentials() throws Exception {
     String binaryTokenFile = null;
@@ -85,7 +90,7 @@ public class TestTokenCache {
       Credentials newCreds = new Credentials();
       TokenCache.mergeBinaryTokens(newCreds, conf, binaryTokenFile);
 
-      Assert.assertTrue(newCreds.getAllTokens().size() > 0);
+      assertTrue(newCreds.getAllTokens().size() > 0);
       checkTokens(creds, newCreds);
     } finally {
       if (binaryTokenFile != null) {
@@ -98,7 +103,8 @@ public class TestTokenCache {
     }
   }
 
-  @Test(timeout=5000)
+  @Test
+  @Timeout(value = 5000, unit = TimeUnit.MILLISECONDS)
   public void testObtainTokensForFileSystems() throws Exception {
     Path[] paths = makePaths(100, "test://dir/file");
     Credentials creds = new Credentials();
@@ -171,12 +177,12 @@ public class TestTokenCache {
   }
 
   private void checkTokens(Credentials creds, Credentials newCreds) {
-    Assert.assertEquals(creds.getAllTokens().size(),
+    assertEquals(creds.getAllTokens().size(),
         newCreds.getAllTokens().size());
     for (Token<?> token : newCreds.getAllTokens()) {
       Token<?> credsToken = creds.getToken(token.getService());
-      Assert.assertTrue(credsToken != null);
-      Assert.assertEquals(token, credsToken);
+      assertNotNull(credsToken);
+      assertEquals(token, credsToken);
     }
   }
 
