@@ -106,7 +106,7 @@ RUN apk add --no-cache curl tar \
 ####################
 
 # Switching to eclipse-temurin to resolves cross-platform amd64/arm64 architecture issues
-FROM eclipse-temurin:21-jdk-noble AS tezbase
+FROM eclipse-temurin:25-jdk-noble AS tezbase
 
 WORKDIR /root
 SHELL ["/bin/bash", "-o", "pipefail", "-c"]
