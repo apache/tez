@@ -31,14 +31,14 @@ public class TestObjectRegistry {
     Assert.assertNull(objectRegistry.get("foo"));
     Assert.assertFalse(objectRegistry.delete("foo"));
     Integer one = 1;
-    Integer two_1 = 2;
-    Integer two_2 = 3;
+    Integer twoFirst = 2;
+    Integer twoSecond = 3;
     Assert.assertNull(objectRegistry.cacheForDAG("one", one));
     Assert.assertEquals(one, objectRegistry.get("one"));
-    Assert.assertNull(objectRegistry.cacheForDAG("two", two_1));
-    Assert.assertNotNull(objectRegistry.cacheForSession("two", two_2));
-    Assert.assertNotEquals(two_1, objectRegistry.get("two"));
-    Assert.assertEquals(two_2, objectRegistry.get("two"));
+    Assert.assertNull(objectRegistry.cacheForDAG("two", twoFirst));
+    Assert.assertNotNull(objectRegistry.cacheForSession("two", twoSecond));
+    Assert.assertNotEquals(twoFirst, objectRegistry.get("two"));
+    Assert.assertEquals(twoSecond, objectRegistry.get("two"));
     Assert.assertTrue(objectRegistry.delete("one"));
     Assert.assertFalse(objectRegistry.delete("one"));
 
