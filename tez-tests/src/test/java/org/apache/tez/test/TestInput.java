@@ -75,7 +75,15 @@ public class TestInput extends AbstractLogicalInput {
   Set<Integer> failingTaskIndices = Sets.newHashSet();
   Set<Integer> failingTaskAttempts = Sets.newHashSet();
   Set<Integer> failingInputIndices = Sets.newHashSet();
-  Integer failAll = -1;
+  private Integer failAll = -1;
+
+  public Integer getFailAll() {
+    return failAll;
+  }
+
+  public void setFailAll(Integer failAll) {
+    this.failAll = failAll;
+  }
   int[] inputValues;
 
   /**

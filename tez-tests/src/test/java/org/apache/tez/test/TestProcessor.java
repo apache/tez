@@ -59,7 +59,15 @@ public class TestProcessor extends AbstractLogicalIOProcessor {
   long sleepMs;
   Set<Integer> failingTaskIndices = Sets.newHashSet();
   int failingTaskAttemptUpto = 0;
-  Integer failAll = -1;
+  private Integer failAll = -1;
+
+  public Integer getFailAll() {
+    return failAll;
+  }
+
+  public void setFailAll(Integer failAll) {
+    this.failAll = failAll;
+  }
 
   int verifyValue = -1;
   Set<Integer> verifyTaskIndices = Sets.newHashSet();
