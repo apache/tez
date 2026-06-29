@@ -76,9 +76,8 @@
     <commons-lang3.version>3.19.0</commons-lang3.version>
     <curator.version>5.9.0</curator.version>
     <dependency-check-maven.version>3.2.0</dependency-check-maven.version>
-    <spotbugs.version>4.9.3</spotbugs.version>
-    <spotbugs-maven-plugin.version>4.9.3.0</spotbugs-maven-plugin.version>
-    <asm.version>9.8</asm.version>
+    <spotbugs.version>4.10.2</spotbugs.version>
+    <spotbugs-maven-plugin.version>4.10.2.0</spotbugs-maven-plugin.version>
     <plexus-velocity.version>2.3.0</plexus-velocity.version>
     <frontend-maven-plugin.version>1.15.0</frontend-maven-plugin.version>
     <guava.version>33.4.8-jre</guava.version>
@@ -1155,32 +1154,6 @@
               <groupId>org.codehaus.plexus</groupId>
               <artifactId>plexus-velocity</artifactId>
               <version>${plexus-velocity.version}</version>
-            </dependency>
-            <!-- Upgrade ASM to support Java 25 class file major version 69 -->
-            <dependency>
-              <groupId>org.ow2.asm</groupId>
-              <artifactId>asm</artifactId>
-              <version>${asm.version}</version>
-            </dependency>
-            <dependency>
-              <groupId>org.ow2.asm</groupId>
-              <artifactId>asm-commons</artifactId>
-              <version>${asm.version}</version>
-            </dependency>
-            <dependency>
-              <groupId>org.ow2.asm</groupId>
-              <artifactId>asm-tree</artifactId>
-              <version>${asm.version}</version>
-            </dependency>
-            <dependency>
-              <groupId>org.ow2.asm</groupId>
-              <artifactId>asm-analysis</artifactId>
-              <version>${asm.version}</version>
-            </dependency>
-            <dependency>
-              <groupId>org.ow2.asm</groupId>
-              <artifactId>asm-util</artifactId>
-              <version>${asm.version}</version>
             </dependency>
           </dependencies>
           <configuration>

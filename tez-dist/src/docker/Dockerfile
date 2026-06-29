@@ -34,7 +34,7 @@ RUN mkdir -p /opt/tez \
         -C /opt/tez \
     && rm -rf /opt/tez-$TEZ_VERSION.tar.gz
 
-FROM eclipse-temurin:25-jdk-ubi10-minimal AS run
+FROM eclipse-temurin:25-jdk-ubi9-minimal AS run
 
 ARG UID=1000
 ARG TEZ_VERSION
