@@ -30,9 +30,9 @@ public class TestObjectRegistry {
 
     Assert.assertNull(objectRegistry.get("foo"));
     Assert.assertFalse(objectRegistry.delete("foo"));
-    Integer one = new Integer(1);
-    Integer two_1 = new Integer(2);
-    Integer two_2 = new Integer(3);
+    Integer one = 1;
+    Integer two_1 = 2;
+    Integer two_2 = 3;
     Assert.assertNull(objectRegistry.cacheForDAG("one", one));
     Assert.assertEquals(one, objectRegistry.get("one"));
     Assert.assertNull(objectRegistry.cacheForDAG("two", two_1));
