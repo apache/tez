@@ -229,6 +229,30 @@ RUN apt-get update && apt-get install --no-install-recommends -y nodejs npm \
     && apt-get clean \
     && rm -rf /var/lib/apt/lists/* /root/.npm
 
+#####################
+# Install Chrome Required for tez-ui ember tests #
+#####################
+# hadolint ignore=DL3008
+RUN curl -sSL https://dl.google.com/linux/linux_signing_key.pub \
+        | gpg --dearmor -o /etc/apt/keyrings/google-chrome.gpg \
+    && echo "deb [arch=amd64 signed-by=/etc/apt/keyrings/google-chrome.gpg] https://dl.google.com/linux/chrome/deb/ stable main" \
+        > /etc/apt/sources.list.d/google-chrome.list \
+    && apt-get -q update \
+    && apt-get -q install --no-install-recommends -y google-chrome-stable \
+    && apt-get clean \
+    && rm -rf /var/lib/apt/lists/*
+
+# Create a google-chrome wrapper so that testem 0.9.11 (bundled in ember-cli
+# 1.13.14) can find and launch Chrome headlessly. testem 0.9.11 calls
+# 'google-chrome' via 'which' with hardcoded non-headless args and ignores
+# browser_args/CHROME_BIN config. This wrapper injects the required headless
+# flags before forwarding all arguments to the real binary.
+# hadolint ignore=DL3059
+RUN printf '#!/bin/bash\nexec /usr/bin/google-chrome-stable --headless --disable-gpu --no-sandbox --disable-dev-shm-usage "$@"\n' \
+    > /usr/local/bin/google-chrome \
+    && chmod +x /usr/local/bin/google-chrome
+ENV CHROME_BIN=google-chrome-stable
+
 ################################
 # Copy over parallel downloads #
 ################################
