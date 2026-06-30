@@ -4,6 +4,13 @@
   "disable_watching": true,
   "browser_start_timeout": 120,
   "timeout": 300,
+  "exit_timeout": 5,
+  "launchers": {
+    "Chrome": {
+      "command": "scripts/chrome-launcher.sh --headless --disable-gpu --no-sandbox --disable-dev-shm-usage --no-default-browser-check --no-first-run --ignore-certificate-errors --test-type <url>",
+      "protocol": "browser"
+    }
+  },
   "launch_in_ci": [
     "Chrome"
   ],
