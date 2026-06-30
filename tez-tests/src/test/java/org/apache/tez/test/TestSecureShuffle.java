@@ -60,8 +60,9 @@ import org.junit.jupiter.api.AfterAll;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Timeout;
-import org.junit.jupiter.params.*;
-import org.junit.jupiter.params.provider.*;
+import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.Arguments;
+import org.junit.jupiter.params.provider.MethodSource;
 
 /**
  * Test to verify secure-shuffle (SSL mode) in Tez
@@ -83,8 +84,7 @@ public class TestSecureShuffle {
         // enable ssl in cluster, succeed with tez-ssl enabled, fail with tez-ssl disabled
         Arguments.of(true, 0, 1, false),
         // With asyncHttp
-        Arguments.of(true, 0, 1, true),
-        Arguments.of(false, 1, 0, true),
+        Arguments.of(true, 0, 1, true), Arguments.of(false, 1, 0, true),
         // Negative testcase
         // disable ssl in cluster, fail with tez-ssl enabled, succeed with tez-ssl disabled
         Arguments.of(false, 1, 0, false));
@@ -159,12 +159,10 @@ public class TestSecureShuffle {
     assertEquals(expectedResult, wordCount.run(args));
   }
 
-  @ParameterizedTest(name = "test[sslInCluster:{0}, resultWithTezSSL:{1}, "
-      + "resultWithoutTezSSL:{2}, asyncHttp:{3}]")
+  @ParameterizedTest(name = "test[sslInCluster:{0}, resultWithTezSSL:{1}, " + "resultWithoutTezSSL:{2}, asyncHttp:{3}]")
   @MethodSource("getParameters")
   @Timeout(value = 500000, unit = TimeUnit.MILLISECONDS)
-  public void testSecureShuffle(
-      boolean sslInCluster, int resultWithTezSSL, int resultWithoutTezSSL, boolean asyncHttp)
+  public void testSecureShuffle(boolean sslInCluster, int resultWithTezSSL, int resultWithoutTezSSL, boolean asyncHttp)
       throws Exception {
     setupTezCluster(sslInCluster, asyncHttp);
     //With tez-ssl setting

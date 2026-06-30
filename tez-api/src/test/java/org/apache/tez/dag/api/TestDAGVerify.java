@@ -1103,8 +1103,8 @@ public class TestDAGVerify {
       fail();
     } catch (Exception e) {
       assertEquals(
-          "v1 has -1 tasks but does not have input initializers, 1-1 uninited sources or custom vertex manager to set it at runtime",
-          e.getMessage());
+          "v1 has -1 tasks but does not have input initializers, 1-1 uninited sources or custom vertex manager to set" +
+          " it at runtime", e.getMessage());
     }
 
     DataSourceDescriptor dsDesc = DataSourceDescriptor.create(InputDescriptor.create(dummyInputClassName),
@@ -1125,8 +1125,8 @@ public class TestDAGVerify {
       fail();
     } catch (Exception e) {
       assertEquals(
-          "v1 has -1 tasks but does not have input initializers, 1-1 uninited sources or custom vertex manager to set it at runtime",
-          e.getMessage());
+          "v1 has -1 tasks but does not have input initializers, 1-1 uninited sources or custom vertex manager to set" +
+          " it at runtime", e.getMessage());
     }
 
     v1.setVertexManagerPlugin(VertexManagerPluginDescriptor.create(dummyVMPluginClassName));
@@ -1145,8 +1145,8 @@ public class TestDAGVerify {
       fail();
     } catch (Exception e) {
       assertEquals(
-          "v1 has -1 tasks but does not have input initializers, 1-1 uninited sources or custom vertex manager to set it at runtime",
-          e.getMessage());
+          "v1 has -1 tasks but does not have input initializers, 1-1 uninited sources or custom vertex manager to set" +
+          " it at runtime", e.getMessage());
     }
 
     Vertex v0 = Vertex.create("v0", ProcessorDescriptor.create(dummyProcessorClassName));
@@ -1172,8 +1172,8 @@ public class TestDAGVerify {
       fail();
     } catch (Exception e) {
       assertEquals(
-          "v1 has -1 tasks but does not have input initializers, 1-1 uninited sources or custom vertex manager to set it at runtime",
-          e.getMessage());
+          "v1 has -1 tasks but does not have input initializers, 1-1 uninited sources or custom vertex manager to set" +
+          " it at runtime", e.getMessage());
     }
 
     Vertex v0 = Vertex.create("v2", ProcessorDescriptor.create(dummyProcessorClassName));

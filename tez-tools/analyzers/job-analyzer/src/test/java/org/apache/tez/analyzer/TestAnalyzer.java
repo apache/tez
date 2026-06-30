@@ -319,15 +319,14 @@ public class TestAnalyzer {
       if (steps.length + 2 == criticalPath.size()) {
         foundMatchingLength = true;
         assertEquals(CriticalPathStep.EntityType.VERTEX_INIT, criticalPath.get(0).getType());
-        assertEquals(criticalPath.get(1).getAttempt().getShortName(),
-            criticalPath.get(0).getAttempt().getShortName());
+        assertEquals(criticalPath.get(1).getAttempt().getShortName(), criticalPath.get(0).getAttempt().getShortName());
 
         for (int i=1; i<criticalPath.size() - 1; ++i) {
           StepCheck check = steps[i-1];
           CriticalPathStep step = criticalPath.get(i);
           assertEquals(EntityType.ATTEMPT, step.getType());
           assertTrue(step.getAttempt().getShortName().matches(check.getAttemptDetail()), check.getAttemptDetail());
-          assertEquals(steps[i-1].getReason(), step.getReason());
+          assertEquals(steps[i - 1].getReason(), step.getReason());
           if (check.getErrCause() != null) {
             assertEquals(check.getErrCause(),
                 TaskAttemptTerminationCause.valueOf(step.getAttempt().getTerminationCause()));
@@ -340,8 +339,7 @@ public class TestAnalyzer {
           }
         }
 
-        assertEquals(CriticalPathStep.EntityType.DAG_COMMIT,
-            criticalPath.get(criticalPath.size() - 1).getType());
+        assertEquals(CriticalPathStep.EntityType.DAG_COMMIT, criticalPath.get(criticalPath.size() - 1).getType());
         break;
       }
     }

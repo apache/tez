@@ -54,7 +54,6 @@ import org.apache.tez.runtime.library.common.sort.impl.IFileInputStream;
 
 import org.junit.jupiter.api.Test;
 
-
 public class TestCodecUtils {
 
   @Test
@@ -150,7 +149,8 @@ public class TestCodecUtils {
             CompressionOutputStream stream =
                 CodecUtils.createOutputStream(codec, mock(OutputStream.class), compressor);
 
-            assertEquals(CommonConfigurationKeysPublic.IO_FILE_BUFFER_SIZE_DEFAULT, getBufferSize(stream), "stream buffer size is incorrect");
+            assertEquals(CommonConfigurationKeysPublic.IO_FILE_BUFFER_SIZE_DEFAULT, getBufferSize(stream),
+                "stream buffer size is incorrect");
 
             CodecPool.returnCompressor(compressor);
           } catch (Exception e) {
@@ -167,7 +167,8 @@ public class TestCodecUtils {
             CompressionInputStream stream =
                 CodecUtils.createInputStream(codec, mock(InputStream.class), decompressor);
 
-            assertEquals(CommonConfigurationKeysPublic.IO_FILE_BUFFER_SIZE_DEFAULT, getBufferSize(stream), "stream buffer size is incorrect");
+            assertEquals(CommonConfigurationKeysPublic.IO_FILE_BUFFER_SIZE_DEFAULT, getBufferSize(stream),
+                "stream buffer size is incorrect");
 
             CodecPool.returnDecompressor(decompressor);
           } catch (Exception e) {
@@ -187,8 +188,7 @@ public class TestCodecUtils {
   public void testDefaultBufferSize() {
     Configuration conf = new Configuration(); // config with no buffersize set
 
-    assertEquals(CodecUtils.DEFAULT_BUFFER_SIZE,
-        CodecUtils.getDefaultBufferSize(conf, new DummyCompressionCodec()));
+    assertEquals(CodecUtils.DEFAULT_BUFFER_SIZE, CodecUtils.getDefaultBufferSize(conf, new DummyCompressionCodec()));
     assertEquals(CommonConfigurationKeysPublic.IO_FILE_BUFFER_SIZE_DEFAULT,
         CodecUtils.getDefaultBufferSize(conf, new DefaultCodec()));
     assertEquals(CommonConfigurationKeysPublic.IO_FILE_BUFFER_SIZE_DEFAULT,

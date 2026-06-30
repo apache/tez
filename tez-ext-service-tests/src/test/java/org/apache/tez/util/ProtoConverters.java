@@ -41,7 +41,6 @@ import org.apache.tez.test.service.rpc.TezTestServiceProtocolProtos.IOSpecProto;
 import org.apache.tez.test.service.rpc.TezTestServiceProtocolProtos.TaskSpecProto;
 import org.apache.tez.test.service.rpc.TezTestServiceProtocolProtos.TaskSpecProto.Builder;
 
-
 public final class ProtoConverters {
 
   private ProtoConverters() {}

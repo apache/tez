@@ -419,8 +419,7 @@ public class TestIFile {
     for (int i = 0; i < 5; i++) {
       bytes = new byte[(int) raws[i]];
       assertEquals(inStream.getPos(), compTotal, "Compressed stream out-of-sync");
-      Reader.readToMemory(bytes, inStream, (int) compressed[i], codec,
-          false, -1);
+      Reader.readToMemory(bytes, inStream, (int) compressed[i], codec, false, -1);
       compTotal += compressed[i];
 
       // Now read the data
@@ -780,16 +779,12 @@ public class TestIFile {
   public void testSmallDataCompression() throws IOException {
     assumeTrue(NativeCodeLoader.isNativeCodeLoaded());
 
-    assertThrows(
-        IllegalArgumentException.class,
-        () -> {
-          tryWriteFileWithBufferSize(17, "org.apache.hadoop.io.compress.Lz4Codec");
-        });
-    assertThrows(
-        IllegalArgumentException.class,
-        () -> {
-          tryWriteFileWithBufferSize(32, "org.apache.hadoop.io.compress.Lz4Codec");
-        });
+    assertThrows(IllegalArgumentException.class, () -> {
+      tryWriteFileWithBufferSize(17, "org.apache.hadoop.io.compress.Lz4Codec");
+    });
+    assertThrows(IllegalArgumentException.class, () -> {
+      tryWriteFileWithBufferSize(32, "org.apache.hadoop.io.compress.Lz4Codec");
+    });
   }
 
   private void tryWriteFileWithBufferSize(int bufferSize, String codecClassName)
@@ -987,21 +982,14 @@ public class TestIFile {
       readValue = valDeserializer.deserialize(readValue);
 
       KVPair expected = data.get(numRecordsRead);
-      assertEquals(
-          expected.getKey(),
-          readKey,
+      assertEquals(expected.getKey(), readKey,
           "Key does not match: Expected: " + expected.getKey() + ", Read: " + readKey);
-      assertEquals(
-          expected.getvalue(),
-          readValue,
+      assertEquals(expected.getvalue(), readValue,
           "Value does not match: Expected: " + expected.getvalue() + ", Read: " + readValue);
 
       numRecordsRead++;
     }
-    assertEquals(
-        data.size(),
-        numRecordsRead,
-        "Expected: " + data.size() + " records, but found: " + numRecordsRead);
+    assertEquals(data.size(), numRecordsRead, "Expected: " + data.size() + " records, but found: " + numRecordsRead);
     LOG.info("Found: " + numRecordsRead + " records");
   }
 

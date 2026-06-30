@@ -71,20 +71,11 @@ public class TestTezLocalCacheManager {
     try {
       manager.localize();
 
-      assertEquals(
-          "content-one",
-          new String(Files.readAllBytes(Paths.get("./file-one")))
-      );
+      assertEquals("content-one", new String(Files.readAllBytes(Paths.get("./file-one"))));
 
-      assertEquals(
-          "content-two",
-          new String(Files.readAllBytes(Paths.get("./file-two")))
-      );
+      assertEquals("content-two", new String(Files.readAllBytes(Paths.get("./file-two"))));
 
-      assertEquals(
-          "content-two",
-          new String(Files.readAllBytes(Paths.get("./file-three")))
-      );
+      assertEquals("content-two", new String(Files.readAllBytes(Paths.get("./file-three"))));
     } finally {
       manager.cleanup();
     }

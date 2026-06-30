@@ -229,18 +229,13 @@ public class TestShuffleManager {
   public void testFetchFailed() throws Exception {
     InputContext inputContext = createInputContext();
     final ShuffleManager shuffleManager = spy(createShuffleManager(inputContext, 1));
-    Thread schedulerGetHostThread =
-        new Thread(
-            new Runnable() {
-              @Override
-              public void run() {
-                try {
-                  shuffleManager.run();
-                } catch (Exception e) {
-                  e.printStackTrace();
-                }
-              }
-            });
+    Thread schedulerGetHostThread = new Thread(() -> {
+      try {
+        shuffleManager.run();
+      } catch (Exception e) {
+        e.printStackTrace();
+      }
+    });
     InputAttemptFetchFailure inputAttemptFetchFailure =
         new InputAttemptFetchFailure(new InputAttemptIdentifier(1, 1));
 
@@ -251,12 +246,11 @@ public class TestShuffleManager {
 
     ArgumentCaptor<List> captor = ArgumentCaptor.forClass(List.class);
     verify(inputContext, times(1)).sendEvents(captor.capture());
-    assertEquals(captor.getAllValues().size(), 1, "Size was: " + captor.getAllValues().size());
+    assertEquals(1, captor.getAllValues().size(), "Size was: " + captor.getAllValues().size());
     List<Event> capturedList = captor.getAllValues().get(0);
-    assertEquals(capturedList.size(), 1, "Size was: " + capturedList.size());
+    assertEquals(1, capturedList.size(), "Size was: " + capturedList.size());
     InputReadErrorEvent inputEvent = (InputReadErrorEvent) capturedList.get(0);
-    assertEquals(
-        inputEvent.getNumFailures(), 1, "Number of failures was: " + inputEvent.getNumFailures());
+    assertEquals(1, inputEvent.getNumFailures(), "Number of failures was: " + inputEvent.getNumFailures());
 
     shuffleManager.fetchFailed("host1", inputAttemptFetchFailure, false);
     shuffleManager.fetchFailed("host1", inputAttemptFetchFailure, false);
@@ -268,12 +262,11 @@ public class TestShuffleManager {
     Thread.sleep(5000);
     captor = ArgumentCaptor.forClass(List.class);
     verify(inputContext, times(2)).sendEvents(captor.capture());
-    assertEquals(captor.getAllValues().size(), 2, "Size was: " + captor.getAllValues().size());
+    assertEquals(2, captor.getAllValues().size(), "Size was: " + captor.getAllValues().size());
     capturedList = captor.getAllValues().get(1);
-    assertEquals(capturedList.size(), 1, "Size was: " + capturedList.size());
+    assertEquals(1, capturedList.size(), "Size was: " + capturedList.size());
     inputEvent = (InputReadErrorEvent) capturedList.get(0);
-    assertEquals(
-        inputEvent.getNumFailures(), 2, "Number of failures was: " + inputEvent.getNumFailures());
+    assertEquals(2, inputEvent.getNumFailures(), "Number of failures was: " + inputEvent.getNumFailures());
 
     schedulerGetHostThread.interrupt();
   }

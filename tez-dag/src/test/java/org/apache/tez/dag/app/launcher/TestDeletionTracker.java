@@ -35,43 +35,39 @@ public class TestDeletionTracker {
   public void testNodeIdShufflePortMap() throws Exception {
     DeletionTrackerImpl deletionTracker = new DeletionTrackerImpl(new Configuration());
     // test NodeId
-    NodeId nodeId =
-        new NodeId() {
-          @Override
-          public String getHost() {
-            return "testHost";
-          }
+    NodeId nodeId = new NodeId() {
+      @Override
+      public String getHost() {
+        return "testHost";
+      }
 
-          @Override
-          protected void setHost(String s) {}
+      @Override
+      protected void setHost(String s) {
+      }
 
-          @Override
-          public int getPort() {
-            return 1234;
-          }
+      @Override
+      public int getPort() {
+        return 1234;
+      }
 
-          @Override
-          protected void setPort(int i) {}
+      @Override
+      protected void setPort(int i) {
+      }
 
-          @Override
-          protected void build() {}
-        };
+      @Override
+      protected void build() {
+      }
+    };
     // test shuffle port for the nodeId
     int shufflePort = 9999;
     deletionTracker.addNodeShufflePort(nodeId, shufflePort);
-    assertEquals(
-        1,
-        deletionTracker.getNodeIdShufflePortMap().size(),
+    assertEquals(1, deletionTracker.getNodeIdShufflePortMap().size(),
         "Unexpected number of entries in NodeIdShufflePortMap!");
     deletionTracker.addNodeShufflePort(nodeId, shufflePort);
-    assertEquals(
-        1,
-        deletionTracker.getNodeIdShufflePortMap().size(),
+    assertEquals(1, deletionTracker.getNodeIdShufflePortMap().size(),
         "Unexpected number of entries in NodeIdShufflePortMap!");
     deletionTracker.dagComplete(new TezDAGID(), new JobTokenSecretManager(new TezConfiguration()));
-    assertEquals(
-        1,
-        deletionTracker.getNodeIdShufflePortMap().size(),
+    assertEquals(1, deletionTracker.getNodeIdShufflePortMap().size(),
         "Unexpected number of entries in NodeIdShufflePortMap after dagComplete!");
   }
 }

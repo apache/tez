@@ -31,8 +31,6 @@ import org.apache.tez.runtime.library.api.TezRuntimeConfiguration;
 
 import org.junit.jupiter.api.Test;
 
-
-
 public class TestConfigUtils {
 
   private static class CustomKey implements WritableComparable<CustomKey>, Configurable {

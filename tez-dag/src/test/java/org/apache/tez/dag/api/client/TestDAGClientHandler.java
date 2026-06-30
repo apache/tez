@@ -163,9 +163,7 @@ public class TestDAGClientHandler {
     when(mockDagAM.getContext().getCurrentDAG()).thenReturn(null);
 
     // so this should throw NoCurrentDAGException
-    assertThrows(NoCurrentDAGException.class, () -> {
-        new DAGClientHandler(mockDagAM).getDAG("dag_0000_0000_0");
-    });
+    assertThrows(NoCurrentDAGException.class, () -> new DAGClientHandler(mockDagAM).getDAG("dag_0000_0000_0"));
   }
 
   private DAGAppMaster getMockAm() {

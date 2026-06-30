@@ -54,8 +54,8 @@ public class TestLocalTaskScheduler {
     ApplicationAttemptId appAttemptId = ApplicationAttemptId.newInstance(appId, 1);
 
     TaskSchedulerContext mockContext =
-        TestTaskSchedulerHelpers.setupMockTaskSchedulerContext(
-            "", 0, "", true, appAttemptId, 1000L, null, new Configuration());
+        TestTaskSchedulerHelpers.setupMockTaskSchedulerContext("", 0, "", true, appAttemptId, 1000L, null,
+            new Configuration());
 
     LocalContainerFactory containerFactory = new LocalContainerFactory(appAttemptId, 1000);
 
@@ -64,8 +64,7 @@ public class TestLocalTaskScheduler {
 
     // Object under test
     AsyncDelegateRequestHandler requestHandler =
-        new AsyncDelegateRequestHandler(
-            clientRequestQueue, containerFactory, taskAllocations, mockContext, tezConf);
+        new AsyncDelegateRequestHandler(clientRequestQueue, containerFactory, taskAllocations, mockContext, tezConf);
 
     // Allocate up to max tasks
     for (int i = 0; i < MAX_TASKS; i++) {

@@ -539,10 +539,8 @@ public class TestShuffleHandler {
       ShuffleHeader.DEFAULT_HTTP_HEADER_VERSION);
     conn.connect();
     DataInputStream input = new DataInputStream(conn.getInputStream());
-    assertEquals(Values.KEEP_ALIVE,
-      conn.getHeaderField(Names.CONNECTION));
-    assertEquals("timeout=1",
-      conn.getHeaderField(Values.KEEP_ALIVE));
+    assertEquals(Values.KEEP_ALIVE, conn.getHeaderField(Names.CONNECTION));
+    assertEquals("timeout=1", conn.getHeaderField(Values.KEEP_ALIVE));
     assertEquals(HttpURLConnection.HTTP_OK, conn.getResponseCode());
     ShuffleHeader header = new ShuffleHeader();
     header.readFields(input);
@@ -562,10 +560,8 @@ public class TestShuffleHandler {
       ShuffleHeader.DEFAULT_HTTP_HEADER_VERSION);
     conn.connect();
     input = new DataInputStream(conn.getInputStream());
-    assertEquals(Values.KEEP_ALIVE,
-      conn.getHeaderField(Names.CONNECTION));
-    assertEquals("timeout=1",
-      conn.getHeaderField(Values.KEEP_ALIVE));
+    assertEquals(Values.KEEP_ALIVE, conn.getHeaderField(Names.CONNECTION));
+    assertEquals("timeout=1", conn.getHeaderField(Values.KEEP_ALIVE));
     assertEquals(HttpURLConnection.HTTP_OK, conn.getResponseCode());
     header = new ShuffleHeader();
     header.readFields(input);
@@ -1663,13 +1659,9 @@ public class TestShuffleHandler {
       conn.setRequestProperty(ShuffleHeader.HTTP_HEADER_VERSION,
           ShuffleHeader.DEFAULT_HTTP_HEADER_VERSION);
       conn.connect();
-      assertEquals(
-          HttpURLConnection.HTTP_UNAUTHORIZED,
-          conn.getResponseCode(),
+      assertEquals(HttpURLConnection.HTTP_UNAUTHORIZED, conn.getResponseCode(),
           "Unauthenticated dag delete should return 401");
-      assertTrue(
-          dagDir.exists(),
-          "Dag Directory should NOT have been deleted after unauthenticated request");
+      assertTrue(dagDir.exists(), "Dag Directory should NOT have been deleted after unauthenticated request");
 
       conn = (HttpURLConnection) URI.create(baseUrl
           + "/mapOutput?vertexAction=delete&job=job_12345_0001&dag=1&vertex=00").toURL().openConnection();
@@ -1678,12 +1670,9 @@ public class TestShuffleHandler {
       conn.setRequestProperty(ShuffleHeader.HTTP_HEADER_VERSION,
           ShuffleHeader.DEFAULT_HTTP_HEADER_VERSION);
       conn.connect();
-      assertEquals(
-          HttpURLConnection.HTTP_UNAUTHORIZED,
-          conn.getResponseCode(),
+      assertEquals(HttpURLConnection.HTTP_UNAUTHORIZED, conn.getResponseCode(),
           "Unauthenticated vertex delete should return 401");
-      assertTrue(
-          dagDir.exists(),
+      assertTrue(dagDir.exists(),
           "Dag Directory should NOT have been deleted after unauthenticated vertex delete request");
 
       assertTrue(taskAttemptDir.exists(), "Task Attempt Directory does not exist!");
@@ -1695,12 +1684,9 @@ public class TestShuffleHandler {
       conn.setRequestProperty(ShuffleHeader.HTTP_HEADER_VERSION,
           ShuffleHeader.DEFAULT_HTTP_HEADER_VERSION);
       conn.connect();
-      assertEquals(
-          HttpURLConnection.HTTP_UNAUTHORIZED,
-          conn.getResponseCode(),
+      assertEquals(HttpURLConnection.HTTP_UNAUTHORIZED, conn.getResponseCode(),
           "Unauthenticated task attempt delete should return 401");
-      assertTrue(
-          taskAttemptDir.exists(),
+      assertTrue(taskAttemptDir.exists(),
           "Task Attempt Directory should NOT have been deleted after unauthenticated request");
     } finally {
       shuffleHandler.close();
@@ -1741,12 +1727,12 @@ public class TestShuffleHandler {
     int maxOpenFiles =conf.getInt(ShuffleHandler.SHUFFLE_MAX_SESSION_OPEN_FILES,
         ShuffleHandler.DEFAULT_SHUFFLE_MAX_SESSION_OPEN_FILES);
     sh.getShuffle(conf).channelRead(mockCtx, httpRequest);
-    assertTrue(listenerList.size() <= maxOpenFiles, "Number of Open files should not exceed the configured " +
-            "value!-Not Expected");
-    while(!listenerList.isEmpty()) {
-      listenerList.remove(0).operationComplete(mockFuture);
-      assertTrue(listenerList.size() <= maxOpenFiles, "Number of Open files should not exceed the configured " +
-              "value!-Not Expected");
+    assertTrue(listenerList.size() <= maxOpenFiles,
+        "Number of Open files should not exceed the configured " + "value!-Not Expected");
+    while (!listenerList.isEmpty()) {
+      listenerList.removeFirst().operationComplete(mockFuture);
+      assertTrue(listenerList.size() <= maxOpenFiles,
+          "Number of Open files should not exceed the configured " + "value!-Not Expected");
     }
     sh.close();
   }
@@ -1783,8 +1769,7 @@ public class TestShuffleHandler {
       header.readFields(input);
 
       // message is encoded in the shuffle header, and can be checked by fetchers
-      assertEquals(
-          ShuffleHandlerError.DISK_ERROR_EXCEPTION + ": " + MockShuffleHandlerWithFatalDiskError.MESSAGE,
+      assertEquals(ShuffleHandlerError.DISK_ERROR_EXCEPTION + ": " + MockShuffleHandlerWithFatalDiskError.MESSAGE,
           header.getMapId());
       assertEquals(-1, header.getCompressedLength());
       assertEquals(-1, header.getUncompressedLength());

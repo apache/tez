@@ -48,8 +48,7 @@ public class TestJavaOptsChecker {
       javaOptsChecker.checkOpts(opts);
       fail("Expected check to fail with opts=" + opts);
     } catch (TezException e) {
-      assertTrue(e.getMessage().contains("Invalid/conflicting GC options found"),
-              e.getMessage());
+      assertTrue(e.getMessage().contains("Invalid/conflicting GC options found"), e.getMessage());
     }
   }
 

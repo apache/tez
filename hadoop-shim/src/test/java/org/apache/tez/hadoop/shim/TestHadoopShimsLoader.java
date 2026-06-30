@@ -27,7 +27,6 @@ import org.apache.tez.hadoop.shim.DummyShimProvider.DummyShim;
 
 import org.junit.jupiter.api.Test;
 
-
 public class TestHadoopShimsLoader {
 
   @Test
@@ -52,11 +51,9 @@ public class TestHadoopShimsLoader {
   public void testInvalidOverride() {
     Configuration conf = new Configuration(false);
     conf.set(HadoopShimsLoader.TEZ_HADOOP_SHIM_PROVIDER_CLASS, "org.apache.tez.foo");
-    assertThrows(
-        RuntimeException.class,
-        () -> {
-          HadoopShimsLoader loader = new HadoopShimsLoader(conf, true);
-          HadoopShim shim = loader.getHadoopShim();
-        });
+    assertThrows(RuntimeException.class, () -> {
+      HadoopShimsLoader loader = new HadoopShimsLoader(conf, true);
+      HadoopShim shim = loader.getHadoopShim();
+    });
   }
 }

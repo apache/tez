@@ -150,7 +150,8 @@ public class TestAM {
     URL url = URI.create(webUIAddress).toURL();
     IntegerRanges portRange = conf.getRange(TezConfiguration.TEZ_AM_WEBSERVICE_PORT_RANGE,
         TezConfiguration.TEZ_AM_WEBSERVICE_PORT_RANGE_DEFAULT);
-    assertTrue(portRange.getRangeStart() <= url.getPort(), "WebUIService port should be in the defined range (got: " + url.getPort() + ")");
+    assertTrue(portRange.getRangeStart() <= url.getPort(),
+        "WebUIService port should be in the defined range (got: " + url.getPort() + ")");
 
     tezSession.stop();
   }

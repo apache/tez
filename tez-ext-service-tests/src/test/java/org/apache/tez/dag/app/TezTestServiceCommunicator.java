@@ -41,7 +41,6 @@ import com.google.common.util.concurrent.MoreExecutors;
 import com.google.common.util.concurrent.ThreadFactoryBuilder;
 import com.google.protobuf.Message;
 
-
 public class TezTestServiceCommunicator extends AbstractService {
 
   private final ConcurrentMap<String, TezTestServiceProtocolBlockingPB> hostProxies;

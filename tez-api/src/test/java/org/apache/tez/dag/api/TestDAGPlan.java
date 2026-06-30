@@ -59,7 +59,7 @@ import org.apache.tez.serviceplugins.api.TaskSchedulerDescriptor;
 
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.Timeout;
-import org.junit.jupiter.api.io.*;
+import org.junit.jupiter.api.io.TempDir;
 
 // based on TestDAGLocationHint
 public class TestDAGPlan {

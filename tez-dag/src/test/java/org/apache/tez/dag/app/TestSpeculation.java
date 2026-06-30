@@ -64,8 +64,8 @@ import com.google.common.base.Joiner;
 
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.Timeout;
-import org.junit.jupiter.params.*;
-import org.junit.jupiter.params.provider.*;
+import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.MethodSource;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -109,14 +109,14 @@ public class TestSpeculation {
 
   private void runWithRetry(TestTask task) throws Exception {
     int retries = ASSERT_SPECULATIONS_COUNT_RETRIES;
-    while (retries-- > 0) {
+    while (true) {
+      retries--;
       try {
         task.run();
         return;
       } catch (Throwable t) {
-        if (retries > 0 &&
-            ((t instanceof AssertionError && t.getMessage().contains(ASSERT_SPECULATIONS_COUNT_MSG))
-                || (t instanceof Exception && t.getMessage().contains(UNIT_EXCEPTION_MESSAGE)))) {
+        if (retries > 0 && ((t instanceof AssertionError && t.getMessage().contains(ASSERT_SPECULATIONS_COUNT_MSG)) ||
+                            (t instanceof Exception && t.getMessage().contains(UNIT_EXCEPTION_MESSAGE)))) {
           LOG.warn("Test failed. Retries remaining: {}", retries);
         } else {
           if (t instanceof Exception) {
@@ -194,10 +194,7 @@ public class TestSpeculation {
    * @return the test parameters
    */
   public static Stream<Class<? extends TaskRuntimeEstimator>> getTestParameters() {
-    return Stream.of(
-        SimpleExponentialTaskRuntimeEstimator.class,
-        LegacyTaskRuntimeEstimator.class
-    );
+    return Stream.of(SimpleExponentialTaskRuntimeEstimator.class, LegacyTaskRuntimeEstimator.class);
   }
 
   /**
@@ -209,8 +206,9 @@ public class TestSpeculation {
   MockTezClient createTezSession() throws Exception {
     TezConfiguration tezconf = new TezConfiguration(defaultConf);
     AtomicBoolean mockAppLauncherGoFlag = new AtomicBoolean(false);
-    MockTezClient tezClient = new MockTezClient("testspeculation", tezconf, true, null, null,
-        new MockClock(), mockAppLauncherGoFlag, false, false, 1, 2);
+    MockTezClient tezClient =
+        new MockTezClient("testspeculation", tezconf, true, null, null, new MockClock(), mockAppLauncherGoFlag, false,
+            false, 1, 2);
     tezClient.start();
     syncWithMockAppLauncher(false, mockAppLauncherGoFlag, tezClient);
     return tezClient;
@@ -289,7 +287,7 @@ public class TestSpeculation {
           TaskAttempt killedAttempt = task.getAttempt(killedTaId);
           Joiner.on(",").join(killedAttempt.getDiagnostics()).contains("Killed as speculative attempt");
           assertEquals(TaskAttemptTerminationCause.TERMINATED_EFFECTIVE_SPECULATION,
-                  killedAttempt.getTerminationCause());
+              killedAttempt.getTerminationCause());
         }
         tezClient.stop();
       }
@@ -324,24 +322,19 @@ public class TestSpeculation {
 
     mockLauncher.startScheduling(true);
     dagClient.waitForCompletion();
-    assertEquals(State.SUCCEEDED,
-        dagClient.getDAGStatus(null).getState());
+    assertEquals(State.SUCCEEDED, dagClient.getDAGStatus(null).getState());
     Task task = dagImpl.getTask(killedTaId.getTaskID());
     assertEquals(2, task.getAttempts().size(), ASSERT_SPECULATIONS_COUNT_MSG);
     assertEquals(successTaId, task.getSuccessfulAttempt().getTaskAttemptID());
     TaskAttempt killedAttempt = task.getAttempt(killedTaId);
     Joiner.on(",").join(killedAttempt.getDiagnostics()).contains("Killed as speculative attempt");
-    assertEquals(TaskAttemptTerminationCause.TERMINATED_EFFECTIVE_SPECULATION,
-        killedAttempt.getTerminationCause());
+    assertEquals(TaskAttemptTerminationCause.TERMINATED_EFFECTIVE_SPECULATION, killedAttempt.getTerminationCause());
     if (withProgress) {
       // without progress updates occasionally more than 1 task speculates
-      assertEquals(1, task.getCounters().findCounter(TaskCounter.NUM_SPECULATIONS)
-          .getValue());
-      assertEquals(1, dagImpl.getAllCounters().findCounter(TaskCounter.NUM_SPECULATIONS)
-          .getValue());
+      assertEquals(1, task.getCounters().findCounter(TaskCounter.NUM_SPECULATIONS).getValue());
+      assertEquals(1, dagImpl.getAllCounters().findCounter(TaskCounter.NUM_SPECULATIONS).getValue());
       org.apache.tez.dag.app.dag.Vertex v = dagImpl.getVertex(killedTaId.getVertexID());
-      assertEquals(1, v.getAllCounters().findCounter(TaskCounter.NUM_SPECULATIONS)
-          .getValue());
+      assertEquals(1, v.getAllCounters().findCounter(TaskCounter.NUM_SPECULATIONS).getValue());
     }
 
     LegacySpeculator speculator =
@@ -376,7 +369,8 @@ public class TestSpeculation {
   @ParameterizedTest(name = "{index}: TaskEstimator(EstimatorClass {0})")
   @MethodSource("getTestParameters")
   @Timeout(value = 30000, unit = TimeUnit.MILLISECONDS)
-  public void testBasicSpeculationWithoutProgress(Class<? extends TaskRuntimeEstimator> estimatorClass) throws Exception {
+  public void testBasicSpeculationWithoutProgress(Class<? extends TaskRuntimeEstimator> estimatorClass)
+      throws Exception {
     setup(estimatorClass);
     runWithRetry(() -> testBasicSpeculation(false));
   }
@@ -435,11 +429,9 @@ public class TestSpeculation {
           .getValue() <= 0);
       dagClient.waitForCompletion();
       // speculation for vA but not for vB
-      assertTrue(vSpec.getAllCounters().findCounter(TaskCounter.NUM_SPECULATIONS)
-              .getValue() > 0, "Num Speculations is not higher than 0");
-      assertEquals(0,
-          vNoSpec.getAllCounters().findCounter(TaskCounter.NUM_SPECULATIONS)
-              .getValue());
+      assertTrue(vSpec.getAllCounters().findCounter(TaskCounter.NUM_SPECULATIONS).getValue() > 0,
+          "Num Speculations is not higher than 0");
+      assertEquals(0, vNoSpec.getAllCounters().findCounter(TaskCounter.NUM_SPECULATIONS).getValue());
 
       tezClient.stop();
     });
@@ -480,15 +472,11 @@ public class TestSpeculation {
       assertEquals(successTaId, task.getSuccessfulAttempt().getTaskAttemptID());
       TaskAttempt killedAttempt = task.getAttempt(killedTaId);
       Joiner.on(",").join(killedAttempt.getDiagnostics()).contains("Killed speculative attempt as");
-      assertEquals(TaskAttemptTerminationCause.TERMINATED_INEFFECTIVE_SPECULATION,
-          killedAttempt.getTerminationCause());
-      assertEquals(1, task.getCounters().findCounter(TaskCounter.NUM_SPECULATIONS)
-          .getValue());
-      assertEquals(1, dagImpl.getAllCounters().findCounter(TaskCounter.NUM_SPECULATIONS)
-          .getValue());
+      assertEquals(TaskAttemptTerminationCause.TERMINATED_INEFFECTIVE_SPECULATION, killedAttempt.getTerminationCause());
+      assertEquals(1, task.getCounters().findCounter(TaskCounter.NUM_SPECULATIONS).getValue());
+      assertEquals(1, dagImpl.getAllCounters().findCounter(TaskCounter.NUM_SPECULATIONS).getValue());
       org.apache.tez.dag.app.dag.Vertex v = dagImpl.getVertex(killedTaId.getVertexID());
-      assertEquals(1, v.getAllCounters().findCounter(TaskCounter.NUM_SPECULATIONS)
-          .getValue());
+      assertEquals(1, v.getAllCounters().findCounter(TaskCounter.NUM_SPECULATIONS).getValue());
       tezClient.stop();
     });
   }

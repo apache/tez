@@ -156,12 +156,9 @@ public class TestHistoryEventsProtoConversion {
         100, 100, null);
     AMLaunchedEvent deserializedEvent = (AMLaunchedEvent)
         testProtoConversion(event);
-    assertEquals(event.getApplicationAttemptId(),
-        deserializedEvent.getApplicationAttemptId());
-    assertEquals(event.getAppSubmitTime(),
-        deserializedEvent.getAppSubmitTime());
-    assertEquals(event.getLaunchTime(),
-        deserializedEvent.getLaunchTime());
+    assertEquals(event.getApplicationAttemptId(), deserializedEvent.getApplicationAttemptId());
+    assertEquals(event.getAppSubmitTime(), deserializedEvent.getAppSubmitTime());
+    assertEquals(event.getLaunchTime(), deserializedEvent.getLaunchTime());
     logEvents(event, deserializedEvent);
   }
 
@@ -171,10 +168,8 @@ public class TestHistoryEventsProtoConversion {
             ApplicationId.newInstance(0, 1), 1), 100, "");
     AMStartedEvent deserializedEvent = (AMStartedEvent)
         testProtoConversion(event);
-    assertEquals(event.getApplicationAttemptId(),
-        deserializedEvent.getApplicationAttemptId());
-    assertEquals(event.getStartTime(),
-        deserializedEvent.getStartTime());
+    assertEquals(event.getApplicationAttemptId(), deserializedEvent.getApplicationAttemptId());
+    assertEquals(event.getStartTime(), deserializedEvent.getStartTime());
     logEvents(event, deserializedEvent);
   }
 
@@ -187,16 +182,11 @@ public class TestHistoryEventsProtoConversion {
             ApplicationId.newInstance(0, 1), 1), null, "", null, null, QUEUE_NAME);
     DAGSubmittedEvent deserializedEvent = (DAGSubmittedEvent)
         testProtoConversion(event);
-    assertEquals(event.getApplicationAttemptId(),
-        deserializedEvent.getApplicationAttemptId());
-    assertEquals(event.getDAGID(),
-        deserializedEvent.getDAGID());
-    assertEquals(event.getDAGName(),
-        deserializedEvent.getDAGName());
-    assertEquals(event.getSubmitTime(),
-        deserializedEvent.getSubmitTime());
-    assertEquals(event.getDAGPlan(),
-        deserializedEvent.getDAGPlan());
+    assertEquals(event.getApplicationAttemptId(), deserializedEvent.getApplicationAttemptId());
+    assertEquals(event.getDAGID(), deserializedEvent.getDAGID());
+    assertEquals(event.getDAGName(), deserializedEvent.getDAGName());
+    assertEquals(event.getSubmitTime(), deserializedEvent.getSubmitTime());
+    assertEquals(event.getDAGPlan(), deserializedEvent.getDAGPlan());
     assertEquals(event.getQueueName(), deserializedEvent.getQueueName());
     logEvents(event, deserializedEvent);
   }
@@ -207,8 +197,7 @@ public class TestHistoryEventsProtoConversion {
         "user", "dagName", null);
     DAGInitializedEvent deserializedEvent = (DAGInitializedEvent)
         testProtoConversion(event);
-    assertEquals(event.getDAGID(),
-        deserializedEvent.getDAGID());
+    assertEquals(event.getDAGID(), deserializedEvent.getDAGID());
     assertEquals(event.getInitTime(), deserializedEvent.getInitTime());
     logEvents(event, deserializedEvent);
   }
@@ -219,8 +208,7 @@ public class TestHistoryEventsProtoConversion {
         "user", "dagName");
     DAGStartedEvent deserializedEvent = (DAGStartedEvent)
         testProtoConversion(event);
-    assertEquals(event.getDAGID(),
-        deserializedEvent.getDAGID());
+    assertEquals(event.getDAGID(), deserializedEvent.getDAGID());
     assertEquals(event.getStartTime(), deserializedEvent.getStartTime());
     logEvents(event, deserializedEvent);
   }
@@ -230,8 +218,7 @@ public class TestHistoryEventsProtoConversion {
         new DAGKillRequestEvent(TezDAGID.getInstance(ApplicationId.newInstance(0, 1), 1), 100334l,false);
     DAGKillRequestEvent deserializedEvent = (DAGKillRequestEvent)
         testProtoConversion(event);
-    assertEquals(event.getDagID(),
-        deserializedEvent.getDagID());
+    assertEquals(event.getDagID(), deserializedEvent.getDagID());
     assertEquals(event.getKillRequestTime(), deserializedEvent.getKillRequestTime());
     assertEquals(event.isSessionStopped(), deserializedEvent.isSessionStopped());
     logEvents(event, deserializedEvent);
@@ -245,9 +232,7 @@ public class TestHistoryEventsProtoConversion {
           DAGPlan.newBuilder().setName("dagName").build());
       DAGFinishedEvent deserializedEvent = (DAGFinishedEvent)
           testProtoConversion(event);
-      assertEquals(
-          event.getDAGID(),
-          deserializedEvent.getDAGID());
+      assertEquals(event.getDAGID(), deserializedEvent.getDAGID());
       assertEquals(event.getState(), deserializedEvent.getState());
       assertNotEquals(event.getStartTime(), deserializedEvent.getStartTime());
       assertEquals(event.getFinishTime(), deserializedEvent.getFinishTime());
@@ -266,16 +251,13 @@ public class TestHistoryEventsProtoConversion {
           "user", "dagName", null, null, DAGPlan.newBuilder().setName("dagName").build());
       DAGFinishedEvent deserializedEvent = (DAGFinishedEvent)
           testProtoConversion(event);
-      assertEquals(
-          event.getDAGID(),
-          deserializedEvent.getDAGID());
+      assertEquals(event.getDAGID(), deserializedEvent.getDAGID());
       assertEquals(event.getState(), deserializedEvent.getState());
       assertNotEquals(event.getStartTime(), deserializedEvent.getStartTime());
       assertEquals(event.getFinishTime(), deserializedEvent.getFinishTime());
       assertEquals(event.getDiagnostics(), deserializedEvent.getDiagnostics());
       assertEquals(event.getTezCounters(), deserializedEvent.getTezCounters());
-      assertEquals(101,
-          deserializedEvent.getTezCounters().getGroup("foo").findCounter("c1").getValue());
+      assertEquals(101, deserializedEvent.getTezCounters().getGroup("foo").findCounter("c1").getValue());
       logEvents(event, deserializedEvent);
     }
   }
@@ -290,20 +272,14 @@ public class TestHistoryEventsProtoConversion {
     VertexInitializedEvent deserializedEvent = (VertexInitializedEvent)
         testProtoConversion(event);
     assertEquals(event.getVertexID(), deserializedEvent.getVertexID());
-    assertEquals(event.getInitRequestedTime(),
-        deserializedEvent.getInitRequestedTime());
-    assertEquals(event.getInitedTime(),
-        deserializedEvent.getInitedTime());
-    assertEquals(event.getNumTasks(),
-        deserializedEvent.getNumTasks());
-    assertEquals(event.getAdditionalInputs(),
-        deserializedEvent.getAdditionalInputs());
+    assertEquals(event.getInitRequestedTime(), deserializedEvent.getInitRequestedTime());
+    assertEquals(event.getInitedTime(), deserializedEvent.getInitedTime());
+    assertEquals(event.getNumTasks(), deserializedEvent.getNumTasks());
+    assertEquals(event.getAdditionalInputs(), deserializedEvent.getAdditionalInputs());
     assertNull(deserializedEvent.getProcessorName());
     assertEquals(1, event.getInitGeneratedEvents().size());
-    assertEquals(EventType.ROOT_INPUT_DATA_INFORMATION_EVENT,
-        event.getInitGeneratedEvents().get(0).getEventType());
-    assertEquals(event.getInitGeneratedEvents().size(),
-        deserializedEvent.getInitGeneratedEvents().size());
+    assertEquals(EventType.ROOT_INPUT_DATA_INFORMATION_EVENT, event.getInitGeneratedEvents().get(0).getEventType());
+    assertEquals(event.getInitGeneratedEvents().size(), deserializedEvent.getInitGeneratedEvents().size());
     logEvents(event, deserializedEvent);
   }
 
@@ -315,10 +291,8 @@ public class TestHistoryEventsProtoConversion {
     VertexStartedEvent deserializedEvent = (VertexStartedEvent)
         testProtoConversion(event);
     assertEquals(event.getVertexID(), deserializedEvent.getVertexID());
-    assertEquals(event.getStartRequestedTime(),
-        deserializedEvent.getStartRequestedTime());
-    assertEquals(event.getStartTime(),
-        deserializedEvent.getStartTime());
+    assertEquals(event.getStartRequestedTime(), deserializedEvent.getStartRequestedTime());
+    assertEquals(event.getStartTime(), deserializedEvent.getStartTime());
     logEvents(event, deserializedEvent);
   }
 
@@ -360,37 +334,29 @@ public class TestHistoryEventsProtoConversion {
     assertEquals(event.getNumTasks(), deserializedEvent.getNumTasks());
     assertEquals(event.isSetParallelismCalled(), deserializedEvent.isSetParallelismCalled());
     // vertexLocationHint
-    assertEquals(event.getVertexLocationHint(),
-        deserializedEvent.getVertexLocationHint());
+    assertEquals(event.getVertexLocationHint(), deserializedEvent.getVertexLocationHint());
     // rootInputSpec
-    assertEquals(event.getRootInputSpecUpdates().size(), deserializedEvent
-        .getRootInputSpecUpdates().size());
+    assertEquals(event.getRootInputSpecUpdates().size(), deserializedEvent.getRootInputSpecUpdates().size());
     InputSpecUpdate deserializedBulk = deserializedEvent.getRootInputSpecUpdates().get("input1");
     InputSpecUpdate deserializedPerTask = deserializedEvent.getRootInputSpecUpdates().get("input2");
-    assertEquals(rootInputSpecUpdateBulk.isForAllWorkUnits(),
-        deserializedBulk.isForAllWorkUnits());
-    assertEquals(rootInputSpecUpdateBulk.getAllNumPhysicalInputs(),
-        deserializedBulk.getAllNumPhysicalInputs());
-    assertEquals(rootInputSpecUpdatePerTask.isForAllWorkUnits(),
-        deserializedPerTask.isForAllWorkUnits());
-    assertEquals(rootInputSpecUpdatePerTask.getAllNumPhysicalInputs(),
-        deserializedPerTask.getAllNumPhysicalInputs());
+    assertEquals(rootInputSpecUpdateBulk.isForAllWorkUnits(), deserializedBulk.isForAllWorkUnits());
+    assertEquals(rootInputSpecUpdateBulk.getAllNumPhysicalInputs(), deserializedBulk.getAllNumPhysicalInputs());
+    assertEquals(rootInputSpecUpdatePerTask.isForAllWorkUnits(), deserializedPerTask.isForAllWorkUnits());
+    assertEquals(rootInputSpecUpdatePerTask.getAllNumPhysicalInputs(), deserializedPerTask.getAllNumPhysicalInputs());
     // sourceEdgeManager
-    assertEquals(event.getSourceEdgeProperties().size(), deserializedEvent
-        .getSourceEdgeProperties().size());
+    assertEquals(event.getSourceEdgeProperties().size(), deserializedEvent.getSourceEdgeProperties().size());
     assertEquals(event.getSourceEdgeProperties().get("foo").getDataMovementType(),
         deserializedEvent.getSourceEdgeProperties().get("foo").getDataMovementType());
-    assertNull(deserializedEvent.getSourceEdgeProperties().get("foo")
-        .getEdgeManagerDescriptor());
+    assertNull(deserializedEvent.getSourceEdgeProperties().get("foo").getEdgeManagerDescriptor());
     assertEquals(event.getSourceEdgeProperties().get("foo1").getDataMovementType(),
         deserializedEvent.getSourceEdgeProperties().get("foo1").getDataMovementType());
-    assertEquals(event.getSourceEdgeProperties().get("foo1").getEdgeManagerDescriptor()
-        .getUserPayload().getVersion(), deserializedEvent.getSourceEdgeProperties().get("foo1")
-        .getEdgeManagerDescriptor().getUserPayload().getVersion());
-    assertArrayEquals(event.getSourceEdgeProperties().get("foo1")
-        .getEdgeManagerDescriptor().getUserPayload().deepCopyAsArray(), deserializedEvent
-        .getSourceEdgeProperties().get("foo1").getEdgeManagerDescriptor().getUserPayload()
-        .deepCopyAsArray());
+    assertEquals(event.getSourceEdgeProperties().get("foo1").getEdgeManagerDescriptor().getUserPayload().getVersion(),
+        deserializedEvent.getSourceEdgeProperties().get("foo1").getEdgeManagerDescriptor().getUserPayload()
+            .getVersion());
+    assertArrayEquals(
+        event.getSourceEdgeProperties().get("foo1").getEdgeManagerDescriptor().getUserPayload().deepCopyAsArray(),
+        deserializedEvent.getSourceEdgeProperties().get("foo1").getEdgeManagerDescriptor().getUserPayload()
+            .deepCopyAsArray());
 
     logEvents(event, deserializedEvent);
   }
@@ -420,8 +386,7 @@ public class TestHistoryEventsProtoConversion {
       VertexFinishedEvent deserializedEvent = (VertexFinishedEvent)
           testProtoConversion(event);
       assertEquals(event.getVertexID(), deserializedEvent.getVertexID());
-      assertEquals(event.getFinishTime(),
-          deserializedEvent.getFinishTime());
+      assertEquals(event.getFinishTime(), deserializedEvent.getFinishTime());
       assertEquals(event.getState(), deserializedEvent.getState());
       assertEquals(event.getDiagnostics(), deserializedEvent.getDiagnostics());
       logEvents(event, deserializedEvent);
@@ -436,10 +401,8 @@ public class TestHistoryEventsProtoConversion {
     TaskStartedEvent deserializedEvent = (TaskStartedEvent)
         testProtoConversion(event);
     assertEquals(event.getTaskID(), deserializedEvent.getTaskID());
-    assertEquals(event.getScheduledTime(),
-        deserializedEvent.getScheduledTime());
-    assertEquals(event.getStartTime(),
-        deserializedEvent.getStartTime());
+    assertEquals(event.getScheduledTime(), deserializedEvent.getScheduledTime());
+    assertEquals(event.getStartTime(), deserializedEvent.getStartTime());
     logEvents(event, deserializedEvent);
   }
 
@@ -452,12 +415,9 @@ public class TestHistoryEventsProtoConversion {
       TaskFinishedEvent deserializedEvent = (TaskFinishedEvent)
           testProtoConversion(event);
       assertEquals(event.getTaskID(), deserializedEvent.getTaskID());
-      assertEquals(event.getFinishTime(),
-          deserializedEvent.getFinishTime());
-      assertEquals(event.getState(),
-          deserializedEvent.getState());
-      assertEquals(event.getSuccessfulAttemptID(),
-          deserializedEvent.getSuccessfulAttemptID());
+      assertEquals(event.getFinishTime(), deserializedEvent.getFinishTime());
+      assertEquals(event.getState(), deserializedEvent.getState());
+      assertEquals(event.getSuccessfulAttemptID(), deserializedEvent.getSuccessfulAttemptID());
       assertEquals(event.getDiagnostics(), deserializedEvent.getDiagnostics());
       logEvents(event, deserializedEvent);
     }
@@ -472,12 +432,9 @@ public class TestHistoryEventsProtoConversion {
       TaskFinishedEvent deserializedEvent = (TaskFinishedEvent)
           testProtoConversion(event);
       assertEquals(event.getTaskID(), deserializedEvent.getTaskID());
-      assertEquals(event.getFinishTime(),
-          deserializedEvent.getFinishTime());
-      assertEquals(event.getState(),
-          deserializedEvent.getState());
-      assertEquals(event.getSuccessfulAttemptID(),
-          deserializedEvent.getSuccessfulAttemptID());
+      assertEquals(event.getFinishTime(), deserializedEvent.getFinishTime());
+      assertEquals(event.getState(), deserializedEvent.getState());
+      assertEquals(event.getSuccessfulAttemptID(), deserializedEvent.getSuccessfulAttemptID());
       assertEquals(event.getDiagnostics(), deserializedEvent.getDiagnostics());
       logEvents(event, deserializedEvent);
     }
@@ -495,12 +452,9 @@ public class TestHistoryEventsProtoConversion {
         );
     TaskAttemptStartedEvent deserializedEvent = (TaskAttemptStartedEvent)
         testProtoConversion(event);
-    assertEquals(event.getTaskAttemptID(),
-        deserializedEvent.getTaskAttemptID());
-    assertEquals(event.getContainerId(),
-        deserializedEvent.getContainerId());
-    assertEquals(event.getNodeId(),
-        deserializedEvent.getNodeId());
+    assertEquals(event.getTaskAttemptID(), deserializedEvent.getTaskAttemptID());
+    assertEquals(event.getContainerId(), deserializedEvent.getContainerId());
+    assertEquals(event.getNodeId(), deserializedEvent.getNodeId());
     logEvents(event, deserializedEvent);
   }
 
@@ -520,32 +474,19 @@ public class TestHistoryEventsProtoConversion {
                   "host1", 19999), "inProgress", "Completed", "nodeHttpAddress");
       TaskAttemptFinishedEvent deserializedEvent = (TaskAttemptFinishedEvent)
           testProtoConversion(event);
-      assertEquals(event.getTaskAttemptID(),
-          deserializedEvent.getTaskAttemptID());
-      assertEquals(event.getCreationTime(),
-          deserializedEvent.getCreationTime());
-      assertEquals(event.getAllocationTime(),
-          deserializedEvent.getAllocationTime());
-      assertEquals(event.getStartTime(),
-          deserializedEvent.getStartTime());
-      assertEquals(event.getFinishTime(),
-          deserializedEvent.getFinishTime());
-      assertEquals(event.getCreationCausalTA(),
-          deserializedEvent.getCreationCausalTA());
-      assertEquals(event.getDiagnostics(),
-          deserializedEvent.getDiagnostics());
-      assertEquals(event.getState(),
-          deserializedEvent.getState());
-      assertEquals(event.getCounters(),
-          deserializedEvent.getCounters());
-      assertEquals(event.getContainerId(),
-          deserializedEvent.getContainerId());
-      assertEquals(event.getNodeId(),
-          deserializedEvent.getNodeId());
-      assertEquals(event.getNodeHttpAddress(),
-          deserializedEvent.getNodeHttpAddress());
-      assertEquals(event.getTaskFailureType(),
-          deserializedEvent.getTaskFailureType());
+      assertEquals(event.getTaskAttemptID(), deserializedEvent.getTaskAttemptID());
+      assertEquals(event.getCreationTime(), deserializedEvent.getCreationTime());
+      assertEquals(event.getAllocationTime(), deserializedEvent.getAllocationTime());
+      assertEquals(event.getStartTime(), deserializedEvent.getStartTime());
+      assertEquals(event.getFinishTime(), deserializedEvent.getFinishTime());
+      assertEquals(event.getCreationCausalTA(), deserializedEvent.getCreationCausalTA());
+      assertEquals(event.getDiagnostics(), deserializedEvent.getDiagnostics());
+      assertEquals(event.getState(), deserializedEvent.getState());
+      assertEquals(event.getCounters(), deserializedEvent.getCounters());
+      assertEquals(event.getContainerId(), deserializedEvent.getContainerId());
+      assertEquals(event.getNodeId(), deserializedEvent.getNodeId());
+      assertEquals(event.getNodeHttpAddress(), deserializedEvent.getNodeHttpAddress());
+      assertEquals(event.getTaskFailureType(), deserializedEvent.getTaskFailureType());
       logEvents(event, deserializedEvent);
     }
     {
@@ -567,24 +508,15 @@ public class TestHistoryEventsProtoConversion {
               "host1", 19999), "inProgress", "Completed", "nodeHttpAddress");
       TaskAttemptFinishedEvent deserializedEvent = (TaskAttemptFinishedEvent)
           testProtoConversion(event);
-      assertEquals(event.getTaskAttemptID(),
-          deserializedEvent.getTaskAttemptID());
-      assertEquals(event.getFinishTime(),
-          deserializedEvent.getFinishTime());
-      assertEquals(event.getDiagnostics(),
-          deserializedEvent.getDiagnostics());
-      assertEquals(event.getState(),
-          deserializedEvent.getState());
-      assertEquals(event.getCounters(),
-          deserializedEvent.getCounters());
-      assertEquals(event.getContainerId(),
-          deserializedEvent.getContainerId());
-      assertEquals(event.getNodeId(),
-          deserializedEvent.getNodeId());
-      assertEquals(event.getNodeHttpAddress(),
-          deserializedEvent.getNodeHttpAddress());
-      assertEquals(event.getTaskAttemptError(),
-          deserializedEvent.getTaskAttemptError());
+      assertEquals(event.getTaskAttemptID(), deserializedEvent.getTaskAttemptID());
+      assertEquals(event.getFinishTime(), deserializedEvent.getFinishTime());
+      assertEquals(event.getDiagnostics(), deserializedEvent.getDiagnostics());
+      assertEquals(event.getState(), deserializedEvent.getState());
+      assertEquals(event.getCounters(), deserializedEvent.getCounters());
+      assertEquals(event.getContainerId(), deserializedEvent.getContainerId());
+      assertEquals(event.getNodeId(), deserializedEvent.getNodeId());
+      assertEquals(event.getNodeHttpAddress(), deserializedEvent.getNodeHttpAddress());
+      assertEquals(event.getTaskAttemptError(), deserializedEvent.getTaskAttemptError());
       assertEquals(events.size(), event.getDataEvents().size());
       assertEquals(events.get(0).getTimestamp(), event.getDataEvents().get(0).getTimestamp());
       assertEquals(events.get(0).getTaskAttemptId(), event.getDataEvents().get(0).getTaskAttemptId());
@@ -611,28 +543,18 @@ public class TestHistoryEventsProtoConversion {
           "host1", 19999), "inProgress", "Completed", "nodeHttpAddress");
       TaskAttemptFinishedEvent deserializedEvent = (TaskAttemptFinishedEvent)
           testProtoConversion(event);
-      assertEquals(event.getTaskAttemptID(),
-          deserializedEvent.getTaskAttemptID());
-      assertEquals(event.getFinishTime(),
-          deserializedEvent.getFinishTime());
-      assertEquals(event.getDiagnostics(),
-          deserializedEvent.getDiagnostics());
-      assertEquals(event.getState(),
-          deserializedEvent.getState());
-      assertEquals(event.getCounters(),
-          deserializedEvent.getCounters());
-      assertEquals(event.getContainerId(),
-          deserializedEvent.getContainerId());
-      assertEquals(event.getNodeId(),
-          deserializedEvent.getNodeId());
-      assertEquals(event.getNodeHttpAddress(),
-          deserializedEvent.getNodeHttpAddress());
-      assertEquals(event.getTaskAttemptError(),
-          deserializedEvent.getTaskAttemptError());
+      assertEquals(event.getTaskAttemptID(), deserializedEvent.getTaskAttemptID());
+      assertEquals(event.getFinishTime(), deserializedEvent.getFinishTime());
+      assertEquals(event.getDiagnostics(), deserializedEvent.getDiagnostics());
+      assertEquals(event.getState(), deserializedEvent.getState());
+      assertEquals(event.getCounters(), deserializedEvent.getCounters());
+      assertEquals(event.getContainerId(), deserializedEvent.getContainerId());
+      assertEquals(event.getNodeId(), deserializedEvent.getNodeId());
+      assertEquals(event.getNodeHttpAddress(), deserializedEvent.getNodeHttpAddress());
+      assertEquals(event.getTaskAttemptError(), deserializedEvent.getTaskAttemptError());
       assertEquals(events.size(), event.getDataEvents().size());
       assertEquals(events.get(0).getTimestamp(), event.getDataEvents().get(0).getTimestamp());
-      assertEquals(events.get(0).getTaskAttemptId(),
-          event.getDataEvents().get(0).getTaskAttemptId());
+      assertEquals(events.get(0).getTaskAttemptId(), event.getDataEvents().get(0).getTaskAttemptId());
       assertEquals(event.getTaskFailureType(), deserializedEvent.getTaskFailureType());
       logEvents(event, deserializedEvent);
     }
@@ -668,12 +590,9 @@ public class TestHistoryEventsProtoConversion {
             ApplicationId.newInstance(0, 1), 1));
     ContainerLaunchedEvent deserializedEvent = (ContainerLaunchedEvent)
         testProtoConversion(event);
-    assertEquals(event.getContainerId(),
-        deserializedEvent.getContainerId());
-    assertEquals(event.getLaunchTime(),
-        deserializedEvent.getLaunchTime());
-    assertEquals(event.getApplicationAttemptId(),
-        deserializedEvent.getApplicationAttemptId());
+    assertEquals(event.getContainerId(), deserializedEvent.getContainerId());
+    assertEquals(event.getLaunchTime(), deserializedEvent.getLaunchTime());
+    assertEquals(event.getApplicationAttemptId(), deserializedEvent.getApplicationAttemptId());
     logEvents(event, deserializedEvent);
   }
 
@@ -686,12 +605,9 @@ public class TestHistoryEventsProtoConversion {
             ApplicationId.newInstance(0, 1), 1));
     ContainerStoppedEvent deserializedEvent = (ContainerStoppedEvent)
         testProtoConversion(event);
-    assertEquals(event.getContainerId(),
-        deserializedEvent.getContainerId());
-    assertEquals(event.getStoppedTime(),
-        deserializedEvent.getStoppedTime());
-    assertEquals(event.getApplicationAttemptId(),
-        deserializedEvent.getApplicationAttemptId());
+    assertEquals(event.getContainerId(), deserializedEvent.getContainerId());
+    assertEquals(event.getStoppedTime(), deserializedEvent.getStoppedTime());
+    assertEquals(event.getApplicationAttemptId(), deserializedEvent.getApplicationAttemptId());
     logEvents(event, deserializedEvent);
   }
 
@@ -727,16 +643,14 @@ public class TestHistoryEventsProtoConversion {
       VertexGroupCommitStartedEvent deserializedEvent =
           (VertexGroupCommitStartedEvent) testProtoConversion(event);
       assertEquals(event.getDagID(), deserializedEvent.getDagID());
-      assertEquals(event.getVertexGroupName(),
-          deserializedEvent.getVertexGroupName());
+      assertEquals(event.getVertexGroupName(), deserializedEvent.getVertexGroupName());
       assertEquals(event.getVertexIds(), vertexIds);
       logEvents(event, deserializedEvent);
     }
     {
       VertexGroupCommitStartedEvent deserializedEvent =
           (VertexGroupCommitStartedEvent) testSummaryProtoConversion(event);
-      assertEquals(event.getVertexGroupName(),
-          deserializedEvent.getVertexGroupName());
+      assertEquals(event.getVertexGroupName(), deserializedEvent.getVertexGroupName());
       logEvents(event, deserializedEvent);
     }
   }
@@ -754,16 +668,14 @@ public class TestHistoryEventsProtoConversion {
       VertexGroupCommitFinishedEvent deserializedEvent =
           (VertexGroupCommitFinishedEvent) testProtoConversion(event);
       assertEquals(event.getDagID(), deserializedEvent.getDagID());
-      assertEquals(event.getVertexGroupName(),
-          deserializedEvent.getVertexGroupName());
+      assertEquals(event.getVertexGroupName(), deserializedEvent.getVertexGroupName());
       assertEquals(event.getVertexIds(), vertexIds);
       logEvents(event, deserializedEvent);
     }
     {
       VertexGroupCommitFinishedEvent deserializedEvent =
           (VertexGroupCommitFinishedEvent) testSummaryProtoConversion(event);
-      assertEquals(event.getVertexGroupName(),
-          deserializedEvent.getVertexGroupName());
+      assertEquals(event.getVertexGroupName(), deserializedEvent.getVertexGroupName());
       logEvents(event, deserializedEvent);
     }
   }

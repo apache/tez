@@ -145,8 +145,8 @@ public class TestMRRJobs {
     // After TEZ-1961, the tracking will change from http://localhost:53419/proxy/application_1430963524753_0005
     // to http://localhost:53419/proxy/application_1430963524753_0005/ui/
     // So here use String#contains to verify.
-    assertTrue(trackingUrl.contains(jobId.substring(jobId.indexOf("_"))), "Tracking URL was " + trackingUrl +
-                      " but didn't Match Job ID " + jobId);
+    assertTrue(trackingUrl.contains(jobId.substring(jobId.indexOf("_"))),
+        "Tracking URL was " + trackingUrl + " but didn't Match Job ID " + jobId);
 
     // FIXME once counters and task progress can be obtained properly
     // TODO use dag client to test counters and task progress?
@@ -180,8 +180,8 @@ public class TestMRRJobs {
     boolean succeeded = job.waitForCompletion(true);
     assertTrue(succeeded);
     assertEquals(State.SUCCEEDED, job.getJobState());
-    assertTrue(trackingUrl.contains(jobId.substring(jobId.indexOf("_"))), "Tracking URL was " + trackingUrl +
-                      " but didn't Match Job ID " + jobId);
+    assertTrue(trackingUrl.contains(jobId.substring(jobId.indexOf("_"))),
+        "Tracking URL was " + trackingUrl + " but didn't Match Job ID " + jobId);
 
     // Make sure there are three files in the output-dir
 
@@ -273,8 +273,7 @@ public class TestMRRJobs {
 
   @Test
   @Timeout(value = 60000, unit = TimeUnit.MILLISECONDS)
-  public void testMRRSleepJobWithCompression()
-      throws IOException, InterruptedException, ClassNotFoundException {
+  public void testMRRSleepJobWithCompression() throws IOException, InterruptedException, ClassNotFoundException {
     LOG.info("\n\n\nStarting testMRRSleepJobWithCompression().");
 
     if (!(new File(MiniTezCluster.APPJAR)).exists()) {
@@ -302,8 +301,7 @@ public class TestMRRJobs {
     boolean succeeded = job.waitForCompletion(true);
     assertTrue(succeeded);
     assertEquals(State.SUCCEEDED, job.getJobState());
-    assertTrue(
-        trackingUrl.contains(jobId.substring(jobId.indexOf("_"))),
+    assertTrue(trackingUrl.contains(jobId.substring(jobId.indexOf("_"))),
         "Tracking URL was " + trackingUrl + " but didn't Match Job ID " + jobId);
 
     // FIXME once counters and task progress can be obtained properly

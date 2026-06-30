@@ -51,7 +51,6 @@ import org.apache.tez.runtime.library.common.sort.impl.TezRawKeyValueIterator;
 
 import org.junit.jupiter.api.Test;
 
-
 public class TestMRCombiner {
 
   @Test

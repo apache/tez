@@ -1264,7 +1264,7 @@ public class TestDagAwareYarnTaskScheduler {
   }
 
   @Test
-  @org.junit.jupiter.api.Timeout(value = 50000, unit = java.util.concurrent.TimeUnit.MILLISECONDS)
+  @Timeout(value = 50000, unit = TimeUnit.MILLISECONDS)
   public void testPreemptionWhenBlocked() throws Exception {
     AMRMClientAsyncWrapperForTest mockRMClient = spy(new AMRMClientAsyncWrapperForTest());
 

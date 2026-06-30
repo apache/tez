@@ -53,12 +53,11 @@ public class TestReflectionUtils {
   @Timeout(value = 5000, unit = TimeUnit.MILLISECONDS)
   public void testConstructorWithParameters() throws TezReflectionException {
     Class<?>[] parameterTypes = new Class[] {String.class, Integer.TYPE};
-    Object[] parameters = new Object[] {new String("test"), 1};
+    Object[] parameters = new Object[] {"test", 1};
     ParameterizedConstructorClass instance =
-        ReflectionUtils.createClazzInstance(
-            ParameterizedConstructorClass.class.getName(), parameterTypes, parameters);
-    assertEquals(instance.first, "test", "Class not constructed with first parameter correctly");
-    assertEquals(instance.second, 1, "Class not constructed with second parameter correctly");
+        ReflectionUtils.createClazzInstance(ParameterizedConstructorClass.class.getName(), parameterTypes, parameters);
+    assertEquals("test", instance.first, "Class not constructed with first parameter correctly");
+    assertEquals(1, instance.second, "Class not constructed with second parameter correctly");
   }
 
   @Test

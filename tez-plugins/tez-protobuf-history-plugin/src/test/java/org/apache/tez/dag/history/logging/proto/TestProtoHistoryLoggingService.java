@@ -73,7 +73,7 @@ import org.apache.tez.hadoop.shim.HadoopShim;
 import com.google.protobuf.CodedInputStream;
 
 import org.junit.jupiter.api.Test;
-import org.junit.jupiter.api.io.*;
+import org.junit.jupiter.api.io.TempDir;
 
 public class TestProtoHistoryLoggingService {
   private static ApplicationId appId = ApplicationId.newInstance(1000l, 1);

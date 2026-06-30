@@ -33,7 +33,6 @@ import org.mockito.stubbing.Answer;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-
 public final class PluginWrapperTestHelpers {
 
   private static final Logger LOG = LoggerFactory.getLogger(PluginWrapperTestHelpers.class);
@@ -71,7 +70,9 @@ public final class PluginWrapperTestHelpers {
         if (answer.compareAsPrimitive) {
           assertEquals(answer.lastRetValue, result);
         } else {
-          assertSame(answer.lastRetValue, result, "Expected: " + System.identityHashCode(answer.lastRetValue) + ", actual=" + System.identityHashCode(result));
+          assertSame(answer.lastRetValue, result,
+              "Expected: " + System.identityHashCode(answer.lastRetValue) + ", actual=" +
+              System.identityHashCode(result));
         }
       }
     }

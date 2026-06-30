@@ -369,7 +369,7 @@ public class TestAMNodeTracker {
   }
 
   @Test
-  @org.junit.jupiter.api.Timeout(value = 10000, unit = java.util.concurrent.TimeUnit.MILLISECONDS)
+  @Timeout(value = 10000, unit = TimeUnit.MILLISECONDS)
   public void testNodeCompletedAndCleanup() {
     AppContext appContext = mock(AppContext.class);
     Configuration conf = new Configuration(false);

@@ -1154,7 +1154,7 @@ public class TestTaskAttempt {
   }
 
   @Test
-  @org.junit.jupiter.api.Timeout(value = 60000, unit = java.util.concurrent.TimeUnit.MILLISECONDS)
+  @Timeout(value = 60000, unit = TimeUnit.MILLISECONDS)
   public void testProgressAfterSubmit() throws Exception {
     ApplicationId appId = ApplicationId.newInstance(1, 2);
     ApplicationAttemptId appAttemptId = ApplicationAttemptId.newInstance(
@@ -1262,7 +1262,7 @@ public class TestTaskAttempt {
     taImpl.handle(new TaskAttemptEventSchedule(taskAttemptID, 0, 0));
     taImpl.handle(new TaskAttemptEventSubmitted(taskAttemptID, contId));
     taImpl.handle(new TaskAttemptEventStartedRemotely(taskAttemptID));
-    assertEquals(taImpl.getState(), TaskAttemptState.RUNNING, "Task attempt is not in the RUNNING state");
+    assertEquals(TaskAttemptState.RUNNING, taImpl.getState(), "Task attempt is not in the RUNNING state");
     verify(mockHeartbeatHandler).register(taskAttemptID);
 
     when(mockClock.getTime()).thenReturn(100l);
@@ -1293,7 +1293,8 @@ public class TestTaskAttempt {
     assertEquals(TaskFailureType.NON_FATAL, fEvent.getTaskFailureType());
     taImpl.handle(fEvent);
 
-    assertEquals(taImpl.getInternalState(), TaskAttemptStateInternal.FAIL_IN_PROGRESS, "Task attempt is not in the  FAIL_IN_PROGRESS state");
+    assertEquals(TaskAttemptStateInternal.FAIL_IN_PROGRESS, taImpl.getInternalState(),
+        "Task attempt is not in the  FAIL_IN_PROGRESS state");
     verify(mockHeartbeatHandler).unregister(taskAttemptID);
     assertEquals(1, taImpl.getDiagnostics().size());
     assertEquals(TaskAttemptTerminationCause.NO_PROGRESS, taImpl.getTerminationCause());
@@ -1687,7 +1688,8 @@ public class TestTaskAttempt {
 
     assertEquals(TaskAttemptStateInternal.KILLED, taImpl.getInternalState());
     taImpl.handle(new TaskAttemptEventTezEventUpdate(taImpl.getTaskAttemptID(), Collections.EMPTY_LIST));
-    assertFalse(eventHandler.internalError, "InternalError occurred trying to handle TA_TEZ_EVENT_UPDATE in KILLED state");
+    assertFalse(eventHandler.internalError,
+        "InternalError occurred trying to handle TA_TEZ_EVENT_UPDATE in KILLED state");
   }
 
   @Test
@@ -2302,16 +2304,14 @@ public class TestTaskAttempt {
         return;
       }
     }
-    fail(
-        String.format("Haven't found counter update %s=%d, instead seen: %s", counter, expectedValue, counterUpdates));
+    fail(String.format("Haven't found counter update %s=%d, instead seen: %s", counter, expectedValue, counterUpdates));
   }
 
   private void assertCounterIncrementalUpdateNotFound(
       List<DAGEventCounterUpdate.CounterIncrementalUpdate> counterUpdates, DAGCounter counter) {
     for (DAGEventCounterUpdate.CounterIncrementalUpdate update : counterUpdates) {
       if (update.getCounterKey().equals(counter)) {
-        fail(
-            String.format("Found counter update %s=%d, which is not expected", counter, update.getIncrementValue()));
+        fail(String.format("Found counter update %s=%d, which is not expected", counter, update.getIncrementValue()));
       }
     }
   }

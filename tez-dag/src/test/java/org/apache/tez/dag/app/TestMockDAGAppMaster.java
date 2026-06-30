@@ -225,7 +225,8 @@ public class TestMockDAGAppMaster {
     TezTaskAttemptID killedTaId = TezTaskAttemptID.getInstance(TezTaskID.getInstance(vertexId, 0), 0);
     TaskAttempt killedTa = dagImpl.getVertex(vA.getName()).getTask(0).getAttempt(killedTaId);
     //Refer to TEZ-3950
-    assertTrue(killedTa.getState().equals(TaskAttemptState.KILLED) || killedTa.getState().equals(TaskAttemptState.FAILED));
+    assertTrue(
+        killedTa.getState().equals(TaskAttemptState.KILLED) || killedTa.getState().equals(TaskAttemptState.FAILED));
     tezClient.stop();
   }
 
@@ -234,8 +235,7 @@ public class TestMockDAGAppMaster {
   public void testBasicEvents() throws Exception {
     TezConfiguration tezconf = new TezConfiguration(defaultConf);
 
-    MockTezClient tezClient =
-        new MockTezClient("testMockAM", tezconf, true, null, null, null, null);
+    MockTezClient tezClient = new MockTezClient("testMockAM", tezconf, true, null, null, null, null);
     tezClient.start();
 
     MockDAGAppMaster mockApp = tezClient.getLocalClient().getMockApp();
@@ -247,40 +247,13 @@ public class TestMockDAGAppMaster {
     Vertex vB = Vertex.create("B", ProcessorDescriptor.create("Proc.class"), 2);
     Vertex vC = Vertex.create("C", ProcessorDescriptor.create("Proc.class"), 2);
     Vertex vD = Vertex.create("D", ProcessorDescriptor.create("Proc.class"), 2);
-    dag.addVertex(vA)
-        .addVertex(vB)
-        .addVertex(vC)
-        .addVertex(vD)
-        .addEdge(
-            Edge.create(
-                vA,
-                vB,
-                EdgeProperty.create(
-                    DataMovementType.BROADCAST,
-                    DataSourceType.PERSISTED,
-                    SchedulingType.SEQUENTIAL,
-                    OutputDescriptor.create("Out"),
-                    InputDescriptor.create("In"))))
-        .addEdge(
-            Edge.create(
-                vA,
-                vC,
-                EdgeProperty.create(
-                    DataMovementType.SCATTER_GATHER,
-                    DataSourceType.PERSISTED,
-                    SchedulingType.SEQUENTIAL,
-                    OutputDescriptor.create("Out"),
-                    InputDescriptor.create("In"))))
-        .addEdge(
-            Edge.create(
-                vA,
-                vD,
-                EdgeProperty.create(
-                    DataMovementType.ONE_TO_ONE,
-                    DataSourceType.PERSISTED,
-                    SchedulingType.SEQUENTIAL,
-                    OutputDescriptor.create("Out"),
-                    InputDescriptor.create("In"))));
+    dag.addVertex(vA).addVertex(vB).addVertex(vC).addVertex(vD).addEdge(Edge.create(vA, vB,
+        EdgeProperty.create(DataMovementType.BROADCAST, DataSourceType.PERSISTED, SchedulingType.SEQUENTIAL,
+            OutputDescriptor.create("Out"), InputDescriptor.create("In")))).addEdge(Edge.create(vA, vC,
+        EdgeProperty.create(DataMovementType.SCATTER_GATHER, DataSourceType.PERSISTED, SchedulingType.SEQUENTIAL,
+            OutputDescriptor.create("Out"), InputDescriptor.create("In")))).addEdge(Edge.create(vA, vD,
+        EdgeProperty.create(DataMovementType.ONE_TO_ONE, DataSourceType.PERSISTED, SchedulingType.SEQUENTIAL,
+            OutputDescriptor.create("Out"), InputDescriptor.create("In"))));
 
     DAGClient dagClient = tezClient.submitDAG(dag);
     mockLauncher.waitTillContainersLaunched();
@@ -300,8 +273,7 @@ public class TestMockDAGAppMaster {
     int targetIndex1 = ((DataMovementEvent) tEvents.get(0).getEvent()).getTargetIndex();
     int targetIndex2 = ((DataMovementEvent) tEvents.get(1).getEvent()).getTargetIndex();
     // order of vA task completion can change order of events
-    assertTrue(
-        (targetIndex1 == 0 && targetIndex2 == 1) || (targetIndex1 == 1 && targetIndex2 == 0),
+    assertTrue((targetIndex1 == 0 && targetIndex2 == 1) || (targetIndex1 == 1 && targetIndex2 == 0),
         "t1: " + targetIndex1 + " t2: " + targetIndex2);
     vImpl = (VertexImpl) dagImpl.getVertex(vC.getName());
     tImpl = (TaskImpl) vImpl.getTask(1);
@@ -309,25 +281,22 @@ public class TestMockDAGAppMaster {
     tEvents = vImpl.getTaskAttemptTezEvents(taId, 0, 0, 1000).getEvents();
     assertEquals(2, tEvents.size()); // 2 from vA
     assertEquals(vA.getName(), tEvents.get(0).getDestinationInfo().getEdgeVertexName());
-    assertEquals(
-        1, ((CompositeRoutedDataMovementEvent) tEvents.get(0).getEvent()).getSourceIndex());
+    assertEquals(1, ((CompositeRoutedDataMovementEvent) tEvents.get(0).getEvent()).getSourceIndex());
     assertEquals(vA.getName(), tEvents.get(1).getDestinationInfo().getEdgeVertexName());
-    assertEquals(
-        1, ((CompositeRoutedDataMovementEvent) tEvents.get(1).getEvent()).getSourceIndex());
+    assertEquals(1, ((CompositeRoutedDataMovementEvent) tEvents.get(1).getEvent()).getSourceIndex());
     targetIndex1 = ((CompositeRoutedDataMovementEvent) tEvents.get(0).getEvent()).getTargetIndex();
     targetIndex2 = ((CompositeRoutedDataMovementEvent) tEvents.get(1).getEvent()).getTargetIndex();
     // order of vA task completion can change order of events
-    assertTrue(
-        (targetIndex1 == 0 && targetIndex2 == 1) || (targetIndex1 == 1 && targetIndex2 == 0),
+    assertTrue((targetIndex1 == 0 && targetIndex2 == 1) || (targetIndex1 == 1 && targetIndex2 == 0),
         "t1: " + targetIndex1 + " t2: " + targetIndex2);
     vImpl = (VertexImpl) dagImpl.getVertex(vD.getName());
     tImpl = (TaskImpl) vImpl.getTask(1);
     taId = TezTaskAttemptID.getInstance(tImpl.getTaskID(), 0);
     tEvents = vImpl.getTaskAttemptTezEvents(taId, 0, 0, 1000).getEvents();
     assertEquals(1, tEvents.size()); // 1 from vA
-    assertEquals(vA.getName(), tEvents.get(0).getDestinationInfo().getEdgeVertexName());
-    assertEquals(0, ((DataMovementEvent) tEvents.get(0).getEvent()).getTargetIndex());
-    assertEquals(0, ((DataMovementEvent) tEvents.get(0).getEvent()).getSourceIndex());
+    assertEquals(vA.getName(), tEvents.getFirst().getDestinationInfo().getEdgeVertexName());
+    assertEquals(0, ((DataMovementEvent) tEvents.getFirst().getEvent()).getTargetIndex());
+    assertEquals(0, ((DataMovementEvent) tEvents.getFirst().getEvent()).getSourceIndex());
 
     tezClient.stop();
   }
@@ -1270,8 +1239,7 @@ public class TestMockDAGAppMaster {
     }
     assertEquals(DAGState.SUCCEEDED, mockApp.getContext().getCurrentDAG().getState());
     assertEquals(DAGAppMasterState.FAILED, mockApp.getState());
-    assertTrue(StringUtils.join(mockApp.getDiagnostics(),",")
-        .contains("Recovery had a fatal error, shutting down session after" +
-              " DAG completion"));
+    assertTrue(StringUtils.join(mockApp.getDiagnostics(), ",")
+        .contains("Recovery had a fatal error, shutting down session after" + " DAG completion"));
   }
 }

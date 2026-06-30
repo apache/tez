@@ -44,7 +44,6 @@ import org.apache.tez.serviceplugins.api.TaskSchedulerContext;
 
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.Timeout;
-import org.mockito.invocation.InvocationOnMock;
 import org.mockito.stubbing.Answer;
 
 public class TestLocalTaskSchedulerService {
@@ -169,8 +168,7 @@ public class TestLocalTaskSchedulerService {
     Long grandchildTask1 = new Long(4);
 
     TaskSchedulerContext mockContext =
-        TestTaskSchedulerHelpers.setupMockTaskSchedulerContext(
-            "", 0, "", true, appAttemptId, 1000l, null, tezConf);
+        TestTaskSchedulerHelpers.setupMockTaskSchedulerContext("", 0, "", true, appAttemptId, 1000l, null, tezConf);
     when(mockContext.getVertexIndexForTask(parentTask1)).thenReturn(0);
     when(mockContext.getVertexIndexForTask(parentTask2)).thenReturn(0);
     when(mockContext.getVertexIndexForTask(childTask1)).thenReturn(1);
@@ -195,19 +193,14 @@ public class TestLocalTaskSchedulerService {
     Priority priority4 = Priority.newInstance(4);
     Resource resource = Resource.newInstance(1024, 1);
 
-    MockLocalTaskSchedulerSerivce taskSchedulerService =
-        new MockLocalTaskSchedulerSerivce(mockContext);
+    MockLocalTaskSchedulerSerivce taskSchedulerService = new MockLocalTaskSchedulerSerivce(mockContext);
 
     // The mock context need to send a deallocate container request to the scheduler service
-    Answer<Void> answer =
-        new Answer<Void>() {
-          @Override
-          public Void answer(InvocationOnMock invocation) {
-            ContainerId containerId = invocation.getArgument(0, ContainerId.class);
-            taskSchedulerService.deallocateContainer(containerId);
-            return null;
-          }
-        };
+    Answer<Void> answer = invocation -> {
+      ContainerId containerId = invocation.getArgument(0, ContainerId.class);
+      taskSchedulerService.deallocateContainer(containerId);
+      return null;
+    };
     doAnswer(answer).when(mockContext).preemptContainer(any());
 
     taskSchedulerService.initialize();

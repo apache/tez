@@ -83,29 +83,11 @@ import com.google.common.collect.Lists;
 
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.Timeout;
-import org.junit.jupiter.params.*;
-import org.junit.jupiter.params.provider.*;
+import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.MethodSource;
 import org.mockito.internal.util.collections.Sets;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-
-/**
- * Licensed to the Apache Software Foundation (ASF) under one
- * or more contributor license agreements.  See the NOTICE file
- * distributed with this work for additional information
- * regarding copyright ownership.  The ASF licenses this file
- * to you under the Apache License, Version 2.0 (the
- * "License"); you may not use this file except in compliance
- * with the License.  You may obtain a copy of the License at
- * <p/>
- * http://www.apache.org/licenses/LICENSE-2.0
- * <p/>
- * Unless required by applicable law or agreed to in writing, software
- * distributed under the License is distributed on an "AS IS" BASIS,
- * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
- * See the License for the specific language governing permissions and
- * limitations under the License.
- */
 
 public class TestValuesIterator {
 
@@ -136,9 +118,16 @@ public class TestValuesIterator {
   Path tmpDir;
   Path[] streamPaths; //merge stream paths
 
-  public void setupInit(String serializationClassName, Class<?> key, Class<?> val,
-      TestWithComparator comparator, TestWithComparator correctComparator, boolean testResult)
-      throws Exception {
+  /**
+   * @param serializationClassName serialization class to be used
+   * @param key                    key class name
+   * @param val                    value class name
+   * @param comparator             to be used
+   * @param correctComparator      (real comparator to be used for correct results)
+   * @param testResult             expected result
+   */
+  public void setupInit(String serializationClassName, Class<?> key, Class<?> val, TestWithComparator comparator,
+                        TestWithComparator correctComparator, boolean testResult) throws Exception {
     this.comparator = getComparator(comparator);
     this.correctComparator =
         (correctComparator == null) ? this.comparator : getComparator(correctComparator);
@@ -186,7 +175,9 @@ public class TestValuesIterator {
   @ParameterizedTest(name = "test[{0}, {1}, {2}, {3}, {4}, {5}]")
   @MethodSource("getParameters")
   @Timeout(value = 20000, unit = TimeUnit.MILLISECONDS)
-  public void testIteratorWithIFileReader(String serializationClassName, Class<?> key, Class<?> val, TestWithComparator comparator, TestWithComparator correctComparator, boolean testResult) throws Exception {
+  public void testIteratorWithIFileReader(String serializationClassName, Class<?> key, Class<?> val,
+                                          TestWithComparator comparator, TestWithComparator correctComparator,
+                                          boolean testResult) throws Exception {
     setupInit(serializationClassName, key, val, comparator, correctComparator, testResult);
     ValuesIterator iterator = createIterator(false);
     verifyIteratorData(iterator);
@@ -195,7 +186,9 @@ public class TestValuesIterator {
   @ParameterizedTest(name = "test[{0}, {1}, {2}, {3}, {4}, {5}]")
   @MethodSource("getParameters")
   @Timeout(value = 20000, unit = TimeUnit.MILLISECONDS)
-  public void testCountedIteratorWithInmemoryReader(String serializationClassName, Class<?> key, Class<?> val, TestWithComparator comparator, TestWithComparator correctComparator, boolean testResult) throws Exception {
+  public void testCountedIteratorWithInmemoryReader(String serializationClassName, Class<?> key, Class<?> val,
+                                                    TestWithComparator comparator, TestWithComparator correctComparator,
+                                                    boolean testResult) throws Exception {
     setupInit(serializationClassName, key, val, comparator, correctComparator, testResult);
     verifyCountedIteratorReader(true);
   }
@@ -203,7 +196,9 @@ public class TestValuesIterator {
   @ParameterizedTest(name = "test[{0}, {1}, {2}, {3}, {4}, {5}]")
   @MethodSource("getParameters")
   @Timeout(value = 20000, unit = TimeUnit.MILLISECONDS)
-  public void testCountedIteratorWithIFileReader(String serializationClassName, Class<?> key, Class<?> val, TestWithComparator comparator, TestWithComparator correctComparator, boolean testResult) throws Exception {
+  public void testCountedIteratorWithIFileReader(String serializationClassName, Class<?> key, Class<?> val,
+                                                 TestWithComparator comparator, TestWithComparator correctComparator,
+                                                 boolean testResult) throws Exception {
     setupInit(serializationClassName, key, val, comparator, correctComparator, testResult);
     verifyCountedIteratorReader(false);
   }
@@ -227,7 +222,10 @@ public class TestValuesIterator {
   @ParameterizedTest(name = "test[{0}, {1}, {2}, {3}, {4}, {5}]")
   @MethodSource("getParameters")
   @Timeout(value = 20000, unit = TimeUnit.MILLISECONDS)
-  public void testIteratorWithIFileReaderEmptyPartitions(String serializationClassName, Class<?> key, Class<?> val, TestWithComparator comparator, TestWithComparator correctComparator, boolean testResult) throws Exception {
+  public void testIteratorWithIFileReaderEmptyPartitions(String serializationClassName, Class<?> key, Class<?> val,
+                                                         TestWithComparator comparator,
+                                                         TestWithComparator correctComparator, boolean testResult)
+      throws Exception {
     setupInit(serializationClassName, key, val, comparator, correctComparator, testResult);
     ValuesIterator iterator = createEmptyIterator(false);
     assertFalse(iterator.moveToNext());
@@ -401,7 +399,6 @@ public class TestValuesIterator {
     return new ValuesIterator(rawKeyValueIterator, comparator, serializationContext.getKeyClass(),
         serializationContext.getValueClass(), conf, keyCounter, tupleCounter);
   }
-
 
   public static Collection<Object[]> getParameters() {
     Collection<Object[]> parameters = new ArrayList<Object[]>();

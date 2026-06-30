@@ -267,20 +267,19 @@ public class TestTaskCommunicatorManager1 {
     final List<Event> argAllValues = arg.getAllValues();
 
     final Event statusUpdateEvent = argAllValues.get(0);
-    assertEquals(TaskAttemptEventType.TA_STATUS_UPDATE, statusUpdateEvent.getType(), "First event should be status update");
+    assertEquals(TaskAttemptEventType.TA_STATUS_UPDATE, statusUpdateEvent.getType(),
+        "First event should be status update");
     assertFalse(((TaskAttemptEventStatusUpdate) statusUpdateEvent).getReadErrorReported());
 
     final TaskAttemptEventTezEventUpdate taEvent = (TaskAttemptEventTezEventUpdate)argAllValues.get(1);
     assertEquals(1, taEvent.getTezEvents().size());
-    assertEquals(EventType.DATA_MOVEMENT_EVENT,
-        taEvent.getTezEvents().get(0).getEventType());
+    assertEquals(EventType.DATA_MOVEMENT_EVENT, taEvent.getTezEvents().getFirst().getEventType());
 
     final TaskAttemptEvent taCompleteEvent = (TaskAttemptEvent)argAllValues.get(2);
     assertEquals(TaskAttemptEventType.TA_DONE, taCompleteEvent.getType());
     final VertexEventRouteEvent vertexRouteEvent = (VertexEventRouteEvent)argAllValues.get(3);
     assertEquals(1, vertexRouteEvent.getEvents().size());
-    assertEquals(EventType.DATA_MOVEMENT_EVENT,
-        vertexRouteEvent.getEvents().get(0).getEventType());
+    assertEquals(EventType.DATA_MOVEMENT_EVENT, vertexRouteEvent.getEvents().getFirst().getEventType());
   }
 
   @Test
@@ -301,7 +300,8 @@ public class TestTaskCommunicatorManager1 {
     final List<Event> argAllValues = arg.getAllValues();
 
     final Event statusUpdateEvent = argAllValues.get(0);
-    assertEquals(TaskAttemptEventType.TA_STATUS_UPDATE, statusUpdateEvent.getType(), "First event should be status update");
+    assertEquals(TaskAttemptEventType.TA_STATUS_UPDATE, statusUpdateEvent.getType(),
+        "First event should be status update");
     assertTrue(((TaskAttemptEventStatusUpdate) statusUpdateEvent).getReadErrorReported());
 
     final Event taFinishedEvent = argAllValues.get(1);
@@ -310,18 +310,14 @@ public class TestTaskCommunicatorManager1 {
     final Event vertexEvent = argAllValues.get(2);
     final VertexEventRouteEvent vertexRouteEvent = (VertexEventRouteEvent)vertexEvent;
     assertEquals(VertexEventType.V_ROUTE_EVENT, vertexEvent.getType(), "Third event should be routed to vertex");
-    assertEquals(EventType.INPUT_READ_ERROR_EVENT,
-        vertexRouteEvent.getEvents().get(0).getEventType());
+    assertEquals(EventType.INPUT_READ_ERROR_EVENT, vertexRouteEvent.getEvents().get(0).getEventType());
   }
 
   @Test
   @Timeout(value = 5000, unit = TimeUnit.MILLISECONDS)
   public void testTaskEventRoutingTaskAttemptOnly() throws Exception {
-    List<TezEvent> events =
-        Arrays.asList(
-            new TezEvent(
-                new TaskAttemptCompletedEvent(),
-                new EventMetaData(EventProducerConsumerType.SYSTEM, "v1", "v2", taskAttemptID)));
+    List<TezEvent> events = Arrays.asList(new TezEvent(new TaskAttemptCompletedEvent(),
+        new EventMetaData(EventProducerConsumerType.SYSTEM, "v1", "v2", taskAttemptID)));
     generateHeartbeat(events, 0, 1, 0, new ArrayList<TezEvent>());
 
     ArgumentCaptor<Event> arg = ArgumentCaptor.forClass(Event.class);
@@ -336,8 +332,8 @@ public class TestTaskCommunicatorManager1 {
   @Test
   @Timeout(value = 5000, unit = TimeUnit.MILLISECONDS)
   public void testTaskHeartbeatResponse() throws Exception {
-    List<TezEvent> events = new ArrayList<TezEvent>();
-    List<TezEvent> eventsToSend = new ArrayList<TezEvent>();
+    List<TezEvent> events = new ArrayList<>();
+    List<TezEvent> eventsToSend = new ArrayList<>();
     TaskHeartbeatResponse response = generateHeartbeat(events, 0, 1, 2, eventsToSend);
 
     assertEquals(2, response.getNextFromEventId());

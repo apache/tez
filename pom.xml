@@ -269,6 +269,10 @@
         <version>${pig.version}</version>
         <exclusions>
           <exclusion>
+            <groupId>junit</groupId>
+            <artifactId>junit</artifactId>
+          </exclusion>
+          <exclusion>
             <groupId>org.mortbay.jetty</groupId>
             <artifactId>*</artifactId>
           </exclusion>
@@ -627,10 +631,6 @@
         <artifactId>hadoop-mapreduce-client-core</artifactId>
         <version>${hadoop.version}</version>
         <exclusions>
-          <exclusion>
-            <groupId>org.junit.jupiter</groupId>
-            <artifactId>junit-jupiter</artifactId>
-          </exclusion>
           <exclusion>
             <groupId>com.google.inject</groupId>
             <artifactId>guice</artifactId>
@@ -1273,6 +1273,12 @@
                     <bannedImport>org.codehaus.jackson.**</bannedImport>
                   </bannedImports>
                 </RestrictImports>
+                <bannedDependencies>
+                  <excludes>
+                    <exclude>junit:junit</exclude>
+                  </excludes>
+                  <message>JUnit 4 is not allowed. Use JUnit 6 (junit-jupiter) instead.</message>
+                </bannedDependencies>
               </rules>
             </configuration>
           </execution>

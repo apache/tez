@@ -52,8 +52,7 @@ public class TestCartesianProductEdgeManager {
     UserPayload payload = UserPayload.create(ByteBuffer.wrap(builder.build().toByteArray()));
     when(context.getUserPayload()).thenReturn(payload);
     edgeManager.initialize();
-    assertInstanceOf(CartesianProductEdgeManagerPartitioned.class,
-        edgeManager.getEdgeManagerReal());
+    assertInstanceOf(CartesianProductEdgeManagerPartitioned.class, edgeManager.getEdgeManagerReal());
 
     // unpartitioned case
     builder.clear();

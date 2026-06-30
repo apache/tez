@@ -461,12 +461,14 @@ public class TestDAGAppMaster {
     conf.setBoolean(TezConfiguration.DAG_RECOVERY_ENABLED, false);
     dam.init(conf);
     TezUncheckedException e1 = assertThrows(TezUncheckedException.class, () -> dam.getContext().getApplicationACLs());
-    assertTrue(e1.getMessage().contains("Cannot get ApplicationACLs before all services have started, The current service state is INITED"));
+    assertTrue(e1.getMessage()
+        .contains("Cannot get ApplicationACLs before all services have started, The current service state is INITED"));
     dam.start();
     dam.stop();
     Mockito.when(dam.mockShutdown.getShutdownTime()).thenReturn(Date.from(Instant.ofEpochMilli(Time.now())));
     TezUncheckedException e2 = assertThrows(TezUncheckedException.class, () -> dam.getContext().getApplicationACLs());
-    assertTrue(e2.getMessage().contains("Cannot get ApplicationACLs before all services have started, The current service state is STOPPED"));
+    assertTrue(e2.getMessage()
+        .contains("Cannot get ApplicationACLs before all services have started, The current service state is STOPPED"));
   }
 
   @Test
@@ -539,11 +541,9 @@ public class TestDAGAppMaster {
     assertEquals(0, am.getProgress(), 0, "Progress was negative and should be reported as 0");
     when(mockVertex.getProgress()).thenReturn(1.0000567f);
     assertEquals(1.0f, am.getProgress(), 0.0f,
-        "Progress was greater than 1 by a small float precision "
-            + "1.0000567 and should be reported as 1");
+        "Progress was greater than 1 by a small float precision " + "1.0000567 and should be reported as 1");
     when(mockVertex.getProgress()).thenReturn(10f);
-    assertEquals(1.0f, am.getProgress(), 0.0f,
-        "Progress was greater than 1 and should be reported as 1");
+    assertEquals(1.0f, am.getProgress(), 0.0f, "Progress was greater than 1 and should be reported as 1");
   }
 
   @SuppressWarnings("deprecation")
@@ -624,8 +624,8 @@ public class TestDAGAppMaster {
   }
 
   private static void compareTestTokens(
-      Token<? extends TokenIdentifier> expected, Token<? extends TokenIdentifier> actual)
-      throws IOException {
+      Token<? extends TokenIdentifier> expected,
+      Token<? extends TokenIdentifier> actual) throws IOException {
     TestTokenIdentifier expectedId = getTestTokenIdentifier(expected);
     TestTokenIdentifier actualId = getTestTokenIdentifier(actual);
     assertEquals(expectedId.getTestId(), actualId.getTestId(), "Token id not preserved");

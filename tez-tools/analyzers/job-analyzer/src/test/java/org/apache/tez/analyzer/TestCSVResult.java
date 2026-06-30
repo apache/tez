@@ -98,20 +98,17 @@ public class TestCSVResult {
 
   @Test
   public void testDumpToFileRejectsNullFileName() throws Exception {
-    assertThrows(
-        IllegalArgumentException.class, () -> new CSVResult(new String[] {"x"}).dumpToFile(null));
+    assertThrows(IllegalArgumentException.class, () -> new CSVResult(new String[]{"x"}).dumpToFile(null));
   }
 
   @Test
   public void testDumpToFileRejectsEmptyFileName() throws Exception {
-    assertThrows(
-        IllegalArgumentException.class, () -> new CSVResult(new String[] {"x"}).dumpToFile(""));
+    assertThrows(IllegalArgumentException.class, () -> new CSVResult(new String[]{"x"}).dumpToFile(""));
   }
 
   @Test
   public void testDumpToFileRejectsBlankFileName() throws Exception {
-    assertThrows(
-        IllegalArgumentException.class, () -> new CSVResult(new String[] {"x"}).dumpToFile("   "));
+    assertThrows(IllegalArgumentException.class, () -> new CSVResult(new String[]{"x"}).dumpToFile("   "));
   }
 
   @Test

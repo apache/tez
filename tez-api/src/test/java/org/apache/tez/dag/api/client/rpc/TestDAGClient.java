@@ -640,9 +640,7 @@ public class TestDAGClient {
       DAGStatus rmDagStatus;
 
       // Fetch from AM. RUNNING
-      rmDagStatus =
-          new DAGStatus(
-              constructDagStatusProto(DAGStatusStateProto.DAG_RUNNING), DagStatusSource.RM);
+      rmDagStatus = new DAGStatus(constructDagStatusProto(DAGStatusStateProto.DAG_RUNNING), DagStatusSource.RM);
       dagClientImpl.setRmDagStatus(rmDagStatus);
       dagClientRpc.setAMProxy(createMockProxy(DAGStatusStateProto.DAG_RUNNING, -1));
 
@@ -660,9 +658,7 @@ public class TestDAGClient {
       // Fetch from AM. Success.
       dagClientImpl.resetCounters();
       dagClientRpc.resetCounters();
-      rmDagStatus =
-          new DAGStatus(
-              constructDagStatusProto(DAGStatusStateProto.DAG_RUNNING), DagStatusSource.RM);
+      rmDagStatus = new DAGStatus(constructDagStatusProto(DAGStatusStateProto.DAG_RUNNING), DagStatusSource.RM);
       dagClientImpl.setRmDagStatus(rmDagStatus);
       dagClientRpc.setAMProxy(createMockProxy(DAGStatusStateProto.DAG_SUCCEEDED, 1000L));
 

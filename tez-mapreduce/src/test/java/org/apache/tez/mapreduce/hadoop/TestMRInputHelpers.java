@@ -128,10 +128,8 @@ public class TestMRInputHelpers {
 
     DataSourceDescriptor dataSource = generateDataSourceDescriptorMapReduce(newSplitsDir);
 
-    assertTrue(dataSource.getAdditionalLocalFiles()
-        .containsKey(MRInputHelpers.JOB_SPLIT_RESOURCE_NAME));
-    assertTrue(dataSource.getAdditionalLocalFiles()
-        .containsKey(MRInputHelpers.JOB_SPLIT_METAINFO_RESOURCE_NAME));
+    assertTrue(dataSource.getAdditionalLocalFiles().containsKey(MRInputHelpers.JOB_SPLIT_RESOURCE_NAME));
+    assertTrue(dataSource.getAdditionalLocalFiles().containsKey(MRInputHelpers.JOB_SPLIT_METAINFO_RESOURCE_NAME));
 
     RemoteIterator<LocatedFileStatus> files =
         remoteFs.listFiles(newSplitsDir, false);
@@ -165,10 +163,8 @@ public class TestMRInputHelpers {
   @Timeout(value = 5000, unit = TimeUnit.MILLISECONDS)
   public void testOldSplitsGen() throws Exception {
     DataSourceDescriptor dataSource = generateDataSourceDescriptorMapRed(oldSplitsDir);
-    assertTrue(
-        dataSource.getAdditionalLocalFiles().containsKey(MRInputHelpers.JOB_SPLIT_RESOURCE_NAME));
-    assertTrue(dataSource.getAdditionalLocalFiles()
-        .containsKey(MRInputHelpers.JOB_SPLIT_METAINFO_RESOURCE_NAME));
+    assertTrue(dataSource.getAdditionalLocalFiles().containsKey(MRInputHelpers.JOB_SPLIT_RESOURCE_NAME));
+    assertTrue(dataSource.getAdditionalLocalFiles().containsKey(MRInputHelpers.JOB_SPLIT_METAINFO_RESOURCE_NAME));
 
     RemoteIterator<LocatedFileStatus> files =
         remoteFs.listFiles(oldSplitsDir, false);
@@ -206,10 +202,8 @@ public class TestMRInputHelpers {
     Map<String, LocalResource> localResources = dataSource.getAdditionalLocalFiles();
 
     assertEquals(2, localResources.size());
-    assertTrue(localResources.containsKey(
-        MRInputHelpers.JOB_SPLIT_RESOURCE_NAME));
-    assertTrue(localResources.containsKey(
-        MRInputHelpers.JOB_SPLIT_METAINFO_RESOURCE_NAME));
+    assertTrue(localResources.containsKey(MRInputHelpers.JOB_SPLIT_RESOURCE_NAME));
+    assertTrue(localResources.containsKey(MRInputHelpers.JOB_SPLIT_METAINFO_RESOURCE_NAME));
   }
 
   @Test
@@ -299,10 +293,8 @@ public class TestMRInputHelpers {
     Map<String, LocalResource> localResources = dataSource.getAdditionalLocalFiles();
 
     assertEquals(2, localResources.size());
-    assertTrue(localResources.containsKey(
-        MRInputHelpers.JOB_SPLIT_RESOURCE_NAME));
-    assertTrue(localResources.containsKey(
-        MRInputHelpers.JOB_SPLIT_METAINFO_RESOURCE_NAME));
+    assertTrue(localResources.containsKey(MRInputHelpers.JOB_SPLIT_RESOURCE_NAME));
+    assertTrue(localResources.containsKey(MRInputHelpers.JOB_SPLIT_METAINFO_RESOURCE_NAME));
 
     for (LocalResource lr : localResources.values()) {
       assertFalse(lr.getResource().getScheme().contains(remoteFs.getScheme()));

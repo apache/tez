@@ -193,8 +193,7 @@ public class TestHttpConnection {
           if (t instanceof ConnectException) {
             //ClosedByInterruptException via NettyConnectListener.operationComplete()
             assertInstanceOf(ClosedByInterruptException.class, t.getCause(),
-                "Expected ClosedByInterruptException, received "
-                    + Throwables.getStackTraceAsString(t.getCause()));
+                "Expected ClosedByInterruptException, received " + Throwables.getStackTraceAsString(t.getCause()));
           } else {
             // InterruptedException if TezBodyDeferringAsyncHandler quits
             assertInstanceOf(InterruptedException.class, t);

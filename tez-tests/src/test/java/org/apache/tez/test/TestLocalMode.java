@@ -56,8 +56,9 @@ import org.apache.tez.runtime.library.processor.SleepProcessor;
 import org.junit.jupiter.api.AfterAll;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Timeout;
-import org.junit.jupiter.params.*;
-import org.junit.jupiter.params.provider.*;
+import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.Arguments;
+import org.junit.jupiter.params.provider.MethodSource;
 
 /**
  * Tests for running Tez in local execution mode (without YARN).
@@ -77,12 +78,8 @@ public class TestLocalMode {
   private static FileSystem remoteFs;
 
   public static Stream<Arguments> params() {
-    return Stream.of(
-        Arguments.of(false, false),
-        Arguments.of(true, false),
-        Arguments.of(false, true),
-        Arguments.of(true, true)
-    );
+    return Stream.of(Arguments.of(false, false), Arguments.of(true, false), Arguments.of(false, true),
+        Arguments.of(true, true));
   }
 
   @BeforeAll
@@ -127,13 +124,14 @@ public class TestLocalMode {
   @ParameterizedTest(name = "useDFS:{0} useLocalModeWithoutNetwork:{1}")
   @MethodSource("params")
   @Timeout(value = 30000, unit = TimeUnit.MILLISECONDS)
-  public void testMultipleClientsWithSession(boolean useDfs, boolean useLocalModeWithoutNetwork) throws TezException, InterruptedException,
-      IOException {
+  public void testMultipleClientsWithSession(boolean useDfs, boolean useLocalModeWithoutNetwork)
+      throws TezException, InterruptedException, IOException {
     TezConfiguration tezConf1 = createConf(useDfs, useLocalModeWithoutNetwork);
     TezClient tezClient1 = TezClient.create("commonName", tezConf1, true);
     tezClient1.start();
 
-    DAG dag1 = createSimpleDAG("testMultipleClientsWithSession", SleepProcessor.class.getName(), useDfs, useLocalModeWithoutNetwork);
+    DAG dag1 = createSimpleDAG("testMultipleClientsWithSession", SleepProcessor.class.getName(), useDfs,
+        useLocalModeWithoutNetwork);
 
     DAGClient dagClient1 = tezClient1.submitDAG(dag1);
     dagClient1.waitForCompletion();
@@ -145,7 +143,8 @@ public class TestLocalMode {
     tezClient1.stop();
 
     TezConfiguration tezConf2 = createConf(useDfs, useLocalModeWithoutNetwork);
-    DAG dag2 = createSimpleDAG("testMultipleClientsWithSession_2", SleepProcessor.class.getName(), useDfs, useLocalModeWithoutNetwork);
+    DAG dag2 = createSimpleDAG("testMultipleClientsWithSession_2", SleepProcessor.class.getName(), useDfs,
+        useLocalModeWithoutNetwork);
     TezClient tezClient2 = TezClient.create("commonName", tezConf2, true);
     tezClient2.start();
     DAGClient dagClient2 = tezClient2.submitDAG(dag2);
@@ -161,13 +160,14 @@ public class TestLocalMode {
   @ParameterizedTest(name = "useDFS:{0} useLocalModeWithoutNetwork:{1}")
   @MethodSource("params")
   @Timeout(value = 10000, unit = TimeUnit.MILLISECONDS)
-  public void testMultipleClientsWithoutSession(boolean useDfs, boolean useLocalModeWithoutNetwork) throws TezException, InterruptedException,
-      IOException {
+  public void testMultipleClientsWithoutSession(boolean useDfs, boolean useLocalModeWithoutNetwork)
+      throws TezException, InterruptedException, IOException {
     TezConfiguration tezConf1 = createConf(useDfs, useLocalModeWithoutNetwork);
     TezClient tezClient1 = TezClient.create("commonName", tezConf1, false);
     tezClient1.start();
 
-    DAG dag1 = createSimpleDAG("testMultipleClientsWithoutSession", SleepProcessor.class.getName(), useDfs, useLocalModeWithoutNetwork);
+    DAG dag1 = createSimpleDAG("testMultipleClientsWithoutSession", SleepProcessor.class.getName(), useDfs,
+        useLocalModeWithoutNetwork);
 
     DAGClient dagClient1 = tezClient1.submitDAG(dag1);
     dagClient1.waitForCompletion();
@@ -179,7 +179,8 @@ public class TestLocalMode {
 
 
     TezConfiguration tezConf2 = createConf(useDfs, useLocalModeWithoutNetwork);
-    DAG dag2 = createSimpleDAG("testMultipleClientsWithoutSession_2", SleepProcessor.class.getName(), useDfs, useLocalModeWithoutNetwork);
+    DAG dag2 = createSimpleDAG("testMultipleClientsWithoutSession_2", SleepProcessor.class.getName(), useDfs,
+        useLocalModeWithoutNetwork);
     TezClient tezClient2 = TezClient.create("commonName", tezConf2, false);
     tezClient2.start();
     DAGClient dagClient2 = tezClient2.submitDAG(dag2);
@@ -195,14 +196,15 @@ public class TestLocalMode {
   @ParameterizedTest(name = "useDFS:{0} useLocalModeWithoutNetwork:{1}")
   @MethodSource("params")
   @Timeout(value = 20000, unit = TimeUnit.MILLISECONDS)
-  public void testNoSysExitOnSuccessfulDAG(boolean useDfs, boolean useLocalModeWithoutNetwork) throws TezException, InterruptedException,
-      IOException {
+  public void testNoSysExitOnSuccessfulDAG(boolean useDfs, boolean useLocalModeWithoutNetwork)
+      throws TezException, InterruptedException, IOException {
     TezConfiguration tezConf1 = createConf(useDfs, useLocalModeWithoutNetwork);
     // Run in non-session mode so that the AM terminates
     TezClient tezClient1 = TezClient.create("commonName", tezConf1, false);
     tezClient1.start();
 
-    DAG dag1 = createSimpleDAG("testNoSysExitOnSuccessfulDAG", SleepProcessor.class.getName(), useDfs, useLocalModeWithoutNetwork);
+    DAG dag1 = createSimpleDAG("testNoSysExitOnSuccessfulDAG", SleepProcessor.class.getName(), useDfs,
+        useLocalModeWithoutNetwork);
 
     DAGClient dagClient1 = tezClient1.submitDAG(dag1);
     dagClient1.waitForCompletion();
@@ -219,14 +221,15 @@ public class TestLocalMode {
   @ParameterizedTest(name = "useDFS:{0} useLocalModeWithoutNetwork:{1}")
   @MethodSource("params")
   @Timeout(value = 20000, unit = TimeUnit.MILLISECONDS)
-  public void testNoSysExitOnFailingDAG(boolean useDfs, boolean useLocalModeWithoutNetwork) throws TezException, InterruptedException,
-      IOException {
+  public void testNoSysExitOnFailingDAG(boolean useDfs, boolean useLocalModeWithoutNetwork)
+      throws TezException, InterruptedException, IOException {
     TezConfiguration tezConf1 = createConf(useDfs, useLocalModeWithoutNetwork);
     // Run in non-session mode so that the AM terminates
     TezClient tezClient1 = TezClient.create("commonName", tezConf1, false);
     tezClient1.start();
 
-    DAG dag1 = createSimpleDAG("testNoSysExitOnFailingDAG", FailingProcessor.class.getName(), useDfs, useLocalModeWithoutNetwork);
+    DAG dag1 = createSimpleDAG("testNoSysExitOnFailingDAG", FailingProcessor.class.getName(), useDfs,
+        useLocalModeWithoutNetwork);
 
     DAGClient dagClient1 = tezClient1.submitDAG(dag1);
     dagClient1.waitForCompletion();
@@ -266,10 +269,12 @@ public class TestLocalMode {
     }
   }
 
-  private DAG createSimpleDAG(String dagName, String processorName, boolean useDfs, boolean useLocalModeWithoutNetwork) {
+  private DAG createSimpleDAG(String dagName, String processorName, boolean useDfs,
+                              boolean useLocalModeWithoutNetwork) {
     DAG dag = DAG.create(generateDagName("DAG-" + dagName, useDfs, useLocalModeWithoutNetwork)).addVertex(
-        Vertex.create(SleepProcessor.SLEEP_VERTEX_NAME, ProcessorDescriptor.create(processorName).setUserPayload(
-            new SleepProcessor.SleepProcessorConfig(SLEEP_PROCESSOR_TIME_TO_SLEEP_MS).toUserPayload()), 1));
+        Vertex.create(SleepProcessor.SLEEP_VERTEX_NAME, ProcessorDescriptor.create(processorName)
+                .setUserPayload(new SleepProcessor.SleepProcessorConfig(SLEEP_PROCESSOR_TIME_TO_SLEEP_MS).toUserPayload()),
+            1));
     return dag;
   }
   private String generateDagName(String baseName, boolean useDfs, boolean useLocalModeWithoutNetwork) {
@@ -279,10 +284,11 @@ public class TestLocalMode {
   @ParameterizedTest(name = "useDFS:{0} useLocalModeWithoutNetwork:{1}")
   @MethodSource("params")
   @Timeout(value = 30000, unit = TimeUnit.MILLISECONDS)
-  public void testMultiDAGsOnSession(boolean useDfs, boolean useLocalModeWithoutNetwork) throws IOException, TezException, InterruptedException {
+  public void testMultiDAGsOnSession(boolean useDfs, boolean useLocalModeWithoutNetwork)
+      throws IOException, TezException, InterruptedException {
     int dags = 2;//two dags will be submitted to session
     String[] inputPaths = new String[dags];
-    String[] outputPaths =  new String[dags];
+    String[] outputPaths = new String[dags];
     DAGClient[] dagClients = new DAGClient[dags];
 
     TezConfiguration tezConf = createConf(useDfs, useLocalModeWithoutNetwork);
@@ -314,9 +320,8 @@ public class TestLocalMode {
               + dagStatus.getDiagnostics());
         }
         //verify all dags sharing the same execution context
-        if(i>0) {
-          assertEquals(dagClients[i - 1].getExecutionContext(),
-              dagClients[i].getExecutionContext());
+        if (i > 0) {
+          assertEquals(dagClients[i - 1].getExecutionContext(), dagClients[i].getExecutionContext());
         }
       }
     } finally {

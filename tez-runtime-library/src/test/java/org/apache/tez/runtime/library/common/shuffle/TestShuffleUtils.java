@@ -197,8 +197,7 @@ public class TestShuffleUtils {
     byte[] emptyPartitions = TezCommonUtils.decompressByteStringToByteArray(dmeProto.getEmptyPartitions());
     BitSet emptyPartitionsBitSet = TezUtilsInternal.fromByteArray(emptyPartitions);
     assertEquals(5, emptyPartitionsBitSet.cardinality(),
-        "emptyPartitionBitSet cardinality (expecting 5) = " + emptyPartitionsBitSet
-            .cardinality());
+        "emptyPartitionBitSet cardinality (expecting 5) = " + emptyPartitionsBitSet.cardinality());
 
     events.clear();
 
@@ -241,9 +240,7 @@ public class TestShuffleUtils {
         .getEmptyPartitions());
     BitSet  emptyPartitionsBitSet = TezUtilsInternal.fromByteArray(emptyPartitions);
     assertEquals(5, emptyPartitionsBitSet.cardinality(),
-        "emptyPartitionBitSet cardinality (expecting 5) = " + emptyPartitionsBitSet
-            .cardinality());
-
+        "emptyPartitionBitSet cardinality (expecting 5) = " + emptyPartitionsBitSet.cardinality());
   }
 
   @Test
@@ -258,25 +255,12 @@ public class TestShuffleUtils {
     int spillId = 0;
     int physicalOutputs = 10;
     String pathComponent = "/attempt_x_y_0/file.out";
-    String auxiliaryService =
-        conf.get(
-            TezConfiguration.TEZ_AM_SHUFFLE_AUXILIARY_SERVICE_ID,
-            TezConfiguration.TEZ_AM_SHUFFLE_AUXILIARY_SERVICE_ID_DEFAULT);
+    String auxiliaryService = conf.get(TezConfiguration.TEZ_AM_SHUFFLE_AUXILIARY_SERVICE_ID,
+        TezConfiguration.TEZ_AM_SHUFFLE_AUXILIARY_SERVICE_ID_DEFAULT);
 
     // normal code path where we do final merge all the time
-    ShuffleUtils.generateEventOnSpill(
-        events,
-        finalMergeDisabled,
-        isLastEvent,
-        outputContext,
-        spillId,
-        new TezSpillRecord(indexFile, conf),
-        physicalOutputs,
-        true,
-        pathComponent,
-        null,
-        false,
-        auxiliaryService,
+    ShuffleUtils.generateEventOnSpill(events, finalMergeDisabled, isLastEvent, outputContext, spillId,
+        new TezSpillRecord(indexFile, conf), physicalOutputs, true, pathComponent, null, false, auxiliaryService,
         TezCommonUtils.newBestCompressionDeflater());
 
     assertEquals(2, events.size()); // one for VM
@@ -284,12 +268,11 @@ public class TestShuffleUtils {
     assertInstanceOf(CompositeDataMovementEvent.class, events.get(1));
 
     CompositeDataMovementEvent cdme = (CompositeDataMovementEvent) events.get(1);
-    assertEquals(cdme.getCount(), physicalOutputs);
+    assertEquals(physicalOutputs, cdme.getCount());
     assertEquals(0, cdme.getSourceIndexStart());
 
     ShuffleUserPayloads.DataMovementEventPayloadProto dmeProto =
-        ShuffleUserPayloads.DataMovementEventPayloadProto.parseFrom(
-            ByteString.copyFrom(cdme.getUserPayload()));
+        ShuffleUserPayloads.DataMovementEventPayloadProto.parseFrom(ByteString.copyFrom(cdme.getUserPayload()));
 
     // spill details should be present
     assertEquals(0, dmeProto.getSpillId());
@@ -297,12 +280,9 @@ public class TestShuffleUtils {
 
     assertEquals("", dmeProto.getPathComponent());
 
-    byte[] emptyPartitions =
-        TezCommonUtils.decompressByteStringToByteArray(dmeProto.getEmptyPartitions());
+    byte[] emptyPartitions = TezCommonUtils.decompressByteStringToByteArray(dmeProto.getEmptyPartitions());
     BitSet emptyPartitionsBitSet = TezUtilsInternal.fromByteArray(emptyPartitions);
-    assertEquals(
-        10,
-        emptyPartitionsBitSet.cardinality(),
+    assertEquals(10, emptyPartitionsBitSet.cardinality(),
         "emptyPartitionBitSet cardinality (expecting 10) = " + emptyPartitionsBitSet.cardinality());
   }
 

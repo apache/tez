@@ -232,12 +232,8 @@ public class TestTezClient {
 
   @Test
   @Timeout(value = 5000, unit = TimeUnit.MILLISECONDS)
-  public void testTezClientReconnectNoSession() throws Exception {
-    assertThrows(
-        IllegalStateException.class,
-        () -> {
-          testTezClientReconnect(false);
-        });
+  public void testTezClientReconnectNoSession() {
+    assertThrows(IllegalStateException.class, () -> testTezClientReconnect(false));
   }
 
   @Test
@@ -648,9 +644,7 @@ public class TestTezClient {
       endTime = Time.monotonicNow();
       assertTrue((endTime - startTime) > timeout, "Time taken is not as expected");
       verify(spyClient, times(0)).submitDAG(any());
-      assertTrue(
-          te.getMessage().contains("Tez AM not ready"),
-          "Unexpected Exception message: " + te.getMessage());
+      assertTrue(te.getMessage().contains("Tez AM not ready"), "Unexpected Exception message: " + te.getMessage());
     }
 
     when(

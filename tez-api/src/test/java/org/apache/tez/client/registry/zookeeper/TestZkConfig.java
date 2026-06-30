@@ -31,7 +31,6 @@ import org.apache.tez.dag.api.TezConfiguration;
 
 import org.junit.jupiter.api.Test;
 
-
 public class TestZkConfig {
 
   @Test

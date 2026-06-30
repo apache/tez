@@ -209,10 +209,10 @@ public class TestHistoryEventJsonConversion {
       JSONObject json = HistoryEventJsonConversion.convertToJson(event);
       if (eventType == HistoryEventType.DAG_SUBMITTED) {
         try {
-          assertEquals("Q_" + eventType.name(), json.getJSONObject(ATSConstants.OTHER_INFO)
-              .getString(ATSConstants.DAG_QUEUE_NAME));
-          assertEquals("Q_" + eventType.name(), json
-              .getJSONObject(ATSConstants.PRIMARY_FILTERS).getString(ATSConstants.DAG_QUEUE_NAME));
+          assertEquals("Q_" + eventType.name(),
+              json.getJSONObject(ATSConstants.OTHER_INFO).getString(ATSConstants.DAG_QUEUE_NAME));
+          assertEquals("Q_" + eventType.name(),
+              json.getJSONObject(ATSConstants.PRIMARY_FILTERS).getString(ATSConstants.DAG_QUEUE_NAME));
         } catch (JSONException ex) {
           fail("Exception: " + ex.getMessage() + " for type: " + eventType);
         }
@@ -244,8 +244,7 @@ public class TestHistoryEventJsonConversion {
     assertEquals(1, events.length());
 
     JSONObject evt = events.getJSONObject(0);
-    assertEquals(HistoryEventType.VERTEX_CONFIGURE_DONE.name(),
-        evt.getString(ATSConstants.EVENT_TYPE));
+    assertEquals(HistoryEventType.VERTEX_CONFIGURE_DONE.name(), evt.getString(ATSConstants.EVENT_TYPE));
 
     JSONObject evtInfo = evt.getJSONObject(ATSConstants.EVENT_INFO);
     assertEquals(1, evtInfo.getInt(ATSConstants.NUM_TASKS));
@@ -256,12 +255,8 @@ public class TestHistoryEventJsonConversion {
     assertNotNull(updatedEdgeMgrs.getJSONObject("a"));
     JSONObject updatedEdgeMgr = updatedEdgeMgrs.getJSONObject("a");
 
-    assertEquals(DataMovementType.CUSTOM.name(),
-        updatedEdgeMgr.getString(DAGUtils.DATA_MOVEMENT_TYPE_KEY));
+    assertEquals(DataMovementType.CUSTOM.name(), updatedEdgeMgr.getString(DAGUtils.DATA_MOVEMENT_TYPE_KEY));
     assertEquals("In", updatedEdgeMgr.getString(DAGUtils.EDGE_DESTINATION_CLASS_KEY));
     assertEquals("a.class", updatedEdgeMgr.getString(DAGUtils.EDGE_MANAGER_CLASS_KEY));
-
   }
-
-
 }

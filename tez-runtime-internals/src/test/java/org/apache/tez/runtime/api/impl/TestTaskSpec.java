@@ -86,10 +86,10 @@ public class TestTaskSpec {
     assertEquals(taskSpec.getInputs().size(), deSerTaskSpec.getInputs().size());
     assertEquals(taskSpec.getOutputs().size(), deSerTaskSpec.getOutputs().size());
     assertNull(deSerTaskSpec.getGroupInputs());
-    assertEquals(taskSpec.getInputs().get(0).getSourceVertexName(),
-        deSerTaskSpec.getInputs().get(0).getSourceVertexName());
-    assertEquals(taskSpec.getOutputs().get(0).getDestinationVertexName(),
-        deSerTaskSpec.getOutputs().get(0).getDestinationVertexName());
+    assertEquals(taskSpec.getInputs().getFirst().getSourceVertexName(),
+        deSerTaskSpec.getInputs().getFirst().getSourceVertexName());
+    assertEquals(taskSpec.getOutputs().getFirst().getDestinationVertexName(),
+        deSerTaskSpec.getOutputs().getFirst().getDestinationVertexName());
 
     assertEquals(taskConf.get("foo"), deSerTaskSpec.getTaskConf().get("foo"));
   }

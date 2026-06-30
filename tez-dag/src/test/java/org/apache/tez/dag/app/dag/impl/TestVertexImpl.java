@@ -4428,18 +4428,14 @@ public class TestVertexImpl {
         new VertexEventTaskCompleted(t2, TaskState.SUCCEEDED));
     dispatcher.await();
     assertEquals(VertexState.SUCCEEDED, v.getState());
-    assertEquals(1,
-        dagEventDispatcher.eventCount.get(
-            DAGEventType.DAG_VERTEX_COMPLETED).intValue());
+    assertEquals(1, dagEventDispatcher.eventCount.get(DAGEventType.DAG_VERTEX_COMPLETED).intValue());
 
     dispatcher.getEventHandler().handle(
         new VertexEventTaskReschedule(t1));
     dispatcher.await();
     assertEquals(VertexState.FAILED, v.getState());
 
-    assertEquals(2,
-        dagEventDispatcher.eventCount.get(
-            DAGEventType.DAG_VERTEX_COMPLETED).intValue());
+    assertEquals(2, dagEventDispatcher.eventCount.get(DAGEventType.DAG_VERTEX_COMPLETED).intValue());
   }
 
   @Test
@@ -7522,7 +7518,8 @@ public class TestVertexImpl {
     assertEquals(2, v.getCompletedTasks());
 
     System.out.println(v.getDiagnostics());
-    assertTrue(StringUtils.join(v.getDiagnostics(), ",").contains("Counters limit exceeded"), "Diagnostics should contain counter limits error message");
+    assertTrue(StringUtils.join(v.getDiagnostics(), ",").contains("Counters limit exceeded"),
+        "Diagnostics should contain counter limits error message");
 
   }
 
@@ -7530,13 +7527,13 @@ public class TestVertexImpl {
   @Timeout(value = 5000, unit = TimeUnit.MILLISECONDS)
   public void testFirstTaskStartTime() {
     VertexImpl v = vertices.get("vertex1");
-    assertEquals(v.getFirstTaskStartTime(), -1);
+    assertEquals(-1, v.getFirstTaskStartTime());
     v.reportTaskStartTime(100);
-    assertEquals(v.getFirstTaskStartTime(), 100);
+    assertEquals(100, v.getFirstTaskStartTime());
     v.reportTaskStartTime(50);
-    assertEquals(v.getFirstTaskStartTime(), 50);
+    assertEquals(50, v.getFirstTaskStartTime());
     v.reportTaskStartTime(200);
-    assertEquals(v.getFirstTaskStartTime(), 50);
+    assertEquals(50, v.getFirstTaskStartTime());
   }
 
   @Test
@@ -7569,7 +7566,7 @@ public class TestVertexImpl {
     TaskAttemptImpl taskAttempt0 = (TaskAttemptImpl) task0.getAttempt(taskAttemptId0);
     TaskAttemptImpl taskAttempt1 = (TaskAttemptImpl) task1.getAttempt(taskAttemptId1);
 
-    assertEquals(v.getLastTaskFinishTime(), -1);
+    assertEquals(-1, v.getLastTaskFinishTime());
 
     taskAttempt0.handle(new TaskAttemptEventSchedule(taskAttemptId0, 0, 0));
     taskAttempt0.handle(new TaskAttemptEventSubmitted(taskAttemptId0, contId));
@@ -7577,7 +7574,7 @@ public class TestVertexImpl {
     taskAttempt0.handle(new TaskAttemptEvent(taskAttemptId0, TaskAttemptEventType.TA_DONE));
     //task0.handle(new TaskEventTAUpdate(taskAttemptId0, TaskEventType.T_ATTEMPT_SUCCEEDED));
 
-    assertEquals(v.getLastTaskFinishTime(), -1);
+    assertEquals(-1, v.getLastTaskFinishTime());
 
     taskAttempt1.handle(new TaskAttemptEventSchedule(taskAttemptId1, 0, 0));
     taskAttempt1.handle(new TaskAttemptEventSubmitted(taskAttemptId1, contId));

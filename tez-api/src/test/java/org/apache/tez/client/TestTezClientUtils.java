@@ -129,15 +129,13 @@ public class TestTezClientUtils {
 
   @Test
   @Timeout(value = 5000, unit = TimeUnit.MILLISECONDS)
-  public void validateSetTezJarLocalResourcesDefinedNonExistingDirectory() throws Exception {
-
+  public void validateSetTezJarLocalResourcesDefinedNonExistingDirectory() {
     TezConfiguration conf = new TezConfiguration();
     conf.set(TezConfiguration.TEZ_LIB_URIS, "file:///foo");
     Credentials credentials = new Credentials();
-    Map<String,LocalResource> resources = new HashMap<String, LocalResource>();
-    assertThrows(FileNotFoundException.class, () -> {
-      TezClientUtils.setupTezJarsLocalResources(conf, credentials, resources);
-    });
+    Map<String, LocalResource> resources = new HashMap<>();
+    assertThrows(FileNotFoundException.class,
+        () -> TezClientUtils.setupTezJarsLocalResources(conf, credentials, resources));
   }
 
   private static List<URL> getDirAndFileURL() throws MalformedURLException {
@@ -603,8 +601,7 @@ public class TestTezClientUtils {
     String taskOptsConstructed = TezClientUtils.addDefaultsToTaskLaunchCmdOpts("", tezConf);
     expected =
         TezConfiguration.TEZ_TASK_LAUNCH_CLUSTER_DEFAULT_CMD_OPTS_DEFAULT + " " + taskCommandOpts;
-    assertTrue(
-        taskOptsConstructed.startsWith(expected),
+    assertTrue(taskOptsConstructed.startsWith(expected),
         "Did not find Expected prefix: [" + expected + "] in string [" + taskOptsConstructed + "]");
 
     // Test2: Setup cluster-default command opts explicitly
@@ -614,8 +611,7 @@ public class TestTezClientUtils {
         TezConfiguration.TEZ_TASK_LAUNCH_CLUSTER_DEFAULT_CMD_OPTS, taskClusterDefaultCommandOpts);
     taskOptsConstructed = TezClientUtils.addDefaultsToTaskLaunchCmdOpts("", tezConf);
     expected = taskClusterDefaultCommandOpts + " " + taskCommandOpts;
-    assertTrue(
-        taskOptsConstructed.startsWith(expected),
+    assertTrue(taskOptsConstructed.startsWith(expected),
         "Did not find Expected prefix: [" + expected + "] in string [" + taskOptsConstructed + "]");
 
     // Test3: Don't setup Xmx explicitly
@@ -624,8 +620,7 @@ public class TestTezClientUtils {
     taskOptsConstructed =
         TezClientUtils.addDefaultsToTaskLaunchCmdOpts("", tezConf);
     expected = taskClusterDefaultCommandOpts + " " + taskCommandOpts;
-    assertTrue(
-        taskOptsConstructed.startsWith(expected),
+    assertTrue(taskOptsConstructed.startsWith(expected),
         "Did not find Expected prefix: [" + expected + "] in string [" + taskOptsConstructed + "]");
 
     // Test4: Pass in a dag-configured value.
@@ -634,8 +629,7 @@ public class TestTezClientUtils {
         TezClientUtils.addDefaultsToTaskLaunchCmdOpts(programmaticTaskOpts, tezConf);
     // Container logging is always added at the end, if it's required.
     expected = taskClusterDefaultCommandOpts + " " + taskCommandOpts + " " + programmaticTaskOpts;
-    assertTrue(
-        taskOptsConstructed.startsWith(expected),
+    assertTrue(taskOptsConstructed.startsWith(expected),
         "Did not find Expected prefix: [" + expected + "] in string [" + taskOptsConstructed + "]");
   }
 
@@ -809,19 +803,13 @@ public class TestTezClientUtils {
       Map<String, LocalResource> lrMap = new HashMap<String, LocalResource>();
       TezClientUtils.setupTezJarsLocalResources(tezConf, new Credentials(), lrMap);
 
-      assertEquals(
-          LocalResourceVisibility.PUBLIC,
-          lrMap.get(publicFile.getName()).getVisibility(),
+      assertEquals(LocalResourceVisibility.PUBLIC, lrMap.get(publicFile.getName()).getVisibility(),
           publicFile.getName());
 
-      assertEquals(
-          LocalResourceVisibility.PRIVATE,
-          lrMap.get(privateFile.getName()).getVisibility(),
+      assertEquals(LocalResourceVisibility.PRIVATE, lrMap.get(privateFile.getName()).getVisibility(),
           privateFile.getName());
 
-      assertEquals(
-          LocalResourceVisibility.PRIVATE,
-          lrMap.get(publicFileInPrivateSubdir.getName()).getVisibility(),
+      assertEquals(LocalResourceVisibility.PRIVATE, lrMap.get(publicFileInPrivateSubdir.getName()).getVisibility(),
           publicFileInPrivateSubdir.getName());
 
       // test tar.gz
@@ -975,9 +963,7 @@ public class TestTezClientUtils {
     String vOpts = "";
     String opts = TezClientUtils.addDefaultsToTaskLaunchCmdOpts(vOpts, conf);
 
-    assertEquals(adminOpts + " "
-        + TezConfiguration.TEZ_TASK_LAUNCH_CMD_OPTS_DEFAULT + " " + vOpts,
-            opts);
+    assertEquals(adminOpts + " " + TezConfiguration.TEZ_TASK_LAUNCH_CMD_OPTS_DEFAULT + " " + vOpts, opts);
 
     vOpts = "foo";
     opts = TezClientUtils.addDefaultsToTaskLaunchCmdOpts(vOpts, conf);

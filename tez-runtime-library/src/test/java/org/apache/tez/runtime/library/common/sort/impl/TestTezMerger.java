@@ -644,19 +644,19 @@ public class TestTezMerger {
     }
 
     //Verify if the number of distinct entries is the same in source and the test
-    assertEquals(dataMap.keySet().size(), VERIFICATION_DATA_SET.keySet().size(), "dataMap=" + dataMap.keySet().size() + ", verificationSet=" +
-            VERIFICATION_DATA_SET.keySet().size());
+    assertEquals(dataMap.keySet().size(), VERIFICATION_DATA_SET.keySet().size(),
+        "dataMap=" + dataMap.keySet().size() + ", verificationSet=" + VERIFICATION_DATA_SET.keySet().size());
 
     //Verify with source data
     for (Integer key : VERIFICATION_DATA_SET.keySet()) {
-      assertEquals((int) dataMap.get(key), VERIFICATION_DATA_SET.get(key).size(), "Data size for " + key + " not matching with source; dataSize:" + dataMap
-              .get(key) + ", source:" + VERIFICATION_DATA_SET.get(key).size());
+      assertEquals((int) dataMap.get(key), VERIFICATION_DATA_SET.get(key).size(),
+          "Data size for " + key + " not matching with source; dataSize:" + dataMap.get(key) + ", source:" +
+          VERIFICATION_DATA_SET.get(key).size());
     }
 
     //Verify if every key has the same number of repeated items in the source dataset as well
     for (Entry<Integer, Integer> entry : dataMap.entrySet()) {
-      assertEquals(VERIFICATION_DATA_SET.get(entry.getKey()).size(), (int) entry
-              .getValue(), entry.getKey() + "");
+      assertEquals(VERIFICATION_DATA_SET.get(entry.getKey()).size(), (int) entry.getValue(), entry.getKey() + "");
     }
 
     LOG.info("******************");

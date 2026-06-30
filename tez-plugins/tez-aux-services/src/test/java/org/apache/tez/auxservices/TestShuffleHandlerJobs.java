@@ -134,8 +134,8 @@ public class TestShuffleHandlerJobs {
     tezSession.start();
     try {
       final OrderedWordCount job = new OrderedWordCount();
-      assertEquals(0, job.run(tezConf, new String[]{"-counter",
-          inputDirStr, outputDirStr, "10"}, tezSession), "OrderedWordCount failed");
+      assertEquals(0, job.run(tezConf, new String[]{"-counter", inputDirStr, outputDirStr, "10"}, tezSession),
+          "OrderedWordCount failed");
       verifyOutput(outputDir, remoteFs);
       tezSession.stop();
       ClientRMService rmService = tezCluster.getResourceManager().getClientRMService();

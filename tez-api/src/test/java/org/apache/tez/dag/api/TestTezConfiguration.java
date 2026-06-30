@@ -69,8 +69,7 @@ public class TestTezConfiguration {
         // not prefix
         if (!value.endsWith(".")) {
           expectedKeys.add((String) f.get(null));
-          assertNotNull(
-              f.getAnnotation(ConfigurationScope.class),
+          assertNotNull(f.getAnnotation(ConfigurationScope.class),
               "field " + f.getName() + " do not have annotation of ConfigurationScope.");
         }
       }

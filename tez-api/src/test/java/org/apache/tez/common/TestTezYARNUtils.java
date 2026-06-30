@@ -105,19 +105,13 @@ public class TestTezYARNUtils {
   public void testSetupDefaultEnvironment() {
     Configuration conf = new Configuration(false);
     conf.set(TezConfiguration.TEZ_AM_LAUNCH_ENV, "LD_LIBRARY_PATH=USER_PATH,USER_KEY=USER_VALUE");
-    conf.set(
-        TezConfiguration.TEZ_AM_LAUNCH_CLUSTER_DEFAULT_ENV,
+    conf.set(TezConfiguration.TEZ_AM_LAUNCH_CLUSTER_DEFAULT_ENV,
         "LD_LIBRARY_PATH=DEFAULT_PATH,DEFAULT_KEY=DEFAULT_VALUE");
 
-    Map<String, String> environment = new TreeMap<String, String>();
-    TezYARNUtils.setupDefaultEnv(
-        environment,
-        conf,
-        TezConfiguration.TEZ_AM_LAUNCH_ENV,
-        TezConfiguration.TEZ_AM_LAUNCH_ENV_DEFAULT,
-        TezConfiguration.TEZ_AM_LAUNCH_CLUSTER_DEFAULT_ENV,
-        TezConfiguration.TEZ_AM_LAUNCH_CLUSTER_DEFAULT_ENV_DEFAULT,
-        false);
+    Map<String, String> environment = new TreeMap<>();
+    TezYARNUtils.setupDefaultEnv(environment, conf, TezConfiguration.TEZ_AM_LAUNCH_ENV,
+        TezConfiguration.TEZ_AM_LAUNCH_ENV_DEFAULT, TezConfiguration.TEZ_AM_LAUNCH_CLUSTER_DEFAULT_ENV,
+        TezConfiguration.TEZ_AM_LAUNCH_CLUSTER_DEFAULT_ENV_DEFAULT, false);
 
     String value1 = environment.get("USER_KEY");
     assertEquals("USER_VALUE", value1, "User env should merge with default env");
@@ -136,8 +130,7 @@ public class TestTezYARNUtils {
     String classpath = TezYARNUtils.getFrameworkClasspath(conf, true);
     assertTrue(classpath.contains("foobar"));
     assertTrue(classpath.contains(Environment.PWD.$()));
-    assertTrue(classpath.indexOf("foobar") >
-        classpath.indexOf(Environment.PWD.$()));
+    assertTrue(classpath.indexOf("foobar") > classpath.indexOf(Environment.PWD.$()));
   }
 
   @Test
@@ -162,7 +155,7 @@ public class TestTezYARNUtils {
     String badEnv = "0=,1,,2=a=b,3=a=,4==,5==a,==,c-3=3,=";
     environment.clear();
     appendToEnvFromInputString(environment, badEnv, File.pathSeparator);
-    assertEquals(environment.size(), 0);
+    assertEquals(0, environment.size());
 
     // Test "=" in the value part
     environment.clear();

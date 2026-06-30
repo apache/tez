@@ -1449,9 +1449,7 @@ public class TestAMContainer {
     }
 
     public void verifyState(AMContainerState state) {
-      assertEquals(
-          state,
-          amContainer.getState(),
+      assertEquals(state, amContainer.getState(),
           "Expected state: " + state + ", but found: " + amContainer.getState());
     }
   }
@@ -1497,11 +1495,8 @@ public class TestAMContainer {
         }
       }
     }
-    assertTrue(
-        expectedTypeList.isEmpty(),
-        "Did not find types : " + expectedTypeList + " in outgoing event list");
-    assertTrue(
-        eventsCopy.isEmpty(), "Found unexpected events: " + eventsCopy + " in outgoing event list");
+    assertTrue(expectedTypeList.isEmpty(), "Did not find types : " + expectedTypeList + " in outgoing event list");
+    assertTrue(eventsCopy.isEmpty(), "Found unexpected events: " + eventsCopy + " in outgoing event list");
   }
 
   private Event findEventByType(List<Event> events, Enum<?> type) {

@@ -299,14 +299,10 @@ public class TestTimelineCachePluginImpl {
   @Test
   public void testInvalidIds() {
     TimelineCachePluginImpl plugin = createPlugin(-1, null);
-    assertNull(plugin.getTimelineEntityGroupId(EntityTypes.TEZ_DAG_ID.name(),
-        vertexID1.toString()));
-    assertNull(plugin.getTimelineEntityGroupId(EntityTypes.TEZ_VERTEX_ID.name(),
-        taskID1.toString()));
-    assertNull(plugin.getTimelineEntityGroupId(EntityTypes.TEZ_TASK_ID.name(),
-        attemptID1.toString()));
-    assertNull(plugin.getTimelineEntityGroupId(EntityTypes.TEZ_TASK_ATTEMPT_ID.name(),
-        dagID1.toString()));
+    assertNull(plugin.getTimelineEntityGroupId(EntityTypes.TEZ_DAG_ID.name(), vertexID1.toString()));
+    assertNull(plugin.getTimelineEntityGroupId(EntityTypes.TEZ_VERTEX_ID.name(), taskID1.toString()));
+    assertNull(plugin.getTimelineEntityGroupId(EntityTypes.TEZ_TASK_ID.name(), attemptID1.toString()));
+    assertNull(plugin.getTimelineEntityGroupId(EntityTypes.TEZ_TASK_ATTEMPT_ID.name(), dagID1.toString()));
     assertNull(plugin.getTimelineEntityGroupId("", ""));
     assertNull(plugin.getTimelineEntityGroupId(null, null));
     assertNull(plugin.getTimelineEntityGroupId("adadasd", EntityTypes.TEZ_DAG_ID.name()));
@@ -315,17 +311,12 @@ public class TestTimelineCachePluginImpl {
   @Test
   public void testInvalidTypeRequests() {
     TimelineCachePluginImpl plugin = createPlugin(-1, null);
-    assertNull(plugin.getTimelineEntityGroupId(EntityTypes.TEZ_APPLICATION.name(),
-        appId1.toString()));
-    assertNull(plugin.getTimelineEntityGroupId(EntityTypes.TEZ_APPLICATION_ATTEMPT.name(),
-        appAttemptId1.toString()));
-    assertNull(plugin.getTimelineEntityGroupId(EntityTypes.TEZ_CONTAINER_ID.name(),
-        appId1.toString()));
+    assertNull(plugin.getTimelineEntityGroupId(EntityTypes.TEZ_APPLICATION.name(), appId1.toString()));
+    assertNull(plugin.getTimelineEntityGroupId(EntityTypes.TEZ_APPLICATION_ATTEMPT.name(), appAttemptId1.toString()));
+    assertNull(plugin.getTimelineEntityGroupId(EntityTypes.TEZ_CONTAINER_ID.name(), appId1.toString()));
 
-    assertNull(plugin.getTimelineEntityGroupId(EntityTypes.TEZ_TASK_ID.name(), null,
-        new HashSet<String>()));
-    assertNull(plugin.getTimelineEntityGroupId(EntityTypes.TEZ_TASK_ID.name(), null,
-        new HashSet<NameValuePair>()));
+    assertNull(plugin.getTimelineEntityGroupId(EntityTypes.TEZ_TASK_ID.name(), null, new HashSet<String>()));
+    assertNull(plugin.getTimelineEntityGroupId(EntityTypes.TEZ_TASK_ID.name(), null, new HashSet<NameValuePair>()));
 
   }
 

@@ -37,7 +37,7 @@ import org.apache.tez.dag.history.logging.proto.HistoryLoggerProtos.ManifestEntr
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.Timeout;
-import org.junit.jupiter.api.io.*;
+import org.junit.jupiter.api.io.TempDir;
 
 public class TestDagManifestFileScanner {
   private MockClock clock;

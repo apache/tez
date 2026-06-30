@@ -342,9 +342,10 @@ public class TestDefaultSorter {
           TezCommonUtils.decompressByteStringToByteArray(
               shufflePayload.getEmptyPartitions());
       BitSet emptyPartitionBitSet = TezUtilsInternal.fromByteArray(emptyPartitionsBytesString);
-      assertEquals(emptyPartitionBitSet.cardinality(), sorterWrapper.getEmptyPartitionsCount(), "Number of empty partitions did not match!");
+      assertEquals(emptyPartitionBitSet.cardinality(), sorterWrapper.getEmptyPartitionsCount(),
+          "Number of empty partitions did not match!");
     } else {
-      assertEquals(sorterWrapper.getEmptyPartitionsCount(), 0);
+      assertEquals(0, sorterWrapper.getEmptyPartitionsCount());
     }
     // Each non-empty partition adds 4 bytes for header, 2 bytes for EOF_MARKER, 4 bytes for checksum
     int expectedFileOutLength = sorterWrapper.getNonEmptyPartitionsCount() * 10;
@@ -354,8 +355,9 @@ public class TestDefaultSorter {
       // Each Record adds 1 byte for value length, 1 byte Text overhead (length), value.length bytes for value
       expectedFileOutLength += values[i].length() + 2;
     }
-    assertEquals(localFs.getFileStatus(sorter.getFinalOutputFile()).getLen(), expectedFileOutLength, "Unexpected Output File Size!");
-    assertEquals(sorter.getNumSpills(), 1);
+    assertEquals(localFs.getFileStatus(sorter.getFinalOutputFile()).getLen(), expectedFileOutLength,
+        "Unexpected Output File Size!");
+    assertEquals(1, sorter.getNumSpills());
     verifyCounters(sorter, context);
   }
 
@@ -450,7 +452,7 @@ public class TestDefaultSorter {
           if (sendEmptyPartitionDetails) {
             assertEquals(0, tezIndexRecord.getRawLength(), "Unexpected raw length for " + i + "th partition");
           } else {
-            assertEquals(tezIndexRecord.getRawLength(), 6, "");
+            assertEquals(6, tezIndexRecord.getRawLength(), "");
           }
         }
       }

@@ -237,16 +237,12 @@ public class TestOrderedPartitionedKVEdgeConfig {
     Configuration inputConf = rebuiltInput.conf;
 
     assertEquals("KEY", outputConf.get(TezRuntimeConfiguration.TEZ_RUNTIME_KEY_CLASS, ""));
-    assertEquals("VALUE",
-        outputConf.get(TezRuntimeConfiguration.TEZ_RUNTIME_VALUE_CLASS, ""));
+    assertEquals("VALUE", outputConf.get(TezRuntimeConfiguration.TEZ_RUNTIME_VALUE_CLASS, ""));
     assertEquals("PARTITIONER", outputConf.get(TezRuntimeConfiguration.TEZ_RUNTIME_PARTITIONER_CLASS, ""));
     assertEquals(1111, outputConf.getInt(TezRuntimeConfiguration.TEZ_RUNTIME_IO_SORT_MB, 0));
-    assertEquals("CustomCodec",
-        outputConf.get(TezRuntimeConfiguration.TEZ_RUNTIME_COMPRESS_CODEC, ""));
-    assertTrue(outputConf.getBoolean(TezRuntimeConfiguration.TEZ_RUNTIME_COMPRESS,
-        false));
-    assertEquals("KEY_COMPARATOR",
-        outputConf.get(TezRuntimeConfiguration.TEZ_RUNTIME_KEY_COMPARATOR_CLASS));
+    assertEquals("CustomCodec", outputConf.get(TezRuntimeConfiguration.TEZ_RUNTIME_COMPRESS_CODEC, ""));
+    assertTrue(outputConf.getBoolean(TezRuntimeConfiguration.TEZ_RUNTIME_COMPRESS, false));
+    assertEquals("KEY_COMPARATOR", outputConf.get(TezRuntimeConfiguration.TEZ_RUNTIME_KEY_COMPARATOR_CLASS));
     assertEquals("comparatorValue", outputConf.get("comparator.test.key"));
     assertNull(outputConf.get(TezRuntimeConfiguration.TEZ_RUNTIME_SHUFFLE_MEMORY_LIMIT_PERCENT));
     assertNull(outputConf.get(TezRuntimeConfiguration.TEZ_RUNTIME_SHUFFLE_MERGE_PERCENT));
@@ -257,21 +253,17 @@ public class TestOrderedPartitionedKVEdgeConfig {
     assertEquals("KEY_COMPARATOR", inputConf.get(TezRuntimeConfiguration.TEZ_RUNTIME_KEY_COMPARATOR_CLASS));
     assertEquals("comparatorValue", inputConf.get("comparator.test.key"));
     assertEquals("KEY", inputConf.get(TezRuntimeConfiguration.TEZ_RUNTIME_KEY_CLASS, ""));
-    assertEquals("VALUE",
-        inputConf.get(TezRuntimeConfiguration.TEZ_RUNTIME_VALUE_CLASS, ""));
-    assertEquals("CustomCodec",
-        inputConf.get(TezRuntimeConfiguration.TEZ_RUNTIME_COMPRESS_CODEC, ""));
-    assertTrue(inputConf.getBoolean(TezRuntimeConfiguration.TEZ_RUNTIME_COMPRESS,
-        false));
+    assertEquals("VALUE", inputConf.get(TezRuntimeConfiguration.TEZ_RUNTIME_VALUE_CLASS, ""));
+    assertEquals("CustomCodec", inputConf.get(TezRuntimeConfiguration.TEZ_RUNTIME_COMPRESS_CODEC, ""));
+    assertTrue(inputConf.getBoolean(TezRuntimeConfiguration.TEZ_RUNTIME_COMPRESS, false));
 
-    assertEquals(0.11f,
-        inputConf.getFloat(TezRuntimeConfiguration.TEZ_RUNTIME_SHUFFLE_MEMORY_LIMIT_PERCENT, 0.0f), 0.001f);
-    assertEquals(0.22f, inputConf.getFloat(TezRuntimeConfiguration.TEZ_RUNTIME_SHUFFLE_MERGE_PERCENT, 0.0f),
+    assertEquals(0.11f, inputConf.getFloat(TezRuntimeConfiguration.TEZ_RUNTIME_SHUFFLE_MEMORY_LIMIT_PERCENT, 0.0f),
         0.001f);
+    assertEquals(0.22f, inputConf.getFloat(TezRuntimeConfiguration.TEZ_RUNTIME_SHUFFLE_MERGE_PERCENT, 0.0f), 0.001f);
     assertEquals(0.33f, inputConf.getFloat(TezRuntimeConfiguration.TEZ_RUNTIME_INPUT_POST_MERGE_BUFFER_PERCENT, 0.0f),
         0.001f);
-    assertEquals(0.44f,
-        inputConf.getFloat(TezRuntimeConfiguration.TEZ_RUNTIME_SHUFFLE_FETCH_BUFFER_PERCENT, 0.00f), 0.001f);
+    assertEquals(0.44f, inputConf.getFloat(TezRuntimeConfiguration.TEZ_RUNTIME_SHUFFLE_FETCH_BUFFER_PERCENT, 0.00f),
+        0.001f);
     assertNull(inputConf.get(TezRuntimeConfiguration.TEZ_RUNTIME_IO_SORT_MB));
 
   }
@@ -297,39 +289,29 @@ public class TestOrderedPartitionedKVEdgeConfig {
     Configuration inputConf = rebuiltInput.conf;
 
     assertEquals("KEY", outputConf.get(TezRuntimeConfiguration.TEZ_RUNTIME_KEY_CLASS, ""));
-    assertEquals("VALUE",
-        outputConf.get(TezRuntimeConfiguration.TEZ_RUNTIME_VALUE_CLASS, ""));
+    assertEquals("VALUE", outputConf.get(TezRuntimeConfiguration.TEZ_RUNTIME_VALUE_CLASS, ""));
     assertEquals("PARTITIONER", outputConf.get(TezRuntimeConfiguration.TEZ_RUNTIME_PARTITIONER_CLASS, ""));
-    assertEquals("CustomCodec",
-        outputConf.get(TezRuntimeConfiguration.TEZ_RUNTIME_COMPRESS_CODEC, ""));
-    assertTrue(outputConf.getBoolean(TezRuntimeConfiguration.TEZ_RUNTIME_COMPRESS,
-        false));
+    assertEquals("CustomCodec", outputConf.get(TezRuntimeConfiguration.TEZ_RUNTIME_COMPRESS_CODEC, ""));
+    assertTrue(outputConf.getBoolean(TezRuntimeConfiguration.TEZ_RUNTIME_COMPRESS, false));
     assertNull(outputConf.get(TezRuntimeConfiguration.TEZ_RUNTIME_SHUFFLE_FETCH_BUFFER_PERCENT));
     //verify comparator and serialization class
-    assertEquals("SomeComparator1",
-        outputConf.get(TezRuntimeConfiguration.TEZ_RUNTIME_KEY_COMPARATOR_CLASS));
-    assertTrue(outputConf.get(CommonConfigurationKeys.IO_SERIALIZATIONS_KEY).trim().startsWith
-        ("serClass2,serClass1"));
+    assertEquals("SomeComparator1", outputConf.get(TezRuntimeConfiguration.TEZ_RUNTIME_KEY_COMPARATOR_CLASS));
+    assertTrue(outputConf.get(CommonConfigurationKeys.IO_SERIALIZATIONS_KEY).trim().startsWith("serClass2,serClass1"));
 
 
     //verify comparator and serialization class
     assertEquals("SomeComparator1", inputConf.get(TezRuntimeConfiguration.TEZ_RUNTIME_KEY_COMPARATOR_CLASS));
-    assertTrue(inputConf.get(CommonConfigurationKeys.IO_SERIALIZATIONS_KEY).trim().startsWith
-        ("serClass2,serClass1"));
+    assertTrue(inputConf.get(CommonConfigurationKeys.IO_SERIALIZATIONS_KEY).trim().startsWith("serClass2,serClass1"));
 
     assertEquals("KEY", inputConf.get(TezRuntimeConfiguration.TEZ_RUNTIME_KEY_CLASS, ""));
-    assertEquals("VALUE",
-        inputConf.get(TezRuntimeConfiguration.TEZ_RUNTIME_VALUE_CLASS, ""));
-    assertEquals("CustomCodec",
-        inputConf.get(TezRuntimeConfiguration.TEZ_RUNTIME_COMPRESS_CODEC, ""));
-    assertTrue(inputConf.getBoolean(TezRuntimeConfiguration.TEZ_RUNTIME_COMPRESS,
-        false));
+    assertEquals("VALUE", inputConf.get(TezRuntimeConfiguration.TEZ_RUNTIME_VALUE_CLASS, ""));
+    assertEquals("CustomCodec", inputConf.get(TezRuntimeConfiguration.TEZ_RUNTIME_COMPRESS_CODEC, ""));
+    assertTrue(inputConf.getBoolean(TezRuntimeConfiguration.TEZ_RUNTIME_COMPRESS, false));
   }
 
   private void checkHistoryText(String historyText) {
     assertNotNull(historyText);
-    assertTrue(historyText.contains(
-        TezRuntimeConfiguration.TEZ_RUNTIME_CONVERT_USER_PAYLOAD_TO_HISTORY_TEXT));
+    assertTrue(historyText.contains(TezRuntimeConfiguration.TEZ_RUNTIME_CONVERT_USER_PAYLOAD_TO_HISTORY_TEXT));
   }
 
   @Test
@@ -355,6 +337,4 @@ public class TestOrderedPartitionedKVEdgeConfig {
     checkHistoryText(edgeProperty.getEdgeDestination().getHistoryText());
     checkHistoryText(edgeProperty.getEdgeSource().getHistoryText());
   }
-
-
 }

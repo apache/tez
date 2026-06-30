@@ -108,9 +108,7 @@ public class TestTaskCommunicatorContextImpl {
     TaskCommunicatorContextImpl commContext = new TaskCommunicatorContextImpl(null, null, null, 0);
     commContext.dag = dag;
 
-    assertEquals(
-        commContext.getCurrentDagInfo().getConf().get("dagkey"),
-        "dagvalue",
+    assertEquals("dagvalue", commContext.getCurrentDagInfo().getConf().get("dagkey"),
         "DAG config should be exposed via context.dag.getConf()");
 
     // TaskCommunicatorContextImpl.appContext.getCurrentDAG() is present
@@ -118,9 +116,7 @@ public class TestTaskCommunicatorContextImpl {
     when(appContext.getCurrentDAG()).thenReturn(dag);
     commContext = new TaskCommunicatorContextImpl(appContext, null, null, 0);
 
-    assertEquals(
-        commContext.getCurrentDagInfo().getConf().get("dagkey"),
-        "dagvalue",
+    assertEquals("dagvalue", commContext.getCurrentDagInfo().getConf().get("dagkey"),
         "DAG config should be exposed via context.appContext.getCurrentDAG().getConf()");
   }
 }

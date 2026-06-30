@@ -44,10 +44,8 @@ public class TestTimelineReaderFactory {
         TimelineReaderFactory.getTimelineReaderStrategy(mock(Configuration.class), false, 0)
             .getClass()
             .getCanonicalName();
-    assertEquals(
-        "org.apache.tez.dag.api.client.TimelineReaderFactory.TimelineReaderTokenAuthenticatedStrategy",
-        returnedClassName,
-        "should use token delegation auth");
+    assertEquals("org.apache.tez.dag.api.client.TimelineReaderFactory.TimelineReaderTokenAuthenticatedStrategy",
+        returnedClassName, "should use token delegation auth");
   }
 
   @Test

@@ -162,12 +162,9 @@ public class TestRPCUtil {
       t = thrown;
     }
 
-    assertTrue(
-        expectedLocalException.isInstance(t),
+    assertTrue(expectedLocalException.isInstance(t),
         "Expected exception [" + expectedLocalException + "] but found " + t);
-    assertTrue(
-        t.getMessage().contains(message),
-        "Expected message [" + message + "] but found " + t.getMessage());
+    assertTrue(t.getMessage().contains(message), "Expected message [" + message + "] but found " + t.getMessage());
   }
 
   @Test

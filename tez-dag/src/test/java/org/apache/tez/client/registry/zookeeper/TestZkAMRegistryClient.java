@@ -141,22 +141,21 @@ public class TestZkAMRegistryClient {
 
     // Create and start the ZkAMRegistryClient
     registryClient = ZkAMRegistryClient.getClient(tezConf);
-    registryClient.addListener(
-        new AMRegistryClientListener() {
-          @Override
-          public void onAdd(AMRecord amRecord) {
-            LOG.info("AM added to registry: {}", amRecord);
-            if (amRecord.getApplicationId().equals(appId)) {
-              amDiscovered.set(true);
-              amRegisteredLatch.countDown();
-            }
-          }
+    registryClient.addListener(new AMRegistryClientListener() {
+      @Override
+      public void onAdd(AMRecord amRecord) {
+        LOG.info("AM added to registry: {}", amRecord);
+        if (amRecord.getApplicationId().equals(appId)) {
+          amDiscovered.set(true);
+          amRegisteredLatch.countDown();
+        }
+      }
 
-          @Override
-          public void onRemove(AMRecord amRecord) {
-            LOG.info("AM removed from registry: {}", amRecord);
-          }
-        });
+      @Override
+      public void onRemove(AMRecord amRecord) {
+        LOG.info("AM removed from registry: {}", amRecord);
+      }
+    });
     registryClient.start();
 
     String workingDir = TEST_DIR.toString();
@@ -165,22 +164,8 @@ public class TestZkAMRegistryClient {
     String jobUserName = UserGroupInformation.getCurrentUser().getShortUserName();
 
     dagAppMaster =
-        new MockDAGAppMaster(
-            attemptId,
-            containerId,
-            SystemClock.getInstance(),
-            System.currentTimeMillis(),
-            true,
-            workingDir,
-            localDirs,
-            logDirs,
-            new AtomicBoolean(true),
-            false,
-            false,
-            new Credentials(),
-            jobUserName,
-            1,
-            1,
+        new MockDAGAppMaster(attemptId, containerId, SystemClock.getInstance(), System.currentTimeMillis(), true,
+            workingDir, localDirs, logDirs, new AtomicBoolean(true), false, false, new Credentials(), jobUserName, 1, 1,
             new LocalNodeContext("localhost", 0, 0));
 
     dagAppMaster.init(tezConf);

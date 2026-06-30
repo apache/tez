@@ -78,7 +78,6 @@ import org.apache.tez.serviceplugins.api.TaskSchedulerContext;
 import com.google.common.collect.Lists;
 import com.google.common.collect.Maps;
 
-
 final class TestTaskSchedulerHelpers {
 
   private TestTaskSchedulerHelpers() {}

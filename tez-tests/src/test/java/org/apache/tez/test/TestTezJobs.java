@@ -117,7 +117,6 @@ import org.junit.jupiter.api.Timeout;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-
 /**
  * Tests for Tez example jobs
  *
@@ -524,7 +523,8 @@ public class TestTezJobs {
       assertNotNull(input1Counter, "input1 counter cannot be null " + c.name());
       assertNotNull(input2Counter, "input2 counter cannot be null " + c.name());
 
-      assertEquals(aggregatedCounter.getValue(), input1Counter.getValue() + input2Counter.getValue(), "aggregated counter does not match sum of input counters " + c.name());
+      assertEquals(aggregatedCounter.getValue(), input1Counter.getValue() + input2Counter.getValue(),
+          "aggregated counter does not match sum of input counters " + c.name());
 
       if (aggregatedCounter.getValue() > 0) {
         nonZeroCounters++;
@@ -542,7 +542,8 @@ public class TestTezJobs {
     assertNotNull(aggregateCounter, "aggregated counter cannot be null " + outputCounterName);
     assertNotNull(joinerOutputCounter, "output counter cannot be null " + outputCounterName);
     assertTrue(aggregateCounter.getValue() > 0, "counter value is zero. test is invalid");
-    assertEquals(aggregateCounter.getValue(), joinerOutputCounter.getValue(), "aggregated counter does not match sum of output counters " + outputCounterName);
+    assertEquals(aggregateCounter.getValue(), joinerOutputCounter.getValue(),
+        "aggregated counter does not match sum of output counters " + outputCounterName);
   }
 
 
@@ -860,8 +861,7 @@ public class TestTezJobs {
     try {
 
       OrderedWordCount job = new OrderedWordCount();
-      assertEquals(0,
-          job.run(tezConf, new String[]{"-counter", inputDirStr, outputDirStr, "2"}, null),
+      assertEquals(0, job.run(tezConf, new String[]{"-counter", inputDirStr, outputDirStr, "2"}, null),
           "OrderedWordCount failed");
       verifyOutput(outputDir, remoteFs);
 
@@ -895,8 +895,9 @@ public class TestTezJobs {
     try {
 
       OrderedWordCount job = new OrderedWordCount();
-      assertEquals(0, job.run(tezConf, new String[]{"-counter", "-local", "-disableSplitGrouping",
-          inputDirStr, outputDirStr, "2"}, null), "OrderedWordCount failed");
+      assertEquals(0,
+          job.run(tezConf, new String[]{"-counter", "-local", "-disableSplitGrouping", inputDirStr, outputDirStr, "2"},
+              null), "OrderedWordCount failed");
       verifyOutput(outputDir, localFs);
 
     } finally {
@@ -945,8 +946,9 @@ public class TestTezJobs {
 
       SimpleSessionExample job = new SimpleSessionExample();
       tezConf.setBoolean(TezConfiguration.TEZ_AM_SESSION_MODE, true);
-      assertEquals(0, job.run(tezConf, new String[]{StringUtils.join(",", inputPaths),
-          StringUtils.join(",", outputPaths), "2"}, null), "SimpleSessionExample failed");
+      assertEquals(0,
+          job.run(tezConf, new String[]{StringUtils.join(",", inputPaths), StringUtils.join(",", outputPaths), "2"},
+              null), "SimpleSessionExample failed");
 
       for (int i=0; i<numIterations; ++i) {
         verifyOutput(outputDirs[i], remoteFs);
@@ -1069,11 +1071,11 @@ public class TestTezJobs {
     int i = 0;
     for (String vertexName : resultVertices){
       if (i <= 1){
-        assertTrue( vertexName.equals("v1") || vertexName.equals("v2"));
-      } else if (i == 2){
+        assertTrue(vertexName.equals("v1") || vertexName.equals("v2"));
+      } else if (i == 2) {
         assertEquals("v3", vertexName);
-      } else if (i <= 4){
-        assertTrue( vertexName.equals("v4") || vertexName.equals("v5"));
+      } else if (i <= 4) {
+        assertTrue(vertexName.equals("v4") || vertexName.equals("v5"));
       } else {
         assertEquals("v6", vertexName);
       }
@@ -1191,7 +1193,7 @@ public class TestTezJobs {
   private void verifyCommits(String outputPrefix, int outputNum) throws IllegalArgumentException, IOException {
     for (int i=0; i< outputNum; ++i) {
       String outputDir = outputPrefix + "_" + i;
-      assertTrue(remoteFs.exists(new Path( outputDir + "/_SUCCESS")), "Output of " + outputDir + " is not succeeded");
+      assertTrue(remoteFs.exists(new Path(outputDir + "/_SUCCESS")), "Output of " + outputDir + " is not succeeded");
     }
   }
 
@@ -1417,9 +1419,9 @@ public class TestTezJobs {
       // Add a sleep because YARN is not consistent in terms of reporting uptodate diagnostics
       Thread.sleep(2000);
       report = yarnClient.getApplicationReport(appId);
-      LOG.info("App Report for appId=" + appId
-          + ", report=" + report);
-      assertTrue(report.getDiagnostics().contains("Client-to-AM Heartbeat timeout interval expired"), "Actual diagnostics: " + report.getDiagnostics());
+      LOG.info("App Report for appId=" + appId + ", report=" + report);
+      assertTrue(report.getDiagnostics().contains("Client-to-AM Heartbeat timeout interval expired"),
+          "Actual diagnostics: " + report.getDiagnostics());
 
     } finally {
       remoteFs.delete(stagingDirPath, true);
@@ -1473,8 +1475,7 @@ public class TestTezJobs {
       Thread.sleep(2000);
       report = yarnClient.getApplicationReport(appId);
       LOG.info("App Report for appId=" + appId + ", report=" + report);
-      assertTrue(
-          report.getDiagnostics().contains("Session timed out"),
+      assertTrue(report.getDiagnostics().contains("Session timed out"),
           "Actual diagnostics: " + report.getDiagnostics());
 
     } finally {
@@ -1527,6 +1528,6 @@ public class TestTezJobs {
     TezConfiguration tezConf = new TezConfiguration(mrrTezCluster.getConfig());
     tezConf.setInt(CartesianProductVertexManager.TEZ_CARTESIAN_PRODUCT_MAX_PARALLELISM, 10);
     tezConf.setInt(CartesianProductVertexManager.TEZ_CARTESIAN_PRODUCT_MIN_OPS_PER_WORKER, 25);
-    assertEquals(job.run(tezConf, null, null), 0, "CartesianProduct failed");
+    assertEquals(0, job.run(tezConf, null, null), "CartesianProduct failed");
   }
 }

@@ -38,8 +38,7 @@ public class TestNumberFormat {
     numberFormat.setMinimumIntegerDigits(6);
     long[] testLongs = {1, 23, 456, 7890, 12345, 678901, 2345689, 0, -0, -1, -23, -456, -7890, -12345, -678901, -2345689};
     for (long l : testLongs) {
-      assertEquals(
-          numberFormat.format(l), fastNumberFormat.format(l), "Number formats should be equal");
+      assertEquals(numberFormat.format(l), fastNumberFormat.format(l), "Number formats should be equal");
     }
   }
 }

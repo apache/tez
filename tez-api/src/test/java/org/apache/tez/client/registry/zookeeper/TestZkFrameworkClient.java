@@ -176,18 +176,10 @@ public class TestZkFrameworkClient {
     YarnClientApplication clientApp = zkFrameworkClient.createApplication();
 
     assertNotNull(clientApp, "YarnClientApplication should not be null");
-    assertNotNull(
-        clientApp.getApplicationSubmissionContext(),
-        "ApplicationSubmissionContext should not be null");
-    assertEquals(
-        appId,
-        clientApp.getApplicationSubmissionContext().getApplicationId(),
-        "Application ID should match");
-    assertNotNull(
-        clientApp.getNewApplicationResponse(), "GetNewApplicationResponse should not be null");
-    assertEquals(
-        appId,
-        clientApp.getNewApplicationResponse().getApplicationId(),
+    assertNotNull(clientApp.getApplicationSubmissionContext(), "ApplicationSubmissionContext should not be null");
+    assertEquals(appId, clientApp.getApplicationSubmissionContext().getApplicationId(), "Application ID should match");
+    assertNotNull(clientApp.getNewApplicationResponse(), "GetNewApplicationResponse should not be null");
+    assertEquals(appId, clientApp.getNewApplicationResponse().getApplicationId(),
         "Response application ID should match");
   }
 

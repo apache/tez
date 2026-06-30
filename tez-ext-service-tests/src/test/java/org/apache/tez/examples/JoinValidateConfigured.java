@@ -25,7 +25,6 @@ import org.apache.tez.dag.api.DAG;
 import org.apache.tez.dag.api.TezConfiguration;
 import org.apache.tez.dag.api.Vertex.VertexExecutionContext;
 
-
 public class JoinValidateConfigured extends JoinValidate {
 
   private final VertexExecutionContext defaultExecutionContext;

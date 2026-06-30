@@ -27,7 +27,6 @@ import org.apache.hadoop.yarn.conf.YarnConfiguration;
 
 import org.junit.jupiter.api.Test;
 
-
 public class TestMiniTezCluster {
 
   @Test
@@ -37,8 +36,8 @@ public class TestMiniTezCluster {
     tezMiniCluster.start();
 
     // overrides if not set
-    assertEquals(99.0, tezMiniCluster.getConfig()
-        .getFloat(YarnConfiguration.NM_MAX_PER_DISK_UTILIZATION_PERCENTAGE, -1), 0.00001);
+    assertEquals(99.0,
+        tezMiniCluster.getConfig().getFloat(YarnConfiguration.NM_MAX_PER_DISK_UTILIZATION_PERCENTAGE, -1), 0.00001);
 
     tezMiniCluster.close();
 
@@ -49,8 +48,8 @@ public class TestMiniTezCluster {
     tezMiniCluster.start();
 
     // respects provided non-default value
-    assertEquals(50.0, tezMiniCluster.getConfig()
-        .getFloat(YarnConfiguration.NM_MAX_PER_DISK_UTILIZATION_PERCENTAGE, -1), 0.00001);
+    assertEquals(50.0,
+        tezMiniCluster.getConfig().getFloat(YarnConfiguration.NM_MAX_PER_DISK_UTILIZATION_PERCENTAGE, -1), 0.00001);
 
     tezMiniCluster.close();
   }

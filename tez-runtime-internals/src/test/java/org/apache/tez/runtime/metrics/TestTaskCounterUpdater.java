@@ -50,9 +50,7 @@ public class TestTaskCounterUpdater {
 
     updater.updateCounters();
     LOG.info("Counters (after second update): {}", counters);
-    assertTrue(
-        cpuCounter.getValue() > oldVal,
-        "Counter not updated, old=" + oldVal + ", new=" + cpuCounter.getValue());
+    assertTrue(cpuCounter.getValue() > oldVal, "Counter not updated, old=" + oldVal + ", new=" + cpuCounter.getValue());
   }
 
   private TezCounter assertCounter(TezCounters counters, TaskCounter taskCounter) {

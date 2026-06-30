@@ -1996,7 +1996,7 @@ public class TestDAGImpl {
   }
 
   @Test
-  @org.junit.jupiter.api.Timeout(value = 5000, unit = java.util.concurrent.TimeUnit.MILLISECONDS)
+  @Timeout(value = 5000, unit = TimeUnit.MILLISECONDS)
   @SuppressWarnings("unchecked")
   public void testDAGHang() throws Exception {
     conf.setBoolean(
@@ -2038,7 +2038,7 @@ public class TestDAGImpl {
         dag).logJobHistoryUnsuccesfulEvent(any(), any());
     dag.handle(dagEvent);
     dispatcher.await();
-    assertSame(dag.getInternalState(), DAGState.FAILED, "DAG did not terminate!");
+    assertSame(DAGState.FAILED, dag.getInternalState(), "DAG did not terminate!");
   }
 
   @Test

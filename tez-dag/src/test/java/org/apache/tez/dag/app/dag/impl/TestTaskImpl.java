@@ -705,7 +705,8 @@ public class TestTaskImpl {
     // last failed attempt should be the causal TA
     assertEquals(lastTAId, mockTask.getLastAttempt().getSchedulingCausalTA());
 
-    assertFalse(mockTask.canCommit(mockTask.getAttemptList().get(0).getTaskAttemptID()), "First attempt should not commit");
+    assertFalse(mockTask.canCommit(mockTask.getAttemptList().getFirst().getTaskAttemptID()),
+        "First attempt should not commit");
     updateAttemptState(mockTask.getLastAttempt(), TaskAttemptState.RUNNING);
     assertTrue(mockTask.canCommit(mockTask.getLastAttempt().getTaskAttemptID()), "Second attempt should commit");
 
@@ -724,10 +725,12 @@ public class TestTaskImpl {
     assertEquals(TaskState.SCHEDULED, mockTask.getState());
     // simulate
     // task in scheduled state due to event backlog - real task done and calling canCommit
-    assertFalse(mockTask.canCommit(mockTask.getLastAttempt().getTaskAttemptID()), "Commit should return false to make running task wait");
+    assertFalse(mockTask.canCommit(mockTask.getLastAttempt().getTaskAttemptID()),
+        "Commit should return false to make running task wait");
     launchTaskAttempt(mockTask.getLastAttempt().getTaskAttemptID());
     updateAttemptState(mockTask.getLastAttempt(), TaskAttemptState.RUNNING);
-    assertTrue(mockTask.canCommit(mockTask.getLastAttempt().getTaskAttemptID()), "Task state in AM is running now. Can commit.");
+    assertTrue(mockTask.canCommit(mockTask.getLastAttempt().getTaskAttemptID()),
+        "Task state in AM is running now. Can commit.");
 
     updateAttemptState(mockTask.getLastAttempt(), TaskAttemptState.SUCCEEDED);
     mockTask.handle(createTaskTASucceededEvent(mockTask.getLastAttempt().getTaskAttemptID()));
@@ -756,7 +759,8 @@ public class TestTaskImpl {
     assertEquals(lastTAId, mockTask.getLastAttempt().getSchedulingCausalTA());
 
     assertTrue(mockTask.canCommit(mockTask.getAttemptList().get(1).getTaskAttemptID()), "Second attempt should commit");
-    assertFalse(mockTask.canCommit(mockTask.getAttemptList().get(0).getTaskAttemptID()), "First attempt should not commit");
+    assertFalse(mockTask.canCommit(mockTask.getAttemptList().get(0).getTaskAttemptID()),
+        "First attempt should not commit");
 
     // During the task attempt commit there is an exception which causes
     // the second attempt to fail
@@ -765,7 +769,8 @@ public class TestTaskImpl {
 
     assertEquals(2, mockTask.getAttemptList().size());
 
-    assertFalse(mockTask.canCommit(mockTask.getAttemptList().get(1).getTaskAttemptID()), "Second attempt should not commit");
+    assertFalse(mockTask.canCommit(mockTask.getAttemptList().get(1).getTaskAttemptID()),
+        "Second attempt should not commit");
     assertTrue(mockTask.canCommit(mockTask.getAttemptList().get(0).getTaskAttemptID()), "First attempt should commit");
 
     updateAttemptState(mockTask.getAttemptList().get(0), TaskAttemptState.SUCCEEDED);
@@ -1148,10 +1153,11 @@ public class TestTaskImpl {
 
     mockTask.handle(new TaskEventTASucceeded(secondMockTaskAttempt.getTaskAttemptID()));
     mockTask.handle(new TaskEventTASucceeded(firstMockTaskAttempt.getTaskAttemptID()));
-    assertTrue(firstMockTaskAttempt.getInternalState() == TaskAttemptStateInternal.SUCCEEDED
-        && secondMockTaskAttempt.getInternalState() == TaskAttemptStateInternal.SUCCEEDED, "Attempts should have succeeded!");
+    assertTrue(firstMockTaskAttempt.getInternalState() == TaskAttemptStateInternal.SUCCEEDED &&
+               secondMockTaskAttempt.getInternalState() == TaskAttemptStateInternal.SUCCEEDED,
+        "Attempts should have succeeded!");
     assertEquals(0, mockTask.getUncompletedAttemptsCount(), "Task should have no uncompleted attempts!");
-    assertSame(mockTask.getState(), TaskState.SUCCEEDED, "Task should have Succeeded!");
+    assertSame(TaskState.SUCCEEDED, mockTask.getState(), "Task should have Succeeded!");
     //Failing the attempt that finished after the task was marked succeeded, should not schedule another attempt
     failAttempt(firstMockTaskAttempt, 0, 0);
     assertTaskSucceededState();
@@ -1209,15 +1215,16 @@ public class TestTaskImpl {
         mock(TaskAttemptEvent.class)));
     mockTask.handle(new TaskEventTAFailed(firstMockTaskAttempt.getTaskAttemptID(), TaskFailureType.NON_FATAL,
         mock(TaskAttemptEvent.class)));
-    assertTrue(firstMockTaskAttempt.getInternalState() == TaskAttemptStateInternal.FAILED
-        && secondMockTaskAttempt.getInternalState() == TaskAttemptStateInternal.FAILED, "Attempts should have failed!");
+    assertTrue(firstMockTaskAttempt.getInternalState() == TaskAttemptStateInternal.FAILED &&
+               secondMockTaskAttempt.getInternalState() == TaskAttemptStateInternal.FAILED,
+        "Attempts should have failed!");
     assertEquals(0, mockTask.getUncompletedAttemptsCount(), "Task should have no uncompleted attempts!");
-    assertSame(mockTask.getState(), TaskState.FAILED, "Task should have failed!");
+    assertSame(TaskState.FAILED, mockTask.getState(), "Task should have failed!");
   }
 
   @SuppressWarnings("rawtypes")
   @Test
-  @org.junit.jupiter.api.Timeout(value = 10000, unit = java.util.concurrent.TimeUnit.MILLISECONDS)
+  @Timeout(value = 10000, unit = TimeUnit.MILLISECONDS)
   public void testSucceededLeafTaskWithRetroFailures() throws InterruptedException {
     Configuration newConf = new Configuration(conf);
     newConf.setInt(TezConfiguration.TEZ_AM_TASK_MAX_FAILED_ATTEMPTS, 1);
@@ -1269,7 +1276,7 @@ public class TestTaskImpl {
     firstMockTaskAttempt.handle(outputFailedEvent);
     mockTask.handle(new TaskEventTAFailed(firstMockTaskAttempt.getTaskAttemptID(), TaskFailureType.NON_FATAL,
         mock(TaskAttemptEvent.class)));
-    assertEquals(mockTask.getInternalState(), TaskStateInternal.SUCCEEDED);
+    assertEquals(TaskStateInternal.SUCCEEDED, mockTask.getInternalState());
   }
 
   private void failAttempt(MockTaskAttemptImpl taskAttempt, int index, int expectedIncompleteAttempts) {
@@ -1281,9 +1288,11 @@ public class TestTaskImpl {
         new TaskAttemptEventOutputFailed(mockDestId, tzEvent, 1);
     taskAttempt.handle(
         outputFailedEvent);
-    TaskEvent tEventFail1 = new TaskEventTAFailed(taskAttempt.getTaskAttemptID(), TaskFailureType.NON_FATAL, outputFailedEvent);
+    TaskEvent tEventFail1 =
+        new TaskEventTAFailed(taskAttempt.getTaskAttemptID(), TaskFailureType.NON_FATAL, outputFailedEvent);
     mockTask.handle(tEventFail1);
-    assertEquals(expectedIncompleteAttempts, mockTask.getUncompletedAttemptsCount(), "Unexpected number of incomplete attempts!");
+    assertEquals(expectedIncompleteAttempts, mockTask.getUncompletedAttemptsCount(),
+        "Unexpected number of incomplete attempts!");
   }
 
   @Test
@@ -1335,10 +1344,11 @@ public class TestTaskImpl {
         mock(TaskAttemptEvent.class)));
     mockTask.handle(new TaskEventTAFailed(firstMockTaskAttempt.getTaskAttemptID(), TaskFailureType.NON_FATAL,
         mock(TaskAttemptEvent.class)));
-    assertTrue(firstMockTaskAttempt.getInternalState() == TaskAttemptStateInternal.FAILED
-            && secondMockTaskAttempt.getInternalState() == TaskAttemptStateInternal.FAILED, "Attempts should have failed!");
+    assertTrue(firstMockTaskAttempt.getInternalState() == TaskAttemptStateInternal.FAILED &&
+               secondMockTaskAttempt.getInternalState() == TaskAttemptStateInternal.FAILED,
+        "Attempts should have failed!");
     assertEquals(0, mockTask.getUncompletedAttemptsCount(), "Task should have no uncompleted attempts!");
-    assertSame(mockTask.getState(), TaskState.FAILED, "Task should have failed!");
+    assertSame(TaskState.FAILED, mockTask.getState(), "Task should have failed!");
     mockTask.handle(createTaskTAAddSpecAttempt(mockTask.getLastAttempt().getTaskAttemptID()));
     MockTaskAttemptImpl thirdMockTaskAttempt = mockTask.getLastAttempt();
     mockTask.handle(createTaskTALauncherEvent(thirdMockTaskAttempt.getTaskAttemptID()));
@@ -1383,7 +1393,7 @@ public class TestTaskImpl {
     firstMockTaskAttempt.handle(
         new TaskAttemptEventAttemptKilled(TezTaskAttemptID.fromString(firstMockTaskAttempt.toString()),"test",
             TaskAttemptTerminationCause.FRAMEWORK_ERROR));
-    assertEquals(mockTask.getInternalState(), TaskStateInternal.KILLED, "Task should have been killed!");
+    assertEquals(TaskStateInternal.KILLED, mockTask.getInternalState(), "Task should have been killed!");
     mockTask.handle(createTaskTAAddSpecAttempt(mockTask.getLastAttempt().getTaskAttemptID()));
     MockTaskAttemptImpl thirdMockTaskAttempt = mockTask.getLastAttempt();
     mockTask.handle(createTaskTALauncherEvent(thirdMockTaskAttempt.getTaskAttemptID()));
@@ -1414,9 +1424,7 @@ public class TestTaskImpl {
         }
       }
     }
-    assertTrue(
-        expectedTypeList.isEmpty(),
-        "Did not find types : " + expectedTypeList + " in outgoing event list");
+    assertTrue(expectedTypeList.isEmpty(), "Did not find types : " + expectedTypeList + " in outgoing event list");
   }
 
   @SuppressWarnings("rawtypes")

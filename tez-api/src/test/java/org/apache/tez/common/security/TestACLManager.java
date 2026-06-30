@@ -36,7 +36,6 @@ import org.apache.tez.dag.api.records.DAGProtos.ACLInfo;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.Timeout;
 
-
 public class TestACLManager {
 
   private static final String[] noGroups = new String[0];

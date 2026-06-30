@@ -61,8 +61,9 @@ import org.apache.tez.runtime.api.events.VertexManagerEvent;
 import com.google.common.collect.Lists;
 
 import org.junit.jupiter.api.Timeout;
-import org.junit.jupiter.params.*;
-import org.junit.jupiter.params.provider.*;
+import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.Arguments;
+import org.junit.jupiter.params.provider.MethodSource;
 
 @SuppressWarnings({ "unchecked", "rawtypes" })
 public class TestShuffleVertexManagerBase extends TestShuffleVertexManagerUtils {
@@ -71,10 +72,7 @@ public class TestShuffleVertexManagerBase extends TestShuffleVertexManagerUtils 
 
   @SuppressWarnings("deprecation")
   public static Stream<Arguments> data() {
-    return Stream.of(
-        Arguments.of(ShuffleVertexManager.class),
-        Arguments.of(FairShuffleVertexManager.class)
-    );
+    return Stream.of(Arguments.of(ShuffleVertexManager.class), Arguments.of(FairShuffleVertexManager.class));
   }
 
   // Test zero source tasks and onVertexStarted is called
@@ -82,7 +80,8 @@ public class TestShuffleVertexManagerBase extends TestShuffleVertexManagerUtils 
   @ParameterizedTest(name = "test[{0}]")
   @MethodSource("data")
   @Timeout(value = 5000, unit = TimeUnit.MILLISECONDS)
-  public void testZeroSourceTasksWithVertexStartedFirst(Class<? extends ShuffleVertexManagerBase> shuffleVertexManagerClass) {
+  public void testZeroSourceTasksWithVertexStartedFirst(
+      Class<? extends ShuffleVertexManagerBase> shuffleVertexManagerClass) {
     Configuration conf = new Configuration();
     ShuffleVertexManagerBase manager;
 
@@ -124,7 +123,8 @@ public class TestShuffleVertexManagerBase extends TestShuffleVertexManagerUtils 
   @ParameterizedTest(name = "test[{0}]")
   @MethodSource("data")
   @Timeout(value = 5000, unit = TimeUnit.MILLISECONDS)
-  public void testZeroSourceTasksWithVertexStateUpdatedFirst(Class<? extends ShuffleVertexManagerBase> shuffleVertexManagerClass) {
+  public void testZeroSourceTasksWithVertexStateUpdatedFirst(
+      Class<? extends ShuffleVertexManagerBase> shuffleVertexManagerClass) {
     Configuration conf = new Configuration();
     ShuffleVertexManagerBase manager;
 
@@ -195,7 +195,8 @@ public class TestShuffleVertexManagerBase extends TestShuffleVertexManagerUtils 
   @ParameterizedTest(name = "test[{0}]")
   @MethodSource("data")
   @Timeout(value = 5000, unit = TimeUnit.MILLISECONDS)
-  public void testPartitionStats(Class<? extends ShuffleVertexManagerBase> shuffleVertexManagerClass) throws IOException {
+  public void testPartitionStats(Class<? extends ShuffleVertexManagerBase> shuffleVertexManagerClass)
+      throws IOException {
     Configuration conf = new Configuration();
     ShuffleVertexManagerBase manager;
 
@@ -375,7 +376,8 @@ public class TestShuffleVertexManagerBase extends TestShuffleVertexManagerUtils 
   @ParameterizedTest(name = "test[{0}]")
   @MethodSource("data")
   @Timeout(value = 5000, unit = TimeUnit.MILLISECONDS)
-  public void testAutoParallelism(Class<? extends ShuffleVertexManagerBase> shuffleVertexManagerClass) throws Exception {
+  public void testAutoParallelism(Class<? extends ShuffleVertexManagerBase> shuffleVertexManagerClass)
+      throws Exception {
     Configuration conf = new Configuration();
     ShuffleVertexManagerBase manager;
 
@@ -806,7 +808,8 @@ public class TestShuffleVertexManagerBase extends TestShuffleVertexManagerUtils 
   @ParameterizedTest(name = "test[{0}]")
   @MethodSource("data")
   @Timeout(value = 5000, unit = TimeUnit.MILLISECONDS)
-  public void test_Tez1649_with_scatter_gather_edges(Class<? extends ShuffleVertexManagerBase> shuffleVertexManagerClass) throws IOException {
+  public void test_Tez1649_with_scatter_gather_edges(
+      Class<? extends ShuffleVertexManagerBase> shuffleVertexManagerClass) throws IOException {
     Configuration conf = new Configuration();
     ShuffleVertexManagerBase manager = null;
 
@@ -1081,7 +1084,7 @@ public class TestShuffleVertexManagerBase extends TestShuffleVertexManagerUtils 
 
   @ParameterizedTest(name = "test[{0}]")
   @MethodSource("data")
-  public void testZeroTasksSendsConfigured(Class<? extends ShuffleVertexManagerBase> shuffleVertexManagerClass) throws IOException {
+  public void testZeroTasksSendsConfigured(Class<? extends ShuffleVertexManagerBase> shuffleVertexManagerClass) {
     Configuration conf = new Configuration();
     ShuffleVertexManagerBase manager = null;
 
@@ -1123,7 +1126,7 @@ public class TestShuffleVertexManagerBase extends TestShuffleVertexManagerUtils 
   @ParameterizedTest(name = "test[{0}]")
   @MethodSource("data")
   @Timeout(value = 5000, unit = TimeUnit.MILLISECONDS)
-  public void testTezDrainCompletionsOnVertexStart(Class<? extends ShuffleVertexManagerBase> shuffleVertexManagerClass) throws IOException {
+  public void testTezDrainCompletionsOnVertexStart(Class<? extends ShuffleVertexManagerBase> shuffleVertexManagerClass) {
     Configuration conf = new Configuration();
     ShuffleVertexManagerBase manager;
 
@@ -1147,9 +1150,9 @@ public class TestShuffleVertexManagerBase extends TestShuffleVertexManagerUtils 
 
   }
 
-  private ShuffleVertexManagerBase createManager(Class<? extends ShuffleVertexManagerBase> shuffleVertexManagerClass, Configuration conf,
-      VertexManagerPluginContext context, Float min, Float max) {
-    return createManager(shuffleVertexManagerClass, conf, context, true,
-        null, min, max);
+  private ShuffleVertexManagerBase createManager(Class<? extends ShuffleVertexManagerBase> shuffleVertexManagerClass,
+                                                 Configuration conf, VertexManagerPluginContext context, Float min,
+                                                 Float max) {
+    return createManager(shuffleVertexManagerClass, conf, context, true, null, min, max);
   }
 }

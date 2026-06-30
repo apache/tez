@@ -21,7 +21,6 @@ package org.apache.tez.service;
 import org.apache.hadoop.ipc.ProtocolInfo;
 import org.apache.tez.test.service.rpc.TezTestServiceProtocolProtos;
 
-
 @ProtocolInfo(protocolName = "org.apache.tez.service.TezTestServiceProtocolBlockingPB", protocolVersion = 1)
 public interface TezTestServiceProtocolBlockingPB extends TezTestServiceProtocolProtos.TezTestServiceProtocol.BlockingInterface {
 }

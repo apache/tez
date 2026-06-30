@@ -63,12 +63,9 @@ public class TestMRHelpers {
     assertTrue(opts.contains(" fooMapJavaOpts "));
     assertFalse(opts.contains("fooReduceAdminOpts "));
     assertFalse(opts.contains(" fooReduceJavaOpts "));
-    assertTrue(opts.indexOf("fooMapAdminOpts")
-        < opts.indexOf("fooMapJavaOpts"));
-    assertTrue(opts.contains(" -D"
-        + TezConstants.TEZ_ROOT_LOGGER_NAME + "=FATAL"));
-    assertFalse(opts.contains(" -D"
-        + TezConstants.TEZ_ROOT_LOGGER_NAME + "=TRACE"));
+    assertTrue(opts.indexOf("fooMapAdminOpts") < opts.indexOf("fooMapJavaOpts"));
+    assertTrue(opts.contains(" -D" + TezConstants.TEZ_ROOT_LOGGER_NAME + "=FATAL"));
+    assertFalse(opts.contains(" -D" + TezConstants.TEZ_ROOT_LOGGER_NAME + "=TRACE"));
   }
 
   @Test
@@ -81,12 +78,9 @@ public class TestMRHelpers {
     assertFalse(opts.contains(" fooMapJavaOpts "));
     assertTrue(opts.contains("fooReduceAdminOpts"));
     assertTrue(opts.contains(" fooReduceJavaOpts "));
-    assertTrue(opts.indexOf("fooReduceAdminOpts")
-        < opts.indexOf("fooReduceJavaOpts"));
-    assertFalse(opts.contains(" -D"
-        + TezConstants.TEZ_ROOT_LOGGER_NAME + "=FATAL"));
-    assertTrue(opts.contains(" -D"
-        + TezConstants.TEZ_ROOT_LOGGER_NAME + "=TRACE"));
+    assertTrue(opts.indexOf("fooReduceAdminOpts") < opts.indexOf("fooReduceJavaOpts"));
+    assertFalse(opts.contains(" -D" + TezConstants.TEZ_ROOT_LOGGER_NAME + "=FATAL"));
+    assertTrue(opts.contains(" -D" + TezConstants.TEZ_ROOT_LOGGER_NAME + "=TRACE"));
   }
 
   @Test
@@ -96,14 +90,10 @@ public class TestMRHelpers {
     Resource mapResource = MRHelpers.getResourceForMRMapper(conf);
     Resource reduceResource = MRHelpers.getResourceForMRReducer(conf);
 
-    assertEquals(MRJobConfig.DEFAULT_MAP_CPU_VCORES,
-        mapResource.getVirtualCores());
-    assertEquals(MRJobConfig.DEFAULT_MAP_MEMORY_MB,
-        mapResource.getMemory());
-    assertEquals(MRJobConfig.DEFAULT_REDUCE_CPU_VCORES,
-        reduceResource.getVirtualCores());
-    assertEquals(MRJobConfig.DEFAULT_REDUCE_MEMORY_MB,
-        reduceResource.getMemory());
+    assertEquals(MRJobConfig.DEFAULT_MAP_CPU_VCORES, mapResource.getVirtualCores());
+    assertEquals(MRJobConfig.DEFAULT_MAP_MEMORY_MB, mapResource.getMemory());
+    assertEquals(MRJobConfig.DEFAULT_REDUCE_CPU_VCORES, reduceResource.getVirtualCores());
+    assertEquals(MRJobConfig.DEFAULT_REDUCE_MEMORY_MB, reduceResource.getMemory());
 
     conf.setInt(MRJobConfig.MAP_CPU_VCORES, 2);
     conf.setInt(MRJobConfig.MAP_MEMORY_MB, 123);
@@ -145,8 +135,7 @@ public class TestMRHelpers {
      * by the user setting (ex user may set HADOOP_HOME\\bin.
      */
     if (!Shell.WINDOWS) {
-      assertEquals("$PWD:$TEZ_ADMIN_ENV_TEST/lib/native",
-          env.get(Environment.LD_LIBRARY_PATH.name()));
+      assertEquals("$PWD:$TEZ_ADMIN_ENV_TEST/lib/native", env.get(Environment.LD_LIBRARY_PATH.name()));
     } else {
       assertTrue(env.get(Environment.PATH.name()).contains(";%TEZ_ADMIN_ENV%\\bin"));
     }

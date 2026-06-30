@@ -107,16 +107,12 @@ public class TestAMWebController {
 
     String httpResponseSplitOrigin = validOrigin + " \nSecondHeader: value";
     String encodedResponseSplitOrigin = AMWebController.encodeHeader(httpResponseSplitOrigin);
-    assertEquals(
-        validOrigin,
-        encodedResponseSplitOrigin,
-        "Http response split origin should be protected against");
+    assertEquals(validOrigin, encodedResponseSplitOrigin, "Http response split origin should be protected against");
 
     // Test Origin List
     String validOriginList = "http://foo.example.com:12345 http://bar.example.com:12345";
     String encodedValidOriginList = AMWebController.encodeHeader(validOriginList);
-    assertEquals(
-        validOriginList, encodedValidOriginList, "Valid origin list encoding should match exactly");
+    assertEquals(validOriginList, encodedValidOriginList, "Valid origin list encoding should match exactly");
   }
 
   @Test

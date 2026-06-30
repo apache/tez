@@ -96,8 +96,7 @@ public class TestCartesianProductVertexManager {
     // partitioned case
     config = new CartesianProductConfig(new int[]{2, 3}, new String[]{"v0", "v1"}, null);
     vertexManager.initialize();
-    assertInstanceOf(CartesianProductVertexManagerPartitioned.class,
-        vertexManager.getVertexManagerReal());
+    assertInstanceOf(CartesianProductVertexManagerPartitioned.class, vertexManager.getVertexManagerReal());
 
     // unpartitioned case
     List<String> sourceVertices = new ArrayList<>();

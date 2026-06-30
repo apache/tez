@@ -32,7 +32,6 @@ import org.apache.tez.client.registry.zookeeper.ZkConfig;
 
 import org.junit.jupiter.api.Test;
 
-
 public class TestAMRecord {
 
   @Test

@@ -217,10 +217,8 @@ public class TestMRRJobsDAGApi {
           + dagStatus.getState());
       Thread.sleep(500l);
       dagStatus = dagClient.getDAGStatus(null);
-      assertEquals(0, dagStatus.getMemoryUsedByAM(),
-          "Memory used by AM is supposed to be 0 if not requested");
-      assertEquals(0, dagStatus.getMemoryUsedByTasks(),
-          "Memory used by tasks is supposed to be 0 if not requested");
+      assertEquals(0, dagStatus.getMemoryUsedByAM(), "Memory used by AM is supposed to be 0 if not requested");
+      assertEquals(0, dagStatus.getMemoryUsedByTasks(), "Memory used by tasks is supposed to be 0 if not requested");
     }
     dagStatus = dagClient.getDAGStatus(Sets.newHashSet(StatusGetOpts.GET_COUNTERS, StatusGetOpts.GET_MEMORY_USAGE));
 
@@ -402,13 +400,11 @@ public class TestMRRJobsDAGApi {
     additionalResources.put("test.jar", createLrObjFromPath(relocFilePath));
     additionalResources.put("TezAppJar.jar", createLrObjFromPath(tezAppJarRemote));
 
-    assertEquals(TezAppMasterStatus.READY,
-        tezSession.getAppMasterStatus());
+    assertEquals(TezAppMasterStatus.READY, tezSession.getAppMasterStatus());
     finalState = testMRRSleepJobDagSubmitCore(true, false, false,
         tezSession, true, MRInputAMSplitGeneratorRelocalizationTest.class, additionalResources);
     assertEquals(DAGStatus.State.SUCCEEDED, finalState);
-    assertEquals(TezAppMasterStatus.READY,
-        tezSession.getAppMasterStatus());
+    assertEquals(TezAppMasterStatus.READY, tezSession.getAppMasterStatus());
     assertTrue(remoteFs.exists(new Path("/tmp/relocalizationfilefound")));
 
     stopAndVerifyYarnApp(tezSession);
@@ -418,8 +414,7 @@ public class TestMRRJobsDAGApi {
       IOException, YarnException {
     ApplicationId appId = tezSession.getAppMasterApplicationId();
     tezSession.stop();
-    assertEquals(TezAppMasterStatus.SHUTDOWN,
-        tezSession.getAppMasterStatus());
+    assertEquals(TezAppMasterStatus.SHUTDOWN, tezSession.getAppMasterStatus());
 
     YarnClient yarnClient = YarnClient.createYarnClient();
     yarnClient.init(mrrTezCluster.getConfig());
@@ -438,10 +433,8 @@ public class TestMRRJobsDAGApi {
     }
 
     ApplicationReport appReport = yarnClient.getApplicationReport(appId);
-    assertEquals(YarnApplicationState.FINISHED,
-        appReport.getYarnApplicationState());
-    assertEquals(FinalApplicationStatus.SUCCEEDED,
-        appReport.getFinalApplicationStatus());
+    assertEquals(YarnApplicationState.FINISHED, appReport.getYarnApplicationState());
+    assertEquals(FinalApplicationStatus.SUCCEEDED, appReport.getFinalApplicationStatus());
   }
 
 
@@ -514,19 +507,16 @@ public class TestMRRJobsDAGApi {
 
     TezClient tezSession = TezClient.create("testsession", tezConf, true);
     tezSession.start();
-    assertEquals(TezAppMasterStatus.INITIALIZING,
-        tezSession.getAppMasterStatus());
+    assertEquals(TezAppMasterStatus.INITIALIZING, tezSession.getAppMasterStatus());
 
     State finalState = testMRRSleepJobDagSubmitCore(true, false, false,
         tezSession, false, null, null);
     assertEquals(DAGStatus.State.SUCCEEDED, finalState);
-    assertEquals(TezAppMasterStatus.READY,
-        tezSession.getAppMasterStatus());
+    assertEquals(TezAppMasterStatus.READY, tezSession.getAppMasterStatus());
     finalState = testMRRSleepJobDagSubmitCore(true, false, false,
         tezSession, false, null, null);
     assertEquals(DAGStatus.State.SUCCEEDED, finalState);
-    assertEquals(TezAppMasterStatus.READY,
-        tezSession.getAppMasterStatus());
+    assertEquals(TezAppMasterStatus.READY, tezSession.getAppMasterStatus());
 
     stopAndVerifyYarnApp(tezSession);
   }
@@ -750,10 +740,8 @@ public class TestMRRJobsDAGApi {
             LOG.info("Application completed after sending session shutdown"
                 + ", yarnApplicationState=" + appState
                 + ", finalAppStatus=" + appReport.getFinalApplicationStatus());
-            assertEquals(YarnApplicationState.FINISHED,
-                appState);
-            assertEquals(FinalApplicationStatus.SUCCEEDED,
-                appReport.getFinalApplicationStatus());
+            assertEquals(YarnApplicationState.FINISHED, appState);
+            assertEquals(FinalApplicationStatus.SUCCEEDED, appReport.getFinalApplicationStatus());
             break;
           }
         }
@@ -769,8 +757,7 @@ public class TestMRRJobsDAGApi {
         tezSession.addAppMasterLocalFiles(additionalLocalResources);
       }
       dagClient = tezSession.submitDAG(dag);
-      assertEquals(TezAppMasterStatus.RUNNING,
-          tezSession.getAppMasterStatus());
+      assertEquals(TezAppMasterStatus.RUNNING, tezSession.getAppMasterStatus());
     }
     DAGStatus dagStatus = dagClient.getDAGStatus(null);
     while (!dagStatus.isCompleted()) {

@@ -288,14 +288,10 @@ public class TestRecovery {
     tezConf.set(TezConfiguration.TEZ_AM_LOG_LEVEL, "INFO;org.apache.tez=DEBUG");
     OrderedWordCount job = new OrderedWordCount();
     if (generateSplitInClient) {
-
-          assertEquals(0, job.run(tezConf, new String[]{
-                  "-generateSplitInClient", inputDirStr, outputDirStr, "5"}, null),
-              "OrderedWordCount failed");
+      assertEquals(0, job.run(tezConf, new String[]{"-generateSplitInClient", inputDirStr, outputDirStr, "5"}, null),
+          "OrderedWordCount failed");
     } else {
-
-          assertEquals(0, job.run(tezConf, new String[]{
-              inputDirStr, outputDirStr, "5"}, null), "OrderedWordCount failed");
+      assertEquals(0, job.run(tezConf, new String[]{inputDirStr, outputDirStr, "5"}, null), "OrderedWordCount failed");
     }
     TestTezJobs.verifyOutput(outputDir, remoteFs);
     List<HistoryEvent> historyEventsOfAttempt1 = RecoveryParser
@@ -347,14 +343,12 @@ public class TestRecovery {
             TezConfiguration.TEZ_AM_STAGING_SCRATCH_DATA_AUTO_DELETE, false);
     OrderedWordCount job = new OrderedWordCount();
     if (generateSplitInClient) {
-
-             Assertions.assertEquals(0, job.run(tezConf, new String[]{
-                     "-generateSplitInClient", inputDirStr, outputDirStr, "5"}, null),
-                 "OrderedWordCount failed");
+      Assertions.assertEquals(0,
+          job.run(tezConf, new String[]{"-generateSplitInClient", inputDirStr, outputDirStr, "5"}, null),
+          "OrderedWordCount failed");
     } else {
-
-              Assertions.assertEquals(0, job.run(tezConf, new String[]{
-                  inputDirStr, outputDirStr, "5"}, null), "OrderedWordCount failed");
+      Assertions.assertEquals(0, job.run(tezConf, new String[]{inputDirStr, outputDirStr, "5"}, null),
+          "OrderedWordCount failed");
     }
     TestTezJobs.verifyOutput(outputDir, remoteFs);
   }

@@ -115,7 +115,7 @@ public class TestContainerReuse {
   }
 
   @Test
-  @org.junit.jupiter.api.Timeout(value = 15000, unit = java.util.concurrent.TimeUnit.MILLISECONDS)
+  @Timeout(value = 15000, unit = TimeUnit.MILLISECONDS)
   public void testDelayedReuseContainerBecomesAvailable()
       throws IOException, InterruptedException, ExecutionException {
     LOG.info("Test testDelayedReuseContainerBecomesAvailable");
@@ -253,7 +253,7 @@ public class TestContainerReuse {
   }
 
   @Test
-  @org.junit.jupiter.api.Timeout(value = 15000, unit = java.util.concurrent.TimeUnit.MILLISECONDS)
+  @Timeout(value = 15000, unit = TimeUnit.MILLISECONDS)
   public void testDelayedReuseContainerNotAvailable()
       throws IOException, InterruptedException, ExecutionException {
     LOG.info("Test testDelayedReuseContainerNotAvailable");
@@ -359,7 +359,7 @@ public class TestContainerReuse {
   }
 
   @Test
-  @org.junit.jupiter.api.Timeout(value = 10000, unit = java.util.concurrent.TimeUnit.MILLISECONDS)
+  @Timeout(value = 10000, unit = TimeUnit.MILLISECONDS)
   public void testSimpleReuse() throws IOException, InterruptedException, ExecutionException {
     LOG.info("Test testSimpleReuse");
     Configuration tezConf = new Configuration();
@@ -510,7 +510,7 @@ public class TestContainerReuse {
   }
 
   @Test
-  @org.junit.jupiter.api.Timeout(value = 10000, unit = java.util.concurrent.TimeUnit.MILLISECONDS)
+  @Timeout(value = 10000, unit = TimeUnit.MILLISECONDS)
   public void testReuseWithTaskSpecificLaunchCmdOption() throws IOException, InterruptedException, ExecutionException {
     LOG.info("Test testReuseWithTaskSpecificLaunchCmdOption");
     Configuration tezConf = new Configuration();
@@ -702,7 +702,7 @@ public class TestContainerReuse {
   }
 
   @Test
-  @org.junit.jupiter.api.Timeout(value = 30000, unit = java.util.concurrent.TimeUnit.MILLISECONDS)
+  @Timeout(value = 30000, unit = TimeUnit.MILLISECONDS)
   public void testReuseNonLocalRequest()
       throws IOException, InterruptedException, ExecutionException {
     LOG.info("Test testReuseNonLocalRequest");
@@ -826,7 +826,7 @@ public class TestContainerReuse {
   }
 
   @Test
-  @org.junit.jupiter.api.Timeout(value = 30000, unit = java.util.concurrent.TimeUnit.MILLISECONDS)
+  @Timeout(value = 30000, unit = TimeUnit.MILLISECONDS)
   public void testReuseAcrossVertices()
       throws IOException, InterruptedException, ExecutionException {
     LOG.info("Test testReuseAcrossVertices");
@@ -950,7 +950,7 @@ public class TestContainerReuse {
   }
 
   @Test
-  @org.junit.jupiter.api.Timeout(value = 30000, unit = java.util.concurrent.TimeUnit.MILLISECONDS)
+  @Timeout(value = 30000, unit = TimeUnit.MILLISECONDS)
   public void testReuseLocalResourcesChanged() throws IOException, InterruptedException, ExecutionException {
     LOG.info("Test testReuseLocalResourcesChanged");
     Configuration tezConf = new Configuration();
@@ -1110,7 +1110,7 @@ public class TestContainerReuse {
   }
 
   @Test
-  @org.junit.jupiter.api.Timeout(value = 30000, unit = java.util.concurrent.TimeUnit.MILLISECONDS)
+  @Timeout(value = 30000, unit = TimeUnit.MILLISECONDS)
   public void testReuseConflictLocalResources() throws IOException, InterruptedException, ExecutionException {
     LOG.info("Test testReuseLocalResourcesChanged");
     Configuration tezConf = new Configuration();
@@ -1349,7 +1349,7 @@ public class TestContainerReuse {
   }
 
   @Test
-  @org.junit.jupiter.api.Timeout(value = 10000, unit = java.util.concurrent.TimeUnit.MILLISECONDS)
+  @Timeout(value = 10000, unit = TimeUnit.MILLISECONDS)
   public void testAssignmentOnShutdown()
       throws IOException, InterruptedException, ExecutionException {
     LOG.info("Test testAssignmentOnShutdown");

@@ -984,7 +984,8 @@ public class TestTaskScheduler {
     // when min < max the expire time is random in between min and max
     for (int i=0; i<10; ++i) {
       long currExpireTime = scheduler2.getHeldContainerExpireTime(0);
-      assertTrue((minTime <= currExpireTime && currExpireTime <= maxTime), "min: " + minTime + " curr: " + currExpireTime + " max: " + maxTime);
+      assertTrue((minTime <= currExpireTime && currExpireTime <= maxTime),
+          "min: " + minTime + " curr: " + currExpireTime + " max: " + maxTime);
       assertNotEquals(lastExpireTime, currExpireTime);
       lastExpireTime = currExpireTime;
     }
@@ -1586,8 +1587,7 @@ public class TestTaskScheduler {
     allocatedContainers.add(containerHost3);
     allocatedContainers.add(containerHost1);
 
-    taskScheduler.allocateTask(
-        mockTask1, resource, hostsTask1, defaultRack, priority, null, mockCookie1);
+    taskScheduler.allocateTask(mockTask1, resource, hostsTask1, defaultRack, priority, null, mockCookie1);
     drainableAppCallback.drain();
 
     List<CookieContainerRequest> host1List = new ArrayList<CookieContainerRequest>();
@@ -1599,8 +1599,7 @@ public class TestTaskScheduler {
     nonAllocatedHostList.add(mockCookie2);
     List<CookieContainerRequest> otherRackList = new ArrayList<CookieContainerRequest>();
     otherRackList.add(mockCookie2);
-    taskScheduler.allocateTask(
-        mockTask2, resource, hostsTask2, otherRack, priority, null, mockCookie2);
+    taskScheduler.allocateTask(mockTask2, resource, hostsTask2, otherRack, priority, null, mockCookie2);
     drainableAppCallback.drain();
 
     List<CookieContainerRequest> anyList = new LinkedList<CookieContainerRequest>();
@@ -1612,8 +1611,7 @@ public class TestTaskScheduler {
 
     ArgumentCaptor<Object> taskCaptor = ArgumentCaptor.forClass(Object.class);
     ArgumentCaptor<Container> containerCaptor = ArgumentCaptor.forClass(Container.class);
-    verify(appClient, times(2))
-        .taskAllocated(taskCaptor.capture(), any(), containerCaptor.capture());
+    verify(appClient, times(2)).taskAllocated(taskCaptor.capture(), any(), containerCaptor.capture());
 
     // Expected containerHost1 allocated to task1 due to locality,
     // containerHost3 allocated to task2.
@@ -1621,17 +1619,11 @@ public class TestTaskScheduler {
     List<Container> assignedContainers = containerCaptor.getAllValues();
     int container1Pos = assignedContainers.indexOf(containerHost1);
     assertTrue(container1Pos != -1, "Container: " + containerHost1 + " was not assigned");
-    assertEquals(
-        mockTask1,
-        taskCaptor.getAllValues().get(container1Pos),
-        "Task 1 was not allocated to containerHost1");
+    assertEquals(mockTask1, taskCaptor.getAllValues().get(container1Pos), "Task 1 was not allocated to containerHost1");
 
     int container2Pos = assignedContainers.indexOf(containerHost3);
     assertTrue(container2Pos != -1, "Container: " + containerHost3 + " was not assigned");
-    assertEquals(
-        mockTask2,
-        taskCaptor.getAllValues().get(container2Pos),
-        "Task 2 was not allocated to containerHost3");
+    assertEquals(mockTask2, taskCaptor.getAllValues().get(container2Pos), "Task 2 was not allocated to containerHost3");
 
     AppFinalStatus finalStatus = new AppFinalStatus(FinalApplicationStatus.SUCCEEDED, "", "");
     when(appClient.getFinalAppStatus()).thenReturn(finalStatus);

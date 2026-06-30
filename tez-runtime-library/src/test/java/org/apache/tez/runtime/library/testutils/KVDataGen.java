@@ -25,7 +25,6 @@ import java.util.Random;
 import org.apache.hadoop.io.IntWritable;
 import org.apache.hadoop.io.Text;
 
-
 public final class KVDataGen {
 
   static Random rnd = new Random();

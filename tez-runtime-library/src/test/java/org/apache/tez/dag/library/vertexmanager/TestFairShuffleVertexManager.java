@@ -85,8 +85,8 @@ public class TestFairShuffleVertexManager
     verify(mockContext, times(1)).vertexReconfigurationPlanned(); // Tez not notified of reconfig
 
     assertFalse(manager.config.isAutoParallelismEnabled());
-    assertEquals(manager.config.getDesiredTaskInputDataSize(),
-        FairShuffleVertexManager.TEZ_FAIR_SHUFFLE_VERTEX_MANAGER_DESIRED_TASK_INPUT_SIZE_DEFAULT);
+    assertEquals(FairShuffleVertexManager.TEZ_FAIR_SHUFFLE_VERTEX_MANAGER_DESIRED_TASK_INPUT_SIZE_DEFAULT,
+        manager.config.getDesiredTaskInputDataSize());
     assertEquals(FairShuffleVertexManager.TEZ_FAIR_SHUFFLE_VERTEX_MANAGER_MIN_SRC_FRACTION_DEFAULT,
         manager.config.getMinFraction());
     assertEquals(FairShuffleVertexManager.TEZ_FAIR_SHUFFLE_VERTEX_MANAGER_MAX_SRC_FRACTION_DEFAULT,

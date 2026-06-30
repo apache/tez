@@ -397,7 +397,7 @@ public class TestMergeManager {
   }
 
   @Test
-  @org.junit.jupiter.api.Timeout(value = 60000, unit = java.util.concurrent.TimeUnit.MILLISECONDS)
+  @Timeout(value = 60000, unit = TimeUnit.MILLISECONDS)
   public void testIntermediateMemoryMerge() throws Throwable {
     Configuration conf = new TezConfiguration(defaultConf);
     conf.setBoolean(TezRuntimeConfiguration.TEZ_RUNTIME_COMPRESS, false);
