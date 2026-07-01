@@ -262,7 +262,8 @@ public class TestMergeManager {
     assertEquals(data1.length + data2.length, mergeManager.getUsedMemory());
   }
 
-  @Test(timeout = 30000)
+  @Test
+  @Timeout(value = 30000, unit = TimeUnit.MILLISECONDS)
   public void testWaitForShuffleToMergeMemoryNoDeadlock() throws Throwable {
     Configuration conf = new TezConfiguration(defaultConf);
     conf.setBoolean(TezRuntimeConfiguration.TEZ_RUNTIME_COMPRESS, false);
@@ -311,8 +312,8 @@ public class TestMergeManager {
     assertEquals(MapOutput.Type.MEMORY, mo5.getType());
 
     // Verify deadlock precondition: usedMemory > memoryLimit, commitMemory < mergeThreshold
-    assertTrue("usedMemory should exceed memoryLimit", mergeManager.getUsedMemory() > 2000000L);
-    assertTrue("commitMemory should be below mergeThreshold", mergeManager.getCommitMemory() < 1800000L);
+    assertTrue(mergeManager.getUsedMemory() > 2000000L, "usedMemory should exceed memoryLimit");
+    assertTrue(mergeManager.getCommitMemory() < 1800000L, "commitMemory should be below mergeThreshold");
 
     // waitForShuffleToMergeMemory() should complete without deadlock:
     // the fix forces a merge when memory is exhausted but commitMemory < mergeThreshold
@@ -325,7 +326,7 @@ public class TestMergeManager {
     });
     waitThread.start();
     waitThread.join(15000);
-    assertFalse("waitForShuffleToMergeMemory deadlocked", waitThread.isAlive());
+    assertFalse(waitThread.isAlive(), "waitForShuffleToMergeMemory deadlocked");
 
     if (waitThread.isAlive()) {
       waitThread.interrupt();
