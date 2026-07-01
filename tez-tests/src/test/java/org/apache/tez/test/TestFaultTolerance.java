@@ -18,9 +18,14 @@
  */
 package org.apache.tez.test;
 
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertNotNull;
+import static org.junit.jupiter.api.Assertions.assertTrue;
+
 import java.io.IOException;
 import java.util.Arrays;
 import java.util.Random;
+import java.util.concurrent.TimeUnit;
 
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.fs.FileSystem;
@@ -50,12 +55,12 @@ import org.apache.tez.test.dag.*;
 
 import com.google.common.base.Joiner;
 
-import org.junit.AfterClass;
-import org.junit.Assert;
-import org.junit.Before;
-import org.junit.BeforeClass;
-import org.junit.Ignore;
-import org.junit.Test;
+import org.junit.jupiter.api.AfterAll;
+import org.junit.jupiter.api.BeforeAll;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Disabled;
+import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.Timeout;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -71,7 +76,7 @@ public class TestFaultTolerance {
   private static TezClient tezSession = null;
   private static TezConfiguration tezConf;
 
-  @BeforeClass
+  @BeforeAll
   public static void setup() throws Exception {
     LOG.info("Starting mini clusters");
     FileSystem remoteFs = null;
@@ -109,7 +114,7 @@ public class TestFaultTolerance {
     }
   }
 
-  @AfterClass
+  @AfterAll
   public static void tearDown() throws Exception {
     LOG.info("Stopping mini clusters");
     if (tezSession != null) {
@@ -125,7 +130,7 @@ public class TestFaultTolerance {
     }
   }
 
-  @Before
+  @BeforeEach
   public void checkSessionStatus() {
     // TODO restart session if it crashed due to some test error
   }
@@ -152,20 +157,21 @@ public class TestFaultTolerance {
       dagStatus = dagClient.getDAGStatus(null);
     }
 
-    Assert.assertEquals(finalState, dagStatus.getState());
+    assertEquals(finalState, dagStatus.getState());
 
     if (checkFailedAttempts > 0) {
-      Assert.assertEquals(checkFailedAttempts,
+      assertEquals(checkFailedAttempts,
           dagStatus.getDAGProgress().getFailedTaskAttemptCount());
     }
 
     if (diagnostics != null) {
-      Assert.assertNotNull(dagStatus.getDiagnostics());
-      Assert.assertTrue(Joiner.on(":").join(dagStatus.getDiagnostics()).contains(diagnostics));
+      assertNotNull(dagStatus.getDiagnostics());
+      assertTrue(Joiner.on(":").join(dagStatus.getDiagnostics()).contains(diagnostics));
     }
   }
 
-  @Test (timeout=600000)
+  @Test
+  @Timeout(value = 600000, unit = TimeUnit.MILLISECONDS)
   public void testSessionStopped() throws Exception {
     Configuration testConf = new Configuration(false);
 
@@ -198,13 +204,15 @@ public class TestFaultTolerance {
     tezSession.start();
   }
 
-  @Test (timeout=60000)
+  @Test
+  @Timeout(value = 60000, unit = TimeUnit.MILLISECONDS)
   public void testBasicSuccessScatterGather() throws Exception {
     DAG dag = SimpleTestDAG.createDAG("testBasicSuccessScatterGather", null);
     runDAGAndVerify(dag, DAGStatus.State.SUCCEEDED);
   }
 
-  @Test (timeout=60000)
+  @Test
+  @Timeout(value = 60000, unit = TimeUnit.MILLISECONDS)
   public void testBasicSuccessBroadcast() throws Exception {
     DAG dag = DAG.create("testBasicSuccessBroadcast");
     Vertex v1 =
@@ -220,7 +228,8 @@ public class TestFaultTolerance {
     runDAGAndVerify(dag, DAGStatus.State.SUCCEEDED);
   }
 
-  @Test (timeout=60000)
+  @Test
+  @Timeout(value = 60000, unit = TimeUnit.MILLISECONDS)
   public void testBasicTaskFailure() throws Exception {
     Configuration testConf = new Configuration(false);
     testConf.setBoolean(TestProcessor.getVertexConfName(
@@ -245,7 +254,8 @@ public class TestFaultTolerance {
     runDAGAndVerify(dag, DAGStatus.State.SUCCEEDED, 1);
   }
 
-  @Test (timeout=60000)
+  @Test
+  @Timeout(value = 60000, unit = TimeUnit.MILLISECONDS)
   public void testTaskMultipleFailures() throws Exception {
     Configuration testConf = new Configuration(false);
     testConf.setBoolean(TestProcessor.getVertexConfName(
@@ -266,7 +276,8 @@ public class TestFaultTolerance {
     runDAGAndVerify(dag, DAGStatus.State.SUCCEEDED, 4);
   }
 
-  @Test (timeout=60000)
+  @Test
+  @Timeout(value = 60000, unit = TimeUnit.MILLISECONDS)
   public void testTaskMultipleFailuresDAGFail() throws Exception {
     Configuration testConf = new Configuration(false);
     testConf.setBoolean(TestProcessor.getVertexConfName(
@@ -280,7 +291,8 @@ public class TestFaultTolerance {
     runDAGAndVerify(dag, DAGStatus.State.FAILED);
   }
 
-  @Test (timeout=60000)
+  @Test
+  @Timeout(value = 60000, unit = TimeUnit.MILLISECONDS)
   public void testBasicInputFailureWithExit() throws Exception {
     Configuration testConf = new Configuration(false);
     testConf.setBoolean(TestInput.getVertexConfName(
@@ -308,7 +320,8 @@ public class TestFaultTolerance {
     runDAGAndVerify(dag, DAGStatus.State.SUCCEEDED);
   }
 
-  @Test (timeout=60000)
+  @Test
+  @Timeout(value = 60000, unit = TimeUnit.MILLISECONDS)
   public void testBasicInputFailureWithoutExit() throws Exception {
     Configuration testConf = new Configuration(false);
     testConf.setBoolean(TestInput.getVertexConfName(
@@ -330,7 +343,8 @@ public class TestFaultTolerance {
     runDAGAndVerify(dag, DAGStatus.State.SUCCEEDED);
   }
 
-  @Test (timeout=60000)
+  @Test
+  @Timeout(value = 60000, unit = TimeUnit.MILLISECONDS)
   public void testBasicInputFailureWithoutExitDeadline() throws Exception {
     Configuration testConf = new Configuration(false);
     testConf.setInt(SimpleTestDAG.TEZ_SIMPLE_DAG_NUM_TASKS, 3); // 1 error < 0.4 fail fraction
@@ -348,7 +362,8 @@ public class TestFaultTolerance {
   }
 
 
-  @Test (timeout=60000)
+  @Test
+  @Timeout(value = 60000, unit = TimeUnit.MILLISECONDS)
   public void testMultipleInputFailureWithoutExit() throws Exception {
     Configuration testConf = new Configuration(false);
     testConf.setBoolean(TestInput.getVertexConfName(
@@ -375,7 +390,8 @@ public class TestFaultTolerance {
     runDAGAndVerify(dag, DAGStatus.State.SUCCEEDED);
   }
 
-  @Test (timeout=60000)
+  @Test
+  @Timeout(value = 60000, unit = TimeUnit.MILLISECONDS)
   public void testMultiVersionInputFailureWithoutExit() throws Exception {
     Configuration testConf = new Configuration(false);
     testConf.setBoolean(TestInput.getVertexConfName(
@@ -404,7 +420,8 @@ public class TestFaultTolerance {
     runDAGAndVerify(dag, DAGStatus.State.SUCCEEDED);
   }
 
-  @Test (timeout=60000)
+  @Test
+  @Timeout(value = 60000, unit = TimeUnit.MILLISECONDS)
   public void testTwoLevelsFailingDAGSuccess() throws Exception {
     Configuration testConf = new Configuration();
     DAG dag = new FailingDagBuilder(FailingDagBuilder.Levels.TWO)
@@ -412,7 +429,8 @@ public class TestFaultTolerance {
     runDAGAndVerify(dag, DAGStatus.State.SUCCEEDED);
   }
 
-  @Test (timeout=60000)
+  @Test
+  @Timeout(value = 60000, unit = TimeUnit.MILLISECONDS)
   public void testThreeLevelsFailingDAGSuccess() throws Exception {
     Configuration testConf = new Configuration();
     DAG dag = new FailingDagBuilder(FailingDagBuilder.Levels.THREE)
@@ -420,7 +438,8 @@ public class TestFaultTolerance {
     runDAGAndVerify(dag, DAGStatus.State.SUCCEEDED);
   }
 
-  @Test (timeout=60000)
+  @Test
+  @Timeout(value = 60000, unit = TimeUnit.MILLISECONDS)
   public void testSixLevelsFailingDAGSuccess() throws Exception {
     Configuration testConf = new Configuration();
     DAG dag = new FailingDagBuilder(FailingDagBuilder.Levels.SIX)
@@ -428,7 +447,8 @@ public class TestFaultTolerance {
     runDAGAndVerify(dag, DAGStatus.State.SUCCEEDED);
   }
 
-  @Test (timeout=60000)
+  @Test
+  @Timeout(value = 60000, unit = TimeUnit.MILLISECONDS)
   public void testThreeLevelsFailingDAG2VerticesHaveFailedAttemptsDAGSucceeds() throws Exception {
     Configuration testConf = new Configuration();
     //set maximum number of task attempts to 4
@@ -482,7 +502,8 @@ public class TestFaultTolerance {
    * The input version is now 2. The attempt will now succeed.
    * @throws Exception
    */
-  @Test (timeout=60000)
+  @Test
+  @Timeout(value = 60000, unit = TimeUnit.MILLISECONDS)
   public void testInputFailureCausesRerunAttemptWithinMaxAttemptSuccess() throws Exception {
     Configuration testConf = new Configuration();
     //at v1, task 1 has attempt 0 failing. Attempt 1 succeeds. 1 attempt fails so far.
@@ -578,7 +599,8 @@ public class TestFaultTolerance {
    * AM vertex succeeded order is v1, v2, v1, v2, v3.
    * @throws Exception
    */
-  @Test (timeout=60000)
+  @Test
+  @Timeout(value = 60000, unit = TimeUnit.MILLISECONDS)
   public void testCascadingInputFailureWithoutExitSuccess() throws Exception {
     Configuration testConf = new Configuration(false);
     setCascadingInputFailureConfig(testConf, false);
@@ -608,7 +630,8 @@ public class TestFaultTolerance {
    * AM vertex succeeded order is v1, v2, v3, v1, v2, v3.
    * @throws Exception
    */
-  @Test (timeout=60000)
+  @Test
+  @Timeout(value = 60000, unit = TimeUnit.MILLISECONDS)
   public void testCascadingInputFailureWithExitSuccess() throws Exception {
     Configuration testConf = new Configuration(false);
     setCascadingInputFailureConfig(testConf, true);
@@ -635,7 +658,8 @@ public class TestFaultTolerance {
    *
    * @throws Exception
    */
-  @Test (timeout=60000)
+  @Test
+  @Timeout(value = 60000, unit = TimeUnit.MILLISECONDS)
   public void testInputFailureCausesRerunOfTwoVerticesWithoutExit() throws Exception {
     Configuration testConf = new Configuration(false);
     testConf.setBoolean(TestInput.getVertexConfName(
@@ -673,7 +697,8 @@ public class TestFaultTolerance {
    *
    * @throws Exception
    */
-  @Test (timeout=60000)
+  @Test
+  @Timeout(value = 60000, unit = TimeUnit.MILLISECONDS)
   public void testAttemptOfDownstreamVertexConnectedWithTwoUpstreamVerticesFailure() throws Exception {
     Configuration testConf = new Configuration(false);
 
@@ -708,7 +733,8 @@ public class TestFaultTolerance {
    * Also covers multiple consumer vertices report failure against same producer task.
    * @throws Exception
    */
-  @Test (timeout=60000)
+  @Test
+  @Timeout(value = 60000, unit = TimeUnit.MILLISECONDS)
   public void testInputFailureRerunCanSendOutputToTwoDownstreamVertices() throws Exception {
     Configuration testConf = new Configuration(false);
     testConf.setBoolean(TestInput.getVertexConfName(
@@ -765,7 +791,8 @@ public class TestFaultTolerance {
    * DAG succeeds with v1 attempt2.
    * @throws Exception
    */
-  @Test (timeout=60000)
+  @Test
+  @Timeout(value = 60000, unit = TimeUnit.MILLISECONDS)
   public void testTwoTasksHaveInputFailuresSuccess() throws Exception {
     Configuration testConf = new Configuration(false);
     testConf.setBoolean(TestInput.getVertexConfName(
@@ -796,7 +823,8 @@ public class TestFaultTolerance {
     runDAGAndVerify(dag, DAGStatus.State.SUCCEEDED);
   }
 
-  @Test (timeout=240000)
+  @Test
+  @Timeout(value = 240000, unit = TimeUnit.MILLISECONDS)
   public void testRandomFailingTasks() throws Exception {
     Configuration testConf = new Configuration(false);
     testConf.setBoolean(TestProcessor.TEZ_FAILING_PROCESSOR_DO_RANDOM_FAIL, true);
@@ -806,8 +834,9 @@ public class TestFaultTolerance {
     runDAGAndVerify(dag, DAGStatus.State.SUCCEEDED);
   }
 
-  @Ignore
-  @Test (timeout=240000)
+  @Disabled
+  @Test
+  @Timeout(value = 240000, unit = TimeUnit.MILLISECONDS)
   public void testRandomFailingInputs() throws Exception {
     Configuration testConf = new Configuration(false);
     testConf.setBoolean(TestInput.TEZ_FAILING_INPUT_DO_RANDOM_FAIL, true);
@@ -817,7 +846,8 @@ public class TestFaultTolerance {
     runDAGAndVerify(dag, DAGStatus.State.SUCCEEDED);
   }
 
-  @Test (timeout=240000)
+  @Test
+  @Timeout(value = 240000, unit = TimeUnit.MILLISECONDS)
   public void testNoProgress() throws Exception {
     Configuration testConf = new Configuration(false);
     testConf.setInt(SimpleTestDAG.TEZ_SIMPLE_DAG_NUM_TASKS, 1);

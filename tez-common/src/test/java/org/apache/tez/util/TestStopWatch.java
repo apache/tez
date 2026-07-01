@@ -18,8 +18,12 @@
  */
 package org.apache.tez.util;
 
-import org.junit.Assert;
-import org.junit.Test;
+import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertInstanceOf;
+import static org.junit.jupiter.api.Assertions.assertTrue;
+import static org.junit.jupiter.api.Assertions.fail;
+
+import org.junit.jupiter.api.Test;
 
 public class TestStopWatch {
 
@@ -27,13 +31,13 @@ public class TestStopWatch {
   public void testStartAndStop() throws Exception {
     try {
       StopWatch sw = new StopWatch();
-      Assert.assertFalse(sw.isRunning());
+      assertFalse(sw.isRunning());
       sw.start();
-      Assert.assertTrue(sw.isRunning());
+      assertTrue(sw.isRunning());
       sw.stop();
-      Assert.assertFalse(sw.isRunning());
+      assertFalse(sw.isRunning());
     } catch (Exception e) {
-      Assert.fail("StopWatch should not fail with normal usage");
+      fail("StopWatch should not fail with normal usage");
     }
   }
 
@@ -43,16 +47,14 @@ public class TestStopWatch {
     try {
       sw.stop();
     } catch (Exception e) {
-      Assert.assertTrue("IllegalStateException is expected",
-          e instanceof IllegalStateException);
+      assertInstanceOf(IllegalStateException.class, e, "IllegalStateException is expected");
     }
     sw.reset();
     sw.start();
     try {
       sw.start();
     } catch (Exception e) {
-      Assert.assertTrue("IllegalStateException is expected",
-          e instanceof IllegalStateException);
+      assertInstanceOf(IllegalStateException.class, e, "IllegalStateException is expected");
     }
   }
 

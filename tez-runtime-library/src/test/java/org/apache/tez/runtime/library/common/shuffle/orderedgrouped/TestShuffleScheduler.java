@@ -18,9 +18,10 @@
  */
 package org.apache.tez.runtime.library.common.shuffle.orderedgrouped;
 
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertFalse;
-import static org.junit.Assert.assertTrue;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertSame;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.Mockito.any;
 import static org.mockito.Mockito.anyInt;
 import static org.mockito.Mockito.anyString;
@@ -60,11 +61,12 @@ import org.apache.tez.runtime.library.api.TezRuntimeConfiguration;
 import org.apache.tez.runtime.library.common.CompositeInputAttemptIdentifier;
 import org.apache.tez.runtime.library.common.InputAttemptIdentifier;
 import org.apache.tez.runtime.library.common.shuffle.InputAttemptFetchFailure;
+import org.apache.tez.runtime.library.common.shuffle.orderedgrouped.MapHost.State;
 
-import org.junit.After;
-import org.junit.Assert;
-import org.junit.Before;
-import org.junit.Test;
+import org.junit.jupiter.api.AfterEach;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.Timeout;
 import org.mockito.invocation.InvocationOnMock;
 import org.mockito.stubbing.Answer;
 
@@ -72,17 +74,18 @@ public class TestShuffleScheduler {
 
   private TezExecutors sharedExecutor;
 
-  @Before
+  @BeforeEach
   public void setup() {
     sharedExecutor = new TezSharedExecutor(new Configuration());
   }
 
-  @After
+  @AfterEach
   public void cleanup() {
     sharedExecutor.shutdownNow();
   }
 
-  @Test (timeout = 10000)
+  @Test
+  @Timeout(value = 10000, unit = TimeUnit.MILLISECONDS)
   public void testNumParallelScheduledFetchers() throws IOException, InterruptedException {
     InputContext inputContext = createTezInputContext();
     Configuration conf = new TezConfiguration();
@@ -129,7 +132,8 @@ public class TestShuffleScheduler {
     }
   }
 
-  @Test(timeout=5000)
+  @Test
+  @Timeout(value = 5000, unit = TimeUnit.MILLISECONDS)
   public void testUseSharedExecutor() throws Exception {
     InputContext inputContext = createTezInputContext();
     Configuration conf = new TezConfiguration();
@@ -150,7 +154,8 @@ public class TestShuffleScheduler {
     scheduler.close();
   }
 
-  @Test(timeout = 5000)
+  @Test
+  @Timeout(value = 5000, unit = TimeUnit.MILLISECONDS)
   public void testSimpleFlow() throws Exception {
     InputContext inputContext = createTezInputContext();
     Configuration conf = new TezConfiguration();
@@ -206,7 +211,8 @@ public class TestShuffleScheduler {
     }
   }
 
-  @Test(timeout = 60000)
+  @Test
+  @Timeout(value = 60000, unit = TimeUnit.MILLISECONDS)
   /**
    * Scenario
    *    - reducer has not progressed enough
@@ -279,7 +285,8 @@ public class TestShuffleScheduler {
     }
   }
 
-  @Test(timeout = 60000)
+  @Test
+  @Timeout(value = 60000, unit = TimeUnit.MILLISECONDS)
   /**
    * Scenario
    *    - reducer has progressed enough
@@ -398,7 +405,8 @@ public class TestShuffleScheduler {
 
 
 
-  @Test(timeout = 60000)
+  @Test
+  @Timeout(value = 60000, unit = TimeUnit.MILLISECONDS)
   /**
    * Scenario
    *    - reducer has progressed enough
@@ -460,7 +468,8 @@ public class TestShuffleScheduler {
     verify(shuffle, times(0)).reportException(any());
   }
 
-  @Test(timeout = 60000)
+  @Test
+  @Timeout(value = 60000, unit = TimeUnit.MILLISECONDS)
   /**
    * Scenario
    *    - reducer has progressed enough
@@ -553,7 +562,8 @@ public class TestShuffleScheduler {
 
   }
 
-  @Test(timeout = 60000)
+  @Test
+  @Timeout(value = 60000, unit = TimeUnit.MILLISECONDS)
   /**
    * Scenario
    *    - Shuffle has progressed enough
@@ -616,7 +626,8 @@ public class TestShuffleScheduler {
   }
 
 
-  @Test(timeout = 60000)
+  @Test
+  @Timeout(value = 60000, unit = TimeUnit.MILLISECONDS)
   /**
    * Scenario
    *    - Shuffle has NOT progressed enough
@@ -709,7 +720,8 @@ public class TestShuffleScheduler {
 
   }
 
-  @Test(timeout = 60000)
+  @Test
+  @Timeout(value = 60000, unit = TimeUnit.MILLISECONDS)
   /**
    * Scenario
    *    - reducer has not progressed enough
@@ -781,7 +793,8 @@ public class TestShuffleScheduler {
         TezConfiguration());
   }
 
-  @Test(timeout = 60000)
+  @Test
+  @Timeout(value = 60000, unit = TimeUnit.MILLISECONDS)
   public void testPenalty() throws IOException, InterruptedException {
     long startTime = System.currentTimeMillis();
     Shuffle shuffle = mock(Shuffle.class);
@@ -791,8 +804,8 @@ public class TestShuffleScheduler {
         new CompositeInputAttemptIdentifier(0, 0, "attempt_", 1);
     scheduler.addKnownMapOutput("host0", 10000, 0, inputAttemptIdentifier);
 
-    assertTrue(scheduler.pendingHosts.size() == 1);
-    assertTrue(scheduler.pendingHosts.iterator().next().getState() == MapHost.State.PENDING);
+    assertEquals(1, scheduler.pendingHosts.size());
+    assertSame(scheduler.pendingHosts.iterator().next().getState(), State.PENDING);
     MapHost mapHost = scheduler.pendingHosts.iterator().next();
 
     //Fails to pull from host0. host0 should be added to penalties
@@ -801,16 +814,17 @@ public class TestShuffleScheduler {
 
     //Should not get host, as it is added to penalty loop
     MapHost host = scheduler.getHost();
-    assertFalse("Host identifier mismatch", (host.getHost() + ":" + host.getPort() + ":" + host.getPartitionId()).equalsIgnoreCase("host0:10000"));
+    assertFalse((host.getHost() + ":" + host.getPort() + ":" + host.getPartitionId()).equalsIgnoreCase("host0:10000"), "Host identifier mismatch");
 
 
     //Refree thread would release it after INITIAL_PENALTY timeout
     Thread.sleep(ShuffleScheduler.INITIAL_PENALTY + 1000);
     host = scheduler.getHost();
-    assertFalse("Host identifier mismatch", (host.getHost() + ":" + host.getPort() + ":" + host.getPartitionId()).equalsIgnoreCase("host0:10000"));
+    assertFalse((host.getHost() + ":" + host.getPort() + ":" + host.getPartitionId()).equalsIgnoreCase("host0:10000"), "Host identifier mismatch");
   }
 
-  @Test (timeout = 20000)
+  @Test
+  @Timeout(value = 20000, unit = TimeUnit.MILLISECONDS)
   public void testProgressDuringGetHostWait() throws IOException, InterruptedException {
     long startTime = System.currentTimeMillis();
     Configuration conf = new TezConfiguration();
@@ -832,7 +846,8 @@ public class TestShuffleScheduler {
     verify(scheduler.inputContext, atLeast(3)).notifyProgress();
   }
 
-  @Test(timeout = 5000)
+  @Test
+  @Timeout(value = 5000, unit = TimeUnit.MILLISECONDS)
   public void testShutdown() throws Exception {
     InputContext inputContext = createTezInputContext();
     Configuration conf = new TezConfiguration();
@@ -888,7 +903,8 @@ public class TestShuffleScheduler {
     }
   }
 
-  @Test(timeout = 30000)
+  @Test
+  @Timeout(value = 30000, unit = TimeUnit.MILLISECONDS)
   public void testShutdownWithInterrupt() throws Exception {
     InputContext inputContext = createTezInputContext();
     Configuration conf = new TezConfiguration();
@@ -945,13 +961,13 @@ public class TestShuffleScheduler {
       thread.start();
       thread.join();
     } finally {
-      assertTrue("Fetcher executor should be shutdown, but still running",
-          scheduler.hasFetcherExecutorStopped());
+      assertTrue(scheduler.hasFetcherExecutorStopped(), "Fetcher executor should be shutdown, but still running");
       executor.shutdownNow();
     }
   }
 
-  @Test (timeout = 120000)
+  @Test
+  @Timeout(value = 120000, unit = TimeUnit.MILLISECONDS)
   public void testPenalties() throws Exception {
     InputContext inputContext = createTezInputContext();
     Configuration conf = new TezConfiguration();
@@ -997,7 +1013,7 @@ public class TestShuffleScheduler {
     ShuffleScheduler.Penalty[] penaltyArray = new ShuffleScheduler.Penalty[scheduler.getPenalties().size()];
     scheduler.getPenalties().toArray(penaltyArray);
     for (int i = 0; i < penaltyArray.length; i++) {
-      Assert.assertTrue(penaltyArray[i].getDelay(TimeUnit.MILLISECONDS) <= 20000);
+      assertTrue(penaltyArray[i].getDelay(TimeUnit.MILLISECONDS) <= 20000);
     }
   }
 

@@ -18,14 +18,16 @@
  */
 package org.apache.tez.mapreduce.output;
 
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertNotNull;
-import static org.junit.Assert.assertNull;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertNotNull;
+import static org.junit.jupiter.api.Assertions.assertNull;
+import static org.junit.jupiter.api.Assertions.fail;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 
 import java.io.File;
 import java.io.IOException;
+import java.util.concurrent.TimeUnit;
 
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.io.Text;
@@ -42,70 +44,79 @@ import org.apache.tez.mapreduce.hadoop.MRConfig;
 import org.apache.tez.runtime.api.OutputContext;
 import org.apache.tez.runtime.api.OutputStatisticsReporter;
 
-import org.junit.Assert;
-import org.junit.Test;
+import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.Timeout;
 
 
 public class TestMultiMROutput {
   private static final File TEST_DIR = new File(System.getProperty("test.build.data"),
       TestMultiMROutput.class.getName()).getAbsoluteFile();
 
-  @Test(timeout = 5000)
+  @Test
+  @Timeout(value = 5000, unit = TimeUnit.MILLISECONDS)
   public void testNewAPI_TextOutputFormat() throws Exception {
     validate(true, TextOutputFormat.class, true, FileOutputCommitter.class,
         false);
   }
 
-  @Test(timeout = 5000)
+  @Test
+  @Timeout(value = 5000, unit = TimeUnit.MILLISECONDS)
   public void testOldAPI_TextOutputFormat() throws Exception {
     validate(false, org.apache.hadoop.mapred.TextOutputFormat.class, false,
         org.apache.hadoop.mapred.FileOutputCommitter.class, false);
   }
 
-  @Test(timeout = 5000)
+  @Test
+  @Timeout(value = 5000, unit = TimeUnit.MILLISECONDS)
   public void testNewAPI_SequenceFileOutputFormat() throws Exception {
     validate(true, SequenceFileOutputFormat.class, false,
         FileOutputCommitter.class, false);
   }
 
-  @Test(timeout = 5000)
+  @Test
+  @Timeout(value = 5000, unit = TimeUnit.MILLISECONDS)
   public void testOldAPI_SequenceFileOutputFormat() throws Exception {
     validate(false, org.apache.hadoop.mapred.SequenceFileOutputFormat.class,
         false, org.apache.hadoop.mapred.FileOutputCommitter.class, false);
   }
 
-  @Test(timeout = 5000)
+  @Test
+  @Timeout(value = 5000, unit = TimeUnit.MILLISECONDS)
   public void testNewAPI_LazySequenceFileOutputFormat() throws Exception {
     validate(true, SequenceFileOutputFormat.class, false,
         FileOutputCommitter.class, true);
   }
 
-  @Test(timeout = 5000)
+  @Test
+  @Timeout(value = 5000, unit = TimeUnit.MILLISECONDS)
   public void testOldAPI_LazySequenceFileOutputFormat() throws Exception {
     validate(false, org.apache.hadoop.mapred.SequenceFileOutputFormat.class,
         false, org.apache.hadoop.mapred.FileOutputCommitter.class, true);
   }
 
-  @Test(timeout = 5000)
+  @Test
+  @Timeout(value = 5000, unit = TimeUnit.MILLISECONDS)
   public void testNewAPI_LazyTextOutputFormat() throws Exception {
     validate(true, TextOutputFormat.class, false,
         FileOutputCommitter.class, true);
   }
 
-  @Test(timeout = 5000)
+  @Test
+  @Timeout(value = 5000, unit = TimeUnit.MILLISECONDS)
   public void testOldAPI_LazyTextOutputFormat() throws Exception {
     validate(false, org.apache.hadoop.mapred.TextOutputFormat.class, false,
         org.apache.hadoop.mapred.FileOutputCommitter.class, true);
   }
 
-  @Test(timeout = 5000)
+  @Test
+  @Timeout(value = 5000, unit = TimeUnit.MILLISECONDS)
   public void testInvalidBasePath() throws Exception {
     MultiMROutput outputs = createMROutputs(SequenceFileOutputFormat.class,
         false, true);
     try {
       outputs.getWriter().write(new Text(Integer.toString(0)),
           new Text("foo"), "/tmp");
-      Assert.assertTrue(false); // should not come here
+      fail(); // should not come here
     } catch (UnsupportedOperationException uoe) {
     }
   }

@@ -40,6 +40,7 @@ import java.util.Collections;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.concurrent.ExecutorService;
+import java.util.concurrent.TimeUnit;
 
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.fs.Path;
@@ -71,9 +72,10 @@ import org.apache.tez.runtime.library.shuffle.impl.ShuffleUserPayloads.DataMovem
 
 import com.google.protobuf.ByteString;
 
-import org.junit.After;
-import org.junit.Before;
-import org.junit.Test;
+import org.junit.jupiter.api.AfterEach;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.Timeout;
 import org.mockito.MockedStatic;
 import org.mockito.invocation.InvocationOnMock;
 import org.mockito.stubbing.Answer;
@@ -87,17 +89,18 @@ public class TestShuffleInputEventHandlerImpl {
 
   private TezExecutors sharedExecutor;
 
-  @Before
+  @BeforeEach
   public void setup() {
     sharedExecutor = new TezSharedExecutor(conf);
   }
 
-  @After
+  @AfterEach
   public void cleanup() {
     sharedExecutor.shutdownNow();
   }
 
-  @Test(timeout = 5000)
+  @Test
+  @Timeout(value = 5000, unit = TimeUnit.MILLISECONDS)
   public void testSimple() throws IOException {
     InputContext inputContext = mock(InputContext.class);
     ShuffleManager shuffleManager = mock(ShuffleManager.class);
@@ -119,7 +122,8 @@ public class TestShuffleInputEventHandlerImpl {
     verify(shuffleManager).addKnownInput(eq(HOST), eq(PORT), eq(expectedIdentifier), eq(0));
   }
 
-  @Test(timeout = 5000)
+  @Test
+  @Timeout(value = 5000, unit = TimeUnit.MILLISECONDS)
   public void testCurrentPartitionEmpty() throws IOException {
     InputContext inputContext = mock(InputContext.class);
     ShuffleManager shuffleManager = mock(ShuffleManager.class);
@@ -140,7 +144,8 @@ public class TestShuffleInputEventHandlerImpl {
     verify(shuffleManager).addCompletedInputWithNoData(eq(expectedIdentifier));
   }
 
-  @Test(timeout = 5000)
+  @Test
+  @Timeout(value = 5000, unit = TimeUnit.MILLISECONDS)
   public void testOtherPartitionEmpty() throws IOException {
     InputContext inputContext = mock(InputContext.class);
     ShuffleManager shuffleManager = mock(ShuffleManager.class);
@@ -160,7 +165,8 @@ public class TestShuffleInputEventHandlerImpl {
     verify(shuffleManager).addKnownInput(eq(HOST), eq(PORT), eq(expectedIdentifier), eq(0));
   }
 
-  @Test(timeout = 5000)
+  @Test
+  @Timeout(value = 5000, unit = TimeUnit.MILLISECONDS)
   public void testMultipleEvents1() throws IOException {
     InputContext inputContext = mock(InputContext.class);
     ShuffleManager shuffleManager = mock(ShuffleManager.class);
@@ -243,7 +249,8 @@ public class TestShuffleInputEventHandlerImpl {
    *
    * @throws IOException
    */
-  @Test(timeout = 5000)
+  @Test
+  @Timeout(value = 5000, unit = TimeUnit.MILLISECONDS)
   public void testPipelinedShuffleEvents() throws IOException {
 
     InputContext inputContext = createInputContext();
@@ -284,7 +291,8 @@ public class TestShuffleInputEventHandlerImpl {
    *
    * @throws IOException
    */
-  @Test(timeout = 5000)
+  @Test
+  @Timeout(value = 5000, unit = TimeUnit.MILLISECONDS)
   public void testPipelinedShuffleEvents_WithOutOfOrderAttempts() throws IOException {
     InputContext inputContext = createInputContext();
     ShuffleManager shuffleManager = createShuffleManager(inputContext);
@@ -316,7 +324,8 @@ public class TestShuffleInputEventHandlerImpl {
    *
    * @throws IOException
    */
-  @Test(timeout = 5000)
+  @Test
+  @Timeout(value = 5000, unit = TimeUnit.MILLISECONDS)
   public void testPipelinedShuffleEvents_WithEmptyPartitions() throws IOException {
     InputContext inputContext = createInputContext();
     ShuffleManager shuffleManager = createShuffleManager(inputContext);
@@ -356,7 +365,8 @@ public class TestShuffleInputEventHandlerImpl {
    *
    * @throws IOException
    */
-  @Test(timeout = 5000)
+  @Test
+  @Timeout(value = 5000, unit = TimeUnit.MILLISECONDS)
   public void testDataMovementEventsWithShuffleData() throws IOException {
     InputContext inputContext = mock(InputContext.class);
     ShuffleManager shuffleManager = mock(ShuffleManager.class);

@@ -18,12 +18,17 @@
  */
 package org.apache.tez.dag.app.rm;
 
-import static org.junit.Assert.*;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertInstanceOf;
+import static org.junit.jupiter.api.Assertions.assertTrue;
+import static org.junit.jupiter.api.Assertions.fail;
 import static org.mockito.Mockito.*;
 
 import java.util.BitSet;
 import java.util.HashMap;
 import java.util.concurrent.LinkedBlockingQueue;
+import java.util.concurrent.TimeUnit;
 
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.yarn.api.records.ApplicationAttemptId;
@@ -37,9 +42,8 @@ import org.apache.tez.dag.app.rm.TestLocalTaskSchedulerService.MockLocalTaskSche
 import org.apache.tez.serviceplugins.api.DagInfo;
 import org.apache.tez.serviceplugins.api.TaskSchedulerContext;
 
-import org.junit.Assert;
-import org.junit.Test;
-import org.mockito.invocation.InvocationOnMock;
+import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.Timeout;
 import org.mockito.stubbing.Answer;
 
 public class TestLocalTaskSchedulerService {
@@ -47,28 +51,31 @@ public class TestLocalTaskSchedulerService {
   LocalTaskSchedulerService ltss ;
   int core =10;
 
-  @Test(timeout = 5000)
+  @Test
+  @Timeout(value = 5000, unit = TimeUnit.MILLISECONDS)
   public void testCreateResource() {
     Resource resource;
     //value in integer
     long value = 4*1024*1024;
     resource = ltss.createResource(value,core);
-    Assert.assertEquals((int)(value/(1024*1024)),resource.getMemory());
+    assertEquals((int)(value/(1024*1024)),resource.getMemory());
   }
 
-  @Test(timeout = 5000)
+  @Test
+  @Timeout(value = 5000, unit = TimeUnit.MILLISECONDS)
   public void testCreateResourceLargerThanIntMax() {
     //value beyond integer but within Long.MAX_VALUE
     try {
       ltss.createResource(Long.MAX_VALUE, core);
       fail("No exception thrown.");
     } catch (Exception ex) {
-      assertTrue(ex instanceof IllegalArgumentException);
+      assertInstanceOf(IllegalArgumentException.class, ex);
       assertTrue(ex.getMessage().contains("Out of range:"));
     }
   }
 
-  @Test(timeout = 5000)
+  @Test
+  @Timeout(value = 5000, unit = TimeUnit.MILLISECONDS)
   public void testCreateResourceWithNegativeValue() {
     //value is Long.MAX_VALUE*1024*1024,
     // it will be negative after it is passed to createResource
@@ -77,7 +84,7 @@ public class TestLocalTaskSchedulerService {
       ltss.createResource((Long.MAX_VALUE*1024*1024), core);
       fail("No exception thrown.");
     } catch (Exception ex) {
-      assertTrue(ex instanceof IllegalArgumentException);
+      assertInstanceOf(IllegalArgumentException.class, ex);
       assertTrue(ex.getMessage().contains("Negative Memory or Core provided!"));
     }
   }
@@ -85,7 +92,8 @@ public class TestLocalTaskSchedulerService {
   /**
    * Normal flow of TaskAttempt
    */
-  @Test(timeout = 5000)
+  @Test
+  @Timeout(value = 5000, unit = TimeUnit.MILLISECONDS)
   public void testDeallocationBeforeAllocation() throws InterruptedException {
     ApplicationAttemptId appAttemptId =
         ApplicationAttemptId.newInstance(ApplicationId.newInstance(10000l, 1), 1);
@@ -117,7 +125,8 @@ public class TestLocalTaskSchedulerService {
   /**
    * TaskAttempt Killed from START_WAIT
    */
-  @Test(timeout = 5000)
+  @Test
+  @Timeout(value = 5000, unit = TimeUnit.MILLISECONDS)
   public void testDeallocationAfterAllocation() throws InterruptedException {
     ApplicationAttemptId appAttemptId =
         ApplicationAttemptId.newInstance(ApplicationId.newInstance(10000l, 1), 1);
@@ -158,9 +167,8 @@ public class TestLocalTaskSchedulerService {
     Long childTask1 = new Long(3);
     Long grandchildTask1 = new Long(4);
 
-    TaskSchedulerContext
-        mockContext = TestTaskSchedulerHelpers.setupMockTaskSchedulerContext("", 0, "", true,
-        appAttemptId, 1000l, null, tezConf);
+    TaskSchedulerContext mockContext =
+        TestTaskSchedulerHelpers.setupMockTaskSchedulerContext("", 0, "", true, appAttemptId, 1000l, null, tezConf);
     when(mockContext.getVertexIndexForTask(parentTask1)).thenReturn(0);
     when(mockContext.getVertexIndexForTask(parentTask2)).thenReturn(0);
     when(mockContext.getVertexIndexForTask(childTask1)).thenReturn(1);
@@ -188,13 +196,10 @@ public class TestLocalTaskSchedulerService {
     MockLocalTaskSchedulerSerivce taskSchedulerService = new MockLocalTaskSchedulerSerivce(mockContext);
 
     // The mock context need to send a deallocate container request to the scheduler service
-    Answer<Void> answer = new Answer<Void>() {
-      @Override
-      public Void answer(InvocationOnMock invocation) {
-        ContainerId containerId = invocation.getArgument(0, ContainerId.class);
-        taskSchedulerService.deallocateContainer(containerId);
-        return null;
-      }
+    Answer<Void> answer = invocation -> {
+      ContainerId containerId = invocation.getArgument(0, ContainerId.class);
+      taskSchedulerService.deallocateContainer(containerId);
+      return null;
     };
     doAnswer(answer).when(mockContext).preemptContainer(any());
 
@@ -209,15 +214,16 @@ public class TestLocalTaskSchedulerService {
     requestHandler.drainRequest(3);
 
     // We should not preempt if we have not reached max task allocations
-    Assert.assertEquals("Wrong number of allocate tasks", MAX_TASKS, requestHandler.allocateCount);
-    Assert.assertTrue("Another allocation should not fit", !requestHandler.shouldProcess());
+    assertEquals(MAX_TASKS, requestHandler.allocateCount, "Wrong number of allocate tasks");
+    assertFalse(requestHandler.shouldProcess(), "Another allocation should not fit");
 
     // Next task allocation should preempt
-    taskSchedulerService.allocateTask(parentTask2, Resource.newInstance(1024, 1), null, null, priority2, null, null);
+    taskSchedulerService.allocateTask(
+        parentTask2, Resource.newInstance(1024, 1), null, null, priority2, null, null);
     requestHandler.drainRequest(5);
 
     // All allocated tasks should have been removed
-    Assert.assertEquals("Wrong number of preempted tasks", 1, requestHandler.preemptCount);
+    assertEquals(1, requestHandler.preemptCount, "Wrong number of preempted tasks");
   }
 
   static class MockLocalTaskSchedulerSerivce extends LocalTaskSchedulerService {

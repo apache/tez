@@ -18,6 +18,11 @@
  */
 package org.apache.tez.analyzer;
 
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertThrows;
+import static org.junit.jupiter.api.Assertions.assertTrue;
+import static org.junit.jupiter.api.Assertions.fail;
+
 import java.io.IOException;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.FileAlreadyExistsException;
@@ -25,22 +30,21 @@ import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
 
-import org.junit.After;
-import org.junit.Assert;
-import org.junit.Before;
-import org.junit.Test;
+import org.junit.jupiter.api.AfterEach;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
 
 public class TestCSVResult {
 
   private Path testDir;
 
-  @Before
+  @BeforeEach
   public void setUp() throws IOException {
     testDir = Paths.get(System.getProperty("user.dir") + "/test");
     Files.createDirectories(testDir);
   }
 
-  @After
+  @AfterEach
   public void tearDown() throws IOException {
     if (Files.exists(testDir)) {
       Files.walk(testDir)
@@ -59,7 +63,7 @@ public class TestCSVResult {
     result.dumpToFile(out.toString());
 
     String content = Files.readString(out, StandardCharsets.UTF_8);
-    Assert.assertEquals("h1,h2\na,b\n", content);
+    assertEquals("h1,h2\na,b\n", content);
   }
 
   @Test
@@ -71,9 +75,9 @@ public class TestCSVResult {
 
     try {
       result.dumpToFile(out.toString());
-      Assert.fail("Expected FileAlreadyExistsException when output file already exists");
+      fail("Expected FileAlreadyExistsException when output file already exists");
     } catch (FileAlreadyExistsException e) {
-      Assert.assertTrue(e.getMessage().contains(out.toString()));
+      assertTrue(e.getMessage().contains(out.toString()));
     }
   }
 
@@ -86,25 +90,25 @@ public class TestCSVResult {
 
     try {
       result.dumpToFile(out.toString());
-      Assert.fail("Expected IOException when parent directory does not exist");
+      fail("Expected IOException when parent directory does not exist");
     } catch (IOException e) {
-      Assert.assertTrue(e.getMessage().contains("Parent directory does not exist"));
+      assertTrue(e.getMessage().contains("Parent directory does not exist"));
     }
   }
 
-  @Test(expected = IllegalArgumentException.class)
+  @Test
   public void testDumpToFileRejectsNullFileName() throws Exception {
-    new CSVResult(new String[]{"x"}).dumpToFile(null);
+    assertThrows(IllegalArgumentException.class, () -> new CSVResult(new String[]{"x"}).dumpToFile(null));
   }
 
-  @Test(expected = IllegalArgumentException.class)
+  @Test
   public void testDumpToFileRejectsEmptyFileName() throws Exception {
-    new CSVResult(new String[]{"x"}).dumpToFile("");
+    assertThrows(IllegalArgumentException.class, () -> new CSVResult(new String[]{"x"}).dumpToFile(""));
   }
 
-  @Test(expected = IllegalArgumentException.class)
+  @Test
   public void testDumpToFileRejectsBlankFileName() throws Exception {
-    new CSVResult(new String[]{"x"}).dumpToFile("   ");
+    assertThrows(IllegalArgumentException.class, () -> new CSVResult(new String[]{"x"}).dumpToFile("   "));
   }
 
   @Test
@@ -118,7 +122,7 @@ public class TestCSVResult {
     result.addRecord(new String[]{"r"});
     result.dumpToFile(out.toString());
 
-    Assert.assertEquals("h\nr\n", Files.readString(out, StandardCharsets.UTF_8));
+    assertEquals("h\nr\n", Files.readString(out, StandardCharsets.UTF_8));
   }
 
   @Test
@@ -128,9 +132,9 @@ public class TestCSVResult {
 
     try {
       result.dumpToFile(relativePath);
-      Assert.fail("Expected IOException due to moving upwards from pwd");
+      fail("Expected IOException due to moving upwards from pwd");
     } catch (IOException e) {
-      Assert.assertTrue(e.getMessage().contains(Paths.get(relativePath).toAbsolutePath().normalize().toString()));
+      assertTrue(e.getMessage().contains(Paths.get(relativePath).toAbsolutePath().normalize().toString()));
     }
   }
 }

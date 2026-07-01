@@ -18,16 +18,19 @@
  */
 package org.apache.tez.runtime.library.cartesianproduct;
 
-import static org.junit.Assert.assertArrayEquals;
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertFalse;
-import static org.junit.Assert.assertTrue;
+import static org.junit.jupiter.api.Assertions.assertArrayEquals;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertTrue;
+import static org.junit.jupiter.api.Assertions.fail;
 
 import java.util.List;
+import java.util.concurrent.TimeUnit;
 
 import com.google.common.primitives.Ints;
 
-import org.junit.Test;
+import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.Timeout;
 
 public class TestCartesianProductCombination {
   private void verifyCombination(CartesianProductCombination combination, int[] result, int taskId) {
@@ -72,7 +75,8 @@ public class TestCartesianProductCombination {
     assertFalse(combination.nextTaskWithFixedChunk());
   }
 
-  @Test(timeout = 5000)
+  @Test
+  @Timeout(value = 5000, unit = TimeUnit.MILLISECONDS)
   public void testCombinationWithFixedPartition() {
     // two way cartesian product
     testCombinationTwoWayVertex0();
@@ -82,7 +86,8 @@ public class TestCartesianProductCombination {
     testCombinationThreeWay();
   }
 
-  @Test(timeout = 5000)
+  @Test
+  @Timeout(value = 5000, unit = TimeUnit.MILLISECONDS)
   public void testCombination() {
     CartesianProductCombination combination = new CartesianProductCombination(new int[]{2,3});
     List<Integer> list = combination.getCombination();
@@ -93,29 +98,31 @@ public class TestCartesianProductCombination {
         } else {
           assertTrue(combination.nextTask());
         }
-        assertTrue(list.get(0) == i);
-        assertTrue(list.get(1) == j);
+        assertEquals((int) list.get(0), i);
+        assertEquals((int) list.get(1), j);
       }
     }
     assertFalse(combination.nextTask());
   }
 
-  @Test(timeout = 5000)
+  @Test
+  @Timeout(value = 5000, unit = TimeUnit.MILLISECONDS)
   public void testFromTaskId() {
     for (int i = 0; i < 6; i++) {
       List<Integer> list = CartesianProductCombination.fromTaskId(new int[]{2,3}, i)
                                                       .getCombination();
-      assertTrue(list.get(0) == i/3);
-      assertTrue(list.get(1) == i%3);
+      assertEquals((int) list.get(0), i / 3);
+      assertEquals((int) list.get(1), i % 3);
     }
   }
 
-  @Test(timeout = 5000)
+  @Test
+  @Timeout(value = 5000, unit = TimeUnit.MILLISECONDS)
   public void testRejectZero() {
     int[] numChunk = new int[] {0 ,1};
     try {
       new CartesianProductCombination(numChunk);
-      assertTrue(false);
+      fail();
     } catch (Exception ignored) {}
   }
 }

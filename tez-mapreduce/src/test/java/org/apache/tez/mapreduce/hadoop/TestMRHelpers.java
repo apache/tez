@@ -18,9 +18,15 @@
  */
 package org.apache.tez.mapreduce.hadoop;
 
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertNull;
+import static org.junit.jupiter.api.Assertions.assertTrue;
+
 import java.io.File;
 import java.util.HashMap;
 import java.util.Map;
+import java.util.concurrent.TimeUnit;
 
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.mapred.JobConf;
@@ -31,8 +37,8 @@ import org.apache.hadoop.yarn.api.records.Resource;
 import org.apache.tez.dag.api.TezConstants;
 import org.apache.tez.runtime.library.api.TezRuntimeConfiguration;
 
-import org.junit.Assert;
-import org.junit.Test;
+import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.Timeout;
 
 public class TestMRHelpers {
 
@@ -47,54 +53,47 @@ public class TestMRHelpers {
     return conf;
   }
 
-  @Test(timeout = 5000)
+  @Test
+  @Timeout(value = 5000, unit = TimeUnit.MILLISECONDS)
   public void testMapJavaOptions() {
     Configuration conf = createConfForJavaOptsTest();
     String opts = MRHelpers.getJavaOptsForMRMapper(conf);
 
-    Assert.assertTrue(opts.contains("fooMapAdminOpts"));
-    Assert.assertTrue(opts.contains(" fooMapJavaOpts "));
-    Assert.assertFalse(opts.contains("fooReduceAdminOpts "));
-    Assert.assertFalse(opts.contains(" fooReduceJavaOpts "));
-    Assert.assertTrue(opts.indexOf("fooMapAdminOpts")
-        < opts.indexOf("fooMapJavaOpts"));
-    Assert.assertTrue(opts.contains(" -D"
-        + TezConstants.TEZ_ROOT_LOGGER_NAME + "=FATAL"));
-    Assert.assertFalse(opts.contains(" -D"
-        + TezConstants.TEZ_ROOT_LOGGER_NAME + "=TRACE"));
+    assertTrue(opts.contains("fooMapAdminOpts"));
+    assertTrue(opts.contains(" fooMapJavaOpts "));
+    assertFalse(opts.contains("fooReduceAdminOpts "));
+    assertFalse(opts.contains(" fooReduceJavaOpts "));
+    assertTrue(opts.indexOf("fooMapAdminOpts") < opts.indexOf("fooMapJavaOpts"));
+    assertTrue(opts.contains(" -D" + TezConstants.TEZ_ROOT_LOGGER_NAME + "=FATAL"));
+    assertFalse(opts.contains(" -D" + TezConstants.TEZ_ROOT_LOGGER_NAME + "=TRACE"));
   }
 
-  @Test(timeout = 5000)
+  @Test
+  @Timeout(value = 5000, unit = TimeUnit.MILLISECONDS)
   public void testReduceJavaOptions() {
     Configuration conf = createConfForJavaOptsTest();
     String opts = MRHelpers.getJavaOptsForMRReducer(conf);
 
-    Assert.assertFalse(opts.contains("fooMapAdminOpts"));
-    Assert.assertFalse(opts.contains(" fooMapJavaOpts "));
-    Assert.assertTrue(opts.contains("fooReduceAdminOpts"));
-    Assert.assertTrue(opts.contains(" fooReduceJavaOpts "));
-    Assert.assertTrue(opts.indexOf("fooReduceAdminOpts")
-        < opts.indexOf("fooReduceJavaOpts"));
-    Assert.assertFalse(opts.contains(" -D"
-        + TezConstants.TEZ_ROOT_LOGGER_NAME + "=FATAL"));
-    Assert.assertTrue(opts.contains(" -D"
-        + TezConstants.TEZ_ROOT_LOGGER_NAME + "=TRACE"));
+    assertFalse(opts.contains("fooMapAdminOpts"));
+    assertFalse(opts.contains(" fooMapJavaOpts "));
+    assertTrue(opts.contains("fooReduceAdminOpts"));
+    assertTrue(opts.contains(" fooReduceJavaOpts "));
+    assertTrue(opts.indexOf("fooReduceAdminOpts") < opts.indexOf("fooReduceJavaOpts"));
+    assertFalse(opts.contains(" -D" + TezConstants.TEZ_ROOT_LOGGER_NAME + "=FATAL"));
+    assertTrue(opts.contains(" -D" + TezConstants.TEZ_ROOT_LOGGER_NAME + "=TRACE"));
   }
 
-  @Test(timeout = 5000)
+  @Test
+  @Timeout(value = 5000, unit = TimeUnit.MILLISECONDS)
   public void testContainerResourceConstruction() {
     JobConf conf = new JobConf(new Configuration());
     Resource mapResource = MRHelpers.getResourceForMRMapper(conf);
     Resource reduceResource = MRHelpers.getResourceForMRReducer(conf);
 
-    Assert.assertEquals(MRJobConfig.DEFAULT_MAP_CPU_VCORES,
-        mapResource.getVirtualCores());
-    Assert.assertEquals(MRJobConfig.DEFAULT_MAP_MEMORY_MB,
-        mapResource.getMemory());
-    Assert.assertEquals(MRJobConfig.DEFAULT_REDUCE_CPU_VCORES,
-        reduceResource.getVirtualCores());
-    Assert.assertEquals(MRJobConfig.DEFAULT_REDUCE_MEMORY_MB,
-        reduceResource.getMemory());
+    assertEquals(MRJobConfig.DEFAULT_MAP_CPU_VCORES, mapResource.getVirtualCores());
+    assertEquals(MRJobConfig.DEFAULT_MAP_MEMORY_MB, mapResource.getMemory());
+    assertEquals(MRJobConfig.DEFAULT_REDUCE_CPU_VCORES, reduceResource.getVirtualCores());
+    assertEquals(MRJobConfig.DEFAULT_REDUCE_MEMORY_MB, reduceResource.getMemory());
 
     conf.setInt(MRJobConfig.MAP_CPU_VCORES, 2);
     conf.setInt(MRJobConfig.MAP_MEMORY_MB, 123);
@@ -104,10 +103,10 @@ public class TestMRHelpers {
     mapResource = MRHelpers.getResourceForMRMapper(conf);
     reduceResource = MRHelpers.getResourceForMRReducer(conf);
 
-    Assert.assertEquals(2, mapResource.getVirtualCores());
-    Assert.assertEquals(123, mapResource.getMemory());
-    Assert.assertEquals(20, reduceResource.getVirtualCores());
-    Assert.assertEquals(1234, reduceResource.getMemory());
+    assertEquals(2, mapResource.getVirtualCores());
+    assertEquals(123, mapResource.getMemory());
+    assertEquals(20, reduceResource.getVirtualCores());
+    assertEquals(1234, reduceResource.getMemory());
   }
 
   private Configuration setupConfigForMREnvTest() {
@@ -125,61 +124,64 @@ public class TestMRHelpers {
   }
 
   private void testCommonEnvSettingsForMRTasks(Map<String, String> env) {
-    Assert.assertTrue(env.containsKey("foo"));
-    Assert.assertTrue(env.containsKey("bar"));
-    Assert.assertTrue(env.containsKey(Environment.LD_LIBRARY_PATH.name()));
-    Assert.assertTrue(env.containsKey(Environment.SHELL.name()));
-    Assert.assertTrue(env.containsKey("HADOOP_ROOT_LOGGER"));
+    assertTrue(env.containsKey("foo"));
+    assertTrue(env.containsKey("bar"));
+    assertTrue(env.containsKey(Environment.LD_LIBRARY_PATH.name()));
+    assertTrue(env.containsKey(Environment.SHELL.name()));
+    assertTrue(env.containsKey("HADOOP_ROOT_LOGGER"));
 
     /* On non-windows platform ensure that LD_LIBRARY_PATH is being set and PWD is present.
      * on windows platform LD_LIBRARY_PATH is not applicable. check the PATH is being appended
      * by the user setting (ex user may set HADOOP_HOME\\bin.
      */
     if (!Shell.WINDOWS) {
-      Assert.assertEquals("$PWD:$TEZ_ADMIN_ENV_TEST/lib/native",
-          env.get(Environment.LD_LIBRARY_PATH.name()));
+      assertEquals("$PWD:$TEZ_ADMIN_ENV_TEST/lib/native", env.get(Environment.LD_LIBRARY_PATH.name()));
     } else {
-      Assert.assertTrue(env.get(Environment.PATH.name()).contains(";%TEZ_ADMIN_ENV%\\bin"));
+      assertTrue(env.get(Environment.PATH.name()).contains(";%TEZ_ADMIN_ENV%\\bin"));
     }
 
 //    TEZ-273 will reinstate this or similar.
 //    for (String val : YarnConfiguration.DEFAULT_YARN_APPLICATION_CLASSPATH) {
-//      Assert.assertTrue(env.get(Environment.CLASSPATH.name()).contains(val));
+//      assertTrue(env.get(Environment.CLASSPATH.name()).contains(val));
 //    }
-//    Assert.assertTrue(0 ==
+//    assertTrue(0 ==
 //        env.get(Environment.CLASSPATH.name()).indexOf(Environment.PWD.$()));
   }
 
-  @Test(timeout = 5000)
+  @Test
+  @Timeout(value = 5000, unit = TimeUnit.MILLISECONDS)
   public void testMREnvSetupForMap() {
     Configuration conf = setupConfigForMREnvTest();
     Map<String, String> env = new HashMap<String, String>();
     MRHelpers.updateEnvBasedOnMRTaskEnv(conf, env, true);
     testCommonEnvSettingsForMRTasks(env);
-    Assert.assertEquals("map1", env.get("foo"));
-    Assert.assertEquals("map2", env.get("bar"));
+    assertEquals("map1", env.get("foo"));
+    assertEquals("map2", env.get("bar"));
   }
 
-  @Test(timeout = 5000)
+  @Test
+  @Timeout(value = 5000, unit = TimeUnit.MILLISECONDS)
   public void testMREnvSetupForReduce() {
     Configuration conf = setupConfigForMREnvTest();
     Map<String, String> env = new HashMap<String, String>();
     MRHelpers.updateEnvBasedOnMRTaskEnv(conf, env, false);
     testCommonEnvSettingsForMRTasks(env);
-    Assert.assertEquals("red1", env.get("foo"));
-    Assert.assertEquals("red2", env.get("bar"));
+    assertEquals("red1", env.get("foo"));
+    assertEquals("red2", env.get("bar"));
   }
 
-  @Test(timeout = 5000)
+  @Test
+  @Timeout(value = 5000, unit = TimeUnit.MILLISECONDS)
   public void testMRAMJavaOpts() {
     Configuration conf = new Configuration();
     conf.set(MRJobConfig.MR_AM_ADMIN_COMMAND_OPTS, " -Dadminfoobar   ");
     conf.set(MRJobConfig.MR_AM_COMMAND_OPTS, "  -Duserfoo  ");
     String opts = MRHelpers.getJavaOptsForMRAM(conf);
-    Assert.assertEquals("-Dadminfoobar -Duserfoo", opts);
+    assertEquals("-Dadminfoobar -Duserfoo", opts);
   }
 
-  @Test(timeout = 5000)
+  @Test
+  @Timeout(value = 5000, unit = TimeUnit.MILLISECONDS)
   public void testMRAMEnvironmentSetup() {
     Configuration conf = new Configuration();
     conf.set(MRJobConfig.MR_AM_ADMIN_USER_ENV, "foo=bar,admin1=foo1");
@@ -187,12 +189,13 @@ public class TestMRHelpers {
     Map<String, String> env =
         new HashMap<String, String>();
     MRHelpers.updateEnvBasedOnMRAMEnv(conf, env);
-    Assert.assertEquals("foo1", env.get("admin1"));
-    Assert.assertEquals("foo2", env.get("user"));
-    Assert.assertEquals(("bar" + File.pathSeparator + "bar2"), env.get("foo"));
+    assertEquals("foo1", env.get("admin1"));
+    assertEquals("foo2", env.get("user"));
+    assertEquals(("bar" + File.pathSeparator + "bar2"), env.get("foo"));
   }
 
-  @Test(timeout = 5000)
+  @Test
+  @Timeout(value = 5000, unit = TimeUnit.MILLISECONDS)
   public void testTranslateMRConfToTez() {
     Configuration conf = new Configuration(false);
     conf.setLong(TezRuntimeConfiguration.TEZ_RUNTIME_IO_SORT_MB, 1000);
@@ -200,18 +203,18 @@ public class TestMRHelpers {
 
     Configuration conf1 = new Configuration(conf);
     MRHelpers.translateMRConfToTez(conf1);
-    Assert.assertNull(conf1.get(org.apache.tez.mapreduce.hadoop.MRJobConfig.IO_SORT_MB));
-    Assert.assertEquals(1000, conf1.getLong(TezRuntimeConfiguration.TEZ_RUNTIME_IO_SORT_MB, 0));
+    assertNull(conf1.get(org.apache.tez.mapreduce.hadoop.MRJobConfig.IO_SORT_MB));
+    assertEquals(1000, conf1.getLong(TezRuntimeConfiguration.TEZ_RUNTIME_IO_SORT_MB, 0));
 
     Configuration conf2 = new Configuration(conf);
     MRHelpers.translateMRConfToTez(conf2, true);
-    Assert.assertNull(conf2.get(org.apache.tez.mapreduce.hadoop.MRJobConfig.IO_SORT_MB));
-    Assert.assertEquals(1000, conf2.getLong(TezRuntimeConfiguration.TEZ_RUNTIME_IO_SORT_MB, 0));
+    assertNull(conf2.get(org.apache.tez.mapreduce.hadoop.MRJobConfig.IO_SORT_MB));
+    assertEquals(1000, conf2.getLong(TezRuntimeConfiguration.TEZ_RUNTIME_IO_SORT_MB, 0));
 
     Configuration conf3 = new Configuration(conf);
     MRHelpers.translateMRConfToTez(conf3, false);
-    Assert.assertNull(conf3.get(org.apache.tez.mapreduce.hadoop.MRJobConfig.IO_SORT_MB));
-    Assert.assertEquals(500, conf3.getLong(TezRuntimeConfiguration.TEZ_RUNTIME_IO_SORT_MB, 0));
+    assertNull(conf3.get(org.apache.tez.mapreduce.hadoop.MRJobConfig.IO_SORT_MB));
+    assertEquals(500, conf3.getLong(TezRuntimeConfiguration.TEZ_RUNTIME_IO_SORT_MB, 0));
   }
 
 }

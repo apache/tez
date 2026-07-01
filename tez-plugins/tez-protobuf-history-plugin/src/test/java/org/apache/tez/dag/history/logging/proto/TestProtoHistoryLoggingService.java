@@ -18,6 +18,12 @@
  */
 package org.apache.tez.dag.history.logging.proto;
 
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertNotEquals;
+import static org.junit.jupiter.api.Assertions.assertNotNull;
+import static org.junit.jupiter.api.Assertions.assertNull;
+import static org.junit.jupiter.api.Assertions.assertTrue;
+import static org.junit.jupiter.api.Assertions.fail;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 
@@ -66,10 +72,8 @@ import org.apache.tez.hadoop.shim.HadoopShim;
 
 import com.google.protobuf.CodedInputStream;
 
-import org.junit.Assert;
-import org.junit.Rule;
-import org.junit.Test;
-import org.junit.rules.TemporaryFolder;
+import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.io.TempDir;
 
 public class TestProtoHistoryLoggingService {
   private static ApplicationId appId = ApplicationId.newInstance(1000l, 1);
@@ -77,8 +81,8 @@ public class TestProtoHistoryLoggingService {
   private static String user = "TEST_USER";
   private Clock clock;
 
-  @Rule
-  public TemporaryFolder tempFolder = new TemporaryFolder();
+  @TempDir
+  public java.nio.file.Path tempFolder;
 
   @Test
   public void testService() throws Exception {
@@ -93,7 +97,7 @@ public class TestProtoHistoryLoggingService {
     service.stop();
 
     TezProtoLoggers loggers = new TezProtoLoggers();
-    Assert.assertTrue(loggers.setup(service.getConfig(), clock));
+    assertTrue(loggers.setup(service.getConfig(), clock));
 
     // Verify dag events are logged.
     DatePartitionedLogger<HistoryEventProto> dagLogger = loggers.getDagEventsLogger();
@@ -107,7 +111,7 @@ public class TestProtoHistoryLoggingService {
     Path appFilePath = appLogger.getPathForDate(LocalDate.ofEpochDay(0), attemptId.toString());
     ProtoMessageReader<HistoryEventProto> appReader = appLogger.getReader(appFilePath);
     long appOffset = appReader.getOffset();
-    Assert.assertEquals(protos.get(0), appReader.readEvent());
+    assertEquals(protos.get(0), appReader.readEvent());
     appReader.close();
 
     // Verify manifest events are logged.
@@ -116,29 +120,29 @@ public class TestProtoHistoryLoggingService {
         LocalDate.ofEpochDay(0), attemptId.toString());
     ProtoMessageReader<ManifestEntryProto> reader2 = manifestLogger.getReader(manifestFilePath);
     ManifestEntryProto manifest = reader2.readEvent();
-    Assert.assertEquals(appId.toString(), manifest.getAppId());
-    Assert.assertEquals(dagId.toString(), manifest.getDagId());
-    Assert.assertEquals(dagFilePath.toString(), manifest.getDagFilePath());
-    Assert.assertEquals(appFilePath.toString(), manifest.getAppFilePath());
-    Assert.assertEquals(appOffset, manifest.getAppLaunchedEventOffset());
+    assertEquals(appId.toString(), manifest.getAppId());
+    assertEquals(dagId.toString(), manifest.getDagId());
+    assertEquals(dagFilePath.toString(), manifest.getDagFilePath());
+    assertEquals(appFilePath.toString(), manifest.getAppFilePath());
+    assertEquals(appOffset, manifest.getAppLaunchedEventOffset());
 
     // Verify offsets in manifest logger.
     reader = dagLogger.getReader(new Path(manifest.getDagFilePath()));
     reader.setOffset(manifest.getDagSubmittedEventOffset());
     HistoryEventProto evt = reader.readEvent();
-    Assert.assertNotNull(evt);
-    Assert.assertEquals(HistoryEventType.DAG_SUBMITTED.name(), evt.getEventType());
+    assertNotNull(evt);
+    assertEquals(HistoryEventType.DAG_SUBMITTED.name(), evt.getEventType());
 
     reader.setOffset(manifest.getDagFinishedEventOffset());
     evt = reader.readEvent();
-    Assert.assertNotNull(evt);
-    Assert.assertEquals(HistoryEventType.DAG_FINISHED.name(), evt.getEventType());
+    assertNotNull(evt);
+    assertEquals(HistoryEventType.DAG_FINISHED.name(), evt.getEventType());
     reader.close();
 
     // Verify manifest file scanner.
     DagManifesFileScanner scanner = new DagManifesFileScanner(manifestLogger);
-    Assert.assertEquals(manifest, scanner.getNext());
-    Assert.assertNull(scanner.getNext());
+    assertEquals(manifest, scanner.getNext());
+    assertNull(scanner.getNext());
     scanner.close();
   }
 
@@ -156,7 +160,7 @@ public class TestProtoHistoryLoggingService {
     service.stop();
 
     TezProtoLoggers loggers = new TezProtoLoggers();
-    Assert.assertTrue(loggers.setup(service.getConfig(), clock));
+    assertTrue(loggers.setup(service.getConfig(), clock));
 
     // Verify dag events are logged.
     DatePartitionedLogger<HistoryEventProto> dagLogger = loggers.getDagEventsLogger();
@@ -167,7 +171,7 @@ public class TestProtoHistoryLoggingService {
       int totalBytesRead = getTotalBytesRead(reader);
       // cin.resetSizeCounter() in ProtoMessageWritable.java ensures that
       // totalBytesRead will always be 0. For reference read javadoc of CodedInputStream.
-      Assert.assertEquals(totalBytesRead, 0);
+      assertEquals(0, totalBytesRead);
     }
   }
 
@@ -200,7 +204,7 @@ public class TestProtoHistoryLoggingService {
     service.stop();
 
     TezProtoLoggers loggers = new TezProtoLoggers();
-    Assert.assertTrue(loggers.setup(service.getConfig(), clock));
+    assertTrue(loggers.setup(service.getConfig(), clock));
 
     // Verify dag events are logged.
     DatePartitionedLogger<HistoryEventProto> dagLogger = loggers.getDagEventsLogger();
@@ -221,7 +225,7 @@ public class TestProtoHistoryLoggingService {
     Path appFilePath = appLogger.getPathForDate(LocalDate.ofEpochDay(0), attemptId.toString());
     ProtoMessageReader<HistoryEventProto> appReader = appLogger.getReader(appFilePath);
     long appOffset = appReader.getOffset();
-    Assert.assertEquals(protos.get(0), appReader.readEvent());
+    assertEquals(protos.get(0), appReader.readEvent());
     appReader.close();
 
     // Verify manifest events are logged.
@@ -232,13 +236,13 @@ public class TestProtoHistoryLoggingService {
     ProtoMessageReader<ManifestEntryProto> manifestReader = manifestLogger.getReader(
         manifestFilePath);
     ManifestEntryProto manifest = manifestReader.readEvent();
-    Assert.assertEquals(manifest, scanner.getNext());
-    Assert.assertEquals(appId.toString(), manifest.getAppId());
-    Assert.assertEquals(dagId.toString(), manifest.getDagId());
-    Assert.assertEquals(dagFilePath1.toString(), manifest.getDagFilePath());
-    Assert.assertEquals(appFilePath.toString(), manifest.getAppFilePath());
-    Assert.assertEquals(appOffset, manifest.getAppLaunchedEventOffset());
-    Assert.assertEquals(-1, manifest.getDagFinishedEventOffset());
+    assertEquals(manifest, scanner.getNext());
+    assertEquals(appId.toString(), manifest.getAppId());
+    assertEquals(dagId.toString(), manifest.getDagId());
+    assertEquals(dagFilePath1.toString(), manifest.getDagFilePath());
+    assertEquals(appFilePath.toString(), manifest.getAppFilePath());
+    assertEquals(appOffset, manifest.getAppLaunchedEventOffset());
+    assertEquals(-1, manifest.getDagFinishedEventOffset());
 
     HistoryEventProto evt = null;
     // Verify offsets in manifest logger.
@@ -246,47 +250,47 @@ public class TestProtoHistoryLoggingService {
         new Path(manifest.getDagFilePath()))) {
       reader.setOffset(manifest.getDagSubmittedEventOffset());
       evt = reader.readEvent();
-      Assert.assertNotNull(evt);
-      Assert.assertEquals(HistoryEventType.DAG_SUBMITTED.name(), evt.getEventType());
+      assertNotNull(evt);
+      assertEquals(HistoryEventType.DAG_SUBMITTED.name(), evt.getEventType());
     }
 
     manifest = manifestReader.readEvent();
-    Assert.assertEquals(manifest, scanner.getNext());
-    Assert.assertEquals(appId.toString(), manifest.getAppId());
-    Assert.assertEquals(dagId.toString(), manifest.getDagId());
-    Assert.assertEquals(dagFilePath2.toString(), manifest.getDagFilePath());
-    Assert.assertEquals(appFilePath.toString(), manifest.getAppFilePath());
-    Assert.assertEquals(appOffset, manifest.getAppLaunchedEventOffset());
-    Assert.assertEquals(-1, manifest.getDagSubmittedEventOffset());
+    assertEquals(manifest, scanner.getNext());
+    assertEquals(appId.toString(), manifest.getAppId());
+    assertEquals(dagId.toString(), manifest.getDagId());
+    assertEquals(dagFilePath2.toString(), manifest.getDagFilePath());
+    assertEquals(appFilePath.toString(), manifest.getAppFilePath());
+    assertEquals(appOffset, manifest.getAppLaunchedEventOffset());
+    assertEquals(-1, manifest.getDagSubmittedEventOffset());
 
     try (ProtoMessageReader<HistoryEventProto> reader = dagLogger.getReader(
         new Path(manifest.getDagFilePath()))) {
       reader.setOffset(manifest.getDagFinishedEventOffset());
       evt = reader.readEvent();
-      Assert.assertNotNull(evt);
-      Assert.assertEquals(HistoryEventType.DAG_FINISHED.name(), evt.getEventType());
+      assertNotNull(evt);
+      assertEquals(HistoryEventType.DAG_FINISHED.name(), evt.getEventType());
     }
 
     // Verify manifest file scanner.
-    Assert.assertNull(scanner.getNext());
+    assertNull(scanner.getNext());
     scanner.close();
   }
 
   @Test
   public void testDirPermissions() throws IOException {
-    Path basePath = new Path(tempFolder.newFolder().getAbsolutePath());
+    Path basePath = new Path(tempFolder.toAbsolutePath().toString());
     Configuration conf = new Configuration();
     FileSystem fs = basePath.getFileSystem(conf);
     FsPermission expectedPermissions = FsPermission.createImmutable((short) 01777);
 
     // Check the directory already exists and doesn't have the expected permissions.
-    Assert.assertTrue(fs.exists(basePath));
-    Assert.assertNotEquals(expectedPermissions, fs.getFileStatus(basePath).getPermission());
+    assertTrue(fs.exists(basePath));
+    assertNotEquals(expectedPermissions, fs.getFileStatus(basePath).getPermission());
 
     new DatePartitionedLogger<>(HistoryEventProto.PARSER, basePath, conf, new FixedClock(Time.now()));
 
     // Check the permissions they should be same as the expected permissions
-    Assert.assertEquals(expectedPermissions, fs.getFileStatus(basePath).getPermission());
+    assertEquals(expectedPermissions, fs.getFileStatus(basePath).getPermission());
   }
 
   private List<DAGHistoryEvent> makeHistoryEvents(TezDAGID dagId,
@@ -345,7 +349,7 @@ public class TestProtoHistoryLoggingService {
     when(appContext.getClock()).thenReturn(clock);
     service.setAppContext(appContext);
     Configuration conf = new Configuration(false);
-    String basePath = tempFolder.newFolder().getAbsolutePath();
+    String basePath = tempFolder.toAbsolutePath().toString();
     conf.set("fs.file.impl", "org.apache.hadoop.fs.RawLocalFileSystem");
     conf.set(TezConfiguration.TEZ_HISTORY_LOGGING_PROTO_BASE_DIR, basePath);
     conf.setBoolean(TezConfiguration.TEZ_HISTORY_LOGGING_PROTO_SPLIT_DAG_START, splitEvents);
@@ -358,14 +362,14 @@ public class TestProtoHistoryLoggingService {
     for (int i = start; i < finish; ++i) {
       try {
         HistoryEventProto evt = reader.readEvent();
-        Assert.assertEquals(protos.get(i), evt);
+        assertEquals(protos.get(i), evt);
       } catch (EOFException e) {
-        Assert.fail("Unexpected eof");
+        fail("Unexpected eof");
       }
     }
     try {
       HistoryEventProto evt = reader.readEvent();
-      Assert.assertNull(evt);
+      assertNull(evt);
     } catch (EOFException e) {
       // Expected.
     }

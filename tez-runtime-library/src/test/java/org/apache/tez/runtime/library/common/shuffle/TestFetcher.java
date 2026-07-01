@@ -18,6 +18,10 @@
  */
 package org.apache.tez.runtime.library.common.shuffle;
 
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertInstanceOf;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.Mockito.any;
 import static org.mockito.Mockito.anyInt;
 import static org.mockito.Mockito.anyLong;
@@ -39,6 +43,7 @@ import java.util.Iterator;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.Map.Entry;
+import java.util.concurrent.TimeUnit;
 
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.fs.Path;
@@ -50,6 +55,9 @@ import org.apache.tez.runtime.api.InputContext;
 import org.apache.tez.runtime.library.api.TezRuntimeConfiguration;
 import org.apache.tez.runtime.library.common.CompositeInputAttemptIdentifier;
 import org.apache.tez.runtime.library.common.InputAttemptIdentifier;
+import org.apache.tez.runtime.library.common.shuffle.FetchedInput.Type;
+import org.apache.tez.runtime.library.common.shuffle.Fetcher.FetcherBuilder;
+import org.apache.tez.runtime.library.common.shuffle.Fetcher.PathPartition;
 import org.apache.tez.runtime.library.common.shuffle.api.ShuffleHandlerError;
 import org.apache.tez.runtime.library.common.shuffle.impl.ShuffleManager;
 import org.apache.tez.runtime.library.common.shuffle.orderedgrouped.ShuffleHeader;
@@ -58,8 +66,8 @@ import org.apache.tez.runtime.library.testutils.RuntimeTestUtils;
 
 import com.google.common.collect.Lists;
 
-import org.junit.Assert;
-import org.junit.Test;
+import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.Timeout;
 import org.mockito.ArgumentCaptor;
 import org.mockito.invocation.InvocationOnMock;
 import org.mockito.stubbing.Answer;
@@ -69,7 +77,8 @@ public class TestFetcher {
   private static String HOST = "localhost";
   private static int PORT = 41;
 
-  @Test(timeout = 3000)
+  @Test
+  @Timeout(value = 3000, unit = TimeUnit.MILLISECONDS)
   public void testLocalFetchModeSetting() throws Exception {
     TezConfiguration conf = new TezConfiguration();
     conf.setBoolean(TezRuntimeConfiguration.TEZ_RUNTIME_OPTIMIZE_LOCAL_FETCH, true);
@@ -148,7 +157,8 @@ public class TestFetcher {
     verify(fetcher).doHttpFetch();
   }
 
-  @Test(timeout = 3000)
+  @Test
+  @Timeout(value = 3000, unit = TimeUnit.MILLISECONDS)
   public void testSetupLocalDiskFetch() throws Exception {
 
     CompositeInputAttemptIdentifier[] srcAttempts = {
@@ -166,7 +176,7 @@ public class TestFetcher {
     conf.set(TezRuntimeConfiguration.TEZ_RUNTIME_OPTIMIZE_LOCAL_FETCH, "true");
     int partition = 42;
     FetcherCallback callback = mock(FetcherCallback.class);
-    Fetcher.FetcherBuilder builder = new Fetcher.FetcherBuilder(callback, null, null,
+    FetcherBuilder builder = new FetcherBuilder(callback, null, null,
         createMockInputContext(), null, conf, true, HOST, PORT,
         false, true, true);
     ArrayList<InputAttemptIdentifier> inputAttemptIdentifiers = new ArrayList<>();
@@ -182,8 +192,8 @@ public class TestFetcher {
     for(CompositeInputAttemptIdentifier compositeInputAttemptIdentifier : srcAttempts) {
       for(int i=0;i<compositeInputAttemptIdentifier.getInputIdentifierCount();i++) {
         inputAttemptIdentifiers.add(compositeInputAttemptIdentifier.expand(i));
-        Fetcher.PathPartition pathPartition =
-            new Fetcher.PathPartition(compositeInputAttemptIdentifier.getPathComponent(),partition + i);
+        PathPartition pathPartition =
+            new PathPartition(compositeInputAttemptIdentifier.getPathComponent(),partition + i);
         fetcher.getPathToAttemptMap().put(pathPartition, compositeInputAttemptIdentifier.expand(i));
       }
     }
@@ -234,17 +244,15 @@ public class TestFetcher {
             .fromCompositeAttemptLocalFetchFailure(srcAttempts[SECOND_FAILED_ATTEMPT_IDX])),
         eq(false));
 
-    Assert.assertEquals("fetchResult host", fetchResult.getHost(), HOST);
-    Assert.assertEquals("fetchResult partition", fetchResult.getPartition(), partition);
-    Assert.assertEquals("fetchResult port", fetchResult.getPort(), PORT);
+    assertEquals(fetchResult.getHost(), HOST, "fetchResult host");
+    assertEquals(fetchResult.getPartition(), partition, "fetchResult partition");
+    assertEquals(fetchResult.getPort(), PORT, "fetchResult port");
 
     // 3nd and 5th attempt failed
     List<InputAttemptIdentifier> pendingInputs = Lists.newArrayList(fetchResult.getPendingInputs());
-    Assert.assertEquals("fetchResult pendingInput size", pendingInputs.size(), 2);
-    Assert.assertEquals("fetchResult failed attempt", pendingInputs.get(0),
-        srcAttempts[FIRST_FAILED_ATTEMPT_IDX]);
-    Assert.assertEquals("fetchResult failed attempt", pendingInputs.get(1),
-        srcAttempts[SECOND_FAILED_ATTEMPT_IDX]);
+    assertEquals(pendingInputs.size(), 2, "fetchResult pendingInput size");
+    assertEquals(pendingInputs.get(0), srcAttempts[FIRST_FAILED_ATTEMPT_IDX], "fetchResult failed attempt");
+    assertEquals(pendingInputs.get(1), srcAttempts[SECOND_FAILED_ATTEMPT_IDX], "fetchResult failed attempt");
   }
 
   protected void verifyFetchSucceeded(FetcherCallback callback, CompositeInputAttemptIdentifier srcAttempId, Configuration conf) throws IOException {
@@ -257,16 +265,16 @@ public class TestFetcher {
         .fetchSucceeded(eq(HOST), eq(srcAttempId.expand(0)), capturedFetchedInput.capture(), eq(p * 100),
             eq(p * 1000), anyLong());
     LocalDiskFetchedInput f = capturedFetchedInput.getValue();
-    Assert.assertEquals("success callback filename", f.getInputFile().toString(),
-        SHUFFLE_INPUT_FILE_PREFIX + pathComponent);
-    Assert.assertTrue("success callback fs", f.getLocalFS() instanceof RawLocalFileSystem);
-    Assert.assertEquals("success callback filesystem", f.getStartOffset(), p * 10);
-    Assert.assertEquals("success callback compressed size", f.getSize(), p * 100);
-    Assert.assertEquals("success callback input id", f.getInputAttemptIdentifier(), srcAttempId.expand(0));
-    Assert.assertEquals("success callback type", f.getType(), FetchedInput.Type.DISK_DIRECT);
+    assertEquals(f.getInputFile().toString(), SHUFFLE_INPUT_FILE_PREFIX + pathComponent, "success callback filename");
+    assertInstanceOf(RawLocalFileSystem.class, f.getLocalFS(), "success callback fs");
+    assertEquals(f.getStartOffset(), p * 10, "success callback filesystem");
+    assertEquals(f.getSize(), p * 100, "success callback compressed size");
+    assertEquals(f.getInputAttemptIdentifier(), srcAttempId.expand(0), "success callback input id");
+    assertEquals(f.getType(), Type.DISK_DIRECT, "success callback type");
   }
 
-  @Test(timeout=5000)
+  @Test
+  @Timeout(value = 5000, unit = TimeUnit.MILLISECONDS)
   public void testInputAttemptIdentifierMap() {
     InputAttemptIdentifier[] srcAttempts = {
         new InputAttemptIdentifier(0, 1, InputAttemptIdentifier.PATH_PREFIX + "pathComponent_0",
@@ -311,12 +319,12 @@ public class TestFetcher {
     builder.assignWork(HOST, PORT, partition, 1, Arrays.asList(srcAttempts));
     Fetcher fetcher = spy(builder.build());
     fetcher.populateRemainingMap(new LinkedList<InputAttemptIdentifier>(Arrays.asList(srcAttempts)));
-    Assert.assertTrue(expectedSrcAttempts.length == fetcher.srcAttemptsRemaining.size());
+    assertEquals(expectedSrcAttempts.length, fetcher.srcAttemptsRemaining.size());
     Iterator<Entry<String, InputAttemptIdentifier>> iterator = fetcher.srcAttemptsRemaining.entrySet().iterator();
     int count = 0;
     while(iterator.hasNext()) {
       String key = iterator.next().getKey();
-      Assert.assertTrue(expectedSrcAttempts[count++].toString().compareTo(key) == 0);
+      assertEquals(0, expectedSrcAttempts[count++].toString().compareTo(key));
     }
   }
 
@@ -341,9 +349,9 @@ public class TestFetcher {
 
     InputAttemptFetchFailure[] failures =
         fetcher.fetchInputs(input, null, new InputAttemptIdentifier(0, 0));
-    Assert.assertEquals(1, failures.length);
-    Assert.assertTrue(failures[0].isDiskErrorAtSource());
-    Assert.assertFalse(failures[0].isLocalFetch());
+    assertEquals(1, failures.length);
+    assertTrue(failures[0].isDiskErrorAtSource());
+    assertFalse(failures[0].isLocalFetch());
   }
 
   private InputContext createMockInputContext() {

@@ -18,6 +18,11 @@
  */
 package org.apache.tez.dag.library.vertexmanager;
 
+import static org.junit.jupiter.api.Assertions.assertArrayEquals;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertTrue;
+import static org.junit.jupiter.api.Assertions.fail;
 import static org.mockito.Mockito.any;
 import static org.mockito.Mockito.anyInt;
 import static org.mockito.Mockito.anyList;
@@ -31,6 +36,7 @@ import static org.mockito.Mockito.when;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.concurrent.TimeUnit;
 
 import org.apache.hadoop.conf.Configuration;
 import org.apache.tez.dag.api.EdgeManagerPlugin;
@@ -49,15 +55,16 @@ import org.apache.tez.runtime.api.events.VertexManagerEvent;
 
 import com.google.common.collect.Lists;
 
-import org.junit.Assert;
-import org.junit.Test;
+import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.Timeout;
 
 @SuppressWarnings({ "unchecked", "rawtypes" })
 public class TestFairShuffleVertexManager
     extends TestShuffleVertexManagerUtils {
   List<TaskAttemptIdentifier> emptyCompletions = null;
 
-  @Test(timeout = 5000)
+  @Test
+  @Timeout(value = 5000, unit = TimeUnit.MILLISECONDS)
   public void testAutoParallelismConfig() throws Exception {
     FairShuffleVertexManager manager;
 
@@ -69,24 +76,25 @@ public class TestFairShuffleVertexManager
 
     manager = createManager(null, mockContext, null, 0.5f);
     verify(mockContext, times(1)).vertexReconfigurationPlanned(); // Tez notified of reconfig
-    Assert.assertTrue(manager.config.isAutoParallelismEnabled());
-    Assert.assertTrue(manager.config.getDesiredTaskInputDataSize() == 1000l * MB);
-    Assert.assertTrue(manager.config.getMinFraction() == 0.25f);
-    Assert.assertTrue(manager.config.getMaxFraction() == 0.5f);
+    assertTrue(manager.config.isAutoParallelismEnabled());
+    assertEquals(manager.config.getDesiredTaskInputDataSize(), 1000l * MB);
+    assertEquals(0.25f, manager.config.getMinFraction());
+    assertEquals(0.5f, manager.config.getMaxFraction());
 
     manager = createManager(null, mockContext, null, null, null, null);
     verify(mockContext, times(1)).vertexReconfigurationPlanned(); // Tez not notified of reconfig
 
-    Assert.assertTrue(!manager.config.isAutoParallelismEnabled());
-    Assert.assertTrue(manager.config.getDesiredTaskInputDataSize() ==
-        FairShuffleVertexManager.TEZ_FAIR_SHUFFLE_VERTEX_MANAGER_DESIRED_TASK_INPUT_SIZE_DEFAULT);
-    Assert.assertTrue(manager.config.getMinFraction() ==
-        FairShuffleVertexManager.TEZ_FAIR_SHUFFLE_VERTEX_MANAGER_MIN_SRC_FRACTION_DEFAULT);
-    Assert.assertTrue(manager.config.getMaxFraction() ==
-        FairShuffleVertexManager.TEZ_FAIR_SHUFFLE_VERTEX_MANAGER_MAX_SRC_FRACTION_DEFAULT);
+    assertFalse(manager.config.isAutoParallelismEnabled());
+    assertEquals(FairShuffleVertexManager.TEZ_FAIR_SHUFFLE_VERTEX_MANAGER_DESIRED_TASK_INPUT_SIZE_DEFAULT,
+        manager.config.getDesiredTaskInputDataSize());
+    assertEquals(FairShuffleVertexManager.TEZ_FAIR_SHUFFLE_VERTEX_MANAGER_MIN_SRC_FRACTION_DEFAULT,
+        manager.config.getMinFraction());
+    assertEquals(FairShuffleVertexManager.TEZ_FAIR_SHUFFLE_VERTEX_MANAGER_MAX_SRC_FRACTION_DEFAULT,
+        manager.config.getMaxFraction());
   }
 
-  @Test(timeout = 5000)
+  @Test
+  @Timeout(value = 5000, unit = TimeUnit.MILLISECONDS)
   public void testInvalidSetup() {
     Configuration conf = new Configuration();
     ShuffleVertexManagerBase manager;
@@ -102,15 +110,16 @@ public class TestFairShuffleVertexManager
       manager = createFairShuffleVertexManager(conf, mockContext,
           FairRoutingType.FAIR_PARALLELISM, 1000 * MB, 0.001f, 0.001f);
       manager.onVertexStarted(emptyCompletions);
-      Assert.assertFalse(true);
+      fail();
     } catch (TezUncheckedException e) {
-      Assert.assertTrue(e.getMessage().contains(
+      assertTrue(e.getMessage().contains(
           "Having more than one destination task process same partition(s) " +
               "only works with one bipartite source."));
     }
   }
 
-  @Test(timeout = 5000)
+  @Test
+  @Timeout(value = 5000, unit = TimeUnit.MILLISECONDS)
   public void testReduceSchedulingWithPartitionStats() throws Exception {
     final int numScatherAndGatherSourceTasks = 300;
     final Map<String, EdgeManagerPlugin> newEdgeManagers =
@@ -124,7 +133,7 @@ public class TestFairShuffleVertexManager
 
     // The first destination task fetches two partitions from all source tasks.
     // Thus the # of inputs == # of source tasks * 2 merged partitions
-    Assert.assertEquals(numScatherAndGatherSourceTasks * 2,
+    assertEquals(numScatherAndGatherSourceTasks * 2,
         edgeManager.getNumDestinationTaskPhysicalInputs(0));
     for (int sourceTaskIndex = 0;
         sourceTaskIndex < numScatherAndGatherSourceTasks; sourceTaskIndex++) {
@@ -132,14 +141,14 @@ public class TestFairShuffleVertexManager
         if (j == 0) {
           EdgeManagerPluginOnDemand.CompositeEventRouteMetadata routeMetadata =
               edgeManager.routeCompositeDataMovementEventToDestination(sourceTaskIndex, 0);
-          Assert.assertEquals(2, routeMetadata.getCount());
-          Assert.assertEquals(0, routeMetadata.getSource());
-          Assert.assertEquals(sourceTaskIndex*2, routeMetadata.getTarget());
+          assertEquals(2, routeMetadata.getCount());
+          assertEquals(0, routeMetadata.getSource());
+          assertEquals(sourceTaskIndex*2, routeMetadata.getTarget());
         } else {
           EdgeManagerPluginOnDemand.EventRouteMetadata routeMetadata =
               edgeManager.routeInputSourceTaskFailedEventToDestination(sourceTaskIndex, 0);
-          Assert.assertEquals(2, routeMetadata.getNumEvents());
-          Assert.assertArrayEquals(
+          assertEquals(2, routeMetadata.getNumEvents());
+          assertArrayEquals(
               new int[]{0 + sourceTaskIndex * 2, 1 + sourceTaskIndex * 2},
               routeMetadata.getTargetIndices());
         }
@@ -147,7 +156,8 @@ public class TestFairShuffleVertexManager
     }
   }
 
-  @Test(timeout = 5000)
+  @Test
+  @Timeout(value = 5000, unit = TimeUnit.MILLISECONDS)
   public void testFairSchedulingWithPartitionStats() throws Exception {
     final int numScatherAndGatherSourceTasks = 300;
     final Map<String, EdgeManagerPlugin> newEdgeManagers =
@@ -165,7 +175,7 @@ public class TestFairShuffleVertexManager
 
     // The first destination task fetches two partitions from all source tasks.
     // Thus the # of inputs == # of source tasks * 2 merged partitions
-    Assert.assertEquals(numScatherAndGatherSourceTasks * 2,
+    assertEquals(numScatherAndGatherSourceTasks * 2,
         edgeManager.getNumDestinationTaskPhysicalInputs(0));
     for (int sourceTaskIndex = 0; sourceTaskIndex < numScatherAndGatherSourceTasks;
         sourceTaskIndex++) {
@@ -173,14 +183,14 @@ public class TestFairShuffleVertexManager
         if (j == 0) {
           EdgeManagerPluginOnDemand.CompositeEventRouteMetadata routeMetadata =
               edgeManager.routeCompositeDataMovementEventToDestination(sourceTaskIndex, 0);
-          Assert.assertEquals(2, routeMetadata.getCount());
-          Assert.assertEquals(0, routeMetadata.getSource());
-          Assert.assertEquals(sourceTaskIndex*2, routeMetadata.getTarget());
+          assertEquals(2, routeMetadata.getCount());
+          assertEquals(0, routeMetadata.getSource());
+          assertEquals(sourceTaskIndex*2, routeMetadata.getTarget());
         } else {
           EdgeManagerPluginOnDemand.EventRouteMetadata routeMetadata =
               edgeManager.routeInputSourceTaskFailedEventToDestination(sourceTaskIndex, 0);
-          Assert.assertEquals(2, routeMetadata.getNumEvents());
-          Assert.assertArrayEquals(
+          assertEquals(2, routeMetadata.getNumEvents());
+          assertArrayEquals(
               new int[]{0 + sourceTaskIndex * 2, 1 + sourceTaskIndex * 2},
               routeMetadata.getTargetIndices());
         }
@@ -189,26 +199,26 @@ public class TestFairShuffleVertexManager
 
     // The 2nd destination task fetches one partition from the first half of
     // source tasks.
-    Assert.assertEquals(numScatherAndGatherSourceTasks / 2,
+    assertEquals(numScatherAndGatherSourceTasks / 2,
         edgeManager.getNumDestinationTaskPhysicalInputs(1));
     for (int j = 0; j < 2; j++) {
       if (j == 0) {
         EdgeManagerPluginOnDemand.CompositeEventRouteMetadata routeMetadata =
             edgeManager.routeCompositeDataMovementEventToDestination(0, 1);
-        Assert.assertEquals(1, routeMetadata.getCount());
-        Assert.assertEquals(2, routeMetadata.getSource());
-        Assert.assertEquals(0, routeMetadata.getTarget());
+        assertEquals(1, routeMetadata.getCount());
+        assertEquals(2, routeMetadata.getSource());
+        assertEquals(0, routeMetadata.getTarget());
       } else {
         EdgeManagerPluginOnDemand.EventRouteMetadata routeMetadata =
             edgeManager.routeInputSourceTaskFailedEventToDestination(0, 1);
-        Assert.assertEquals(1, routeMetadata.getNumEvents());
-        Assert.assertEquals(0, routeMetadata.getTargetIndices()[0]);
+        assertEquals(1, routeMetadata.getNumEvents());
+        assertEquals(0, routeMetadata.getTargetIndices()[0]);
       }
     }
 
     // The 3rd destination task fetches one partition from 2nd half of
     // source tasks.
-    Assert.assertEquals(numScatherAndGatherSourceTasks / 2,
+    assertEquals(numScatherAndGatherSourceTasks / 2,
         edgeManager.getNumDestinationTaskPhysicalInputs(2));
     for (int sourceTaskIndex = numScatherAndGatherSourceTasks / 2;
         sourceTaskIndex < numScatherAndGatherSourceTasks; sourceTaskIndex++) {
@@ -216,23 +226,24 @@ public class TestFairShuffleVertexManager
         if (j == 0) {
           EdgeManagerPluginOnDemand.CompositeEventRouteMetadata routeMetadata =
               edgeManager.routeCompositeDataMovementEventToDestination(sourceTaskIndex, 2);
-          Assert.assertEquals(1, routeMetadata.getCount());
-          Assert.assertEquals(2, routeMetadata.getSource());
-          Assert.assertEquals(
+          assertEquals(1, routeMetadata.getCount());
+          assertEquals(2, routeMetadata.getSource());
+          assertEquals(
               sourceTaskIndex - numScatherAndGatherSourceTasks / 2,
               routeMetadata.getTarget());
         } else {
           EdgeManagerPluginOnDemand.EventRouteMetadata routeMetadata =
               edgeManager.routeInputSourceTaskFailedEventToDestination(sourceTaskIndex, 2);
-          Assert.assertEquals(1, routeMetadata.getNumEvents());
-          Assert.assertEquals(sourceTaskIndex - numScatherAndGatherSourceTasks / 2,
+          assertEquals(1, routeMetadata.getNumEvents());
+          assertEquals(sourceTaskIndex - numScatherAndGatherSourceTasks / 2,
               routeMetadata.getTargetIndices()[0]);
         }
       }
     }
   }
 
-  @Test(timeout = 500000)
+  @Test
+  @Timeout(value = 500000, unit = TimeUnit.MILLISECONDS)
   public void testOverflow() throws Exception {
     final int numScatherAndGatherSourceTasks = 30000;
     final Map<String, EdgeManagerPlugin> newEdgeManagers =
@@ -317,21 +328,21 @@ public class TestFairShuffleVertexManager
     manager = createFairShuffleVertexManager(conf, mockContext,
         fairRoutingType, 1000 * MB, 0.001f, 0.001f);
     manager.onVertexStarted(emptyCompletions);
-    Assert.assertTrue(manager.bipartiteSources == 1);
+    assertEquals(1, manager.bipartiteSources);
 
     manager.onVertexStateUpdated(new VertexStateUpdate(r1,
         VertexState.CONFIGURED));
     manager.onVertexStateUpdated(new VertexStateUpdate(m2,
         VertexState.CONFIGURED));
 
-    Assert.assertEquals(numOfTasksInDestination,
+    assertEquals(numOfTasksInDestination,
         manager.pendingTasks.size()); // no tasks scheduled
-    Assert.assertEquals(numOfTasksInr1,
+    assertEquals(numOfTasksInr1,
         manager.totalNumBipartiteSourceTasks);
-    Assert.assertEquals(0, manager.numBipartiteSourceTasksCompleted);
+    assertEquals(0, manager.numBipartiteSourceTasksCompleted);
 
-    Assert.assertTrue(manager.pendingTasks.size() == numOfTasksInDestination); // no tasks scheduled
-    Assert.assertTrue(manager.totalNumBipartiteSourceTasks == numOfTasksInr1);
+    assertEquals(numOfTasksInDestination, manager.pendingTasks.size()); // no tasks scheduled
+    assertEquals(manager.totalNumBipartiteSourceTasks, numOfTasksInr1);
 
 
     for (int i = 0; i < numCompletedEvents; i++) {
@@ -343,28 +354,28 @@ public class TestFairShuffleVertexManager
 
     //Send an event for m2.
     manager.onSourceTaskCompleted(createTaskAttemptIdentifier(m2, 0));
-    Assert.assertTrue(manager.pendingTasks.size() == numOfTasksInDestination); // no tasks scheduled
-    Assert.assertTrue(manager.totalNumBipartiteSourceTasks == numOfTasksInr1);
+    assertEquals(numOfTasksInDestination, manager.pendingTasks.size()); // no tasks scheduled
+    assertEquals(manager.totalNumBipartiteSourceTasks, numOfTasksInr1);
 
     //Send an event for m3.
     manager.onVertexStateUpdated(new VertexStateUpdate(m3, VertexState.CONFIGURED));
     manager.onSourceTaskCompleted(createTaskAttemptIdentifier(m3, 0));
-    Assert.assertTrue(manager.pendingTasks.size() == 0); // all tasks scheduled
-    Assert.assertTrue(scheduledTasks.size() == expectedScheduledTasks);
+    assertEquals(0, manager.pendingTasks.size()); // all tasks scheduled
+    assertEquals(scheduledTasks.size(), expectedScheduledTasks);
 
-    Assert.assertEquals(1, newEdgeManagers.size());
+    assertEquals(1, newEdgeManagers.size());
     EdgeManagerPluginOnDemand edgeManager =
         (EdgeManagerPluginOnDemand)newEdgeManagers.values().iterator().next();
     // For each source task, there are 3 outputs,
     // the same as original number of partitions.
     for (int i = 0; i < numOfTasksInr1; i++) {
-      Assert.assertEquals(numOfTasksInDestination,
+      assertEquals(numOfTasksInDestination,
           edgeManager.getNumSourceTaskPhysicalOutputs(0));
     }
 
     for (int sourceTaskIndex = 0; sourceTaskIndex < numOfTasksInr1;
         sourceTaskIndex++) {
-      Assert.assertEquals(expectedNumDestinationConsumerTasks,
+      assertEquals(expectedNumDestinationConsumerTasks,
           edgeManager.getNumDestinationConsumerTasks(sourceTaskIndex));
     }
   }

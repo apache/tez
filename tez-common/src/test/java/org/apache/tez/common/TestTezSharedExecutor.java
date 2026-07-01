@@ -18,6 +18,11 @@
  */
 package org.apache.tez.common;
 
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertTrue;
+import static org.junit.jupiter.api.Assertions.fail;
+
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collection;
@@ -34,10 +39,10 @@ import java.util.concurrent.atomic.AtomicInteger;
 
 import org.apache.hadoop.conf.Configuration;
 
-import org.junit.After;
-import org.junit.Assert;
-import org.junit.Before;
-import org.junit.Test;
+import org.junit.jupiter.api.AfterEach;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.Timeout;
 
 public class TestTezSharedExecutor {
 
@@ -113,18 +118,19 @@ public class TestTezSharedExecutor {
 
   private TezSharedExecutor sharedExecutor;
 
-  @Before
+  @BeforeEach
   public void setup() {
     sharedExecutor = new TezSharedExecutor(new Configuration());
   }
 
-  @After
+  @AfterEach
   public void cleanup() {
     sharedExecutor.shutdownNow();
     sharedExecutor = null;
   }
 
-  @Test(timeout=10000)
+  @Test
+  @Timeout(value = 10000, unit = TimeUnit.MILLISECONDS)
   public void testSimpleExecution() throws Exception {
     ConcurrentHashMap<String, AtomicInteger> map = new ConcurrentHashMap<>();
 
@@ -132,13 +138,13 @@ public class TestTezSharedExecutor {
 
     // Test runnable
     service.submit(new Counter(map, "test")).get();
-    Assert.assertEquals(1, map.get("test").get());
+    assertEquals(1, map.get("test").get());
 
     // Test runnable with a result
     final Object expected = new Object();
     Object val = service.submit(new Counter(map, "test"), expected).get();
-    Assert.assertEquals(expected, val);
-    Assert.assertEquals(2, map.get("test").get());
+    assertEquals(expected, val);
+    assertEquals(2, map.get("test").get());
 
     // Test callable.
     val = service.submit(new Callable<Object>() {
@@ -147,19 +153,20 @@ public class TestTezSharedExecutor {
         return expected;
       }
     }).get();
-    Assert.assertEquals(expected, val);
+    assertEquals(expected, val);
 
     // Tasks should be rejected after a shutdown.
     service.shutdown();
 
     try {
       service.submit(new Counter(map, "test"));
-      Assert.fail("Expected rejected execution exception.");
+      fail("Expected rejected execution exception.");
     } catch (RejectedExecutionException e) {
     }
   }
 
-  @Test(timeout=10000)
+  @Test
+  @Timeout(value = 10000, unit = TimeUnit.MILLISECONDS)
   public void testAwaitTermination() throws Exception {
     ExecutorService service = sharedExecutor.createExecutorService(1, "await-termination");
     CountDownLatch latch = new CountDownLatch(1);
@@ -169,18 +176,19 @@ public class TestTezSharedExecutor {
     service.shutdown();
 
     // Task stuck on latch hence it should fail to terminate.
-    Assert.assertFalse(service.awaitTermination(100, TimeUnit.MILLISECONDS));
-    Assert.assertFalse(service.isTerminated());
-    Assert.assertTrue(service.isShutdown());
+    assertFalse(service.awaitTermination(100, TimeUnit.MILLISECONDS));
+    assertFalse(service.isTerminated());
+    assertTrue(service.isShutdown());
 
     latch.countDown();
 
-    Assert.assertTrue(service.awaitTermination(5, TimeUnit.SECONDS));
-    Assert.assertTrue(service.isTerminated());
-    Assert.assertTrue(service.isShutdown());
+    assertTrue(service.awaitTermination(5, TimeUnit.SECONDS));
+    assertTrue(service.isTerminated());
+    assertTrue(service.isShutdown());
   }
 
-  @Test(timeout=10000)
+  @Test
+  @Timeout(value = 10000, unit = TimeUnit.MILLISECONDS)
   public void testSerialExecution() throws Exception {
     ExecutorService service = sharedExecutor.createExecutorService(1, "serial-test");
     CountDownLatch latch = new CountDownLatch(1);
@@ -197,7 +205,7 @@ public class TestTezSharedExecutor {
     service.shutdown();
 
     // Until we release the task from the latch nothing moves forward.
-    Assert.assertEquals(0, list.size());
+    assertEquals(0, list.size());
     latch.countDown();
     f1.get();
 
@@ -205,11 +213,12 @@ public class TestTezSharedExecutor {
     for (Future<?> f : futures) {
       f.get();
     }
-    Assert.assertEquals(10, list.size());
-    Assert.assertEquals(Arrays.asList(0, 1, 2, 3, 4, 5, 6, 7, 8, 9), list);
+    assertEquals(10, list.size());
+    assertEquals(Arrays.asList(0, 1, 2, 3, 4, 5, 6, 7, 8, 9), list);
   }
 
-  @Test(timeout=10000)
+  @Test
+  @Timeout(value = 10000, unit = TimeUnit.MILLISECONDS)
   public void testParallelExecution() throws Exception {
     ConcurrentHashMap<String, AtomicInteger> map = new ConcurrentHashMap<>();
 
@@ -229,13 +238,13 @@ public class TestTezSharedExecutor {
     for (Future<?> future : futures) {
       future.get();
     }
-    Assert.assertEquals(expectedCounts[0], map.get("test0").get());
-    Assert.assertEquals(expectedCounts[1], map.get("test1").get());
+    assertEquals(expectedCounts[0], map.get("test0").get());
+    assertEquals(expectedCounts[1], map.get("test1").get());
 
     // Even if one service is shutdown the other should work.
     services[0].shutdown();
     services[1].submit(new Counter(map, "test1")).get();
-    Assert.assertEquals(expectedCounts[1] + 1, map.get("test1").get());
+    assertEquals(expectedCounts[1] + 1, map.get("test1").get());
   }
 
 }

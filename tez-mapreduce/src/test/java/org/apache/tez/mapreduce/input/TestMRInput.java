@@ -18,10 +18,11 @@
  */
 package org.apache.tez.mapreduce.input;
 
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertFalse;
-import static org.junit.Assert.assertTrue;
-import static org.junit.Assert.fail;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertInstanceOf;
+import static org.junit.jupiter.api.Assertions.assertTrue;
+import static org.junit.jupiter.api.Assertions.fail;
 import static org.mockito.Mockito.doReturn;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.times;
@@ -33,6 +34,7 @@ import java.io.IOException;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.Random;
+import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicBoolean;
 
 import org.apache.hadoop.conf.Configuration;
@@ -54,11 +56,13 @@ import org.apache.tez.runtime.api.InputContext;
 import org.apache.tez.runtime.api.InputStatisticsReporter;
 import org.apache.tez.runtime.api.events.InputDataInformationEvent;
 
-import org.junit.Test;
+import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.Timeout;
 
 public class TestMRInput {
 
-  @Test(timeout = 5000)
+  @Test
+  @Timeout(value = 5000, unit = TimeUnit.MILLISECONDS)
   public void test0PhysicalInputs() throws IOException {
     InputContext inputContext = mock(InputContext.class);
 
@@ -92,7 +96,7 @@ public class TestMRInput {
       mrInput.handleEvents(events);
       fail("HandleEvents should cause an input with 0 physical inputs to fail");
     } catch (Exception e) {
-      assertTrue(e instanceof IllegalStateException);
+      assertInstanceOf(IllegalStateException.class, e);
     }
   }
 
@@ -113,7 +117,8 @@ public class TestMRInput {
   private static final String TEST_ATTRIBUTES_TASK_ID_STRING = "task_0_0000_1000_2000_003000";
   private static final String TEST_ATTRIBUTES_TASK_ATTEMPT_ID_STRING = "attempt_0_0000_1000_2000_003000_4000";
 
-  @Test(timeout = 5000)
+  @Test
+  @Timeout(value = 5000, unit = TimeUnit.MILLISECONDS)
   public void testAttributesInJobConf() throws Exception {
     InputContext inputContext = mock(InputContext.class);
     doReturn(TEST_ATTRIBUTES_DAG_INDEX).when(inputContext).getDagIdentifier();
@@ -155,7 +160,8 @@ public class TestMRInput {
     assertTrue(TestInputFormat.invoked.get());
   }
 
-  @Test(timeout = 5000)
+  @Test
+  @Timeout(value = 5000, unit = TimeUnit.MILLISECONDS)
   public void testConfigMerge() throws Exception {
     JobConf jobConf = new JobConf(false);
     jobConf.set("payload-key", "payload-value");

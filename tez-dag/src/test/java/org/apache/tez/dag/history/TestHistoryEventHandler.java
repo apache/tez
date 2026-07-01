@@ -18,7 +18,7 @@
  */
 package org.apache.tez.dag.history;
 
-import static org.junit.Assert.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 
@@ -55,8 +55,8 @@ import org.apache.tez.dag.records.TezTaskID;
 import org.apache.tez.dag.records.TezVertexID;
 import org.apache.tez.hadoop.shim.HadoopShim;
 
-import org.junit.Before;
-import org.junit.Test;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
 
 public class TestHistoryEventHandler {
 
@@ -65,7 +65,7 @@ public class TestHistoryEventHandler {
   private static String user = "TEST_USER";
   private Configuration baseConfig;
 
-  @Before
+  @BeforeEach
   public void setupConfig() {
     baseConfig = new Configuration(false);
   }
@@ -139,8 +139,7 @@ public class TestHistoryEventHandler {
     for (DAGHistoryEvent event : events) {
       handler.handle(event);
     }
-    assertEquals("Failed for level: " + level,
-        expectedCount, InMemoryHistoryLoggingService.events.size());
+    assertEquals(expectedCount, InMemoryHistoryLoggingService.events.size(), "Failed for level: " + level);
     handler.stop();
   }
 
@@ -151,8 +150,7 @@ public class TestHistoryEventHandler {
     for (DAGHistoryEvent event : makeHistoryEvents(dagId, handler.getConfig())) {
       handler.handle(event);
     }
-    assertEquals("Failed for level: " + level,
-        expectedCount, InMemoryHistoryLoggingService.events.size());
+    assertEquals(expectedCount, InMemoryHistoryLoggingService.events.size(), "Failed for level: " + level);
     handler.stop();
   }
 

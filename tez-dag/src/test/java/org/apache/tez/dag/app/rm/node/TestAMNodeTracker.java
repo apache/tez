@@ -18,16 +18,17 @@
  */
 package org.apache.tez.dag.app.rm.node;
 
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertFalse;
-import static org.junit.Assert.assertNotNull;
-import static org.junit.Assert.assertNull;
-import static org.junit.Assert.assertTrue;
-import static org.junit.Assert.fail;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertNotNull;
+import static org.junit.jupiter.api.Assertions.assertNull;
+import static org.junit.jupiter.api.Assertions.assertTrue;
+import static org.junit.jupiter.api.Assertions.fail;
 import static org.mockito.Mockito.doReturn;
 import static org.mockito.Mockito.mock;
 
 import java.util.List;
+import java.util.concurrent.TimeUnit;
 
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.yarn.api.records.ContainerId;
@@ -51,9 +52,10 @@ import org.apache.tez.dag.records.TezTaskAttemptID;
 
 import com.google.common.collect.Lists;
 
-import org.junit.After;
-import org.junit.Before;
-import org.junit.Test;
+import org.junit.jupiter.api.AfterEach;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.Timeout;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -65,7 +67,7 @@ public class TestAMNodeTracker {
   DrainDispatcher dispatcher;
   EventHandler eventHandler;
 
-  @Before
+  @BeforeEach
   public void setup() {
     dispatcher = new DrainDispatcher();
     dispatcher.init(new Configuration());
@@ -83,12 +85,13 @@ public class TestAMNodeTracker {
     }
   }
 
-  @After
+  @AfterEach
   public void teardown() {
     dispatcher.stop();
   }
 
-  @Test(timeout=5000)
+  @Test
+  @Timeout(value = 5000, unit = TimeUnit.MILLISECONDS)
   public void testHealthUpdateKnownNode() {
     AppContext appContext = mock(AppContext.class);
 
@@ -107,7 +110,8 @@ public class TestAMNodeTracker {
     amNodeTracker.stop();
   }
 
-  @Test(timeout=5000)
+  @Test
+  @Timeout(value = 5000, unit = TimeUnit.MILLISECONDS)
   public void testHealthUpdateUnknownNode() {
     AppContext appContext = mock(AppContext.class);
 
@@ -127,7 +131,8 @@ public class TestAMNodeTracker {
     // the log message for verification.
   }
 
-  @Test (timeout = 5000)
+  @Test
+  @Timeout(value = 5000, unit = TimeUnit.MILLISECONDS)
   public void testMultipleSourcesNodeRegistration() {
     AppContext appContext = mock(AppContext.class);
     AMNodeTracker amNodeTracker = new AMNodeTracker(eventHandler, appContext);
@@ -150,7 +155,8 @@ public class TestAMNodeTracker {
     assertNotNull(amNodeTracker.get(nodeId2, 1));
   }
 
-  @Test (timeout = 5000)
+  @Test
+  @Timeout(value = 5000, unit = TimeUnit.MILLISECONDS)
   public void testMultipleSourcesNodeCountUpdated() {
     AppContext appContext = mock(AppContext.class);
     AMNodeTracker amNodeTracker = new AMNodeTracker(eventHandler, appContext);
@@ -176,7 +182,8 @@ public class TestAMNodeTracker {
     assertNotNull(amNodeTracker.get(nodeId2, 1));
   }
 
-  @Test (timeout = 5000)
+  @Test
+  @Timeout(value = 5000, unit = TimeUnit.MILLISECONDS)
   public void testSingleNodeNotBlacklisted() {
     AppContext appContext = mock(AppContext.class);
     Configuration conf = new Configuration(false);
@@ -199,7 +206,8 @@ public class TestAMNodeTracker {
     _testSingleNodeNotBlacklisted(amNodeTracker, handler, 0);
   }
 
-  @Test (timeout = 5000)
+  @Test
+  @Timeout(value = 5000, unit = TimeUnit.MILLISECONDS)
   public void testSingleNodeNotBlacklistedAlternateScheduler() {
     AppContext appContext = mock(AppContext.class);
     Configuration conf = new Configuration(false);
@@ -222,7 +230,8 @@ public class TestAMNodeTracker {
     _testSingleNodeNotBlacklisted(amNodeTracker, handler, 1);
   }
 
-  @Test (timeout = 5000)
+  @Test
+  @Timeout(value = 5000, unit = TimeUnit.MILLISECONDS)
   public void testSingleNodeNotBlacklistedAlternateScheduler2() {
     AppContext appContext = mock(AppContext.class);
     Configuration conf = new Configuration(false);
@@ -253,7 +262,8 @@ public class TestAMNodeTracker {
     assertFalse(amNodeTracker.isBlacklistingIgnored(0));
   }
 
-  @Test(timeout=10000)
+  @Test
+  @Timeout(value = 10000, unit = TimeUnit.MILLISECONDS)
   public void testNodeSelfBlacklist() {
     AppContext appContext = mock(AppContext.class);
     Configuration conf = new Configuration(false);
@@ -276,7 +286,8 @@ public class TestAMNodeTracker {
     }
   }
 
-  @Test(timeout=10000)
+  @Test
+  @Timeout(value = 10000, unit = TimeUnit.MILLISECONDS)
   public void testNodeSelfBlacklistAlternateScheduler1() {
     AppContext appContext = mock(AppContext.class);
     Configuration conf = new Configuration(false);
@@ -299,7 +310,8 @@ public class TestAMNodeTracker {
     }
   }
 
-  @Test(timeout=10000)
+  @Test
+  @Timeout(value = 10000, unit = TimeUnit.MILLISECONDS)
   public void testNodeSelfBlacklistAlternateScheduler2() {
     AppContext appContext = mock(AppContext.class);
     Configuration conf = new Configuration(false);
@@ -328,7 +340,8 @@ public class TestAMNodeTracker {
     }
   }
 
-  @Test(timeout=10000)
+  @Test
+  @Timeout(value = 10000, unit = TimeUnit.MILLISECONDS)
   public void testMultipleAMNodeIDs() {
     AppContext appContext = mock(AppContext.class);
     Configuration conf = new Configuration(false);
@@ -355,7 +368,8 @@ public class TestAMNodeTracker {
     }
   }
 
-  @Test(timeout = 10000L)
+  @Test
+  @Timeout(value = 10000, unit = TimeUnit.MILLISECONDS)
   public void testNodeCompletedAndCleanup() {
     AppContext appContext = mock(AppContext.class);
     Configuration conf = new Configuration(false);
@@ -427,23 +441,27 @@ public class TestAMNodeTracker {
 
   }
 
-  @Test(timeout=10000)
+  @Test
+  @Timeout(value = 10000, unit = TimeUnit.MILLISECONDS)
   public void testNodeUnhealthyRescheduleTasksEnabled() throws Exception {
     _testNodeUnhealthyRescheduleTasks(true, false);
   }
 
-  @Test(timeout=10000)
+  @Test
+  @Timeout(value = 10000, unit = TimeUnit.MILLISECONDS)
   public void testNodeUnhealthyRescheduleTasksDisabled() throws Exception {
     _testNodeUnhealthyRescheduleTasks(false, false);
   }
 
 
-  @Test(timeout=10000)
+  @Test
+  @Timeout(value = 10000, unit = TimeUnit.MILLISECONDS)
   public void testNodeUnhealthyRescheduleTasksEnabledAMNode() throws Exception {
     _testNodeUnhealthyRescheduleTasks(true, true);
   }
 
-  @Test(timeout=10000)
+  @Test
+  @Timeout(value = 10000, unit = TimeUnit.MILLISECONDS)
   public void testNodeUnhealthyRescheduleTasksDisabledAMNode() throws Exception {
     _testNodeUnhealthyRescheduleTasks(false, true);
   }

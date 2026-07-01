@@ -18,8 +18,8 @@
  */
 package org.apache.tez.runtime.library.common.shuffle.orderedgrouped;
 
-import static org.junit.Assert.assertFalse;
-import static org.junit.Assert.assertTrue;
+import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.Mockito.anyInt;
 import static org.mockito.Mockito.anyString;
 import static org.mockito.Mockito.doReturn;
@@ -32,6 +32,7 @@ import static org.mockito.Mockito.when;
 import java.io.IOException;
 import java.nio.ByteBuffer;
 import java.util.concurrent.ExecutorService;
+import java.util.concurrent.TimeUnit;
 
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.io.Text;
@@ -50,9 +51,10 @@ import org.apache.tez.runtime.api.TaskFailureType;
 import org.apache.tez.runtime.api.impl.ExecutionContextImpl;
 import org.apache.tez.runtime.library.common.Constants;
 
-import org.junit.After;
-import org.junit.Before;
-import org.junit.Test;
+import org.junit.jupiter.api.AfterEach;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.Timeout;
 import org.mockito.ArgumentCaptor;
 import org.mockito.invocation.InvocationOnMock;
 import org.mockito.stubbing.Answer;
@@ -61,17 +63,18 @@ public class TestShuffle {
 
   private TezExecutors sharedExecutor;
 
-  @Before
+  @BeforeEach
   public void setup() {
     sharedExecutor = new TezSharedExecutor(new Configuration());
   }
 
-  @After
+  @AfterEach
   public void cleanup() {
     sharedExecutor.shutdownNow();
   }
 
-  @Test(timeout = 10000)
+  @Test
+  @Timeout(value = 10000, unit = TimeUnit.MILLISECONDS)
   public void testSchedulerTerminatesOnException() throws IOException, InterruptedException {
 
     InputContext inputContext = createTezInputContext();
@@ -113,7 +116,8 @@ public class TestShuffle {
 
   }
 
-  @Test(timeout = 10000)
+  @Test
+  @Timeout(value = 10000, unit = TimeUnit.MILLISECONDS)
   public void testKillSelf() throws IOException, InterruptedException {
     InputContext inputContext = createTezInputContext();
     TezConfiguration conf = new TezConfiguration();
@@ -122,14 +126,14 @@ public class TestShuffle {
     try {
       shuffle.run();
       ShuffleScheduler scheduler = shuffle.scheduler;
-      assertFalse("scheduler.isShutdown should be false", scheduler.isShutdown());
+      assertFalse(scheduler.isShutdown(), "scheduler.isShutdown should be false");
 
       // killSelf() would invoke close(). Internally Shuffle --> merge.close() --> finalMerge()
       // gets called. In MergeManager::finalMerge(), it would throw illegal argument exception as
       // uniqueIdentifier is not present in inputContext. This is used as means of simulating
       // exception.
       scheduler.killSelf(new Exception(), "due to internal error");
-      assertTrue("scheduler.isShutdown should be true", scheduler.isShutdown());
+      assertTrue(scheduler.isShutdown(), "scheduler.isShutdown should be true");
 
       //killSelf() should not result in reporting failure to AM
       ArgumentCaptor<Throwable> throwableArgumentCaptor = ArgumentCaptor.forClass(Throwable.class);

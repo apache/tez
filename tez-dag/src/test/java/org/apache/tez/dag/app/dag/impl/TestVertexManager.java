@@ -18,10 +18,10 @@
  */
 package org.apache.tez.dag.app.dag.impl;
 
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertNotNull;
-import static org.junit.Assert.assertTrue;
-import static org.junit.Assert.fail;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertNotNull;
+import static org.junit.jupiter.api.Assertions.assertTrue;
+import static org.junit.jupiter.api.Assertions.fail;
 import static org.mockito.Mockito.RETURNS_DEEP_STUBS;
 import static org.mockito.Mockito.any;
 import static org.mockito.Mockito.doAnswer;
@@ -43,6 +43,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import java.util.concurrent.Callable;
+import java.util.concurrent.TimeUnit;
 
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.security.UserGroupInformation;
@@ -72,8 +73,9 @@ import com.google.common.collect.Sets;
 import com.google.common.util.concurrent.ListenableFuture;
 import com.google.common.util.concurrent.ListeningExecutorService;
 
-import org.junit.Before;
-import org.junit.Test;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.Timeout;
 import org.mockito.ArgumentCaptor;
 import org.mockito.invocation.InvocationOnMock;
 import org.mockito.stubbing.Answer;
@@ -86,7 +88,7 @@ public class TestVertexManager {
   EventHandler mockHandler;
   ArgumentCaptor<VertexEventInputDataInformation> requestCaptor;
 
-  @Before
+  @BeforeEach
   public void setup() {
     mockAppContext = mock(AppContext.class, RETURNS_DEEP_STUBS);
     execService = mock(ListeningExecutorService.class);
@@ -128,7 +130,8 @@ public class TestVertexManager {
                                         List<Event> events) throws Exception {}
   }
 
-  @Test(timeout = 5000)
+  @Test
+  @Timeout(value = 5000, unit = TimeUnit.MILLISECONDS)
   public void testVertexManagerPluginCtorAccessUserPayload() throws IOException, TezException {
     byte[] randomUserPayload = {1,2,3};
     UserPayload userPayload = UserPayload.create(ByteBuffer.wrap(randomUserPayload));
@@ -140,7 +143,8 @@ public class TestVertexManager {
   }
 
 
-  @Test(timeout = 5000)
+  @Test
+  @Timeout(value = 5000, unit = TimeUnit.MILLISECONDS)
   public void testOnRootVertexInitialized() throws Exception {
     Configuration conf = new Configuration();
     VertexManager vm =
@@ -176,7 +180,8 @@ public class TestVertexManager {
    * custom vertex manager generates events only when both i1 and i2 are initialized.
    * @throws Exception
    */
-  @Test(timeout = 5000)
+  @Test
+  @Timeout(value = 5000, unit = TimeUnit.MILLISECONDS)
   public void testOnRootVertexInitialized2() throws Exception {
     VertexManager vm =
         new VertexManager(
@@ -215,7 +220,8 @@ public class TestVertexManager {
     assertEquals(Sets.newHashSet("input1","input2"), edgeVertexSet);
   }
 
-  @Test(timeout = 5000)
+  @Test
+  @Timeout(value = 5000, unit = TimeUnit.MILLISECONDS)
   public void testVMPluginCtxGetInputVertexGroup() throws Exception {
     VertexManager vm =
       new VertexManager(VertexManagerPluginDescriptor.create(CustomVertexManager.class.getName()),
@@ -235,7 +241,8 @@ public class TestVertexManager {
     assertTrue(groups.get(group).contains(v2));
   }
 
-  @Test(timeout = 5000)
+  @Test
+  @Timeout(value = 5000, unit = TimeUnit.MILLISECONDS)
   public void testSendCustomProcessorEvent() throws Exception {
     VertexManager vm =
       new VertexManager(VertexManagerPluginDescriptor.create(CustomVertexManager.class.getName()),

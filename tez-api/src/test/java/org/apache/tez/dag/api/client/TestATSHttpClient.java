@@ -18,7 +18,10 @@
  */
 package org.apache.tez.dag.api.client;
 
-import static junit.framework.TestCase.fail;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertTrue;
+import static org.junit.jupiter.api.Assertions.fail;
+import static org.junit.jupiter.api.Assumptions.assumeFalse;
 import static org.mockito.Mockito.doReturn;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.spy;
@@ -28,32 +31,34 @@ import java.io.IOException;
 import java.util.HashSet;
 import java.util.Map;
 import java.util.Set;
+import java.util.concurrent.TimeUnit;
 
 import org.apache.hadoop.yarn.api.records.ApplicationId;
 import org.apache.tez.common.counters.TezCounters;
 import org.apache.tez.dag.api.TezConfiguration;
 import org.apache.tez.dag.api.TezException;
+import org.apache.tez.dag.api.client.DAGStatus.State;
 
 import org.codehaus.jettison.json.JSONException;
 import org.codehaus.jettison.json.JSONObject;
-import org.junit.Assert;
-import org.junit.Assume;
-import org.junit.Before;
-import org.junit.Test;
+import org.junit.jupiter.api.BeforeAll;
+import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.Timeout;
 
 public class TestATSHttpClient {
 
-  @Before
-  public void setup() {
+  @BeforeAll
+  public static void setup() {
     // Disable tests if hadoop version is less than 2.4.0
     // as Timeline is not supported in 2.2.x or 2.3.x
     // If enabled with the lower versions, tests fail due to incompatible use of an API
     // YarnConfiguration::useHttps which only exists in versions 2.4 and higher
     String hadoopVersion = System.getProperty("tez.hadoop.version");
-    Assume.assumeFalse(hadoopVersion.startsWith("2.2.") || hadoopVersion.startsWith("2.3."));
+    assumeFalse(hadoopVersion.startsWith("2.2.") || hadoopVersion.startsWith("2.3."));
   }
 
-  @Test(timeout = 5000)
+  @Test
+  @Timeout(value = 5000, unit = TimeUnit.MILLISECONDS)
   public void testGetDagStatusThrowsExceptionOnEmptyJson() throws TezException {
     ApplicationId mockAppId = mock(ApplicationId.class);
     DAGClientTimelineImpl httpClient = new DAGClientTimelineImpl(mockAppId, "EXAMPLE_DAG_ID",
@@ -73,11 +78,12 @@ public class TestATSHttpClient {
       fail("should not come here");
     }
 
-    Assert.assertTrue("Expected TezException but did not happen", exceptionHappened);
+    assertTrue(exceptionHappened, "Expected TezException but did not happen");
     verify(spyClient).getJsonRootEntity(expectedDagUrl);
   }
 
-  @Test(timeout = 5000)
+  @Test
+  @Timeout(value = 5000, unit = TimeUnit.MILLISECONDS)
   public void testGetDagStatusSimple() throws TezException, JSONException, IOException {
     DAGClientTimelineImpl
         httpClient = new DAGClientTimelineImpl(mock(ApplicationId.class),"EXAMPLE_DAG_ID",
@@ -119,25 +125,24 @@ public class TestATSHttpClient {
 
     DAGStatus dagStatus = spyClient.getDAGStatus(statusOptions);
 
-    Assert.assertEquals("DAG State", DAGStatus.State.SUCCEEDED, dagStatus.getState());
-    Assert.assertEquals("DAG Diagnostics size", 1, dagStatus.getDiagnostics().size());
-    Assert.assertEquals("DAG diagnostics detail", "SAMPLE_DIAGNOSTICS",
-        dagStatus.getDiagnostics().get(0));
-    Assert.assertEquals("Counters Size", 2, dagStatus.getDAGCounters().countCounters());
-    Assert.assertEquals("Counter Value", 1,
-        dagStatus.getDAGCounters().getGroup("CG1").findCounter("C1").getValue());
-    Assert.assertEquals("total tasks", 15, dagStatus.getDAGProgress().getTotalTaskCount());
-    Assert.assertEquals("failed tasks", 2, dagStatus.getDAGProgress().getFailedTaskCount());
-    Assert.assertEquals("killed tasks", 6, dagStatus.getDAGProgress().getKilledTaskCount());
-    Assert.assertEquals("succeeded tasks", 7, dagStatus.getDAGProgress().getSucceededTaskCount());
-    Assert.assertEquals("running tasks", 8, dagStatus.getDAGProgress().getRunningTaskCount());
+    assertEquals(State.SUCCEEDED, dagStatus.getState(), "DAG State");
+    assertEquals(1, dagStatus.getDiagnostics().size(), "DAG Diagnostics size");
+    assertEquals("SAMPLE_DIAGNOSTICS", dagStatus.getDiagnostics().get(0), "DAG diagnostics detail");
+    assertEquals(2, dagStatus.getDAGCounters().countCounters(), "Counters Size");
+    assertEquals(1, dagStatus.getDAGCounters().getGroup("CG1").findCounter("C1").getValue(), "Counter Value");
+    assertEquals(15, dagStatus.getDAGProgress().getTotalTaskCount(), "total tasks");
+    assertEquals(2, dagStatus.getDAGProgress().getFailedTaskCount(), "failed tasks");
+    assertEquals(6, dagStatus.getDAGProgress().getKilledTaskCount(), "killed tasks");
+    assertEquals(7, dagStatus.getDAGProgress().getSucceededTaskCount(), "succeeded tasks");
+    assertEquals(8, dagStatus.getDAGProgress().getRunningTaskCount(), "running tasks");
     final Map<String, Progress> vertexProgress = dagStatus.getVertexProgress();
-    Assert.assertEquals("vertex progress count", 2, vertexProgress.size());
-    Assert.assertTrue("vertex name1", vertexProgress.containsKey("v1"));
-    Assert.assertTrue("vertex name2", vertexProgress.containsKey("v2"));
+    assertEquals(2, vertexProgress.size(), "vertex progress count");
+    assertTrue(vertexProgress.containsKey("v1"), "vertex name1");
+    assertTrue(vertexProgress.containsKey("v2"), "vertex name2");
   }
 
-  @Test(timeout = 5000)
+  @Test
+  @Timeout(value = 5000, unit = TimeUnit.MILLISECONDS)
   public void testGetVertexStatusSimple() throws JSONException, TezException, IOException {
     DAGClientTimelineImpl
         httpClient = new DAGClientTimelineImpl(mock(ApplicationId.class), "EXAMPLE_DAG_ID",
@@ -165,16 +170,15 @@ public class TestATSHttpClient {
     doReturn(new JSONObject(jsonData)).when(spyClient).getJsonRootEntity(expectedVertexUrl);
 
     VertexStatus vertexStatus = spyClient.getVertexStatus("vertex1name", statusOptions);
-    Assert.assertEquals("status check", VertexStatus.State.SUCCEEDED, vertexStatus.getState());
-    Assert.assertEquals("diagnostics", "diagnostics1", vertexStatus.getDiagnostics().get(0));
+    assertEquals(VertexStatus.State.SUCCEEDED, vertexStatus.getState(), "status check");
+    assertEquals("diagnostics1", vertexStatus.getDiagnostics().get(0), "diagnostics");
     final Progress progress = vertexStatus.getProgress();
     final TezCounters vertexCounters = vertexStatus.getVertexCounters();
-    Assert.assertEquals("failed task count", 1, progress.getFailedTaskCount());
-    Assert.assertEquals("suceeded task count", 2, progress.getSucceededTaskCount());
-    Assert.assertEquals("killed task count", 3, progress.getKilledTaskCount());
-    Assert.assertEquals("total task count", 4, progress.getTotalTaskCount());
-    Assert.assertEquals("Counters Size", 2, vertexCounters.countCounters());
-    Assert.assertEquals("Counter Value", 1,
-        vertexCounters.getGroup("CG1").findCounter("C1").getValue());
+    assertEquals(1, progress.getFailedTaskCount(), "failed task count");
+    assertEquals(2, progress.getSucceededTaskCount(), "suceeded task count");
+    assertEquals(3, progress.getKilledTaskCount(), "killed task count");
+    assertEquals(4, progress.getTotalTaskCount(), "total task count");
+    assertEquals(2, vertexCounters.countCounters(), "Counters Size");
+    assertEquals(1, vertexCounters.getGroup("CG1").findCounter("C1").getValue(), "Counter Value");
   }
 }

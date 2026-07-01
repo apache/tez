@@ -18,14 +18,17 @@
  */
 package org.apache.tez.dag.app;
 
-import static org.junit.Assert.assertFalse;
-import static org.junit.Assert.assertTrue;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.Mockito.doReturn;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.reset;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
+
+import java.util.concurrent.TimeUnit;
 
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.yarn.api.records.Container;
@@ -35,12 +38,13 @@ import org.apache.tez.dag.app.dag.DAG;
 import org.apache.tez.dag.app.rm.container.AMContainerMap;
 import org.apache.tez.serviceplugins.api.TaskCommunicatorContext;
 
-import org.junit.Assert;
-import org.junit.Test;
+import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.Timeout;
 
 public class TestTaskCommunicatorContextImpl {
 
-  @Test(timeout = 5000)
+  @Test
+  @Timeout(value = 5000, unit = TimeUnit.MILLISECONDS)
   public void testIsKnownContainer() {
     AppContext appContext = mock(AppContext.class);
     when(appContext.getAMConf()).thenReturn(new Configuration());
@@ -104,16 +108,15 @@ public class TestTaskCommunicatorContextImpl {
     TaskCommunicatorContextImpl commContext = new TaskCommunicatorContextImpl(null, null, null, 0);
     commContext.dag = dag;
 
-    Assert.assertEquals("DAG config should be exposed via context.dag.getConf()",
-        commContext.getCurrentDagInfo().getConf().get("dagkey"), "dagvalue");
+    assertEquals("dagvalue", commContext.getCurrentDagInfo().getConf().get("dagkey"),
+        "DAG config should be exposed via context.dag.getConf()");
 
     // TaskCommunicatorContextImpl.appContext.getCurrentDAG() is present
     AppContext appContext = mock(AppContext.class);
     when(appContext.getCurrentDAG()).thenReturn(dag);
     commContext = new TaskCommunicatorContextImpl(appContext, null, null, 0);
 
-    Assert.assertEquals(
-        "DAG config should be exposed via context.appContext.getCurrentDAG().getConf()",
-        commContext.getCurrentDagInfo().getConf().get("dagkey"), "dagvalue");
+    assertEquals("dagvalue", commContext.getCurrentDagInfo().getConf().get("dagkey"),
+        "DAG config should be exposed via context.appContext.getCurrentDAG().getConf()");
   }
 }

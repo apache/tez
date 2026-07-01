@@ -18,10 +18,10 @@
  */
 package org.apache.tez.runtime.library.output;
 
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertFalse;
-import static org.junit.Assert.assertTrue;
-import static org.junit.Assert.fail;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertTrue;
+import static org.junit.jupiter.api.Assertions.fail;
 import static org.mockito.Mockito.any;
 import static org.mockito.Mockito.anyLong;
 import static org.mockito.Mockito.doAnswer;
@@ -31,12 +31,12 @@ import static org.mockito.Mockito.mock;
 import java.io.IOException;
 import java.math.BigInteger;
 import java.nio.ByteBuffer;
-import java.util.ArrayList;
-import java.util.Collection;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.Random;
+import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicLong;
+import java.util.stream.Stream;
 
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.fs.FileSystem;
@@ -65,17 +65,15 @@ import org.apache.tez.runtime.library.shuffle.impl.ShuffleUserPayloads;
 
 import com.google.protobuf.ByteString;
 
-import org.junit.After;
-import org.junit.Assert;
-import org.junit.Before;
-import org.junit.Test;
-import org.junit.runner.RunWith;
-import org.junit.runners.Parameterized;
+import org.junit.jupiter.api.AfterEach;
+import org.junit.jupiter.api.Timeout;
+import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.Arguments;
+import org.junit.jupiter.params.provider.MethodSource;
 import org.mockito.invocation.InvocationOnMock;
 import org.mockito.stubbing.Answer;
 
 @SuppressWarnings({ "rawtypes", "unchecked" })
-@RunWith(Parameterized.class)
 public class TestOnFileSortedOutput {
   private static final Random rnd = new Random();
   private static final String UniqueID = "UUID";
@@ -101,17 +99,8 @@ public class TestOnFileSortedOutput {
   private int emptyPartitionIdx;
   private ReportPartitionStats reportPartitionStats;
 
-  /**
-   * Constructor
-   *
-   * @param sendEmptyPartitionViaEvent
-   * @param sorterImpl Which sorter impl ( pipeline/legacy )
-   * @param sorterThreads number of threads needed for sorter (required only for pipelined sorter)
-   * @param emptyPartitionIdx for which data should not be generated
-   */
-  public TestOnFileSortedOutput(boolean sendEmptyPartitionViaEvent,
-      SorterImpl sorterImpl, int sorterThreads, int emptyPartitionIdx,
-      ReportPartitionStats reportPartitionStats) throws IOException {
+  public void setupInit(boolean sendEmptyPartitionViaEvent, SorterImpl sorterImpl, int sorterThreads,
+                        int emptyPartitionIdx, ReportPartitionStats reportPartitionStats) throws Exception {
     this.sendEmptyPartitionViaEvent = sendEmptyPartitionViaEvent;
     this.emptyPartitionIdx = emptyPartitionIdx;
     this.sorterImpl = sorterImpl;
@@ -123,10 +112,7 @@ public class TestOnFileSortedOutput {
     String localDirs = workingDir.toString();
     conf.setStrings(TezRuntimeFrameworkConfigs.LOCAL_DIRS, localDirs);
     fs = FileSystem.getLocal(conf);
-  }
 
-  @Before
-  public void setup() throws Exception {
     conf.set(TezRuntimeConfiguration.TEZ_RUNTIME_SORTER_CLASS, sorterImpl.name());
     conf.setInt(TezRuntimeConfiguration.TEZ_RUNTIME_PIPELINED_SORTER_SORT_THREADS, sorterThreads);
     conf.setInt(TezRuntimeConfiguration.TEZ_RUNTIME_IO_SORT_MB, 5);
@@ -146,40 +132,27 @@ public class TestOnFileSortedOutput {
     this.partitions = Math.max(1, rnd.nextInt(10));
   }
 
-  @After
+  @AfterEach
   public void cleanup() throws IOException {
     fs.delete(workingDir, true);
   }
 
   @SuppressWarnings("deprecation")
-  @Parameterized.Parameters(name = "test[{0}, {1}, {2}, {3}, {4}]")
-  public static Collection<Object[]> getParameters() {
-    Collection<Object[]> parameters = new ArrayList<Object[]>();
-    //empty_partition_via_events_enabled, noOfSortThreads,
-    // partitionToBeEmpty, reportPartitionStats
-    parameters.add(new Object[] { false, SorterImpl.LEGACY, 1, -1,
-        ReportPartitionStats.ENABLED });
-    parameters.add(new Object[] { false, SorterImpl.LEGACY, 1, 0,
-        ReportPartitionStats.ENABLED  });
-    parameters.add(new Object[] { true, SorterImpl.LEGACY, 1, -1,
-        ReportPartitionStats.ENABLED  });
-    parameters.add(new Object[] { true, SorterImpl.LEGACY, 1, 0,
-        ReportPartitionStats.ENABLED  });
-    parameters.add(new Object[] { true, SorterImpl.LEGACY, 1, 0,
-        ReportPartitionStats.PRECISE  });
+  public static Stream<Arguments> getParameters() {
+    return Stream.of(
+        //empty_partition_via_events_enabled, noOfSortThreads, partitionToBeEmpty, reportPartitionStats
+        Arguments.of(false, SorterImpl.LEGACY, 1, -1, ReportPartitionStats.ENABLED),
+        Arguments.of(false, SorterImpl.LEGACY, 1, 0, ReportPartitionStats.ENABLED),
+        Arguments.of(true, SorterImpl.LEGACY, 1, -1, ReportPartitionStats.ENABLED),
+        Arguments.of(true, SorterImpl.LEGACY, 1, 0, ReportPartitionStats.ENABLED),
+        Arguments.of(true, SorterImpl.LEGACY, 1, 0, ReportPartitionStats.PRECISE),
 
-    //Pipelined sorter
-    parameters.add(new Object[] { false, SorterImpl.PIPELINED, 2, -1,
-        ReportPartitionStats.ENABLED  });
-    parameters.add(new Object[] { false, SorterImpl.PIPELINED, 2, 0,
-        ReportPartitionStats.ENABLED  });
-    parameters.add(new Object[] { true, SorterImpl.PIPELINED, 2, -1,
-        ReportPartitionStats.ENABLED  });
-    parameters.add(new Object[] { true, SorterImpl.PIPELINED, 2, 0,
-        ReportPartitionStats.ENABLED  });
-    parameters.add(new Object[] { true, SorterImpl.PIPELINED, 2, 0,
-        ReportPartitionStats.PRECISE  });
-    return parameters;
+        //Pipelined sorter
+        Arguments.of(false, SorterImpl.PIPELINED, 2, -1, ReportPartitionStats.ENABLED),
+        Arguments.of(false, SorterImpl.PIPELINED, 2, 0, ReportPartitionStats.ENABLED),
+        Arguments.of(true, SorterImpl.PIPELINED, 2, -1, ReportPartitionStats.ENABLED),
+        Arguments.of(true, SorterImpl.PIPELINED, 2, 0, ReportPartitionStats.ENABLED),
+        Arguments.of(true, SorterImpl.PIPELINED, 2, 0, ReportPartitionStats.PRECISE));
   }
 
   private void startSortedOutput(int partitions) throws Exception {
@@ -211,13 +184,22 @@ public class TestOnFileSortedOutput {
     assertTrue(sortedOutput.pipelinedShuffle);
   }
 
-  @Test (timeout = 5000)
-  public void testPipelinedShuffle() throws Exception {
+  @ParameterizedTest(name = "test[{0}, {1}, {2}, {3}, {4}]")
+  @MethodSource("getParameters")
+  @Timeout(value = 5000, unit = TimeUnit.MILLISECONDS)
+  public void testPipelinedShuffle(boolean sendEmptyPartitionViaEvent, SorterImpl sorterImpl, int sorterThreads,
+                                   int emptyPartitionId, ReportPartitionStats reportPartitionStats) throws Exception {
+    setupInit(sendEmptyPartitionViaEvent, sorterImpl, sorterThreads, emptyPartitionId, reportPartitionStats);
     _testPipelinedShuffle(SorterImpl.PIPELINED.name());
   }
 
-  @Test (timeout = 5000)
-  public void testPipelinedShuffleWithFinalMerge() throws Exception {
+  @ParameterizedTest(name = "test[{0}, {1}, {2}, {3}, {4}]")
+  @MethodSource("getParameters")
+  @Timeout(value = 5000, unit = TimeUnit.MILLISECONDS)
+  public void testPipelinedShuffleWithFinalMerge(boolean sendEmptyPartitionViaEvent, SorterImpl sorterImpl,
+                                                 int sorterThreads, int emptyPartitionId,
+                                                 ReportPartitionStats reportPartitionStats) throws Exception {
+    setupInit(sendEmptyPartitionViaEvent, sorterImpl, sorterThreads, emptyPartitionId, reportPartitionStats);
     conf.setInt(TezRuntimeConfiguration.TEZ_RUNTIME_IO_SORT_MB, 3);
     conf.set(TezRuntimeConfiguration.TEZ_RUNTIME_SORTER_CLASS, SorterImpl.PIPELINED.name());
 
@@ -235,8 +217,12 @@ public class TestOnFileSortedOutput {
     assertTrue(sortedOutput.pipelinedShuffle);
   }
 
-  @Test
-  public void testPipelinedSettingsWithDefaultSorter() throws Exception {
+  @ParameterizedTest(name = "test[{0}, {1}, {2}, {3}, {4}]")
+  @MethodSource("getParameters")
+  public void testPipelinedSettingsWithDefaultSorter(boolean sendEmptyPartitionViaEvent, SorterImpl sorterImpl,
+                                                     int sorterThreads, int emptyPartitionId,
+                                                     ReportPartitionStats reportPartitionStats) throws Exception {
+    setupInit(sendEmptyPartitionViaEvent, sorterImpl, sorterThreads, emptyPartitionId, reportPartitionStats);
     conf.setInt(TezRuntimeConfiguration.TEZ_RUNTIME_IO_SORT_MB, 3);
     //negative. with default sorter
     conf.set(TezRuntimeConfiguration.TEZ_RUNTIME_SORTER_CLASS, SorterImpl.LEGACY.name());
@@ -259,8 +245,12 @@ public class TestOnFileSortedOutput {
 
   }
 
-  @Test (timeout = 5000)
-  public void testSortBufferSize() throws Exception{
+  @ParameterizedTest(name = "test[{0}, {1}, {2}, {3}, {4}]")
+  @MethodSource("getParameters")
+  @Timeout(value = 5000, unit = TimeUnit.MILLISECONDS)
+  public void testSortBufferSize(boolean sendEmptyPartitionViaEvent, SorterImpl sorterImpl, int sorterThreads,
+                                 int emptyPartitionId, ReportPartitionStats reportPartitionStats) throws Exception {
+    setupInit(sendEmptyPartitionViaEvent, sorterImpl, sorterThreads, emptyPartitionId, reportPartitionStats);
     OutputContext context = createTezOutputContext();
     conf.setInt(TezRuntimeConfiguration.TEZ_RUNTIME_IO_SORT_MB, 2048);
     UserPayload payLoad = TezUtils.createUserPayloadFromConf(conf);
@@ -286,8 +276,12 @@ public class TestOnFileSortedOutput {
     }
   }
 
-  @Test(timeout = 5000)
-  public void baseTest() throws Exception {
+  @ParameterizedTest(name = "test[{0}, {1}, {2}, {3}, {4}]")
+  @MethodSource("getParameters")
+  @Timeout(value = 5000, unit = TimeUnit.MILLISECONDS)
+  public void baseTest(boolean sendEmptyPartitionViaEvent, SorterImpl sorterImpl, int sorterThreads,
+                       int emptyPartitionId, ReportPartitionStats reportPartitionStats) throws Exception {
+    setupInit(sendEmptyPartitionViaEvent, sorterImpl, sorterThreads, emptyPartitionId, reportPartitionStats);
     startSortedOutput(partitions);
 
     //Write random set of keys
@@ -325,8 +319,13 @@ public class TestOnFileSortedOutput {
     assertEquals(UniqueID, payload.getPathComponent());
   }
 
-  @Test(timeout = 5000)
-  public void testWithSomeEmptyPartition() throws Exception {
+  @ParameterizedTest(name = "test[{0}, {1}, {2}, {3}, {4}]")
+  @MethodSource("getParameters")
+  @Timeout(value = 5000, unit = TimeUnit.MILLISECONDS)
+  public void testWithSomeEmptyPartition(boolean sendEmptyPartitionViaEvent, SorterImpl sorterImpl, int sorterThreads,
+                                         int emptyPartitionId, ReportPartitionStats reportPartitionStats)
+      throws Exception {
+    setupInit(sendEmptyPartitionViaEvent, sorterImpl, sorterThreads, emptyPartitionId, reportPartitionStats);
     //ensure atleast 2 partitions are available
     partitions = Math.max(2, partitions);
     startSortedOutput(partitions);
@@ -353,8 +352,12 @@ public class TestOnFileSortedOutput {
     assertEquals(UniqueID, payload.getPathComponent());
   }
 
-  @Test(timeout = 5000)
-  public void testAllEmptyPartition() throws Exception {
+  @ParameterizedTest(name = "test[{0}, {1}, {2}, {3}, {4}]")
+  @MethodSource("getParameters")
+  @Timeout(value = 5000, unit = TimeUnit.MILLISECONDS)
+  public void testAllEmptyPartition(boolean sendEmptyPartitionViaEvent, SorterImpl sorterImpl, int sorterThreads,
+                                    int emptyPartitionId, ReportPartitionStats reportPartitionStats) throws Exception {
+    setupInit(sendEmptyPartitionViaEvent, sorterImpl, sorterThreads, emptyPartitionId, reportPartitionStats);
     startSortedOutput(partitions);
 
     //Close output without writing any data to it.
@@ -428,18 +431,27 @@ public class TestOnFileSortedOutput {
     return context;
   }
 
-  @Test(timeout=5000)
-  public void testInvalidSorter() throws Exception {
+  @ParameterizedTest(name = "test[{0}, {1}, {2}, {3}, {4}]")
+  @MethodSource("getParameters")
+  @Timeout(value = 5000, unit = TimeUnit.MILLISECONDS)
+  public void testInvalidSorter(boolean sendEmptyPartitionViaEvent, SorterImpl sorterImpl, int sorterThreads,
+                                int emptyPartitionId, ReportPartitionStats reportPartitionStats) throws Exception {
+    setupInit(sendEmptyPartitionViaEvent, sorterImpl, sorterThreads, emptyPartitionId, reportPartitionStats);
     try {
       _testPipelinedShuffle("Foo");
-      Assert.fail("Expected start to fail due to invalid sorter");
+      fail("Expected start to fail due to invalid sorter");
     } catch (IllegalArgumentException e) {
       // Expected
     }
   }
 
-  @Test(timeout=5000)
-  public void testLowerCaseNamedSorter() throws Exception {
+  @ParameterizedTest(name = "test[{0}, {1}, {2}, {3}, {4}]")
+  @MethodSource("getParameters")
+  @Timeout(value = 5000, unit = TimeUnit.MILLISECONDS)
+  public void testLowerCaseNamedSorter(boolean sendEmptyPartitionViaEvent, SorterImpl sorterImpl, int sorterThreads,
+                                       int emptyPartitionId, ReportPartitionStats reportPartitionStats)
+      throws Exception {
+    setupInit(sendEmptyPartitionViaEvent, sorterImpl, sorterThreads, emptyPartitionId, reportPartitionStats);
     _testPipelinedShuffle("Pipelined");
   }
 

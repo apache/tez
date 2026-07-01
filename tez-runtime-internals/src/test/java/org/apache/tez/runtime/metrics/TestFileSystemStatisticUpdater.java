@@ -18,6 +18,9 @@
  */
 package org.apache.tez.runtime.metrics;
 
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertNotNull;
+
 import java.io.IOException;
 
 import org.apache.hadoop.conf.Configuration;
@@ -29,11 +32,10 @@ import org.apache.tez.common.counters.FileSystemCounter;
 import org.apache.tez.common.counters.TezCounter;
 import org.apache.tez.common.counters.TezCounters;
 
-import org.junit.AfterClass;
-import org.junit.Assert;
-import org.junit.Before;
-import org.junit.BeforeClass;
-import org.junit.Test;
+import org.junit.jupiter.api.AfterAll;
+import org.junit.jupiter.api.BeforeAll;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -50,12 +52,12 @@ public class TestFileSystemStatisticUpdater {
   private static final String TEST_ROOT_DIR = "target" + Path.SEPARATOR +
       TestFileSystemStatisticUpdater.class.getName() + "-tmpDir";
 
-  @BeforeClass
+  @BeforeAll
   public static void beforeClass() throws Exception {
     CONF.set(MiniDFSCluster.HDFS_MINIDFS_BASEDIR, TEST_ROOT_DIR);
   }
 
-  @AfterClass
+  @AfterAll
   public static void tearDown() {
     if (dfsCluster != null) {
       dfsCluster.shutdown();
@@ -63,7 +65,7 @@ public class TestFileSystemStatisticUpdater {
     }
   }
 
-  @Before
+  @BeforeEach
   public void setup() throws IOException {
     FileSystem.clearStatistics();
     try {
@@ -113,7 +115,7 @@ public class TestFileSystemStatisticUpdater {
 
   private void assertCounter(TezCounters counters, FileSystemCounter fsCounter, int value) {
     TezCounter counter = counters.findCounter(remoteFs.getScheme(), fsCounter);
-    Assert.assertNotNull(counter);
-    Assert.assertEquals(value, counter.getValue());
+    assertNotNull(counter);
+    assertEquals(value, counter.getValue());
   }
 }

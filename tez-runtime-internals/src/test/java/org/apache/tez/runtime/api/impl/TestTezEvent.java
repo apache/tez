@@ -18,6 +18,9 @@
  */
 package org.apache.tez.runtime.api.impl;
 
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertInstanceOf;
+
 import java.io.ByteArrayInputStream;
 import java.io.DataInput;
 import java.io.DataInputStream;
@@ -41,8 +44,8 @@ import org.apache.tez.runtime.api.impl.EventMetaData.EventProducerConsumerType;
 import com.google.common.io.ByteArrayDataOutput;
 import com.google.common.io.ByteStreams;
 
-import org.junit.Assert;
-import org.junit.Test;
+import org.junit.jupiter.api.Test;
+
 
 public class TestTezEvent {
 
@@ -122,31 +125,31 @@ public class TestTezEvent {
   }
 
   private void assertEventEquals(ArrayList<TezEvent> expectedList, ArrayList<TezEvent> actualList) {
-    Assert.assertEquals(expectedList.size(), actualList.size());
+    assertEquals(expectedList.size(), actualList.size());
     for (int i = 0; i < expectedList.size(); i++) {
       TezEvent expected = expectedList.get(i);
       TezEvent actual = actualList.get(i);
-      Assert.assertEquals(expected.getEventReceivedTime(), actual.getEventReceivedTime());
-      Assert.assertEquals(expected.getSourceInfo(), actual.getSourceInfo());
-      Assert.assertEquals(expected.getDestinationInfo(), actual.getDestinationInfo());
-      Assert.assertEquals(expected.getEventType(), actual.getEventType());
+      assertEquals(expected.getEventReceivedTime(), actual.getEventReceivedTime());
+      assertEquals(expected.getSourceInfo(), actual.getSourceInfo());
+      assertEquals(expected.getDestinationInfo(), actual.getDestinationInfo());
+      assertEquals(expected.getEventType(), actual.getEventType());
       // Doing this instead of implementing equals methods for events
       if (i == 0) {
-        Assert.assertTrue(actual.getEvent() instanceof TaskAttemptCompletedEvent);
+        assertInstanceOf(TaskAttemptCompletedEvent.class, actual.getEvent());
       } else if (i == 1) {
         DataMovementEvent dmeExpected = (DataMovementEvent) expected.getEvent();
         DataMovementEvent dmeActual = (DataMovementEvent) actual.getEvent();
-        Assert.assertEquals(dmeExpected.getSourceIndex(), dmeActual.getSourceIndex());
-        Assert.assertEquals(dmeExpected.getTargetIndex(), dmeActual.getTargetIndex());
-        Assert.assertEquals(dmeExpected.getVersion(), dmeActual.getVersion());
-        Assert.assertEquals(dmeExpected.getUserPayload(), dmeActual.getUserPayload());
+        assertEquals(dmeExpected.getSourceIndex(), dmeActual.getSourceIndex());
+        assertEquals(dmeExpected.getTargetIndex(), dmeActual.getTargetIndex());
+        assertEquals(dmeExpected.getVersion(), dmeActual.getVersion());
+        assertEquals(dmeExpected.getUserPayload(), dmeActual.getUserPayload());
       } else {
         TaskStatusUpdateEvent tsuExpected = (TaskStatusUpdateEvent) expected.getEvent();
         TaskStatusUpdateEvent tsuActual = (TaskStatusUpdateEvent) actual.getEvent();
-        Assert.assertEquals(tsuExpected.getCounters(), tsuActual.getCounters());
-        Assert.assertEquals(tsuExpected.getProgress(), tsuActual.getProgress(), 0);
-        Assert.assertEquals(tsuExpected.getProgressNotified(), tsuActual.getProgressNotified());
-        Assert.assertEquals(tsuExpected.getStatistics(), tsuActual.getStatistics());
+        assertEquals(tsuExpected.getCounters(), tsuActual.getCounters());
+        assertEquals(tsuExpected.getProgress(), tsuActual.getProgress(), 0);
+        assertEquals(tsuExpected.getProgressNotified(), tsuActual.getProgressNotified());
+        assertEquals(tsuExpected.getStatistics(), tsuActual.getStatistics());
       }
     }
   }

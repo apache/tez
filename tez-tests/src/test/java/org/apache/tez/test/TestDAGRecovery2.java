@@ -18,9 +18,12 @@
  */
 package org.apache.tez.test;
 
+import static org.junit.jupiter.api.Assertions.assertEquals;
+
 import java.io.IOException;
 import java.nio.ByteBuffer;
 import java.util.Random;
+import java.util.concurrent.TimeUnit;
 
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.fs.FileSystem;
@@ -41,12 +44,12 @@ import org.apache.tez.dag.api.client.DAGStatus.State;
 import org.apache.tez.test.dag.MultiAttemptDAG;
 import org.apache.tez.test.dag.SimpleVTestDAG;
 
-import org.junit.After;
-import org.junit.AfterClass;
-import org.junit.Assert;
-import org.junit.Before;
-import org.junit.BeforeClass;
-import org.junit.Test;
+import org.junit.jupiter.api.AfterAll;
+import org.junit.jupiter.api.AfterEach;
+import org.junit.jupiter.api.BeforeAll;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.Timeout;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -62,7 +65,7 @@ public class TestDAGRecovery2 {
   private static TezClient tezSession = null;
   private static FileSystem remoteFs = null;
 
-  @BeforeClass
+  @BeforeAll
   public static void beforeClass() throws Exception {
     LOG.info("Starting mini clusters");
     try {
@@ -85,7 +88,7 @@ public class TestDAGRecovery2 {
     }
   }
 
-  @AfterClass
+  @AfterAll
   public static void afterClass() throws InterruptedException {
     if (tezSession != null) {
       try {
@@ -127,7 +130,7 @@ public class TestDAGRecovery2 {
     return tezConf;
   }
 
-  @Before
+  @BeforeEach
   public void setup()  throws Exception {
     Path remoteStagingDir = remoteFs.makeQualified(new Path(TEST_ROOT_DIR, String
         .valueOf(new Random().nextInt(100000))));
@@ -139,7 +142,7 @@ public class TestDAGRecovery2 {
     tezSession.start();
   }
 
-  @After
+  @AfterEach
   public void teardown() throws InterruptedException {
     if (tezSession != null) {
       try {
@@ -170,10 +173,11 @@ public class TestDAGRecovery2 {
       dagStatus = dagClient.getDAGStatus(null);
     }
 
-    Assert.assertEquals(finalState, dagStatus.getState());
+    assertEquals(finalState, dagStatus.getState());
   }
 
-  @Test(timeout=120000)
+  @Test
+  @Timeout(value = 120000, unit = TimeUnit.MILLISECONDS)
   public void testFailingCommitter() throws Exception {
     DAG dag = SimpleVTestDAG.createDAG("FailingCommitterDAG", null);
     OutputDescriptor od =
@@ -187,7 +191,8 @@ public class TestDAGRecovery2 {
     runDAGAndVerify(dag, State.FAILED);
   }
 
-  @Test(timeout=120000)
+  @Test
+  @Timeout(value = 120000, unit = TimeUnit.MILLISECONDS)
   public void testSessionDisableMultiAttempts() throws Exception {
     tezSession.stop();
     Path remoteStagingDir = remoteFs.makeQualified(new Path(TEST_ROOT_DIR, String

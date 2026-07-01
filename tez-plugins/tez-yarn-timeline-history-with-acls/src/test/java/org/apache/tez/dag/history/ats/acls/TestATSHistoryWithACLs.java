@@ -18,10 +18,11 @@
  */
 package org.apache.tez.dag.history.ats.acls;
 
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertFalse;
-import static org.junit.Assert.assertNotNull;
-import static org.junit.Assert.assertTrue;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertNotNull;
+import static org.junit.jupiter.api.Assertions.assertNull;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.Mockito.*;
 
 import java.io.IOException;
@@ -30,6 +31,7 @@ import java.util.Collection;
 import java.util.Collections;
 import java.util.List;
 import java.util.Random;
+import java.util.concurrent.TimeUnit;
 
 import javax.ws.rs.client.Client;
 import javax.ws.rs.client.ClientBuilder;
@@ -75,10 +77,10 @@ import com.google.common.collect.Sets;
 import org.codehaus.jettison.json.JSONArray;
 import org.codehaus.jettison.json.JSONException;
 import org.codehaus.jettison.json.JSONObject;
-import org.junit.AfterClass;
-import org.junit.Assert;
-import org.junit.BeforeClass;
-import org.junit.Test;
+import org.junit.jupiter.api.AfterAll;
+import org.junit.jupiter.api.BeforeAll;
+import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.Timeout;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -100,7 +102,7 @@ public class TestATSHistoryWithACLs {
 
   private static String user;
 
-  @BeforeClass
+  @BeforeAll
   public static void setup() throws IOException {
     try {
       conf.set(MiniDFSCluster.HDFS_MINIDFS_BASEDIR, TEST_ROOT_DIR);
@@ -134,7 +136,7 @@ public class TestATSHistoryWithACLs {
     }
   }
 
-  @AfterClass
+  @AfterAll
   public static void tearDown() throws InterruptedException {
     LOG.info("Shutdown invoked");
     Thread.sleep(10000);
@@ -254,7 +256,8 @@ public class TestATSHistoryWithACLs {
 
   }
 
-  @Test (timeout=50000)
+  @Test
+  @Timeout(value = 50000, unit = TimeUnit.MILLISECONDS)
   public void testSimpleAMACls() throws Exception {
     TezClient tezSession = null;
     ApplicationId applicationId;
@@ -306,7 +309,8 @@ public class TestATSHistoryWithACLs {
     verifyEntityDomains(applicationId, true);
   }
 
-  @Test (timeout=50000)
+  @Test
+  @Timeout(value = 50000, unit = TimeUnit.MILLISECONDS)
   public void testDAGACls() throws Exception {
     TezClient tezSession = null;
     ApplicationId applicationId;
@@ -373,7 +377,8 @@ public class TestATSHistoryWithACLs {
    * due to failure to create domain in session start
    * @throws Exception
    */
-  @Test (timeout=50000)
+  @Test
+  @Timeout(value = 50000, unit = TimeUnit.MILLISECONDS)
   public void testDisableSessionLogging() throws Exception {
     TezClient tezSession = null;
     String viewAcls = "nobody nobody_group";
@@ -438,7 +443,8 @@ public class TestATSHistoryWithACLs {
    * in dagsubmittedevent is set off
    * @throws Exception
    */
-  @Test (timeout=50000)
+  @Test
+  @Timeout(value = 50000, unit = TimeUnit.MILLISECONDS)
   public void testDagLoggingDisabled() throws Exception {
     ATSHistoryLoggingService historyLoggingService;
     historyLoggingService =
@@ -483,7 +489,8 @@ public class TestATSHistoryWithACLs {
    * the dag logging flag in dagsubmitted event is set on
    * @throws Exception
    */
-  @Test (timeout=50000)
+  @Test
+  @Timeout(value = 50000, unit = TimeUnit.MILLISECONDS)
   public void testDagLoggingEnabled() throws Exception {
     ATSHistoryLoggingService historyLoggingService;
     historyLoggingService =
@@ -531,7 +538,8 @@ public class TestATSHistoryWithACLs {
 
   private static final String atsHistoryACLManagerClassName =
       "org.apache.tez.dag.history.ats.acls.ATSHistoryACLPolicyManager";
-  @Test (timeout=50000)
+  @Test
+  @Timeout(value = 50000, unit = TimeUnit.MILLISECONDS)
   public void testTimelineServiceDisabled() throws Exception {
     TezConfiguration tezConf = new TezConfiguration(mrrTezCluster.getConfig());
     tezConf.set(TezConfiguration.TEZ_HISTORY_LOGGING_SERVICE_CLASS,
@@ -540,7 +548,7 @@ public class TestATSHistoryWithACLs {
     ATSHistoryACLPolicyManager historyACLPolicyManager = ReflectionUtils.createClazzInstance(
         atsHistoryACLManagerClassName);
     historyACLPolicyManager.setConf(tezConf);
-    Assert.assertNull(historyACLPolicyManager.timelineClient);
+    assertNull(historyACLPolicyManager.timelineClient);
   }
 
   private void verifyEntityDomains(ApplicationId applicationId, boolean sameDomain) {

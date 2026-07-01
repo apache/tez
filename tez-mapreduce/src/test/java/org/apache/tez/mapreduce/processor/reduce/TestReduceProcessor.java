@@ -18,6 +18,8 @@
  */
 package org.apache.tez.mapreduce.processor.reduce;
 
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import java.io.IOException;
 import java.nio.ByteBuffer;
@@ -26,6 +28,7 @@ import java.util.HashMap;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
+import java.util.concurrent.TimeUnit;
 
 import org.apache.hadoop.fs.FileSystem;
 import org.apache.hadoop.fs.Path;
@@ -80,10 +83,10 @@ import org.apache.tez.runtime.library.output.OrderedPartitionedKVOutput;
 
 import com.google.common.collect.HashMultimap;
 
-import org.junit.After;
-import org.junit.Assert;
-import org.junit.Before;
-import org.junit.Test;
+import org.junit.jupiter.api.AfterEach;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.Timeout;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -122,13 +125,14 @@ public class TestReduceProcessor {
     job.setInt(MRJobConfig.FILEOUTPUTCOMMITTER_ALGORITHM_VERSION, 1);
   }
 
-  @Before
-  @After
+  @BeforeEach
+  @AfterEach
   public void cleanup() throws Exception {
     localFs.delete(workDir, true);
   }
 
-  @Test(timeout = 5000)
+  @Test
+  @Timeout(value = 5000, unit = TimeUnit.MILLISECONDS)
   public void testReduceProcessor() throws Exception {
     final String dagName = "mrdag0";
     String mapVertexName = MultiStageMRConfigUtil.getInitialMapVertexName();
@@ -171,12 +175,12 @@ public class TestReduceProcessor {
     mapTask.close();
 
     // One VME, One DME
-    Assert.assertEquals(2, testUmbilical.getEvents().size());
-    Assert.assertEquals(EventType.VERTEX_MANAGER_EVENT, testUmbilical.getEvents().get(0).getEventType());
-    Assert.assertEquals(EventType.COMPOSITE_DATA_MOVEMENT_EVENT, testUmbilical.getEvents().get(1).getEventType());
+    assertEquals(2, testUmbilical.getEvents().size());
+    assertEquals(EventType.VERTEX_MANAGER_EVENT, testUmbilical.getEvents().get(0).getEventType());
+    assertEquals(EventType.COMPOSITE_DATA_MOVEMENT_EVENT, testUmbilical.getEvents().get(1).getEventType());
 
     CompositeDataMovementEvent cdmEvent = (CompositeDataMovementEvent) testUmbilical.getEvents().get(1).getEvent();
-    Assert.assertEquals(1, cdmEvent.getCount());
+    assertEquals(1, cdmEvent.getCount());
     DataMovementEvent dme = cdmEvent.getEvents().iterator().next();
     dme.setTargetIndex(0);
 
@@ -248,7 +252,7 @@ public class TestReduceProcessor {
     // MRTask mrTask = (MRTask)t.getProcessor();
     // TODO NEWTEZ Verify the partitioner has not been created
     // Likely not applicable anymore.
-    // Assert.assertNull(mrTask.getPartitioner());
+    // assertNull(mrTask.getPartitioner());
 
 
 
@@ -267,7 +271,7 @@ public class TestReduceProcessor {
     long prev = Long.MIN_VALUE;
     while (reader.next(key, value)) {
       if (prev != Long.MIN_VALUE) {
-        Assert.assertTrue(prev < key.get());
+        assertTrue(prev < key.get());
         prev = key.get();
       }
     }

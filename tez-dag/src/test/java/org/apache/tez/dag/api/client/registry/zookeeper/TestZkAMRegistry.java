@@ -18,9 +18,9 @@
  */
 package org.apache.tez.dag.api.client.registry.zookeeper;
 
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertNotNull;
-import static org.junit.Assert.assertNull;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertNotNull;
+import static org.junit.jupiter.api.Assertions.assertNull;
 
 import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
@@ -34,6 +34,7 @@ import java.util.concurrent.ExecutionException;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.Future;
+import java.util.concurrent.TimeUnit;
 
 import org.apache.curator.framework.CuratorFramework;
 import org.apache.curator.test.TestingServer;
@@ -43,9 +44,10 @@ import org.apache.tez.client.registry.AMRegistryUtils;
 import org.apache.tez.client.registry.zookeeper.ZkConfig;
 import org.apache.tez.dag.api.TezConfiguration;
 
-import org.junit.After;
-import org.junit.Before;
-import org.junit.Test;
+import org.junit.jupiter.api.AfterAll;
+import org.junit.jupiter.api.BeforeAll;
+import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.Timeout;
 
 /**
  * Unit tests for {@link ZkAMRegistry}.
@@ -59,16 +61,16 @@ import org.junit.Test;
  */
 public class TestZkAMRegistry {
 
-  private TestingServer zkServer;
+  private static TestingServer zkServer;
 
-  @Before
-  public void setup() throws Exception {
+  @BeforeAll
+  public static void setup() throws Exception {
     zkServer = new TestingServer();
     zkServer.start();
   }
 
-  @After
-  public void teardown() throws Exception {
+  @AfterAll
+  public static void teardown() throws Exception {
     if (zkServer != null) {
       zkServer.close();
     }
@@ -86,12 +88,13 @@ public class TestZkAMRegistry {
 
       assertNotNull(first);
       assertNotNull(second);
-      assertEquals("Cluster timestamps should match", first.getClusterTimestamp(), second.getClusterTimestamp());
-      assertEquals("Second id should be first id + 1", first.getId() + 1, second.getId());
+      assertEquals(first.getClusterTimestamp(), second.getClusterTimestamp(), "Cluster timestamps should match");
+      assertEquals(first.getId() + 1, second.getId(), "Second id should be first id + 1");
     }
   }
 
-  @Test(timeout = 120000)
+  @Test
+  @Timeout(value = 120000, unit = TimeUnit.MILLISECONDS)
   public void testGenerateNewIdFromParallelThreads() throws Exception {
     final int threadCount = 50;
 
@@ -138,12 +141,12 @@ public class TestZkAMRegistry {
       } finally {
         executor.shutdown();
       }
-      assertEquals(String.format("All generated ids should be unique, ids found: %s", ids), threadCount, ids.size());
+      assertEquals(threadCount, ids.size(), String.format("All generated ids should be unique, ids found: %s", ids));
 
       // additionally ensure cluster timestamp is the same for all IDs
       long clusterTs = ids.iterator().next().getClusterTimestamp();
       for (ApplicationId id : ids) {
-        assertEquals("Cluster timestamps should match for all generated ids", clusterTs, id.getClusterTimestamp());
+        assertEquals(clusterTs, id.getClusterTimestamp(), "Cluster timestamps should match for all generated ids");
       }
     }
   }
@@ -172,14 +175,14 @@ public class TestZkAMRegistry {
       String path = zkConfig.getZkNamespace() + "/" + appId.toString();
       byte[] data = checkClient.getData().forPath(path);
 
-      assertNotNull("Data should be written to ZooKeeper for AMRecord", data);
+      assertNotNull(data, "Data should be written to ZooKeeper for AMRecord");
       String json = new String(data, StandardCharsets.UTF_8);
       String expectedJson = AMRegistryUtils.recordToJsonString(record);
-      assertEquals("Stored AMRecord JSON should match expected", expectedJson, json);
+      assertEquals(expectedJson, json, "Stored AMRecord JSON should match expected");
 
       // Remove record and ensure node is deleted
       registry.remove(record);
-      assertNull("Node should be removed from ZooKeeper after remove()", checkClient.checkExists().forPath(path));
+      assertNull(checkClient.checkExists().forPath(path), "Node should be removed from ZooKeeper after remove()");
     }
   }
 

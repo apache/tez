@@ -19,6 +19,11 @@
 package org.apache.tez.runtime.task;
 
 import static org.apache.tez.dag.api.TezConfiguration.TEZ_TASK_LOCAL_FS_WRITE_LIMIT_BYTES;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertNull;
+import static org.junit.jupiter.api.Assertions.assertTrue;
+import static org.junit.jupiter.api.Assertions.fail;
 import static org.mockito.Mockito.any;
 import static org.mockito.Mockito.doAnswer;
 import static org.mockito.Mockito.doReturn;
@@ -36,6 +41,7 @@ import java.util.Random;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.Future;
+import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicLong;
 
@@ -61,8 +67,8 @@ import org.apache.tez.runtime.api.impl.TezHeartbeatResponse;
 
 import com.google.common.collect.Lists;
 
-import org.junit.Assert;
-import org.junit.Test;
+import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.Timeout;
 import org.mockito.ArgumentCaptor;
 import org.mockito.invocation.InvocationOnMock;
 import org.mockito.stubbing.Answer;
@@ -73,7 +79,8 @@ public class TestTaskReporter {
   private static final File TEST_DIR =
       new File(System.getProperty("test.build.data"), TestTaskReporter.class.getName()).getAbsoluteFile();
 
-  @Test(timeout = 10000)
+  @Test
+  @Timeout(value = 10000, unit = TimeUnit.MILLISECONDS)
   public void testContinuousHeartbeatsOnMaxEvents() throws Exception {
 
     final Object lock = new Object();
@@ -133,7 +140,8 @@ public class TestTaskReporter {
 
   }
 
-  @Test(timeout = 10000)
+  @Test
+  @Timeout(value = 10000, unit = TimeUnit.MILLISECONDS)
   public void testEventThrottling() throws Exception {
     TezTaskAttemptID mockTaskAttemptId = mock(TezTaskAttemptID.class);
     LogicalIOProcessorRuntimeTask mockTask = mock(LogicalIOProcessorRuntimeTask.class);
@@ -158,7 +166,7 @@ public class TestTaskReporter {
     ExecutorService executor = Executors.newSingleThreadExecutor();
     try {
       Future<Boolean> result = executor.submit(heartbeatCallable);
-      Assert.assertFalse(result.get());
+      assertFalse(result.get());
     } finally {
       executor.shutdownNow();
     }
@@ -166,11 +174,12 @@ public class TestTaskReporter {
     ArgumentCaptor<TezHeartbeatRequest> captor = ArgumentCaptor.forClass(TezHeartbeatRequest.class);
     verify(mockUmbilical, times(2)).heartbeat(captor.capture());
     TezHeartbeatRequest req = captor.getValue();
-    Assert.assertEquals(2, req.getRequestId());
-    Assert.assertEquals(1, req.getMaxEvents());
+    assertEquals(2, req.getRequestId());
+    assertEquals(1, req.getMaxEvents());
   }
 
-  @Test (timeout=5000)
+  @Test
+  @Timeout(value = 5000, unit = TimeUnit.MILLISECONDS)
   public void testStatusUpdateAfterInitializationAndCounterFlag() {
     TezTaskAttemptID mockTaskAttemptId = mock(TezTaskAttemptID.class);
     LogicalIOProcessorRuntimeTask mockTask = mock(LogicalIOProcessorRuntimeTask.class);
@@ -201,10 +210,10 @@ public class TestTaskReporter {
     verify(mockTask, times(0)).getAndClearProgressNotification();
     verify(mockTask, times(0)).getTaskStatistics();
     verify(mockTask, times(0)).getCounters();
-    Assert.assertEquals(0, event.getProgress(), 0);
-    Assert.assertEquals(false, event.getProgressNotified());
-    Assert.assertNull(event.getCounters());
-    Assert.assertNull(event.getStatistics());
+    assertEquals(0, event.getProgress(), 0);
+    assertFalse(event.getProgressNotified());
+    assertNull(event.getCounters());
+    assertNull(event.getStatistics());
 
     // task is initialized - progress obtained but not counters since flag is false
     doReturn(true).when(mockTask).hasInitialized();
@@ -214,10 +223,10 @@ public class TestTaskReporter {
     verify(mockTask, times(1)).getAndClearProgressNotification();
     verify(mockTask, times(0)).getTaskStatistics();
     verify(mockTask, times(0)).getCounters();
-    Assert.assertEquals(progress, event.getProgress(), 0);
-    Assert.assertEquals(progressNotified, event.getProgressNotified());
-    Assert.assertNull(event.getCounters());
-    Assert.assertNull(event.getStatistics());
+    assertEquals(progress, event.getProgress(), 0);
+    assertEquals(progressNotified, event.getProgressNotified());
+    assertNull(event.getCounters());
+    assertNull(event.getStatistics());
 
     // task is initialized - progress obtained and also counters since flag is true
     progressNotified = true;
@@ -229,10 +238,10 @@ public class TestTaskReporter {
     verify(mockTask, times(2)).getAndClearProgressNotification();
     verify(mockTask, times(1)).getTaskStatistics();
     verify(mockTask, times(1)).getCounters();
-    Assert.assertEquals(progress, event.getProgress(), 0);
-    Assert.assertEquals(progressNotified, event.getProgressNotified());
-    Assert.assertEquals(counters, event.getCounters());
-    Assert.assertEquals(stats, event.getStatistics());
+    assertEquals(progress, event.getProgress(), 0);
+    assertEquals(progressNotified, event.getProgressNotified());
+    assertEquals(counters, event.getCounters());
+    assertEquals(stats, event.getStatistics());
 
   }
 
@@ -262,9 +271,9 @@ public class TestTaskReporter {
 
     try {
       lio1.checkTaskLimits();
-      Assert.fail("Expected to throw LocalWriteLimitException");
+      fail("Expected to throw LocalWriteLimitException");
     } catch (LocalWriteLimitException localWriteLimitException) {
-      Assert.assertTrue(localWriteLimitException.getMessage().contains("Too much write to local file system"));
+      assertTrue(localWriteLimitException.getMessage().contains("Too much write to local file system"));
     }
   }
 

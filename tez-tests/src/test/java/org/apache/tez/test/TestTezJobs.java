@@ -22,10 +22,10 @@ import static org.apache.tez.dag.api.TezConfiguration.TEZ_AM_HOOKS;
 import static org.apache.tez.dag.api.TezConfiguration.TEZ_TASK_ATTEMPT_HOOKS;
 import static org.apache.tez.dag.api.TezConfiguration.TEZ_THREAD_DUMP_INTERVAL;
 import static org.apache.tez.dag.api.TezConstants.TEZ_CONTAINER_LOGGER_NAME;
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertNotNull;
-import static org.junit.Assert.assertTrue;
-import static org.junit.Assert.fail;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertNotNull;
+import static org.junit.jupiter.api.Assertions.assertTrue;
+import static org.junit.jupiter.api.Assertions.fail;
 
 import java.io.BufferedReader;
 import java.io.BufferedWriter;
@@ -41,6 +41,7 @@ import java.util.HashSet;
 import java.util.List;
 import java.util.Random;
 import java.util.Set;
+import java.util.concurrent.TimeUnit;
 import java.util.concurrent.locks.Condition;
 import java.util.concurrent.locks.ReentrantLock;
 
@@ -109,13 +110,12 @@ import org.apache.tez.test.dag.MultiAttemptDAG;
 
 import com.google.common.collect.Lists;
 
-import org.junit.AfterClass;
-import org.junit.Assert;
-import org.junit.BeforeClass;
-import org.junit.Test;
+import org.junit.jupiter.api.AfterAll;
+import org.junit.jupiter.api.BeforeAll;
+import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.Timeout;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-
 
 /**
  * Tests for Tez example jobs
@@ -135,7 +135,7 @@ public class TestTezJobs {
   private static String TEST_ROOT_DIR = "target" + Path.SEPARATOR + TestTezJobs.class.getName()
       + "-tmpDir";
 
-  @BeforeClass
+  @BeforeAll
   public static void setup() throws IOException {
     localFs = FileSystem.getLocal(conf);
     try {
@@ -157,7 +157,7 @@ public class TestTezJobs {
 
   }
 
-  @AfterClass
+  @AfterAll
   public static void tearDown() {
     if (mrrTezCluster != null) {
       mrrTezCluster.stop();
@@ -170,14 +170,16 @@ public class TestTezJobs {
     // TODO Add cleanup code.
   }
 
-  @Test(timeout = 60000)
+  @Test
+  @Timeout(value = 60000, unit = TimeUnit.MILLISECONDS)
   public void testHashJoinExample() throws Exception {
     HashJoinExample hashJoinExample = new HashJoinExample();
     hashJoinExample.setConf(new Configuration(mrrTezCluster.getConfig()));
     runHashJoinExample(hashJoinExample);
   }
 
-  @Test(timeout = 60000)
+  @Test
+  @Timeout(value = 60000, unit = TimeUnit.MILLISECONDS)
   public void testHashJoinExampleWithLogPattern() throws Exception {
     HashJoinExample hashJoinExample = new HashJoinExample();
 
@@ -280,7 +282,8 @@ public class TestTezJobs {
    * {@link JoinDataGen} -> {@link HashJoinExample} -> {@link JoinValidate}
    * @throws Exception
    */
-  @Test(timeout = 120000)
+  @Test
+  @Timeout(value = 120000, unit = TimeUnit.MILLISECONDS)
   public void testHashJoinExampleWithDataViaEvent() throws Exception {
 
     Path testDir = new Path("/tmp/testHashJoinExampleDataViaEvent");
@@ -329,7 +332,8 @@ public class TestTezJobs {
     }
   }
 
-  @Test(timeout = 60000)
+  @Test
+  @Timeout(value = 60000, unit = TimeUnit.MILLISECONDS)
   public void testHashJoinExampleDisableSplitGrouping() throws Exception {
     HashJoinExample hashJoinExample = new HashJoinExample();
     hashJoinExample.setConf(new Configuration(mrrTezCluster.getConfig()));
@@ -387,7 +391,8 @@ public class TestTezJobs {
     assertEquals(0, expectedResult.size());
   }
 
-  @Test(timeout = 60000)
+  @Test
+  @Timeout(value = 60000, unit = TimeUnit.MILLISECONDS)
   public void testSortMergeJoinExample() throws Exception {
     SortMergeJoinExample sortMergeJoinExample = new SortMergeJoinExample();
     sortMergeJoinExample.setConf(new Configuration(mrrTezCluster.getConfig()));
@@ -444,7 +449,8 @@ public class TestTezJobs {
     assertEquals(0, expectedResult.size());
   }
 
-  @Test(timeout = 60000)
+  @Test
+  @Timeout(value = 60000, unit = TimeUnit.MILLISECONDS)
   public void testPerIOCounterAggregation() throws Exception {
     String baseDir = "/tmp/perIOCounterAgg/";
     Path inPath1 = new Path(baseDir + "inPath1");
@@ -483,9 +489,9 @@ public class TestTezJobs {
         TaskCounter.class.getSimpleName() + "_" + joinerVertexName + "_INPUT_" + input1Name);
     final CounterGroup input2Group = joinerCounters.getGroup(
         TaskCounter.class.getSimpleName() + "_" + joinerVertexName + "_INPUT_" + input2Name);
-    assertTrue("aggregated counter group cannot be empty", aggregatedGroup.size() > 0);
-    assertTrue("per io group for input1 cannot be empty", input1Group.size() > 0);
-    assertTrue("per io group for input1 cannot be empty", input2Group.size() > 0);
+    assertTrue(aggregatedGroup.size() > 0, "aggregated counter group cannot be empty");
+    assertTrue(input1Group.size() > 0, "per io group for input1 cannot be empty");
+    assertTrue(input2Group.size() > 0, "per io group for input1 cannot be empty");
 
     List<TaskCounter> countersToVerifyAgg = Arrays.asList(
         TaskCounter.ADDITIONAL_SPILLS_BYTES_READ,
@@ -513,12 +519,12 @@ public class TestTezJobs {
       TezCounter aggregatedCounter = aggregatedGroup.findCounter(c.name(), false);
       TezCounter input1Counter = input1Group.findCounter(c.name(), false);
       TezCounter input2Counter = input2Group.findCounter(c.name(), false);
-      assertNotNull("aggregated counter cannot be null " + c.name(), aggregatedCounter);
-      assertNotNull("input1 counter cannot be null " + c.name(), input1Counter);
-      assertNotNull("input2 counter cannot be null " + c.name(), input2Counter);
+      assertNotNull(aggregatedCounter, "aggregated counter cannot be null " + c.name());
+      assertNotNull(input1Counter, "input1 counter cannot be null " + c.name());
+      assertNotNull(input2Counter, "input2 counter cannot be null " + c.name());
 
-      assertEquals("aggregated counter does not match sum of input counters " + c.name(),
-          aggregatedCounter.getValue(), input1Counter.getValue() + input2Counter.getValue());
+      assertEquals(aggregatedCounter.getValue(), input1Counter.getValue() + input2Counter.getValue(),
+          "aggregated counter does not match sum of input counters " + c.name());
 
       if (aggregatedCounter.getValue() > 0) {
         nonZeroCounters++;
@@ -526,22 +532,23 @@ public class TestTezJobs {
     }
 
     // ensure that at least one of the counters tested above were non-zero.
-    assertTrue("At least one of the counter should be non-zero. invalid test ", nonZeroCounters > 0);
+    assertTrue(nonZeroCounters > 0, "At least one of the counter should be non-zero. invalid test ");
 
     CounterGroup joinerOutputGroup = joinerCounters.getGroup(
         TaskCounter.class.getSimpleName() + "_" + joinerVertexName + "_OUTPUT_" + joinOutputName);
     String outputCounterName = TaskCounter.OUTPUT_RECORDS.name();
     TezCounter aggregateCounter = aggregatedGroup.findCounter(outputCounterName, false);
     TezCounter joinerOutputCounter = joinerOutputGroup.findCounter(outputCounterName, false);
-    assertNotNull("aggregated counter cannot be null " + outputCounterName, aggregateCounter);
-    assertNotNull("output counter cannot be null " + outputCounterName, joinerOutputCounter);
-    assertTrue("counter value is zero. test is invalid", aggregateCounter.getValue() > 0);
-    assertEquals("aggregated counter does not match sum of output counters " + outputCounterName,
-        aggregateCounter.getValue(), joinerOutputCounter.getValue());
+    assertNotNull(aggregateCounter, "aggregated counter cannot be null " + outputCounterName);
+    assertNotNull(joinerOutputCounter, "output counter cannot be null " + outputCounterName);
+    assertTrue(aggregateCounter.getValue() > 0, "counter value is zero. test is invalid");
+    assertEquals(aggregateCounter.getValue(), joinerOutputCounter.getValue(),
+        "aggregated counter does not match sum of output counters " + outputCounterName);
   }
 
 
-  @Test(timeout = 60000)
+  @Test
+  @Timeout(value = 60000, unit = TimeUnit.MILLISECONDS)
   public void testSortMergeJoinExampleDisableSplitGrouping() throws Exception {
     testSortMergeJoinExampleDisableSplitGrouping(false);
   }
@@ -653,7 +660,8 @@ public class TestTezJobs {
    * {@link JoinDataGen} -> {@link HashJoinExample} -> {@link JoinValidate}
    * @throws Exception
    */
-  @Test(timeout = 120000)
+  @Test
+  @Timeout(value = 120000, unit = TimeUnit.MILLISECONDS)
   public void testHashJoinExamplePipeline() throws Exception {
 
     Path testDir = new Path("/tmp/testHashJoinExample");
@@ -702,7 +710,8 @@ public class TestTezJobs {
    * {@link JoinDataGen} -> {@link SortMergeJoinExample} -> {@link JoinValidate}
    * @throws Exception
    */
-  @Test(timeout = 120000)
+  @Test
+  @Timeout(value = 120000, unit = TimeUnit.MILLISECONDS)
   public void testSortMergeJoinExamplePipeline() throws Exception {
 
     Path testDir = new Path("/tmp/testSortMergeExample");
@@ -794,13 +803,13 @@ public class TestTezJobs {
       LOG.info("Line: " + line + ", counter=" + currentCounter);
       int pos = line.indexOf("\t");
       String word = line.substring(0, pos-1);
-      Assert.assertEquals(prefix + "_" + currentCounter, word);
+      assertEquals(prefix + "_" + currentCounter, word);
       String val = line.substring(pos+1, line.length());
-      Assert.assertEquals((long)(11 - currentCounter) * 2, (long)Long.valueOf(val));
+      assertEquals((long)(11 - currentCounter) * 2, (long)Long.valueOf(val));
       currentCounter--;
     }
 
-    Assert.assertEquals(0, currentCounter);
+    assertEquals(0, currentCounter);
   }
 
   public static void verifyOutput(Path outputDir, FileSystem fs) throws IOException {
@@ -827,12 +836,13 @@ public class TestTezJobs {
       }
     }
     assertTrue(foundResult);
-    assertTrue(resultFile != null);
+    assertNotNull(resultFile);
     assertTrue(foundSuccessFile);
     verifyOrderedWordCountOutput(resultFile, fs);
   }
 
-  @Test(timeout = 60000)
+  @Test
+  @Timeout(value = 60000, unit = TimeUnit.MILLISECONDS)
   public void testOrderedWordCount() throws Exception {
     String inputDirStr = "/tmp/owc-input/";
     Path inputDir = new Path(inputDirStr);
@@ -851,7 +861,8 @@ public class TestTezJobs {
     try {
 
       OrderedWordCount job = new OrderedWordCount();
-      Assert.assertTrue("OrderedWordCount failed", job.run(tezConf, new String[]{"-counter", inputDirStr, outputDirStr, "2"}, null)==0);
+      assertEquals(0, job.run(tezConf, new String[]{"-counter", inputDirStr, outputDirStr, "2"}, null),
+          "OrderedWordCount failed");
       verifyOutput(outputDir, remoteFs);
 
     } finally {
@@ -863,7 +874,8 @@ public class TestTezJobs {
 
   }
 
-  @Test(timeout = 60000)
+  @Test
+  @Timeout(value = 60000, unit = TimeUnit.MILLISECONDS)
   public void testOrderedWordCountDisableSplitGrouping() throws Exception {
     String inputDirStr = TEST_ROOT_DIR + "/tmp/owc-input/";
     Path inputDir = new Path(inputDirStr);
@@ -883,8 +895,9 @@ public class TestTezJobs {
     try {
 
       OrderedWordCount job = new OrderedWordCount();
-      Assert.assertTrue("OrderedWordCount failed", job.run(tezConf, new String[]{"-counter", "-local", "-disableSplitGrouping",
-          inputDirStr, outputDirStr, "2"}, null)==0);
+      assertEquals(0,
+          job.run(tezConf, new String[]{"-counter", "-local", "-disableSplitGrouping", inputDirStr, outputDirStr, "2"},
+              null), "OrderedWordCount failed");
       verifyOutput(outputDir, localFs);
 
     } finally {
@@ -896,7 +909,8 @@ public class TestTezJobs {
 
   }
 
-  @Test(timeout = 60000)
+  @Test
+  @Timeout(value = 60000, unit = TimeUnit.MILLISECONDS)
   public void testSimpleSessionExample() throws Exception {
     Path stagingDirPath = new Path("/tmp/owc-staging-dir");
     remoteFs.mkdirs(stagingDirPath);
@@ -932,10 +946,9 @@ public class TestTezJobs {
 
       SimpleSessionExample job = new SimpleSessionExample();
       tezConf.setBoolean(TezConfiguration.TEZ_AM_SESSION_MODE, true);
-      Assert.assertTrue(
-          "SimpleSessionExample failed",
-          job.run(tezConf, new String[] { StringUtils.join(",", inputPaths),
-              StringUtils.join(",", outputPaths), "2" }, null) == 0);
+      assertEquals(0,
+          job.run(tezConf, new String[]{StringUtils.join(",", inputPaths), StringUtils.join(",", outputPaths), "2"},
+              null), "SimpleSessionExample failed");
 
       for (int i=0; i<numIterations; ++i) {
         verifyOutput(outputDirs[i], remoteFs);
@@ -945,7 +958,7 @@ public class TestTezJobs {
       int appsAfterCount = apps != null ? apps.size() : 0;
 
       // Running in session mode. So should only create 1 more app.
-      Assert.assertEquals(appsBeforeCount + 1, appsAfterCount);
+      assertEquals(appsBeforeCount + 1, appsAfterCount);
     } finally {
       remoteFs.delete(stagingDirPath, true);
       if (yarnClient != null) {
@@ -955,7 +968,8 @@ public class TestTezJobs {
 
   }
 
-  @Test(timeout = 60000)
+  @Test
+  @Timeout(value = 60000, unit = TimeUnit.MILLISECONDS)
   public void testInvalidQueueSubmission() throws Exception {
 
     TezConfiguration tezConf = new TezConfiguration(mrrTezCluster.getConfig());
@@ -979,9 +993,9 @@ public class TestTezJobs {
       outputPaths[0] = outputDirStr;
       int result = job.run(tezConf, new String[] { StringUtils.join(",", inputPaths),
           StringUtils.join(",", outputPaths), "2" }, null);
-      Assert.assertTrue("Job should have failed", result != 0);
+      assertTrue(result != 0, "Job should have failed");
     } catch (TezException e) {
-      Assert.assertTrue(e.getMessage().contains("Failed to submit application"));
+      assertTrue(e.getMessage().contains("Failed to submit application"));
     } finally {
       if (yarnClient != null) {
         yarnClient.stop();
@@ -989,7 +1003,8 @@ public class TestTezJobs {
     }
   }
 
-  @Test(timeout = 60000)
+  @Test
+  @Timeout(value = 60000, unit = TimeUnit.MILLISECONDS)
   public void testInvalidQueueSubmissionToSession() throws Exception {
 
     TezConfiguration tezConf = new TezConfiguration(mrrTezCluster.getConfig());
@@ -1018,7 +1033,7 @@ public class TestTezJobs {
       // Expected
       LOG.info("Session not running", e);
     } catch (TezException e) {
-      Assert.assertTrue(e.getMessage().contains("Failed to submit application"));
+      assertTrue(e.getMessage().contains("Failed to submit application"));
     } finally {
       if (yarnClient != null) {
         yarnClient.stop();
@@ -1028,7 +1043,8 @@ public class TestTezJobs {
   }
 
 
-  @Test (timeout=60000)
+  @Test
+  @Timeout(value = 60000, unit = TimeUnit.MILLISECONDS)
   public void testVertexOrder() throws Exception {
     TezConfiguration tezConf = new TezConfiguration(mrrTezCluster.getConfig());
     TezClient tezClient = TezClient.create("TestVertexOrder", tezConf);
@@ -1047,21 +1063,21 @@ public class TestTezJobs {
       dagStatus = dagClient.getDAGStatus(null);
     }
 
-    Assert.assertEquals(DAGStatus.State.SUCCEEDED, dagStatus.getState());
+    assertEquals(DAGStatus.State.SUCCEEDED, dagStatus.getState());
 
     // verify vertex order
     Set<String> resultVertices = dagStatus.getVertexProgress().keySet();
-    Assert.assertEquals(6, resultVertices.size());
+    assertEquals(6, resultVertices.size());
     int i = 0;
     for (String vertexName : resultVertices){
       if (i <= 1){
-        Assert.assertTrue( vertexName.equals("v1") || vertexName.equals("v2"));
-      } else if (i == 2){
-        Assert.assertTrue( vertexName.equals("v3"));
-      } else if (i <= 4){
-        Assert.assertTrue( vertexName.equals("v4") || vertexName.equals("v5"));
+        assertTrue(vertexName.equals("v1") || vertexName.equals("v2"));
+      } else if (i == 2) {
+        assertEquals("v3", vertexName);
+      } else if (i <= 4) {
+        assertTrue(vertexName.equals("v4") || vertexName.equals("v5"));
       } else {
-        Assert.assertTrue( vertexName.equals("v6"));
+        assertEquals("v6", vertexName);
       }
       i++;
     }
@@ -1072,7 +1088,8 @@ public class TestTezJobs {
     }
   }
 
-  @Test(timeout = 60000)
+  @Test
+  @Timeout(value = 60000, unit = TimeUnit.MILLISECONDS)
   public void testInputInitializerEvents() throws TezException, InterruptedException, IOException {
 
     TezConfiguration tezConf = new TezConfiguration(mrrTezCluster.getConfig());
@@ -1096,13 +1113,14 @@ public class TestTezJobs {
 
       DAGClient dagClient = tezClient.submitDAG(dag);
       dagClient.waitForCompletion();
-      Assert.assertEquals(DAGStatus.State.SUCCEEDED, dagClient.getDAGStatus(null).getState());
+      assertEquals(DAGStatus.State.SUCCEEDED, dagClient.getDAGStatus(null).getState());
     } finally {
       tezClient.stop();
     }
   }
 
-  @Test(timeout = 60000)
+  @Test
+  @Timeout(value = 60000, unit = TimeUnit.MILLISECONDS)
   public void testMultipleCommits_OnDAGSuccess() throws Exception {
     Path stagingDirPath = new Path("/tmp/commit-staging-dir");
     Random rand = new Random();
@@ -1120,9 +1138,10 @@ public class TestTezJobs {
 
     try {
       MultipleCommitsExample job = new MultipleCommitsExample();
-      Assert.assertTrue("MultipleCommitsExample failed", job.run(tezConf,
-          new String[]{ v1OutputPathPrefix, v1OutputNum + "", v2OutputPathPrefix, v2OutputNum + "",
-          uv12OutputPathPrefix, uv12OutputNum + "", v3OutputPathPrefix, v3OutputNum + ""}, null)==0);
+      assertEquals(0, job.run(tezConf,
+          new String[]{v1OutputPathPrefix, v1OutputNum + "", v2OutputPathPrefix, v2OutputNum + "",
+              uv12OutputPathPrefix, uv12OutputNum + "", v3OutputPathPrefix, v3OutputNum + ""},
+          null), "MultipleCommitsExample failed");
       verifyCommits(v1OutputPathPrefix, v1OutputNum);
       verifyCommits(v2OutputPathPrefix, v2OutputNum);
       verifyCommits(uv12OutputPathPrefix, uv12OutputNum);
@@ -1135,7 +1154,8 @@ public class TestTezJobs {
     }
   }
 
-  @Test(timeout = 60000)
+  @Test
+  @Timeout(value = 60000, unit = TimeUnit.MILLISECONDS)
   public void testMultipleCommits_OnVertexSuccess() throws Exception {
     Path stagingDirPath = new Path("/tmp/commit-staging-dir");
     Random rand = new Random();
@@ -1153,10 +1173,11 @@ public class TestTezJobs {
 
     try {
       MultipleCommitsExample job = new MultipleCommitsExample();
-      Assert.assertTrue("MultipleCommitsExample failed", job.run(tezConf,
-          new String[]{ v1OutputPathPrefix, v1OutputNum + "", v2OutputPathPrefix, v2OutputNum + "",
-          uv12OutputPathPrefix, uv12OutputNum + "", v3OutputPathPrefix, v3OutputNum + "",
-          MultipleCommitsExample.CommitOnVertexSuccessOption}, null)==0);
+      assertEquals(0, job.run(tezConf,
+              new String[]{v1OutputPathPrefix, v1OutputNum + "", v2OutputPathPrefix, v2OutputNum + "",
+                  uv12OutputPathPrefix, uv12OutputNum + "", v3OutputPathPrefix, v3OutputNum + "",
+                  MultipleCommitsExample.CommitOnVertexSuccessOption}, null),
+          "MultipleCommitsExample failed");
       verifyCommits(v1OutputPathPrefix, v1OutputNum);
       verifyCommits(v2OutputPathPrefix, v2OutputNum);
       verifyCommits(uv12OutputPathPrefix, uv12OutputNum);
@@ -1172,8 +1193,7 @@ public class TestTezJobs {
   private void verifyCommits(String outputPrefix, int outputNum) throws IllegalArgumentException, IOException {
     for (int i=0; i< outputNum; ++i) {
       String outputDir = outputPrefix + "_" + i;
-      Assert.assertTrue("Output of " + outputDir + " is not succeeded",
-          remoteFs.exists(new Path( outputDir + "/_SUCCESS")));
+      assertTrue(remoteFs.exists(new Path(outputDir + "/_SUCCESS")), "Output of " + outputDir + " is not succeeded");
     }
   }
 
@@ -1355,7 +1375,8 @@ public class TestTezJobs {
     assertEquals(0, expectedResult.size());
   }
 
-  @Test(timeout = 60000)
+  @Test
+  @Timeout(value = 60000, unit = TimeUnit.MILLISECONDS)
   public void testAMClientHeartbeatTimeout() throws Exception {
     Path stagingDirPath = new Path("/tmp/timeout-staging-dir");
     remoteFs.mkdirs(stagingDirPath);
@@ -1383,7 +1404,7 @@ public class TestTezJobs {
       int appsAfterCount = apps != null ? apps.size() : 0;
 
       // Running in session mode. So should only create 1 more app.
-      Assert.assertEquals(appsBeforeCount + 1, appsAfterCount);
+      assertEquals(appsBeforeCount + 1, appsAfterCount);
 
       ApplicationReport report;
       while (true) {
@@ -1398,10 +1419,9 @@ public class TestTezJobs {
       // Add a sleep because YARN is not consistent in terms of reporting uptodate diagnostics
       Thread.sleep(2000);
       report = yarnClient.getApplicationReport(appId);
-      LOG.info("App Report for appId=" + appId
-          + ", report=" + report);
-      Assert.assertTrue("Actual diagnostics: " + report.getDiagnostics(),
-          report.getDiagnostics().contains("Client-to-AM Heartbeat timeout interval expired"));
+      LOG.info("App Report for appId=" + appId + ", report=" + report);
+      assertTrue(report.getDiagnostics().contains("Client-to-AM Heartbeat timeout interval expired"),
+          "Actual diagnostics: " + report.getDiagnostics());
 
     } finally {
       remoteFs.delete(stagingDirPath, true);
@@ -1411,7 +1431,8 @@ public class TestTezJobs {
     }
   }
 
-  @Test(timeout = 60000)
+  @Test
+  @Timeout(value = 60000, unit = TimeUnit.MILLISECONDS)
   public void testSessionTimeout() throws Exception {
     Path stagingDirPath = new Path("/tmp/sessiontimeout-staging-dir");
     remoteFs.mkdirs(stagingDirPath);
@@ -1438,7 +1459,7 @@ public class TestTezJobs {
       int appsAfterCount = apps != null ? apps.size() : 0;
 
       // Running in session mode. So should only create 1 more app.
-      Assert.assertEquals(appsBeforeCount + 1, appsAfterCount);
+      assertEquals(appsBeforeCount + 1, appsAfterCount);
 
       ApplicationReport report;
       while (true) {
@@ -1453,10 +1474,9 @@ public class TestTezJobs {
       // Add a sleep because YARN is not consistent in terms of reporting uptodate diagnostics
       Thread.sleep(2000);
       report = yarnClient.getApplicationReport(appId);
-      LOG.info("App Report for appId=" + appId
-          + ", report=" + report);
-      Assert.assertTrue("Actual diagnostics: " + report.getDiagnostics(),
-          report.getDiagnostics().contains("Session timed out"));
+      LOG.info("App Report for appId=" + appId + ", report=" + report);
+      assertTrue(report.getDiagnostics().contains("Session timed out"),
+          "Actual diagnostics: " + report.getDiagnostics());
 
     } finally {
       remoteFs.delete(stagingDirPath, true);
@@ -1466,7 +1486,8 @@ public class TestTezJobs {
     }
   }
 
-  @Test(timeout = 60000)
+  @Test
+  @Timeout(value = 60000, unit = TimeUnit.MILLISECONDS)
   public void testVertexFailuresMaxPercent() throws TezException, InterruptedException, IOException {
 
     TezConfiguration tezConf = new TezConfiguration(mrrTezCluster.getConfig());
@@ -1492,13 +1513,14 @@ public class TestTezJobs {
 
       DAGClient dagClient = tezClient.submitDAG(dag);
       dagClient.waitForCompletion();
-      Assert.assertEquals(DAGStatus.State.SUCCEEDED, dagClient.getDAGStatus(null).getState());
+      assertEquals(DAGStatus.State.SUCCEEDED, dagClient.getDAGStatus(null).getState());
     } finally {
       tezClient.stop();
     }
   }
 
-  @Test(timeout = 60000)
+  @Test
+  @Timeout(value = 60000, unit = TimeUnit.MILLISECONDS)
   public void testCartesianProduct() throws Exception {
     LOG.info("Running CartesianProduct Test");
     CartesianProduct job = new CartesianProduct();
@@ -1506,6 +1528,6 @@ public class TestTezJobs {
     TezConfiguration tezConf = new TezConfiguration(mrrTezCluster.getConfig());
     tezConf.setInt(CartesianProductVertexManager.TEZ_CARTESIAN_PRODUCT_MAX_PARALLELISM, 10);
     tezConf.setInt(CartesianProductVertexManager.TEZ_CARTESIAN_PRODUCT_MIN_OPS_PER_WORKER, 25);
-    Assert.assertEquals("CartesianProduct failed", job.run(tezConf, null, null), 0);
+    assertEquals(0, job.run(tezConf, null, null), "CartesianProduct failed");
   }
 }

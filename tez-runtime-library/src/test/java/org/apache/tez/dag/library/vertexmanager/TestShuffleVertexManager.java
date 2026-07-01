@@ -18,6 +18,9 @@
  */
 package org.apache.tez.dag.library.vertexmanager;
 
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.Mockito.any;
 import static org.mockito.Mockito.anyInt;
 import static org.mockito.Mockito.anyList;
@@ -33,6 +36,7 @@ import java.io.IOException;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.concurrent.TimeUnit;
 
 import org.apache.hadoop.conf.Configuration;
 import org.apache.tez.common.ReflectionUtils;
@@ -45,15 +49,16 @@ import org.apache.tez.runtime.api.events.VertexManagerEvent;
 
 import com.google.common.collect.Lists;
 
-import org.junit.Assert;
-import org.junit.Test;
+import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.Timeout;
 
 @SuppressWarnings({ "unchecked", "rawtypes" })
 public class TestShuffleVertexManager extends TestShuffleVertexManagerUtils {
 
   List<TaskAttemptIdentifier> emptyCompletions = null;
 
-  @Test(timeout = 5000)
+  @Test
+  @Timeout(value = 5000, unit = TimeUnit.MILLISECONDS)
   public void testLargeDataSize() throws IOException {
     Configuration conf = new Configuration();
     ShuffleVertexManagerBase manager;
@@ -75,7 +80,7 @@ public class TestShuffleVertexManager extends TestShuffleVertexManagerUtils {
     manager = createManager(conf, mockContext, 0.1f, 0.1f);
     verify(mockContext, times(1)).vertexReconfigurationPlanned(); // Tez notified of reconfig
     manager.onVertexStarted(emptyCompletions);
-    Assert.assertTrue(manager.pendingTasks.size() == 4); // no tasks scheduled
+    assertEquals(4, manager.pendingTasks.size()); // no tasks scheduled
     manager.onVertexManagerEventReceived(vmEvent);
 
     manager.onVertexStateUpdated(new VertexStateUpdate(mockSrcVertexId1, VertexState.CONFIGURED));
@@ -87,15 +92,15 @@ public class TestShuffleVertexManager extends TestShuffleVertexManagerUtils {
     verify(mockContext, times(0)).doneReconfiguringVertex();
     // trigger scheduling
     manager.onVertexStateUpdated(new VertexStateUpdate(mockSrcVertexId3, VertexState.CONFIGURED));
-    Assert.assertTrue(manager.totalNumBipartiteSourceTasks == 4);
+    assertEquals(4, manager.totalNumBipartiteSourceTasks);
     verify(mockContext, times(0)).reconfigureVertex(anyInt(), any
         (VertexLocationHint.class), anyMap());
     verify(mockContext, times(1)).doneReconfiguringVertex(); // reconfig done
-    Assert.assertEquals(0, manager.pendingTasks.size()); // all tasks scheduled
-    Assert.assertEquals(4, scheduledTasks.size());
+    assertEquals(0, manager.pendingTasks.size()); // all tasks scheduled
+    assertEquals(4, scheduledTasks.size());
     // TODO TEZ-1714 locking verify(mockContext, times(2)).vertexManagerDone(); // notified after scheduling all tasks
-    Assert.assertEquals(2, manager.numBipartiteSourceTasksCompleted);
-    Assert.assertEquals(5000L, manager.completedSourceTasksOutputSize);
+    assertEquals(2, manager.numBipartiteSourceTasksCompleted);
+    assertEquals(5000L, manager.completedSourceTasksOutputSize);
     scheduledTasks.clear();
 
     // Ensure long overflow doesn't reduce mistakenly
@@ -106,38 +111,38 @@ public class TestShuffleVertexManager extends TestShuffleVertexManagerUtils {
     manager.onVertexStateUpdated(new VertexStateUpdate(mockSrcVertexId1, VertexState.CONFIGURED));
     manager.onVertexStateUpdated(new VertexStateUpdate(mockSrcVertexId2, VertexState.CONFIGURED));
     manager.onVertexStateUpdated(new VertexStateUpdate(mockSrcVertexId3, VertexState.CONFIGURED));
-    Assert.assertEquals(4, manager.pendingTasks.size()); // no tasks scheduled
-    Assert.assertEquals(4, manager.totalNumBipartiteSourceTasks);
+    assertEquals(4, manager.pendingTasks.size()); // no tasks scheduled
+    assertEquals(4, manager.totalNumBipartiteSourceTasks);
     // task completion from non-bipartite stage does nothing
     manager.onSourceTaskCompleted(createTaskAttemptIdentifier(mockSrcVertexId3, 0));
-    Assert.assertEquals(4, manager.pendingTasks.size()); // no tasks scheduled
-    Assert.assertEquals(4, manager.totalNumBipartiteSourceTasks);
-    Assert.assertEquals(0, manager.numBipartiteSourceTasksCompleted);
+    assertEquals(4, manager.pendingTasks.size()); // no tasks scheduled
+    assertEquals(4, manager.totalNumBipartiteSourceTasks);
+    assertEquals(0, manager.numBipartiteSourceTasksCompleted);
     // First source 1 task completes
     vmEvent = getVertexManagerEvent(null, 0L, mockSrcVertexId1);
     manager.onVertexManagerEventReceived(vmEvent);
     manager.onSourceTaskCompleted(createTaskAttemptIdentifier(mockSrcVertexId1, 0));
-    Assert.assertEquals(4, manager.pendingTasks.size());
-    Assert.assertEquals(0, scheduledTasks.size()); // no tasks scheduled
-    Assert.assertEquals(1, manager.numBipartiteSourceTasksCompleted);
-    Assert.assertEquals(1, manager.numVertexManagerEventsReceived);
-    Assert.assertEquals(0L, manager.completedSourceTasksOutputSize);
+    assertEquals(4, manager.pendingTasks.size());
+    assertEquals(0, scheduledTasks.size()); // no tasks scheduled
+    assertEquals(1, manager.numBipartiteSourceTasksCompleted);
+    assertEquals(1, manager.numVertexManagerEventsReceived);
+    assertEquals(0L, manager.completedSourceTasksOutputSize);
     // Second source 1 task completes
     vmEvent = getVertexManagerEvent(null, 0L, mockSrcVertexId1);
     manager.onVertexManagerEventReceived(vmEvent);
     manager.onSourceTaskCompleted(createTaskAttemptIdentifier(mockSrcVertexId1, 1));
-    Assert.assertEquals(4, manager.pendingTasks.size());
-    Assert.assertEquals(0, scheduledTasks.size()); // no tasks scheduled
-    Assert.assertEquals(2, manager.numBipartiteSourceTasksCompleted);
-    Assert.assertEquals(0L, manager.completedSourceTasksOutputSize);
+    assertEquals(4, manager.pendingTasks.size());
+    assertEquals(0, scheduledTasks.size()); // no tasks scheduled
+    assertEquals(2, manager.numBipartiteSourceTasksCompleted);
+    assertEquals(0L, manager.completedSourceTasksOutputSize);
     // First source 2 task completes
     vmEvent = getVertexManagerEvent(null, Long.MAX_VALUE >> 1 , mockSrcVertexId2);
     manager.onVertexManagerEventReceived(vmEvent);
     manager.onSourceTaskCompleted(createTaskAttemptIdentifier(mockSrcVertexId2, 0));
-    Assert.assertEquals(4, manager.pendingTasks.size());
-    Assert.assertEquals(0, scheduledTasks.size()); // no tasks scheduled
-    Assert.assertEquals(3, manager.numBipartiteSourceTasksCompleted);
-    Assert.assertEquals(Long.MAX_VALUE >> 1, manager.completedSourceTasksOutputSize);
+    assertEquals(4, manager.pendingTasks.size());
+    assertEquals(0, scheduledTasks.size()); // no tasks scheduled
+    assertEquals(3, manager.numBipartiteSourceTasksCompleted);
+    assertEquals(Long.MAX_VALUE >> 1, manager.completedSourceTasksOutputSize);
     // Second source 2 task completes
     vmEvent = getVertexManagerEvent(null, Long.MAX_VALUE >> 1 , mockSrcVertexId2);
     manager.onVertexManagerEventReceived(vmEvent);
@@ -145,14 +150,14 @@ public class TestShuffleVertexManager extends TestShuffleVertexManagerUtils {
     // Auto-reduce is triggered
     verify(mockContext, times(1)).reconfigureVertex(anyInt(), any(), anyMap());
     verify(mockContext, times(1)).reconfigureVertex(eq(2), any(), anyMap());
-    Assert.assertEquals(2, newEdgeManagers.size());
-    Assert.assertEquals(0, manager.pendingTasks.size()); // all tasks scheduled
-    Assert.assertEquals(2, scheduledTasks.size());
-    Assert.assertTrue(scheduledTasks.contains(new Integer(0)));
-    Assert.assertTrue(scheduledTasks.contains(new Integer(1)));
-    Assert.assertEquals(4, manager.numBipartiteSourceTasksCompleted);
-    Assert.assertEquals(4, manager.numVertexManagerEventsReceived);
-    Assert.assertEquals(Long.MAX_VALUE >> 1 << 1, manager.completedSourceTasksOutputSize);
+    assertEquals(2, newEdgeManagers.size());
+    assertEquals(0, manager.pendingTasks.size()); // all tasks scheduled
+    assertEquals(2, scheduledTasks.size());
+    assertTrue(scheduledTasks.contains(new Integer(0)));
+    assertTrue(scheduledTasks.contains(new Integer(1)));
+    assertEquals(4, manager.numBipartiteSourceTasksCompleted);
+    assertEquals(4, manager.numVertexManagerEventsReceived);
+    assertEquals(Long.MAX_VALUE >> 1 << 1, manager.completedSourceTasksOutputSize);
 
     //reset context for next test
     when(mockContext.getVertexNumTasks(mockSrcVertexId1)).thenReturn(2);
@@ -163,7 +168,8 @@ public class TestShuffleVertexManager extends TestShuffleVertexManagerUtils {
     scheduledTasks.clear();
   }
 
-  @Test(timeout = 5000)
+  @Test
+  @Timeout(value = 5000, unit = TimeUnit.MILLISECONDS)
   public void testAutoParallelismConfig() throws Exception {
     ShuffleVertexManager manager;
 
@@ -187,11 +193,11 @@ public class TestShuffleVertexManager extends TestShuffleVertexManagerUtils {
     manager.initialize();
     verify(mockContext, times(1)).vertexReconfigurationPlanned(); // Tez notified of reconfig
 
-    Assert.assertTrue(manager.config.isAutoParallelismEnabled());
-    Assert.assertTrue(manager.config.getDesiredTaskInputDataSize() == 1000l);
-    Assert.assertTrue(manager.mgrConfig.getMinTaskParallelism() == 10);
-    Assert.assertTrue(manager.config.getMinFraction() == 0.25f);
-    Assert.assertTrue(manager.config.getMaxFraction() == 0.5f);
+    assertTrue(manager.config.isAutoParallelismEnabled());
+    assertEquals(1000l, manager.config.getDesiredTaskInputDataSize());
+    assertEquals(10, manager.mgrConfig.getMinTaskParallelism());
+    assertEquals(0.25f, manager.config.getMinFraction());
+    assertEquals(0.5f, manager.config.getMaxFraction());
 
     configurer = ShuffleVertexManager.createConfigBuilder(null);
     pluginDesc = configurer.setAutoReduceParallelism(false).build();
@@ -202,17 +208,18 @@ public class TestShuffleVertexManager extends TestShuffleVertexManagerUtils {
     manager.initialize();
     verify(mockContext, times(1)).vertexReconfigurationPlanned(); // Tez not notified of reconfig
 
-    Assert.assertTrue(!manager.config.isAutoParallelismEnabled());
-    Assert.assertTrue(manager.config.getDesiredTaskInputDataSize() ==
+    assertFalse(manager.config.isAutoParallelismEnabled());
+    assertEquals(manager.config.getDesiredTaskInputDataSize(),
         ShuffleVertexManager.TEZ_SHUFFLE_VERTEX_MANAGER_DESIRED_TASK_INPUT_SIZE_DEFAULT);
-    Assert.assertTrue(manager.mgrConfig.getMinTaskParallelism() == 1);
-    Assert.assertTrue(manager.config.getMinFraction() ==
-        ShuffleVertexManager.TEZ_SHUFFLE_VERTEX_MANAGER_MIN_SRC_FRACTION_DEFAULT);
-    Assert.assertTrue(manager.config.getMaxFraction() ==
-        ShuffleVertexManager.TEZ_SHUFFLE_VERTEX_MANAGER_MAX_SRC_FRACTION_DEFAULT);
+    assertEquals(1, manager.mgrConfig.getMinTaskParallelism());
+    assertEquals(ShuffleVertexManager.TEZ_SHUFFLE_VERTEX_MANAGER_MIN_SRC_FRACTION_DEFAULT,
+        manager.config.getMinFraction());
+    assertEquals(ShuffleVertexManager.TEZ_SHUFFLE_VERTEX_MANAGER_MAX_SRC_FRACTION_DEFAULT,
+        manager.config.getMaxFraction());
   }
 
-  @Test(timeout = 5000)
+  @Test
+  @Timeout(value = 5000, unit = TimeUnit.MILLISECONDS)
   public void testSchedulingWithPartitionStats() throws IOException {
     Configuration conf = new Configuration();
     ShuffleVertexManagerBase manager;
@@ -261,19 +268,19 @@ public class TestShuffleVertexManager extends TestShuffleVertexManagerUtils {
     // check initialization
     manager = createManager(conf, mockContext, 0.001f, 0.001f);
     manager.onVertexStarted(emptyCompletions);
-    Assert.assertTrue(manager.bipartiteSources == 1);
+    assertEquals(1, manager.bipartiteSources);
 
     manager.onVertexStateUpdated(new VertexStateUpdate(r1, VertexState.CONFIGURED));
     manager.onVertexStateUpdated(new VertexStateUpdate(m2, VertexState.CONFIGURED));
 
-    Assert.assertEquals(3, manager.pendingTasks.size()); // no tasks scheduled
-    Assert.assertEquals(3, manager.totalNumBipartiteSourceTasks);
-    Assert.assertEquals(0, manager.numBipartiteSourceTasksCompleted);
+    assertEquals(3, manager.pendingTasks.size()); // no tasks scheduled
+    assertEquals(3, manager.totalNumBipartiteSourceTasks);
+    assertEquals(0, manager.numBipartiteSourceTasksCompleted);
 
     //Send an event for r1.
     manager.onSourceTaskCompleted(createTaskAttemptIdentifier(r1, 0));
-    Assert.assertTrue(manager.pendingTasks.size() == 3); // no tasks scheduled
-    Assert.assertTrue(manager.totalNumBipartiteSourceTasks == 3);
+    assertEquals(3, manager.pendingTasks.size()); // no tasks scheduled
+    assertEquals(3, manager.totalNumBipartiteSourceTasks);
 
     //Tasks should be scheduled in task 2, 0, 1 order
     long[] sizes = new long[]{(100 * 1000l * 1000l), (0l), (5000 * 1000l * 1000l)};
@@ -287,19 +294,19 @@ public class TestShuffleVertexManager extends TestShuffleVertexManagerUtils {
 
     //Send an event for m2.
     manager.onSourceTaskCompleted(createTaskAttemptIdentifier(m2, 0));
-    Assert.assertTrue(manager.pendingTasks.size() == 3); // no tasks scheduled
-    Assert.assertTrue(manager.totalNumBipartiteSourceTasks == 3);
+    assertEquals(3, manager.pendingTasks.size()); // no tasks scheduled
+    assertEquals(3, manager.totalNumBipartiteSourceTasks);
 
     //Send an event for m3.
     manager.onVertexStateUpdated(new VertexStateUpdate(m3, VertexState.CONFIGURED));
     manager.onSourceTaskCompleted(createTaskAttemptIdentifier(m3, 0));
-    Assert.assertTrue(manager.pendingTasks.size() == 0); // all tasks scheduled
-    Assert.assertTrue(scheduledTasks.size() == 3);
+    assertEquals(0, manager.pendingTasks.size()); // all tasks scheduled
+    assertEquals(3, scheduledTasks.size());
 
     //Order of scheduling should be 2,0,1 based on the available partition statistics
-    Assert.assertTrue(scheduledTasks.get(0) == 2);
-    Assert.assertTrue(scheduledTasks.get(1) == 0);
-    Assert.assertTrue(scheduledTasks.get(2) == 1);
+    assertEquals(2, (int) scheduledTasks.get(0));
+    assertEquals(0, (int) scheduledTasks.get(1));
+    assertEquals(1, (int) scheduledTasks.get(2));
   }
 
 

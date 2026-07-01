@@ -18,13 +18,16 @@
  */
 package org.apache.tez.mapreduce.output;
 
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertNotNull;
-import static org.junit.Assert.assertNull;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertNotNull;
+import static org.junit.jupiter.api.Assertions.assertNull;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 
 import java.io.File;
+import java.util.concurrent.TimeUnit;
 
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.fs.Path;
@@ -45,14 +48,16 @@ import org.apache.tez.mapreduce.committer.MROutputCommitter;
 import org.apache.tez.mapreduce.hadoop.MRConfig;
 import org.apache.tez.runtime.api.OutputContext;
 
-import org.junit.Test;
+import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.Timeout;
 
 public class TestMROutputLegacy {
   private static final File TEST_DIR = new File(System.getProperty("test.build.data"),
       TestMROutputLegacy.class.getName()).getAbsoluteFile();
 
   // simulate the behavior of translating MR to DAG using MR old API
-  @Test (timeout = 5000)
+  @Test
+  @Timeout(value = 5000, unit = TimeUnit.MILLISECONDS)
   public void testOldAPI_MR() throws Exception {
     String outputPath = TEST_DIR.getAbsolutePath();
     JobConf conf = new JobConf();
@@ -71,7 +76,7 @@ public class TestMROutputLegacy {
     OutputContext outputContext = createMockOutputContext(sink.getOutputDescriptor().getUserPayload());
     MROutputLegacy output = new MROutputLegacy(outputContext, 2);
     output.initialize();
-    assertEquals(false, output.useNewApi);
+    assertFalse(output.useNewApi);
     assertEquals(org.apache.hadoop.mapred.SequenceFileOutputFormat.class, output.oldOutputFormat.getClass());
     assertNull(output.newOutputFormat);
     assertEquals(NullWritable.class, output.oldApiTaskAttemptContext.getOutputKeyClass());
@@ -83,7 +88,8 @@ public class TestMROutputLegacy {
   }
 
   // simulate the behavior of translating MR to DAG using MR new API
-  @Test (timeout = 5000)
+  @Test
+  @Timeout(value = 5000, unit = TimeUnit.MILLISECONDS)
   public void testNewAPI_MR() throws Exception {
     String outputPath = TEST_DIR.getAbsolutePath();
     Job job = Job.getInstance();
@@ -103,7 +109,7 @@ public class TestMROutputLegacy {
     OutputContext outputContext = createMockOutputContext(sink.getOutputDescriptor().getUserPayload());
     MROutputLegacy output = new MROutputLegacy(outputContext, 2);
     output.initialize();
-    assertEquals(true, output.useNewApi);
+    assertTrue(output.useNewApi);
     assertEquals(SequenceFileOutputFormat.class, output.newOutputFormat.getClass());
     assertNull(output.oldOutputFormat);
     assertEquals(NullWritable.class, output.newApiTaskAttemptContext.getOutputKeyClass());
@@ -115,7 +121,8 @@ public class TestMROutputLegacy {
   }
 
   // simulate the behavior of translating Mapper-only job to DAG using MR old API
-  @Test (timeout = 5000)
+  @Test
+  @Timeout(value = 5000, unit = TimeUnit.MILLISECONDS)
   public void testOldAPI_MapperOnly() throws Exception {
     String outputPath = TEST_DIR.getAbsolutePath();
     JobConf conf = new JobConf();
@@ -134,7 +141,7 @@ public class TestMROutputLegacy {
     OutputContext outputContext = createMockOutputContext(sink.getOutputDescriptor().getUserPayload());
     MROutputLegacy output = new MROutputLegacy(outputContext, 2);
     output.initialize();
-    assertEquals(false, output.useNewApi);
+    assertFalse(output.useNewApi);
     assertEquals(org.apache.hadoop.mapred.SequenceFileOutputFormat.class, output.oldOutputFormat.getClass());
     assertNull(output.newOutputFormat);
     assertEquals(NullWritable.class, output.oldApiTaskAttemptContext.getOutputKeyClass());
@@ -146,7 +153,8 @@ public class TestMROutputLegacy {
   }
 
   //simulate the behavior of translating mapper-only job to DAG using MR new API
-  @Test (timeout = 5000)
+  @Test
+  @Timeout(value = 5000, unit = TimeUnit.MILLISECONDS)
   public void testNewAPI_MapperOnly() throws Exception {
     String outputPath = TEST_DIR.getAbsolutePath();
     Job job = Job.getInstance();
@@ -166,7 +174,7 @@ public class TestMROutputLegacy {
     OutputContext outputContext = createMockOutputContext(sink.getOutputDescriptor().getUserPayload());
     MROutputLegacy output = new MROutputLegacy(outputContext, 2);
     output.initialize();
-    assertEquals(true, output.useNewApi);
+    assertTrue(output.useNewApi);
     assertEquals(SequenceFileOutputFormat.class, output.newOutputFormat.getClass());
     assertNull(output.oldOutputFormat);
     assertEquals(NullWritable.class, output.newApiTaskAttemptContext.getOutputKeyClass());

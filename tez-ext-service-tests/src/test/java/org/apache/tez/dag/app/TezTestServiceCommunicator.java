@@ -18,7 +18,6 @@
  */
 package org.apache.tez.dag.app;
 
-
 import java.util.concurrent.Callable;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentMap;

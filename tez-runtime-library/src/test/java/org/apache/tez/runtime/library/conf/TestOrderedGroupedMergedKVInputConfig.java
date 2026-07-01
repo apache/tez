@@ -18,24 +18,28 @@
  */
 package org.apache.tez.runtime.library.conf;
 
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertNull;
-import static org.junit.Assert.assertTrue;
-import static org.junit.Assert.fail;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertNull;
+import static org.junit.jupiter.api.Assertions.assertTrue;
+import static org.junit.jupiter.api.Assertions.fail;
 
 import java.util.HashMap;
 import java.util.Map;
+import java.util.concurrent.TimeUnit;
 
 import org.apache.hadoop.conf.Configuration;
 import org.apache.tez.runtime.library.api.TezRuntimeConfiguration;
 
 import com.google.common.collect.Maps;
 
-import org.junit.Test;
+import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.Timeout;
 
 public class TestOrderedGroupedMergedKVInputConfig {
 
-  @Test(timeout = 5000)
+  @Test
+  @Timeout(value = 5000, unit = TimeUnit.MILLISECONDS)
   public void testNullParams() {
     try {
       OrderedGroupedKVInputConfig.newBuilder(null, "VALUE");
@@ -52,7 +56,8 @@ public class TestOrderedGroupedMergedKVInputConfig {
     }
   }
 
-  @Test(timeout = 5000)
+  @Test
+  @Timeout(value = 5000, unit = TimeUnit.MILLISECONDS)
   public void testSetters() {
     Configuration fromConf = new Configuration(false);
     fromConf.set("test.conf.key.1", "confkey1");
@@ -110,7 +115,7 @@ public class TestOrderedGroupedMergedKVInputConfig {
     assertEquals("VALUE", conf.get(TezRuntimeConfiguration.TEZ_RUNTIME_VALUE_CLASS, ""));
     assertEquals("CustomCodec",
         conf.get(TezRuntimeConfiguration.TEZ_RUNTIME_COMPRESS_CODEC, ""));
-    assertEquals(true, conf.getBoolean(TezRuntimeConfiguration.TEZ_RUNTIME_COMPRESS,
+    assertTrue(conf.getBoolean(TezRuntimeConfiguration.TEZ_RUNTIME_COMPRESS,
         false));
     assertEquals(0.11f, conf.getFloat(TezRuntimeConfiguration.TEZ_RUNTIME_SHUFFLE_MEMORY_LIMIT_PERCENT, 0.0f), 0.001f);
     assertEquals(0.22f, conf.getFloat(TezRuntimeConfiguration.TEZ_RUNTIME_SHUFFLE_MERGE_PERCENT, 0.0f), 0.001f);
@@ -127,11 +132,11 @@ public class TestOrderedGroupedMergedKVInputConfig {
         .TEZ_RUNTIME_SHUFFLE_MAX_ALLOWED_FAILED_FETCH_ATTEMPT_FRACTION, 0.00f), 0.001f);
     assertEquals(0.6f, conf.getFloat(TezRuntimeConfiguration
         .TEZ_RUNTIME_SHUFFLE_MIN_REQUIRED_PROGRESS_FRACTION, 0.6f), 0.001f);
-    assertEquals(false, conf.getBoolean(TezRuntimeConfiguration
+    assertFalse(conf.getBoolean(TezRuntimeConfiguration
         .TEZ_RUNTIME_SHUFFLE_FAILED_CHECK_SINCE_LAST_COMPLETION, true));
 
     // Verify additional configs
-    assertEquals(false, conf.getBoolean(TezRuntimeConfiguration.TEZ_RUNTIME_IFILE_READAHEAD,
+    assertFalse(conf.getBoolean(TezRuntimeConfiguration.TEZ_RUNTIME_IFILE_READAHEAD,
         TezRuntimeConfiguration.TEZ_RUNTIME_IFILE_READAHEAD_DEFAULT));
     assertEquals(1111, conf.getInt(TezRuntimeConfiguration.TEZ_RUNTIME_IFILE_READAHEAD_BYTES,
         TezRuntimeConfiguration.TEZ_RUNTIME_IFILE_READAHEAD_BYTES_DEFAULT));
@@ -146,7 +151,8 @@ public class TestOrderedGroupedMergedKVInputConfig {
     assertEquals("unfiltered1", conf.get("test.conf.unfiltered.1"));
   }
 
-  @Test(timeout = 5000)
+  @Test
+  @Timeout(value = 5000, unit = TimeUnit.MILLISECONDS)
   public void testDefaultConfigsUsed() {
     OrderedGroupedKVInputConfig.Builder builder =
         OrderedGroupedKVInputConfig.newBuilder("KEY", "VALUE");
@@ -157,7 +163,7 @@ public class TestOrderedGroupedMergedKVInputConfig {
 
     Configuration conf = rebuilt.conf;
 
-    assertEquals(true, conf.getBoolean(TezRuntimeConfiguration.TEZ_RUNTIME_IFILE_READAHEAD,
+    assertTrue(conf.getBoolean(TezRuntimeConfiguration.TEZ_RUNTIME_IFILE_READAHEAD,
         TezRuntimeConfiguration.TEZ_RUNTIME_IFILE_READAHEAD_DEFAULT));
 
     // Default property present.
@@ -169,7 +175,8 @@ public class TestOrderedGroupedMergedKVInputConfig {
     assertEquals("VALUE", conf.get(TezRuntimeConfiguration.TEZ_RUNTIME_VALUE_CLASS, ""));
   }
 
-  @Test(timeout = 5000)
+  @Test
+  @Timeout(value = 5000, unit = TimeUnit.MILLISECONDS)
   public void testCombinerConfigs() {
     Map<String, String> combinerConf = Maps.newHashMap();
     combinerConf.put("combiner.test.key", "COMBINERKEY");

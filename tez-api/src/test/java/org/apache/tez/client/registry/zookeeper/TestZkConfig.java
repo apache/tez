@@ -18,8 +18,9 @@
  */
 package org.apache.tez.client.registry.zookeeper;
 
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertNotNull;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertNotNull;
+import static org.junit.jupiter.api.Assertions.assertThrows;
 
 import java.util.concurrent.TimeUnit;
 
@@ -28,7 +29,7 @@ import org.apache.curator.framework.CuratorFramework;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.tez.dag.api.TezConfiguration;
 
-import org.junit.Test;
+import org.junit.jupiter.api.Test;
 
 public class TestZkConfig {
 
@@ -189,34 +190,36 @@ public class TestZkConfig {
     assertEquals(zkConfig.getZkQuorum(), curator.getZookeeperClient().getCurrentConnectionString());
   }
 
-  @Test(expected = IllegalArgumentException.class)
+  @Test
   public void testNullZkQuorum() {
     TezConfiguration conf = new TezConfiguration();
     // Don't set zkQuorum
-    new ZkConfig(conf);
+    assertThrows(IllegalArgumentException.class, () -> new ZkConfig(conf));
   }
 
-  @Test(expected = IllegalArgumentException.class)
+  @Test
   public void testEmptyZkQuorum() {
     TezConfiguration conf = new TezConfiguration();
     conf.set(TezConfiguration.TEZ_AM_ZOOKEEPER_QUORUM, "");
-    new ZkConfig(conf);
+    assertThrows(IllegalArgumentException.class, () -> new ZkConfig(conf));
   }
 
-  @Test(expected = IllegalArgumentException.class)
+  @Test
   public void testNullNamespace() {
     TezConfiguration conf = new TezConfiguration();
     conf.set(TezConfiguration.TEZ_AM_ZOOKEEPER_QUORUM, "localhost:2181");
-    conf.set(TezConfiguration.TEZ_AM_REGISTRY_NAMESPACE, null);
-    new ZkConfig(conf);
+    assertThrows(IllegalArgumentException.class, () -> {
+      conf.set(TezConfiguration.TEZ_AM_REGISTRY_NAMESPACE, null);
+      new ZkConfig(conf);
+    });
   }
 
-  @Test(expected = IllegalArgumentException.class)
+  @Test
   public void testEmptyNamespace() {
     TezConfiguration conf = new TezConfiguration();
     conf.set(TezConfiguration.TEZ_AM_ZOOKEEPER_QUORUM, "localhost:2181");
     conf.set(TezConfiguration.TEZ_AM_REGISTRY_NAMESPACE, "");
-    new ZkConfig(conf);
+    assertThrows(IllegalArgumentException.class, () -> new ZkConfig(conf));
   }
 
   @Test

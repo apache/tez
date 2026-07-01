@@ -18,6 +18,9 @@
  */
 package org.apache.tez.runtime.api.impl;
 
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertNull;
+
 import java.io.ByteArrayInputStream;
 import java.io.ByteArrayOutputStream;
 import java.io.DataInput;
@@ -28,6 +31,7 @@ import java.io.IOException;
 import java.nio.ByteBuffer;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.concurrent.TimeUnit;
 
 import org.apache.hadoop.conf.Configuration;
 import org.apache.tez.dag.api.InputDescriptor;
@@ -39,12 +43,13 @@ import org.apache.tez.dag.records.TezTaskAttemptID;
 import org.apache.tez.dag.records.TezTaskID;
 import org.apache.tez.dag.records.TezVertexID;
 
-import org.junit.Assert;
-import org.junit.Test;
+import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.Timeout;
 
 public class TestTaskSpec {
 
-  @Test (timeout = 5000)
+  @Test
+  @Timeout(value = 5000, unit = TimeUnit.MILLISECONDS)
   public void testSerDe() throws IOException {
     ByteBuffer payload = null;
     ProcessorDescriptor procDesc = ProcessorDescriptor.create("proc").setUserPayload(
@@ -75,18 +80,18 @@ public class TestTaskSpec {
     DataInput in = new DataInputStream(bis);
     deSerTaskSpec.readFields(in);
 
-    Assert.assertEquals(taskSpec.getDAGName(), deSerTaskSpec.getDAGName());
-    Assert.assertEquals(taskSpec.getVertexName(), deSerTaskSpec.getVertexName());
-    Assert.assertEquals(taskSpec.getVertexParallelism(), deSerTaskSpec.getVertexParallelism());
-    Assert.assertEquals(taskSpec.getInputs().size(), deSerTaskSpec.getInputs().size());
-    Assert.assertEquals(taskSpec.getOutputs().size(), deSerTaskSpec.getOutputs().size());
-    Assert.assertNull(deSerTaskSpec.getGroupInputs());
-    Assert.assertEquals(taskSpec.getInputs().get(0).getSourceVertexName(),
-        deSerTaskSpec.getInputs().get(0).getSourceVertexName());
-    Assert.assertEquals(taskSpec.getOutputs().get(0).getDestinationVertexName(),
-        deSerTaskSpec.getOutputs().get(0).getDestinationVertexName());
+    assertEquals(taskSpec.getDAGName(), deSerTaskSpec.getDAGName());
+    assertEquals(taskSpec.getVertexName(), deSerTaskSpec.getVertexName());
+    assertEquals(taskSpec.getVertexParallelism(), deSerTaskSpec.getVertexParallelism());
+    assertEquals(taskSpec.getInputs().size(), deSerTaskSpec.getInputs().size());
+    assertEquals(taskSpec.getOutputs().size(), deSerTaskSpec.getOutputs().size());
+    assertNull(deSerTaskSpec.getGroupInputs());
+    assertEquals(taskSpec.getInputs().getFirst().getSourceVertexName(),
+        deSerTaskSpec.getInputs().getFirst().getSourceVertexName());
+    assertEquals(taskSpec.getOutputs().getFirst().getDestinationVertexName(),
+        deSerTaskSpec.getOutputs().getFirst().getDestinationVertexName());
 
-    Assert.assertEquals(taskConf.get("foo"), deSerTaskSpec.getTaskConf().get("foo"));
+    assertEquals(taskConf.get("foo"), deSerTaskSpec.getTaskConf().get("foo"));
   }
 
 }

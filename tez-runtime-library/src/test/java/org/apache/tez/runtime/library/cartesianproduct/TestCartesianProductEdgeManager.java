@@ -19,22 +19,25 @@
 package org.apache.tez.runtime.library.cartesianproduct;
 
 import static org.apache.tez.runtime.library.cartesianproduct.CartesianProductUserPayload.*;
-import static org.junit.Assert.assertTrue;
+import static org.junit.jupiter.api.Assertions.assertInstanceOf;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 
 import java.nio.ByteBuffer;
 import java.util.Arrays;
+import java.util.concurrent.TimeUnit;
 
 import org.apache.tez.dag.api.EdgeManagerPluginContext;
 import org.apache.tez.dag.api.UserPayload;
 
 import com.google.common.primitives.Ints;
 
-import org.junit.Test;
+import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.Timeout;
 
 public class TestCartesianProductEdgeManager {
-  @Test(timeout = 5000)
+  @Test
+  @Timeout(value = 5000, unit = TimeUnit.MILLISECONDS)
   public void testInitialize() throws Exception {
     EdgeManagerPluginContext context = mock(EdgeManagerPluginContext.class);
     when(context.getSourceVertexName()).thenReturn("v0");
@@ -49,8 +52,7 @@ public class TestCartesianProductEdgeManager {
     UserPayload payload = UserPayload.create(ByteBuffer.wrap(builder.build().toByteArray()));
     when(context.getUserPayload()).thenReturn(payload);
     edgeManager.initialize();
-    assertTrue(edgeManager.getEdgeManagerReal()
-      instanceof CartesianProductEdgeManagerPartitioned);
+    assertInstanceOf(CartesianProductEdgeManagerPartitioned.class, edgeManager.getEdgeManagerReal());
 
     // unpartitioned case
     builder.clear();
@@ -62,7 +64,6 @@ public class TestCartesianProductEdgeManager {
     when(context.getUserPayload()).thenReturn(payload);
     when(context.getSourceVertexNumTasks()).thenReturn(2);
     edgeManager.initialize();
-    assertTrue(edgeManager.getEdgeManagerReal()
-      instanceof FairCartesianProductEdgeManager);
+    assertInstanceOf(FairCartesianProductEdgeManager.class, edgeManager.getEdgeManagerReal());
   }
 }

@@ -20,9 +20,9 @@ package org.apache.tez.dag.app.rm;
 
 import static org.apache.tez.dag.app.rm.TestTaskSchedulerHelpers.createCountingExecutingService;
 import static org.apache.tez.dag.app.rm.TestTaskSchedulerHelpers.setupMockTaskSchedulerContext;
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertFalse;
-import static org.junit.Assert.assertTrue;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.Mockito.any;
 import static org.mockito.Mockito.anyInt;
 import static org.mockito.Mockito.anyList;
@@ -48,6 +48,7 @@ import java.util.Set;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.ScheduledExecutorService;
+import java.util.concurrent.TimeUnit;
 
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.yarn.api.protocolrecords.RegisterApplicationMasterResponse;
@@ -85,22 +86,23 @@ import org.apache.tez.test.ControlledScheduledExecutorService;
 import com.google.common.collect.Sets;
 import com.google.common.util.concurrent.ThreadFactoryBuilder;
 
-import org.junit.After;
-import org.junit.Before;
-import org.junit.BeforeClass;
-import org.junit.Test;
+import org.junit.jupiter.api.AfterEach;
+import org.junit.jupiter.api.BeforeAll;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.Timeout;
 import org.mockito.ArgumentCaptor;
 
 public class TestDagAwareYarnTaskScheduler {
   private ExecutorService contextCallbackExecutor;
 
-  @BeforeClass
+  @BeforeAll
   public static void beforeClass() {
 
     MockDNSToSwitchMapping.initializeMockRackResolver();
   }
 
-  @Before
+  @BeforeEach
   public void preTest() {
     contextCallbackExecutor = Executors.newSingleThreadExecutor(
         new ThreadFactoryBuilder().setNameFormat("TaskSchedulerAppCallbackExecutor #%d")
@@ -108,7 +110,7 @@ public class TestDagAwareYarnTaskScheduler {
             .build());
   }
 
-  @After
+  @AfterEach
   public void postTest() {
     contextCallbackExecutor.shutdownNow();
   }
@@ -122,7 +124,8 @@ public class TestDagAwareYarnTaskScheduler {
   }
 
   @SuppressWarnings({ "unchecked" })
-  @Test(timeout=30000)
+  @Test
+  @Timeout(value = 30000, unit = TimeUnit.MILLISECONDS)
   public void testNoReuse() throws Exception {
     AMRMClientAsyncWrapperForTest mockRMClient = spy(new AMRMClientAsyncWrapperForTest());
 
@@ -398,7 +401,8 @@ public class TestDagAwareYarnTaskScheduler {
     verify(mockRMClient).stop();
   }
 
-  @Test(timeout=30000)
+  @Test
+  @Timeout(value = 30000, unit = TimeUnit.MILLISECONDS)
   public void testSimpleReuseLocalMatching() throws Exception {
     AMRMClientAsyncWrapperForTest mockRMClient = spy(new AMRMClientAsyncWrapperForTest());
 
@@ -503,7 +507,8 @@ public class TestDagAwareYarnTaskScheduler {
     verify(mockRMClient).stop();
   }
 
-  @Test(timeout=30000)
+  @Test
+  @Timeout(value = 30000, unit = TimeUnit.MILLISECONDS)
   public void testSimpleReuseRackMatching() throws Exception {
     AMRMClientAsyncWrapperForTest mockRMClient = spy(new AMRMClientAsyncWrapperForTest());
 
@@ -610,7 +615,8 @@ public class TestDagAwareYarnTaskScheduler {
     verify(mockRMClient).stop();
   }
 
-  @Test(timeout=30000)
+  @Test
+  @Timeout(value = 30000, unit = TimeUnit.MILLISECONDS)
   public void testSimpleReuseAnyMatching() throws Exception {
     AMRMClientAsyncWrapperForTest mockRMClient = spy(new AMRMClientAsyncWrapperForTest());
 
@@ -726,7 +732,8 @@ public class TestDagAwareYarnTaskScheduler {
     verify(mockRMClient).stop();
   }
 
-  @Test(timeout=30000)
+  @Test
+  @Timeout(value = 30000, unit = TimeUnit.MILLISECONDS)
   public void testReuseWithAffinity() throws Exception {
     AMRMClientAsyncWrapperForTest mockRMClient = spy(new AMRMClientAsyncWrapperForTest());
 
@@ -814,7 +821,8 @@ public class TestDagAwareYarnTaskScheduler {
     verify(mockRMClient).stop();
   }
 
-  @Test(timeout=30000)
+  @Test
+  @Timeout(value = 30000, unit = TimeUnit.MILLISECONDS)
   public void testReuseVertexDescendants() throws Exception {
     AMRMClientAsyncWrapperForTest mockRMClient = spy(new AMRMClientAsyncWrapperForTest());
 
@@ -940,7 +948,8 @@ public class TestDagAwareYarnTaskScheduler {
     verify(mockRMClient).stop();
   }
 
-  @Test(timeout=30000)
+  @Test
+  @Timeout(value = 30000, unit = TimeUnit.MILLISECONDS)
   public void testSessionContainers() throws Exception {
     AMRMClientAsyncWrapperForTest mockRMClient = spy(new AMRMClientAsyncWrapperForTest());
 
@@ -1110,7 +1119,8 @@ public class TestDagAwareYarnTaskScheduler {
     verify(mockRMClient).stop();
   }
 
-  @Test(timeout=50000)
+  @Test
+  @Timeout(value = 50000, unit = TimeUnit.MILLISECONDS)
   public void testPreemptionNoHeadroom() throws Exception {
     AMRMClientAsyncWrapperForTest mockRMClient = spy(new AMRMClientAsyncWrapperForTest());
 
@@ -1253,7 +1263,8 @@ public class TestDagAwareYarnTaskScheduler {
     verify(mockRMClient).stop();
   }
 
-  @Test (timeout = 50000L)
+  @Test
+  @Timeout(value = 50000, unit = TimeUnit.MILLISECONDS)
   public void testPreemptionWhenBlocked() throws Exception {
     AMRMClientAsyncWrapperForTest mockRMClient = spy(new AMRMClientAsyncWrapperForTest());
 
@@ -1362,7 +1373,8 @@ public class TestDagAwareYarnTaskScheduler {
     verify(mockRMClient).stop();
   }
 
-  @Test(timeout=50000)
+  @Test
+  @Timeout(value = 50000, unit = TimeUnit.MILLISECONDS)
   public void testContainerAssignmentReleaseNewContainers() throws Exception {
     AMRMClientAsyncWrapperForTest mockRMClient = spy(new AMRMClientAsyncWrapperForTest());
 
@@ -1432,7 +1444,8 @@ public class TestDagAwareYarnTaskScheduler {
     verify(mockRMClient).releaseAssignedContainer(eq(cid1));
   }
 
-  @Test(timeout=50000)
+  @Test
+  @Timeout(value = 50000, unit = TimeUnit.MILLISECONDS)
   public void testIdleContainerAssignmentReuseNewContainers() throws Exception {
     AMRMClientAsyncWrapperForTest mockRMClient = spy(new AMRMClientAsyncWrapperForTest());
 

@@ -18,12 +18,14 @@
  */
 package org.apache.tez.runtime.library.common.sort.impl;
 
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertFalse;
-import static org.junit.Assert.assertNotEquals;
-import static org.junit.Assert.assertNotNull;
-import static org.junit.Assert.assertTrue;
-import static org.junit.Assert.fail;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertInstanceOf;
+import static org.junit.jupiter.api.Assertions.assertNotNull;
+import static org.junit.jupiter.api.Assertions.assertThrows;
+import static org.junit.jupiter.api.Assertions.assertTrue;
+import static org.junit.jupiter.api.Assertions.fail;
+import static org.junit.jupiter.api.Assumptions.assumeTrue;
 
 import java.io.ByteArrayInputStream;
 import java.io.ByteArrayOutputStream;
@@ -35,6 +37,7 @@ import java.util.Arrays;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.Random;
+import java.util.concurrent.TimeUnit;
 
 import org.apache.hadoop.conf.Configurable;
 import org.apache.hadoop.conf.Configuration;
@@ -69,11 +72,10 @@ import org.apache.tez.runtime.library.utils.CodecUtils;
 
 import com.google.protobuf.ByteString;
 
-import org.junit.After;
-import org.junit.Assert;
-import org.junit.Assume;
-import org.junit.Before;
-import org.junit.Test;
+import org.junit.jupiter.api.AfterEach;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.Timeout;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -105,7 +107,7 @@ public class TestIFile {
     }
   }
 
-  @Before
+  @BeforeEach
   public void setUp() throws Exception {
     CompressionCodecFactory codecFactory = new CompressionCodecFactory(new
         Configuration());
@@ -113,20 +115,22 @@ public class TestIFile {
     outputPath = new Path(workDir, outputFileName);
   }
 
-  @Before
-  @After
+  @BeforeEach
+  @AfterEach
   public void cleanup() throws Exception {
     localFs.delete(workDir, true);
   }
 
-  @Test(timeout = 5000)
+  @Test
+  @Timeout(value = 5000, unit = TimeUnit.MILLISECONDS)
   //empty IFile
   public void testWithEmptyIFile() throws IOException {
     testWriterAndReader(new LinkedList<KVPair>());
     testWithDataBuffer(new LinkedList<KVPair>());
   }
 
-  @Test(timeout = 5000)
+  @Test
+  @Timeout(value = 5000, unit = TimeUnit.MILLISECONDS)
   public void testCompressedFlag() throws IOException {
     byte[] HEADER = new byte[] { (byte) 'T', (byte) 'I', (byte) 'F' , (byte) 1};
     ByteArrayInputStream bin = new ByteArrayInputStream(HEADER);
@@ -144,7 +148,8 @@ public class TestIFile {
     }
   }
 
-  @Test(timeout = 5000)
+  @Test
+  @Timeout(value = 5000, unit = TimeUnit.MILLISECONDS)
   //Write empty key value pairs
   public void testWritingEmptyKeyValues() throws IOException {
     DataInputBuffer key = new DataInputBuffer();
@@ -167,11 +172,12 @@ public class TestIFile {
       assert(keyIn.getLength() == 0);
       assert(valIn.getLength() == 0);
     }
-    assertTrue("Number of records read does not match", (records == 4));
+    assertTrue((records == 4), "Number of records read does not match");
     reader.close();
   }
 
-  @Test(timeout = 5000)
+  @Test
+  @Timeout(value = 5000, unit = TimeUnit.MILLISECONDS)
   //test with unsorted data and repeat keys
   public void testWithUnsortedData() throws IOException {
     List<KVPair> unsortedData = KVDataGen.generateTestData(false, rnd.nextInt(100));
@@ -179,7 +185,8 @@ public class TestIFile {
     testWithDataBuffer(unsortedData);
   }
 
-  @Test(timeout = 5000)
+  @Test
+  @Timeout(value = 5000, unit = TimeUnit.MILLISECONDS)
   //test with sorted data and repeat keys
   public void testWithSortedData() throws IOException {
     List<KVPair> sortedData = KVDataGen.generateTestData(true, rnd.nextInt(100));
@@ -188,7 +195,8 @@ public class TestIFile {
   }
 
 
-  @Test(timeout = 5000)
+  @Test
+  @Timeout(value = 5000, unit = TimeUnit.MILLISECONDS)
   //test overflow
   public void testExceedMaxSize() throws IOException {
     final int oldMaxBufferSize = IFile.Reader.MAX_BUFFER_SIZE;
@@ -223,7 +231,7 @@ public class TestIFile {
 
     try {
       reader.nextRawKey(keyIn);
-      Assert.fail("Expected IllegalArgumentException to be thrown");
+      fail("Expected IllegalArgumentException to be thrown");
     } catch (IllegalArgumentException e) {
       // test passed
     }
@@ -247,7 +255,7 @@ public class TestIFile {
     try {
       reader.nextRawKey(keyIn);
       reader.nextRawValue(valIn);
-      Assert.fail("Expected IllegalArgumentException to be thrown");
+      fail("Expected IllegalArgumentException to be thrown");
     } catch (IllegalArgumentException e) {
       // test passed
     }
@@ -296,7 +304,8 @@ public class TestIFile {
     IFile.Reader.MAX_BUFFER_SIZE = oldMaxBufferSize;
   }
 
-  @Test(timeout = 5000)
+  @Test
+  @Timeout(value = 5000, unit = TimeUnit.MILLISECONDS)
   //test with sorted data and repeat keys
   public void testWithRLEMarker() throws IOException {
     //Test with append(Object, Object)
@@ -373,7 +382,8 @@ public class TestIFile {
     boundedOut.close();
   }
 
-  @Test(timeout = 5000)
+  @Test
+  @Timeout(value = 5000, unit = TimeUnit.MILLISECONDS)
   //test with unique keys
   public void testWithUniqueKeys() throws IOException {
     //all keys are unique
@@ -386,7 +396,8 @@ public class TestIFile {
   //This specific input is valid but the decompressor can leave lingering
   // bytes between segments. If the lingering bytes aren't handled correctly,
   // the stream will get out-of-sync.
-  @Test(timeout = 5000)
+  @Test
+  @Timeout(value = 5000, unit = TimeUnit.MILLISECONDS)
   public void testConcatenatedZlibPadding()
       throws IOException, URISyntaxException {
     byte[] bytes;
@@ -401,15 +412,14 @@ public class TestIFile {
 
     URL url = getClass().getClassLoader()
         .getResource("TestIFile_concatenated_compressed.bin");
-    assertNotEquals("IFileinput file must exist", null, url);
+    assertNotNull(url, "IFileinput file must exist");
     Path p = new Path(url.toURI());
     FSDataInputStream inStream = localFs.open(p);
 
     for (int i = 0; i < 5; i++) {
       bytes = new byte[(int) raws[i]];
-      assertEquals("Compressed stream out-of-sync", inStream.getPos(), compTotal);
-      IFile.Reader.readToMemory(bytes, inStream, (int) compressed[i], codec,
-          false, -1);
+      assertEquals(inStream.getPos(), compTotal, "Compressed stream out-of-sync");
+      Reader.readToMemory(bytes, inStream, (int) compressed[i], codec, false, -1);
       compTotal += compressed[i];
 
       // Now read the data
@@ -434,7 +444,8 @@ public class TestIFile {
     inStream.close();
   }
 
-  @Test(timeout = 5000)
+  @Test
+  @Timeout(value = 5000, unit = TimeUnit.MILLISECONDS)
   //Test InMemoryWriter
   public void testInMemoryWriter() throws IOException {
     InMemoryWriter writer = null;
@@ -466,7 +477,8 @@ public class TestIFile {
     readUsingInMemoryReader(bout.getBuffer(), data);
   }
 
-  @Test(timeout = 5000)
+  @Test
+  @Timeout(value = 5000, unit = TimeUnit.MILLISECONDS)
   //Test appendValue feature
   public void testAppendValue() throws IOException {
     List<KVPair> data = KVDataGen.generateTestData(false, rnd.nextInt(100));
@@ -488,7 +500,8 @@ public class TestIFile {
     readAndVerifyData(writer.getRawLength(), writer.getCompressedLength(), data, codec);
   }
 
-  @Test(timeout = 5000)
+  @Test
+  @Timeout(value = 5000, unit = TimeUnit.MILLISECONDS)
   //Test appendValues feature
   public void testAppendValues() throws IOException {
     List<KVPair> data = new ArrayList<KVPair>();
@@ -516,7 +529,8 @@ public class TestIFile {
     readAndVerifyData(writer.getRawLength(), writer.getCompressedLength(), data, codec);
   }
 
-  @Test(timeout = 5000)
+  @Test
+  @Timeout(value = 5000, unit = TimeUnit.MILLISECONDS)
   // Basic test
   public void testFileBackedInMemIFileWriter() throws IOException {
     List<KVPair> data = new ArrayList<>();
@@ -548,7 +562,8 @@ public class TestIFile {
     readUsingInMemoryReader(bytes, data);
   }
 
-  @Test(timeout = 5000)
+  @Test
+  @Timeout(value = 5000, unit = TimeUnit.MILLISECONDS)
   // Basic test
   public void testFileBackedInMemIFileWriterWithSmallBuffer() throws IOException {
     List<KVPair> data = new ArrayList<>();
@@ -563,7 +578,7 @@ public class TestIFile {
 
     // Buffer should have self adjusted. So for this empty file, it shouldn't
     // hit disk.
-    assertFalse("Data should have been flushed to disk", writer.isDataFlushedToDisk());
+    assertFalse(writer.isDataFlushedToDisk(), "Data should have been flushed to disk");
 
     byte[] bytes = new byte[(int) writer.getRawLength()];
     IFile.Reader.readToMemory(bytes,
@@ -573,7 +588,8 @@ public class TestIFile {
     readUsingInMemoryReader(bytes, data);
   }
 
-  @Test(timeout = 20000)
+  @Test
+  @Timeout(value = 20000, unit = TimeUnit.MILLISECONDS)
   // Test file spill over scenario
   public void testFileBackedInMemIFileWriter_withSpill() throws IOException {
     List<KVPair> data = new ArrayList<>();
@@ -602,7 +618,7 @@ public class TestIFile {
     writer.append(lastKey, lastVal);
     writer.close();
 
-    assertTrue("Data should have been flushed to disk", writer.isDataFlushedToDisk());
+    assertTrue(writer.isDataFlushedToDisk(), "Data should have been flushed to disk");
 
     // Read output content to memory
     FSDataInputStream inStream = localFs.open(outputPath);
@@ -615,7 +631,8 @@ public class TestIFile {
     readUsingInMemoryReader(bytes, data);
   }
 
-  @Test(timeout = 5000)
+  @Test
+  @Timeout(value = 5000, unit = TimeUnit.MILLISECONDS)
   // Test empty file case
   public void testEmptyFileBackedInMemIFileWriter() throws IOException {
     List<KVPair> data = new ArrayList<>();
@@ -640,7 +657,8 @@ public class TestIFile {
   }
 
 
-  @Test(timeout = 5000)
+  @Test
+  @Timeout(value = 5000, unit = TimeUnit.MILLISECONDS)
   //Test appendKeyValues feature
   public void testAppendKeyValues() throws IOException {
     List<KVPair> data = new ArrayList<KVPair>();
@@ -667,7 +685,8 @@ public class TestIFile {
     readAndVerifyData(writer.getRawLength(), writer.getCompressedLength(), data, codec);
   }
 
-  @Test(timeout = 5000)
+  @Test
+  @Timeout(value = 5000, unit = TimeUnit.MILLISECONDS)
   //Test appendValue with DataInputBuffer
   public void testAppendValueWithDataInputBuffer() throws IOException {
     List<KVPair> data = KVDataGen.generateTestData(false, rnd.nextInt(100));
@@ -693,7 +712,8 @@ public class TestIFile {
     readAndVerifyData(writer.getRawLength(), writer.getCompressedLength(), data, codec);
   }
 
-  @Test(timeout = 20000)
+  @Test
+  @Timeout(value = 20000, unit = TimeUnit.MILLISECONDS)
   public void testReadToDisk() throws IOException {
     // verify sending a stream of zeroes generates an error
     byte[] zeroData = new byte[1000];
@@ -715,7 +735,7 @@ public class TestIFile {
           new ByteArrayInputStream(baos.toByteArray()), zeroData.length, false, 0);
       fail("Exception should have been thrown");
     } catch (IOException e) {
-      assertTrue(e instanceof ChecksumException);
+      assertInstanceOf(ChecksumException.class, e);
     }
 
     // verify valid data is copied properly
@@ -742,7 +762,7 @@ public class TestIFile {
     Writer writer = writeTestFile(false, false, data, codec);
     readAndVerifyData(writer.getRawLength(), writer.getCompressedLength(), data, codec);
 
-    Assert.assertEquals(originalCodecBufferSize, // original size is repaired
+    assertEquals(originalCodecBufferSize, // original size is repaired
         configurableCodec.getConf().getInt(CodecUtils.getBufferSizeProperty(codec), 0));
 
     // buffer size cannot grow infinitely with compressed data size
@@ -750,16 +770,21 @@ public class TestIFile {
     writer = writeTestFile(false, false, data, codec);
     readAndVerifyData(writer.getRawLength(), writer.getCompressedLength(), data, codec);
 
-    Assert.assertEquals(originalCodecBufferSize, // original size is repaired
+    assertEquals(originalCodecBufferSize, // original size is repaired
         configurableCodec.getConf().getInt(CodecUtils.getBufferSizeProperty(codec), 0));
   }
 
-  @Test(expected = IllegalArgumentException.class)
+  @Test
+  @Timeout(value = 5000, unit = TimeUnit.MILLISECONDS)
   public void testSmallDataCompression() throws IOException {
-    Assume.assumeTrue(NativeCodeLoader.isNativeCodeLoaded());
+    assumeTrue(NativeCodeLoader.isNativeCodeLoaded());
 
-    tryWriteFileWithBufferSize(17, "org.apache.hadoop.io.compress.Lz4Codec");
-    tryWriteFileWithBufferSize(32, "org.apache.hadoop.io.compress.Lz4Codec");
+    assertThrows(IllegalArgumentException.class, () -> {
+      tryWriteFileWithBufferSize(17, "org.apache.hadoop.io.compress.Lz4Codec");
+    });
+    assertThrows(IllegalArgumentException.class, () -> {
+      tryWriteFileWithBufferSize(32, "org.apache.hadoop.io.compress.Lz4Codec");
+    });
   }
 
   private void tryWriteFileWithBufferSize(int bufferSize, String codecClassName)
@@ -775,9 +800,10 @@ public class TestIFile {
     writeTestFile(false, false, data, codecToTest);
   }
 
-  @Test(expected = IllegalArgumentException.class)
+  @Test
+  @Timeout(value = 5000, unit = TimeUnit.MILLISECONDS)
   public void testLz4CompressedDataIsLargerThanOriginal() throws IOException {
-    Assume.assumeTrue(NativeCodeLoader.isNativeCodeLoaded());
+    assumeTrue(NativeCodeLoader.isNativeCodeLoaded());
 
     // this one succeeds
     byte[] buf = new byte[32];
@@ -934,8 +960,7 @@ public class TestIFile {
    * @param data
    * @throws IOException
    */
-  private void verifyData(Reader reader, List<KVPair> data)
-      throws IOException {
+  private void verifyData(Reader reader, List<KVPair> data) throws IOException {
     LOG.info("Data verification");
     Text readKey = new Text();
     IntWritable readValue = new IntWritable();
@@ -943,8 +968,7 @@ public class TestIFile {
     DataInputBuffer valIn = new DataInputBuffer();
     Deserializer<Text> keyDeserializer;
     Deserializer<IntWritable> valDeserializer;
-    SerializationFactory serializationFactory = new SerializationFactory(
-        defaultConf);
+    SerializationFactory serializationFactory = new SerializationFactory(defaultConf);
     keyDeserializer = serializationFactory.getDeserializer(Text.class);
     valDeserializer = serializationFactory.getDeserializer(IntWritable.class);
     keyDeserializer.open(keyIn);
@@ -958,15 +982,14 @@ public class TestIFile {
       readValue = valDeserializer.deserialize(readValue);
 
       KVPair expected = data.get(numRecordsRead);
-      assertEquals("Key does not match: Expected: " + expected.getKey()
-          + ", Read: " + readKey, expected.getKey(), readKey);
-      assertEquals("Value does not match: Expected: " + expected.getvalue()
-          + ", Read: " + readValue, expected.getvalue(), readValue);
+      assertEquals(expected.getKey(), readKey,
+          "Key does not match: Expected: " + expected.getKey() + ", Read: " + readKey);
+      assertEquals(expected.getvalue(), readValue,
+          "Value does not match: Expected: " + expected.getvalue() + ", Read: " + readValue);
 
       numRecordsRead++;
     }
-    assertEquals("Expected: " + data.size() + " records, but found: "
-        + numRecordsRead, data.size(), numRecordsRead);
+    assertEquals(data.size(), numRecordsRead, "Expected: " + data.size() + " records, but found: " + numRecordsRead);
     LOG.info("Found: " + numRecordsRead + " records");
   }
 
