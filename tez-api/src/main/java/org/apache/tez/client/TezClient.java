@@ -1017,12 +1017,32 @@ public class TezClient {
 
   private void waitNonSessionTillReady() throws IOException, TezException {
     Preconditions.checkArgument(!isSession, "It is supposed to be only called in non-session mode");
+    // In non-session mode the AM is launched per-DAG and YARN briefly reports the app state as
+    // RUNNING before the AM has actually bound its RPC port (rpcPort == 0 or -1).  During that
+    // window every call to getAMStatus() returns INITIALIZING, so without a deadline this loop
+    // would spin forever if the AM never successfully starts (e.g. container launch failure,
+    // resource contention on slow CI machines).
+    //
+    // TEZ_SESSION_CLIENT_TIMEOUT_SECS is re-used here as the upper bound because it already
+    // represents "how long the client is willing to wait for the AM to become contactable",
+    // which is exactly the semantic we need.  Callers (e.g. @Test methods) must set their own
+    // hard timeout larger than this value so that this TezException — which carries the AM
+    // application ID and last-known status — surfaces instead of a generic test-timeout.
+    final long timeoutSecs = amConfig.getTezConfiguration().getLong(
+        TezConfiguration.TEZ_SESSION_CLIENT_TIMEOUT_SECS,
+        TezConfiguration.TEZ_SESSION_CLIENT_TIMEOUT_SECS_DEFAULT);
+    final long deadline = System.currentTimeMillis() + timeoutSecs * 1000;
     while (true) {
       TezAppMasterStatus status = getAppMasterStatus();
       // DAGClient will handle the AM SHUTDOWN case
       if (status.equals(TezAppMasterStatus.RUNNING)
           || status.equals(TezAppMasterStatus.SHUTDOWN)) {
         return;
+      }
+      if (System.currentTimeMillis() > deadline) {
+        throw new TezException("Timed out waiting for non-session AM to start (waited "
+            + timeoutSecs + "s). AM status was: " + status
+            + ". Check YARN logs for application " + lastSubmittedAppId);
       }
       try {
         Thread.sleep(SLEEP_FOR_READY);
@@ -1058,7 +1078,7 @@ public class TezClient {
           throws TezException, IOException {
     LOG.info("Submitting DAG application with id: " + appId);
     try {
-      // Use the AMCredentials object in client mode, since this won't be re-used.
+      // Use the AMCredentials object in client mode, since this won't be reused.
       // Ensures we don't fetch credentials unnecessarily if the user has already provided them.
       Credentials credentials = amConfig.getCredentials();
       if (credentials == null) {

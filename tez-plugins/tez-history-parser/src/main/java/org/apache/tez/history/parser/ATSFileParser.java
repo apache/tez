@@ -24,6 +24,7 @@ import static org.apache.hadoop.classification.InterfaceStability.Evolving;
 import java.io.File;
 import java.io.IOException;
 import java.io.InputStream;
+import java.nio.charset.StandardCharsets;
 import java.util.Enumeration;
 import java.util.Iterator;
 import java.util.List;
@@ -178,7 +179,11 @@ public class ATSFileParser extends BaseParser implements ATSData {
     //Read entire content to memory
     final NonSyncByteArrayOutputStream bout = new NonSyncByteArrayOutputStream();
     IOUtils.copy(in, bout);
-    return new JSONObject(new String(bout.toByteArray(), "UTF-8"));
+    String content = new String(bout.toByteArray(), StandardCharsets.UTF_8).trim();
+    if (content.isEmpty()) {
+      return null;
+    }
+    return new JSONObject(content);
   }
 
   /**
@@ -195,9 +200,17 @@ public class ATSFileParser extends BaseParser implements ATSData {
       Enumeration<? extends ZipEntry> zipEntries = atsZipFile.entries();
       while (zipEntries.hasMoreElements()) {
         ZipEntry zipEntry = zipEntries.nextElement();
+        if (zipEntry.isDirectory()) {
+          LOG.debug("Skipping directory entry: {}", zipEntry.getName());
+          continue;
+        }
         LOG.debug("Processing " + zipEntry.getName());
         InputStream inputStream = atsZipFile.getInputStream(zipEntry);
         JSONObject jsonObject = readJson(inputStream);
+        if (jsonObject == null) {
+          LOG.warn("Skipping empty zip entry: {}", zipEntry.getName());
+          continue;
+        }
 
         //This json can contain dag, vertices, tasks, task_attempts
         JSONObject dagJson = jsonObject.optJSONObject(Constants.DAG);
