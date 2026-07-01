@@ -406,9 +406,8 @@ public class MergeManager implements FetchedInputAllocatorOrderedGrouped {
       if (usedMemory > memoryLimit && !inMemoryMapOutputs.isEmpty()) {
         // Avoid deadlock: if memory is over limit but commitMemory is below mergeThreshold,
         // no merge will be triggered automatically. Force a merge to free memory.
-        LOG.info("Memory limit exceeded with no merge triggered (usedMemory=" + usedMemory
-            + ", commitMemory=" + commitMemory + ", mergeThreshold=" + mergeThreshold
-            + "). Forcing in-memory merge to avoid deadlock.");
+        LOG.info("Memory limit exceeded with no merge triggered (usedMemory={}, commitMemory={}, mergeThreshold={})."
+            + " Forcing in-memory merge to avoid deadlock.", usedMemory, commitMemory, mergeThreshold);
         startMemToDiskMerge();
       }
     }
