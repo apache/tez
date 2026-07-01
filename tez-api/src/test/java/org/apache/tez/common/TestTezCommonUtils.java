@@ -442,15 +442,12 @@ public class TestTezCommonUtils {
 
   @Test
   public void testMkDirForAM() throws IOException {
-    Configuration remoteConf = new Configuration();
-    remoteConf.set(MiniDFSCluster.HDFS_MINIDFS_BASEDIR, TEST_ROOT_DIR);
+    Configuration remoteConf = new Configuration(conf);
     remoteConf.set(CommonConfigurationKeys.FS_PERMISSIONS_UMASK_KEY, "777");
-    MiniDFSCluster miniDFS = new MiniDFSCluster.Builder(remoteConf).numDataNodes(3).format(true).racks(null)
-        .build();
-    FileSystem remoteFileSystem = miniDFS.getFileSystem();
-    Path path = new Path(TEST_ROOT_DIR + "/testMkDirForAM");
-    TezCommonUtils.mkDirForAM(remoteFileSystem, path);
-    assertEquals(TezCommonUtils.TEZ_AM_DIR_PERMISSION, remoteFileSystem.getFileStatus(path).getPermission());
-    miniDFS.shutdown();
+    try (FileSystem remoteFileSystem = FileSystem.newInstance(remoteFs.getUri(), remoteConf)) {
+      Path path = new Path(TEST_ROOT_DIR + "/testMkDirForAM");
+      TezCommonUtils.mkDirForAM(remoteFileSystem, path);
+      assertEquals(TezCommonUtils.TEZ_AM_DIR_PERMISSION, remoteFileSystem.getFileStatus(path).getPermission());
+    }
   }
 }
