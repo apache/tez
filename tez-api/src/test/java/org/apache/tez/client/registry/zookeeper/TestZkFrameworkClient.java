@@ -224,7 +224,7 @@ public class TestZkFrameworkClient {
     // Wait for connection
     curatorClient.blockUntilConnected();
 
-    String namespace = zkConfig.getZkNamespace();
+    String namespace = zkConfig.getZkAMNamespace();
     String path = namespace + "/" + appId.toString();
 
     // Create parent directories if needed

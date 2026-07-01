@@ -41,7 +41,7 @@ public class TestZkConfig {
     ZkConfig zkConfig = new ZkConfig(conf);
 
     assertEquals("localhost:2181", zkConfig.getZkQuorum());
-    assertEquals("/tez-external-sessions/test-namespace", zkConfig.getZkNamespace());
+    assertEquals("/tez-external-sessions/test-namespace", zkConfig.getZkAMNamespace());
   }
 
   @Test
@@ -81,7 +81,7 @@ public class TestZkConfig {
     ZkConfig zkConfig = new ZkConfig(conf);
 
     assertEquals("zk1:2181,zk2:2181", zkConfig.getZkQuorum());
-    assertEquals("/tez-external-sessions/custom-namespace", zkConfig.getZkNamespace());
+    assertEquals("/tez-external-sessions/custom-namespace", zkConfig.getZkAMNamespace());
     assertEquals(2000, zkConfig.getCuratorBackoffSleepMs());
     assertEquals(5, zkConfig.getCuratorMaxRetries());
     assertEquals(200000, zkConfig.getSessionTimeoutMs());
@@ -96,7 +96,7 @@ public class TestZkConfig {
 
     ZkConfig zkConfig = new ZkConfig(conf);
 
-    assertEquals("/tez-external-sessions/namespace-with-slash", zkConfig.getZkNamespace());
+    assertEquals("/tez-external-sessions/namespace-with-slash", zkConfig.getZkAMNamespace());
   }
 
   @Test
@@ -107,7 +107,7 @@ public class TestZkConfig {
 
     ZkConfig zkConfig = new ZkConfig(conf);
 
-    assertEquals("/tez-external-sessions/namespace-without-slash", zkConfig.getZkNamespace());
+    assertEquals("/tez-external-sessions/namespace-without-slash", zkConfig.getZkAMNamespace());
   }
 
   @Test
@@ -119,7 +119,7 @@ public class TestZkConfig {
 
     ZkConfig zkConfig = new ZkConfig(conf);
 
-    assertEquals("/tez-external-sessions/test-namespace", zkConfig.getZkNamespace());
+    assertEquals("/tez-external-sessions/test-namespace", zkConfig.getZkAMNamespace());
   }
 
   @Test
@@ -133,7 +133,7 @@ public class TestZkConfig {
     ZkConfig zkConfig = new ZkConfig(conf);
 
     // Namespace should start with base namespace (env var not set, so no sub-namespace added)
-    assertEquals("/tez-external-sessions/test-namespace", zkConfig.getZkNamespace());
+    assertEquals("/tez-external-sessions/test-namespace", zkConfig.getZkAMNamespace());
   }
 
   @Test
@@ -226,6 +226,6 @@ public class TestZkConfig {
     // Don't set namespace, should use default
     ZkConfig zkConfig = new ZkConfig(conf);
     assertEquals("/tez-external-sessions" + TezConfiguration.TEZ_AM_REGISTRY_NAMESPACE_DEFAULT,
-        zkConfig.getZkNamespace());
+        zkConfig.getZkAMNamespace());
   }
 }
