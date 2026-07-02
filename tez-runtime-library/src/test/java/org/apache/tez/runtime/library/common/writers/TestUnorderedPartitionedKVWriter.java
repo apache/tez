@@ -306,7 +306,7 @@ public class TestUnorderedPartitionedKVWriter {
   @ParameterizedTest(name = "test[{0}, {1}]")
   @MethodSource("data")
   @Timeout(value = 10000, unit = TimeUnit.MILLISECONDS)
-  public void testNoRecords_SinglePartition(boolean shouldCompress, ReportPartitionStats reportPartitionStats)
+  public void testNoRecordsSinglePartition(boolean shouldCompress, ReportPartitionStats reportPartitionStats)
       throws IOException, InterruptedException {
     setupInit(shouldCompress, reportPartitionStats);
     // skipBuffers
@@ -327,7 +327,7 @@ public class TestUnorderedPartitionedKVWriter {
   @ParameterizedTest(name = "test[{0}, {1}]")
   @MethodSource("data")
   @Timeout(value = 10000, unit = TimeUnit.MILLISECONDS)
-  public void testNoSpill_SinglePartition(boolean shouldCompress, ReportPartitionStats reportPartitionStats)
+  public void testNoSpillSinglePartition(boolean shouldCompress, ReportPartitionStats reportPartitionStats)
       throws IOException, InterruptedException {
     setupInit(shouldCompress, reportPartitionStats);
     baseTest(10, 1, null, shouldCompress, -1, 0);
@@ -336,7 +336,7 @@ public class TestUnorderedPartitionedKVWriter {
   @ParameterizedTest(name = "test[{0}, {1}]")
   @MethodSource("data")
   @Timeout(value = 10000, unit = TimeUnit.MILLISECONDS)
-  public void testSpill_SinglePartition(boolean shouldCompress, ReportPartitionStats reportPartitionStats)
+  public void testSpillSinglePartition(boolean shouldCompress, ReportPartitionStats reportPartitionStats)
       throws IOException, InterruptedException {
     setupInit(shouldCompress, reportPartitionStats);
     baseTest(1000, 1, null, shouldCompress, -1, 0, 2048, true);
@@ -695,7 +695,7 @@ public class TestUnorderedPartitionedKVWriter {
   @ParameterizedTest(name = "test[{0}, {1}]")
   @MethodSource("data")
   @Timeout(value = 10000, unit = TimeUnit.MILLISECONDS)
-  public void testNoSpill_WithPipelinedShuffle(boolean shouldCompress, ReportPartitionStats reportPartitionStats)
+  public void testNoSpillWithPipelinedShuffle(boolean shouldCompress, ReportPartitionStats reportPartitionStats)
       throws IOException, InterruptedException {
     setupInit(shouldCompress, reportPartitionStats);
     baseTestWithPipelinedTransfer(10, 10, null, shouldCompress);
@@ -704,7 +704,7 @@ public class TestUnorderedPartitionedKVWriter {
   @ParameterizedTest(name = "test[{0}, {1}]")
   @MethodSource("data")
   @Timeout(value = 10000, unit = TimeUnit.MILLISECONDS)
-  public void testSingleSpill_WithPipelinedShuffle(boolean shouldCompress, ReportPartitionStats reportPartitionStats)
+  public void testSingleSpillWithPipelinedShuffle(boolean shouldCompress, ReportPartitionStats reportPartitionStats)
       throws IOException, InterruptedException {
     setupInit(shouldCompress, reportPartitionStats);
     baseTestWithPipelinedTransfer(50, 10, null, shouldCompress);
@@ -713,7 +713,7 @@ public class TestUnorderedPartitionedKVWriter {
   @ParameterizedTest(name = "test[{0}, {1}]")
   @MethodSource("data")
   @Timeout(value = 10000, unit = TimeUnit.MILLISECONDS)
-  public void testMultipleSpills_WithPipelinedShuffle(boolean shouldCompress, ReportPartitionStats reportPartitionStats)
+  public void testMultipleSpillsWithPipelinedShuffle(boolean shouldCompress, ReportPartitionStats reportPartitionStats)
       throws IOException, InterruptedException {
     setupInit(shouldCompress, reportPartitionStats);
     baseTestWithPipelinedTransfer(200, 10, null, shouldCompress);
@@ -722,7 +722,7 @@ public class TestUnorderedPartitionedKVWriter {
   @ParameterizedTest(name = "test[{0}, {1}]")
   @MethodSource("data")
   @Timeout(value = 10000, unit = TimeUnit.MILLISECONDS)
-  public void testNoRecords_WithPipelinedShuffle(boolean shouldCompress, ReportPartitionStats reportPartitionStats)
+  public void testNoRecordsWithPipelinedShuffle(boolean shouldCompress, ReportPartitionStats reportPartitionStats)
       throws IOException, InterruptedException {
     setupInit(shouldCompress, reportPartitionStats);
     baseTestWithPipelinedTransfer(0, 10, null, shouldCompress);
@@ -731,7 +731,7 @@ public class TestUnorderedPartitionedKVWriter {
   @ParameterizedTest(name = "test[{0}, {1}]")
   @MethodSource("data")
   @Timeout(value = 10000, unit = TimeUnit.MILLISECONDS)
-  public void testNoRecords_SinglePartition_WithPipelinedShuffle(boolean shouldCompress,
+  public void testNoRecordsSinglePartition_WithPipelinedShuffle(boolean shouldCompress,
                                                                  ReportPartitionStats reportPartitionStats)
       throws IOException, InterruptedException {
     setupInit(shouldCompress, reportPartitionStats);
@@ -742,7 +742,7 @@ public class TestUnorderedPartitionedKVWriter {
   @ParameterizedTest(name = "test[{0}, {1}]")
   @MethodSource("data")
   @Timeout(value = 10000, unit = TimeUnit.MILLISECONDS)
-  public void testSkippedPartitions_WithPipelinedShuffle(boolean shouldCompress,
+  public void testSkippedPartitionsWithPipelinedShuffle(boolean shouldCompress,
                                                          ReportPartitionStats reportPartitionStats)
       throws IOException, InterruptedException {
     setupInit(shouldCompress, reportPartitionStats);
@@ -752,7 +752,7 @@ public class TestUnorderedPartitionedKVWriter {
   @ParameterizedTest(name = "test[{0}, {1}]")
   @MethodSource("data")
   @Timeout(value = 10000, unit = TimeUnit.MILLISECONDS)
-  public void testLargeKvPairs_WithPipelinedShuffle(boolean shouldCompress, ReportPartitionStats reportPartitionStats)
+  public void testLargeKvPairsWithPipelinedShuffle(boolean shouldCompress, ReportPartitionStats reportPartitionStats)
       throws IOException, InterruptedException {
     setupInit(shouldCompress, reportPartitionStats);
     textTest(0, 10, 2048, 10, 20, 50, true, false);
@@ -974,7 +974,7 @@ public class TestUnorderedPartitionedKVWriter {
   @ParameterizedTest(name = "test[{0}, {1}]")
   @MethodSource("data")
   @Timeout(value = 10000, unit = TimeUnit.MILLISECONDS)
-  public void testNoSpill_WithFinalMergeDisabled(boolean shouldCompress, ReportPartitionStats reportPartitionStats)
+  public void testNoSpillWithFinalMergeDisabled(boolean shouldCompress, ReportPartitionStats reportPartitionStats)
       throws IOException, InterruptedException {
     setupInit(shouldCompress, reportPartitionStats);
     baseTestWithFinalMergeDisabled(10, 10, null, shouldCompress);
@@ -983,7 +983,7 @@ public class TestUnorderedPartitionedKVWriter {
   @ParameterizedTest(name = "test[{0}, {1}]")
   @MethodSource("data")
   @Timeout(value = 10000, unit = TimeUnit.MILLISECONDS)
-  public void testSingleSpill_WithFinalMergeDisabled(boolean shouldCompress, ReportPartitionStats reportPartitionStats)
+  public void testSingleSpillWithFinalMergeDisabled(boolean shouldCompress, ReportPartitionStats reportPartitionStats)
       throws IOException, InterruptedException {
     setupInit(shouldCompress, reportPartitionStats);
     baseTestWithFinalMergeDisabled(50, 10, null, shouldCompress);
@@ -992,7 +992,7 @@ public class TestUnorderedPartitionedKVWriter {
   @ParameterizedTest(name = "test[{0}, {1}]")
   @MethodSource("data")
   @Timeout(value = 10000, unit = TimeUnit.MILLISECONDS)
-  public void testSinglePartition_WithFinalMergeDisabled(boolean shouldCompress,
+  public void testSinglePartitionWithFinalMergeDisabled(boolean shouldCompress,
                                                          ReportPartitionStats reportPartitionStats)
       throws IOException, InterruptedException {
     setupInit(shouldCompress, reportPartitionStats);
@@ -1002,7 +1002,7 @@ public class TestUnorderedPartitionedKVWriter {
   @ParameterizedTest(name = "test[{0}, {1}]")
   @MethodSource("data")
   @Timeout(value = 10000, unit = TimeUnit.MILLISECONDS)
-  public void testMultipleSpills_WithFinalMergeDisabled(boolean shouldCompress,
+  public void testMultipleSpillsWithFinalMergeDisabled(boolean shouldCompress,
                                                         ReportPartitionStats reportPartitionStats)
       throws IOException, InterruptedException {
     setupInit(shouldCompress, reportPartitionStats);
@@ -1012,7 +1012,7 @@ public class TestUnorderedPartitionedKVWriter {
   @ParameterizedTest(name = "test[{0}, {1}]")
   @MethodSource("data")
   @Timeout(value = 10000, unit = TimeUnit.MILLISECONDS)
-  public void testNoRecords_WithFinalMergeDisabled(boolean shouldCompress, ReportPartitionStats reportPartitionStats)
+  public void testNoRecordsWithFinalMergeDisabled(boolean shouldCompress, ReportPartitionStats reportPartitionStats)
       throws IOException, InterruptedException {
     setupInit(shouldCompress, reportPartitionStats);
     baseTestWithFinalMergeDisabled(0, 10, null, shouldCompress);
@@ -1021,7 +1021,7 @@ public class TestUnorderedPartitionedKVWriter {
   @ParameterizedTest(name = "test[{0}, {1}]")
   @MethodSource("data")
   @Timeout(value = 10000, unit = TimeUnit.MILLISECONDS)
-  public void testNoRecords_SinglePartition_WithFinalMergeDisabled(boolean shouldCompress,
+  public void testNoRecordsSinglePartition_WithFinalMergeDisabled(boolean shouldCompress,
                                                                    ReportPartitionStats reportPartitionStats)
       throws IOException, InterruptedException {
     setupInit(shouldCompress, reportPartitionStats);
@@ -1031,7 +1031,7 @@ public class TestUnorderedPartitionedKVWriter {
   @ParameterizedTest(name = "test[{0}, {1}]")
   @MethodSource("data")
   @Timeout(value = 10000, unit = TimeUnit.MILLISECONDS)
-  public void testSkippedPartitions_WithFinalMergeDisabled(boolean shouldCompress,
+  public void testSkippedPartitionsWithFinalMergeDisabled(boolean shouldCompress,
                                                            ReportPartitionStats reportPartitionStats)
       throws IOException, InterruptedException {
     setupInit(shouldCompress, reportPartitionStats);

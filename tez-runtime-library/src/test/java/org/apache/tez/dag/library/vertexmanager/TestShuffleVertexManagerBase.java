@@ -808,7 +808,7 @@ public class TestShuffleVertexManagerBase extends TestShuffleVertexManagerUtils 
   @ParameterizedTest(name = "test[{0}]")
   @MethodSource("data")
   @Timeout(value = 5000, unit = TimeUnit.MILLISECONDS)
-  public void test_Tez1649_with_scatter_gather_edges(
+  public void testTez1649WithScatterGatherEdges(
       Class<? extends ShuffleVertexManagerBase> shuffleVertexManagerClass) throws IOException {
     Configuration conf = new Configuration();
     ShuffleVertexManagerBase manager = null;
@@ -930,7 +930,7 @@ public class TestShuffleVertexManagerBase extends TestShuffleVertexManagerUtils 
   @ParameterizedTest(name = "test[{0}]")
   @MethodSource("data")
   @Timeout(value = 5000, unit = TimeUnit.MILLISECONDS)
-  public void test_Tez1649_with_mixed_edges(Class<? extends ShuffleVertexManagerBase> shuffleVertexManagerClass) {
+  public void testTez1649WithMixedEdges(Class<? extends ShuffleVertexManagerBase> shuffleVertexManagerClass) {
     Configuration conf = new Configuration();
     ShuffleVertexManagerBase manager = null;
 
