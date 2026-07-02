@@ -80,33 +80,43 @@ You will need the following things properly installed on your computer.
 Tests run in **headless Chrome**
 Google Chrome must be installed on your machine.
 
-**Step 1: Set `CHROME_BIN` to your Chrome binary**
+#### Step 1: Set `CHROME_BIN` to your Chrome binary
 
 On Linux:
+
 ```bash
 export CHROME_BIN=google-chrome-stable
 ```
+
 On macOS:
+
 ```bash
 export CHROME_BIN="/Applications/Google Chrome.app/Contents/MacOS/Google Chrome"
 ```
 
-**Step 2: Run the tests**
+#### Step 2: Run the tests
 
 Via Maven (from the `tez-ui` directory):
+
 ```bash
 mvn clean install
 ```
+
 If `CHROME_BIN` is not set in your environment, you can also pass the Chrome path
 directly as a Maven property:
+
 ```bash
 mvn clean install -Dchrome.bin="/path/to/Google Chrome"
 ```
+
 Via Yarn (from inside `src/main/webapp`):
+
 ```bash
 yarn test
 ```
+
 To skip tests:
+
 ```bash
 mvn clean package -DskipTests
 ```
