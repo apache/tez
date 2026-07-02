@@ -596,8 +596,10 @@ public class TestDefaultSorter {
         + "/" + Constants.TEZ_RUNTIME_TASK_OUTPUT_FILENAME_STRING;
     Path outputPath = dirAllocator.getLocalPathToRead(subpath, conf);
     Path indexPath = dirAllocator.getLocalPathToRead(subpath + Constants.TEZ_RUNTIME_TASK_OUTPUT_INDEX_SUFFIX_STRING, conf);
-    assertEquals((short)0640, localFs.getFileStatus(outputPath).getPermission().toShort(), "Incorrect output permissions");
-    assertEquals((short)0640, localFs.getFileStatus(indexPath).getPermission().toShort(), "Incorrect index permissions");
+    assertEquals((short)0640, localFs.getFileStatus(outputPath).getPermission().toShort(),
+        "Incorrect output permissions");
+    assertEquals((short)0640, localFs.getFileStatus(indexPath).getPermission().toShort(),
+        "Incorrect index permissions");
   }
 
   private void verifyCounters(DefaultSorter sorter, OutputContext context) {
