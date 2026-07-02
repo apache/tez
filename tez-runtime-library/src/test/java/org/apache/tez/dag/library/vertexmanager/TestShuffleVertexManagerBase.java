@@ -1126,7 +1126,8 @@ public class TestShuffleVertexManagerBase extends TestShuffleVertexManagerUtils 
   @ParameterizedTest(name = "test[{0}]")
   @MethodSource("data")
   @Timeout(value = 5000, unit = TimeUnit.MILLISECONDS)
-  public void testTezDrainCompletionsOnVertexStart(Class<? extends ShuffleVertexManagerBase> shuffleVertexManagerClass) {
+  public void testTezDrainCompletionsOnVertexStart(
+      Class<? extends ShuffleVertexManagerBase> shuffleVertexManagerClass) {
     Configuration conf = new Configuration();
     ShuffleVertexManagerBase manager;
 
