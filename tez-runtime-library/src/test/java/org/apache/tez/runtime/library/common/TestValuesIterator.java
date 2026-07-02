@@ -104,8 +104,8 @@ public class TestValuesIterator {
   static final Random rnd = new Random();
 
   private SerializationContext serializationContext;
-  RawComparator comparator;
-  RawComparator correctComparator;
+  RawComparator<?> comparator;
+  RawComparator<?> correctComparator;
   boolean expectedTestResult;
 
   int mergeFactor;
@@ -445,7 +445,7 @@ public class TestValuesIterator {
     return parameters;
   }
 
-  private RawComparator getComparator(TestWithComparator comparator) {
+  private RawComparator<?> getComparator(TestWithComparator comparator) {
     switch (comparator) {
     case LONG:
       return new LongWritable.Comparator();
