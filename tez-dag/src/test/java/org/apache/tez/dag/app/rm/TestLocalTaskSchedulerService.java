@@ -58,7 +58,7 @@ public class TestLocalTaskSchedulerService {
     //value in integer
     long value = 4*1024*1024;
     resource = ltss.createResource(value,core);
-    assertEquals((int)(value/(1024*1024)),resource.getMemory());
+    assertEquals((int)(value/(1024*1024)),resource.getMemorySize());
   }
 
   @Test
