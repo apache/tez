@@ -82,7 +82,7 @@ public class TestProtoHistoryLoggingService {
   private Clock clock;
 
   @TempDir
-  public java.nio.file.Path tempFolder;
+  java.nio.file.Path tempFolder;
 
   @Test
   public void testService() throws Exception {

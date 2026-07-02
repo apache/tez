@@ -44,7 +44,7 @@ public class TestDagManifestFileScanner {
   private DatePartitionedLogger<ManifestEntryProto> manifestLogger;
 
   @TempDir
-  public java.nio.file.Path tempFolder;
+  java.nio.file.Path tempFolder;
 
   @BeforeEach
   public void setupTest() throws Exception {

@@ -63,7 +63,7 @@ import org.mockito.MockitoAnnotations;
 
 public class TestDAGClientAMProtocolBlockingPBServerImpl {
   @TempDir
-  public java.nio.file.Path tmpFolder;
+  java.nio.file.Path tmpFolder;
 
   @Captor
   private ArgumentCaptor<Map<String, LocalResource>> localResourcesCaptor;
