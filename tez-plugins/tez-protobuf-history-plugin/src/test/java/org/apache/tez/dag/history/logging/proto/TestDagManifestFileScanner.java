@@ -43,6 +43,7 @@ public class TestDagManifestFileScanner {
   private MockClock clock;
   private DatePartitionedLogger<ManifestEntryProto> manifestLogger;
 
+  @SuppressWarnings("checkstyle:VisibilityModifier")
   @TempDir
   java.nio.file.Path tempFolder;
 

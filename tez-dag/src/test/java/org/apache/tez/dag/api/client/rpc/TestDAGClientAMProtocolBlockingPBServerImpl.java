@@ -62,6 +62,7 @@ import org.mockito.Captor;
 import org.mockito.MockitoAnnotations;
 
 public class TestDAGClientAMProtocolBlockingPBServerImpl {
+  @SuppressWarnings("checkstyle:VisibilityModifier")
   @TempDir
   java.nio.file.Path tmpFolder;
 

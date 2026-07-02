@@ -81,6 +81,7 @@ public class TestProtoHistoryLoggingService {
   private static String user = "TEST_USER";
   private Clock clock;
 
+  @SuppressWarnings("checkstyle:VisibilityModifier")
   @TempDir
   java.nio.file.Path tempFolder;
 

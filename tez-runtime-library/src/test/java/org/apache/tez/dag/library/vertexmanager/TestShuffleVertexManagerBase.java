@@ -65,8 +65,7 @@ import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.Arguments;
 import org.junit.jupiter.params.provider.MethodSource;
 
-@SuppressWarnings({ "unchecked", "rawtypes" })
-@SuppressWarnings("checkstyle:MethodLength")
+@SuppressWarnings({ "unchecked", "rawtypes", "checkstyle:MethodLength" })
 public class TestShuffleVertexManagerBase extends TestShuffleVertexManagerUtils {
 
   List<TaskAttemptIdentifier> emptyCompletions = null;

@@ -105,8 +105,8 @@ public class TestValuesIterator {
   static final Random rnd = new Random();
 
   private SerializationContext serializationContext;
-  RawComparator<?> comparator;
-  RawComparator<?> correctComparator;
+  RawComparator comparator;
+  RawComparator correctComparator;
   boolean expectedTestResult;
 
   int mergeFactor;
@@ -167,7 +167,7 @@ public class TestValuesIterator {
   @ParameterizedTest(name = "test[{0}, {1}, {2}, {3}, {4}, {5}]")
   @MethodSource("getParameters")
   @Timeout(value = 20000, unit = TimeUnit.MILLISECONDS)
-  public void testIteratorWithInMemoryReader(String serializationClassName, Class<?> key, Class<?> val, 
+  public void testIteratorWithInMemoryReader(String serializationClassName, Class<?> key, Class<?> val,
       TestWithComparator comparator, TestWithComparator correctComparator, boolean testResult) throws Exception {
     setupInit(serializationClassName, key, val, comparator, correctComparator, testResult);
     ValuesIterator iterator = createIterator(true);
@@ -447,7 +447,7 @@ public class TestValuesIterator {
     return parameters;
   }
 
-  private RawComparator<?> getComparator(TestWithComparator comparator) {
+  private RawComparator getComparator(TestWithComparator comparator) {
     switch (comparator) {
     case LONG:
       return new LongWritable.Comparator();

@@ -64,6 +64,7 @@ import org.junit.jupiter.api.io.TempDir;
 // based on TestDAGLocationHint
 public class TestDAGPlan {
 
+  @SuppressWarnings("checkstyle:VisibilityModifier")
   @TempDir
   Path tempFolder;
 
