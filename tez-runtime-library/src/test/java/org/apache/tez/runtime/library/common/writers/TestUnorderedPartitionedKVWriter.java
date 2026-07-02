@@ -115,6 +115,7 @@ import org.roaringbitmap.RoaringBitmap;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+@SuppressWarnings("checkstyle:HiddenField")
 public class TestUnorderedPartitionedKVWriter {
 
   private static final Logger LOG = LoggerFactory.getLogger(TestUnorderedPartitionedKVWriter.class);

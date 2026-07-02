@@ -74,6 +74,7 @@ import org.mockito.invocation.InvocationOnMock;
 import org.mockito.stubbing.Answer;
 
 @SuppressWarnings({ "rawtypes", "unchecked" })
+@SuppressWarnings("checkstyle:HiddenField")
 public class TestOnFileSortedOutput {
   private static final Random rnd = new Random();
   private static final String UniqueID = "UUID";
