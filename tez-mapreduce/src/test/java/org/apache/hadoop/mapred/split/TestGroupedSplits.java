@@ -299,7 +299,7 @@ public class TestGroupedSplits {
         start = testResults(results, thirdList, start);
         break;
       default:
-        fail("unexpected first token - " + first);
+          fail("unexpected first token - " + first);
       }
     }
   }
