@@ -65,6 +65,7 @@ import org.junit.jupiter.api.Timeout;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+@SuppressWarnings("checkstyle:MethodLength")
 public class TestMergeManager {
 
 
