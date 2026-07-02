@@ -183,7 +183,7 @@ public class TestShuffleVertexManager extends TestShuffleVertexManagerUtils {
     ShuffleVertexManager.ShuffleVertexManagerConfigBuilder configurer = ShuffleVertexManager
         .createConfigBuilder(null);
     VertexManagerPluginDescriptor pluginDesc = configurer.setAutoReduceParallelism(true)
-        .setDesiredTaskInputSize(1000l)
+        .setDesiredTaskInputSize(1000L)
         .setMinTaskParallelism(10).setSlowStartMaxSrcCompletionFraction(0.5f).build();
     when(mockContext.getUserPayload()).thenReturn(pluginDesc.getUserPayload());
 
@@ -194,7 +194,7 @@ public class TestShuffleVertexManager extends TestShuffleVertexManagerUtils {
     verify(mockContext, times(1)).vertexReconfigurationPlanned(); // Tez notified of reconfig
 
     assertTrue(manager.config.isAutoParallelismEnabled());
-    assertEquals(1000l, manager.config.getDesiredTaskInputDataSize());
+    assertEquals(1000L, manager.config.getDesiredTaskInputDataSize());
     assertEquals(10, manager.mgrConfig.getMinTaskParallelism());
     assertEquals(0.25f, manager.config.getMinFraction());
     assertEquals(0.5f, manager.config.getMaxFraction());
@@ -283,7 +283,7 @@ public class TestShuffleVertexManager extends TestShuffleVertexManagerUtils {
     assertEquals(3, manager.totalNumBipartiteSourceTasks);
 
     //Tasks should be scheduled in task 2, 0, 1 order
-    long[] sizes = new long[]{(100 * 1000l * 1000l), (0l), (5000 * 1000l * 1000l)};
+    long[] sizes = new long[]{(100 * 1000L * 1000L), (0l), (5000 * 1000L * 1000L)};
     VertexManagerEvent vmEvent = getVertexManagerEvent(sizes, 1060000000, r1);
     manager.onVertexManagerEventReceived(vmEvent); //send VM event
 
@@ -312,7 +312,7 @@ public class TestShuffleVertexManager extends TestShuffleVertexManagerUtils {
 
   private static ShuffleVertexManager createManager(Configuration conf,
       VertexManagerPluginContext context, Float min, Float max) {
-    return createManager(conf, context, true, 1000l, min, max);
+    return createManager(conf, context, true, 1000L, min, max);
   }
 
   private static ShuffleVertexManager createManager(Configuration conf,

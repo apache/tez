@@ -104,7 +104,7 @@ public class TestMergeManager {
     Configuration conf = new TezConfiguration(defaultConf);
     conf.setFloat(TezRuntimeConfiguration.TEZ_RUNTIME_SHUFFLE_FETCH_BUFFER_PERCENT, 0.8f);
     conf.setFloat(TezRuntimeConfiguration.TEZ_RUNTIME_INPUT_POST_MERGE_BUFFER_PERCENT, 0.5f);
-    assertEquals(6871947776l, MergeManager.getInitialMemoryRequirement(conf, maxTaskMem));
+    assertEquals(6871947776L, MergeManager.getInitialMemoryRequirement(conf, maxTaskMem));
 
     conf.setFloat(TezRuntimeConfiguration.TEZ_RUNTIME_SHUFFLE_FETCH_BUFFER_PERCENT, 0.5f);
     conf.setFloat(TezRuntimeConfiguration.TEZ_RUNTIME_INPUT_POST_MERGE_BUFFER_PERCENT, 0.5f);

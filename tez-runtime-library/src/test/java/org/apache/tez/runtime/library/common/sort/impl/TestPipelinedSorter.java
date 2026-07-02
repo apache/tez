@@ -633,7 +633,7 @@ public class TestPipelinedSorter {
     //Verify if > 2 GB can be set via config
     conf.setInt(TezRuntimeConfiguration.TEZ_RUNTIME_IO_SORT_MB, 3076);
     long size = ExternalSorter.getInitialMemoryRequirement(conf, 4096 * 1024 * 1024l);
-    assertEquals((3076l << 20), size);
+    assertEquals((3076L << 20), size);
 
     //Verify number of block buffers allocated
     this.initialAvailableMem = 10 * 1024 * 1024;
@@ -724,7 +724,7 @@ public class TestPipelinedSorter {
     conf.setBoolean(TezRuntimeConfiguration
         .TEZ_RUNTIME_PIPELINED_SORTER_LAZY_ALLOCATE_MEMORY, false);
     PipelinedSorter sorter = new PipelinedSorter(this.outputContext, conf,
-        numOutputs, (128l << 20));
+        numOutputs, (128L << 20));
     assertEquals(1, sorter.buffers.size(), "Expected 1 sort buffers. current len=" + sorter.buffers.size());
 
     //128 MB. Pre-allocate. Get 2 buffer
@@ -734,7 +734,7 @@ public class TestPipelinedSorter {
     conf.setBoolean(TezRuntimeConfiguration
         .TEZ_RUNTIME_PIPELINED_SORTER_LAZY_ALLOCATE_MEMORY, false);
     sorter = new PipelinedSorter(this.outputContext, conf,
-        numOutputs, (128l << 20));
+        numOutputs, (128L << 20));
     assertEquals(2, sorter.buffers.size(), "Expected 2 sort buffers. current len=" + sorter.buffers.size());
 
     //48 MB. Pre-allocate. But request for lesser block size (62). Get 2 buffer
@@ -744,7 +744,7 @@ public class TestPipelinedSorter {
     conf.setBoolean(TezRuntimeConfiguration
         .TEZ_RUNTIME_PIPELINED_SORTER_LAZY_ALLOCATE_MEMORY, false);
     sorter = new PipelinedSorter(this.outputContext, conf,
-        numOutputs, (48l << 20));
+        numOutputs, (48L << 20));
     assertEquals(1, sorter.buffers.size(), "Expected 1 sort buffers. current len=" + sorter.buffers.size());
   }
 
@@ -758,7 +758,7 @@ public class TestPipelinedSorter {
     // the 32 MB buffer.
     conf.setInt(TezRuntimeConfiguration.TEZ_RUNTIME_IO_SORT_MB, 128);
     conf.setBoolean(TezRuntimeConfiguration.TEZ_RUNTIME_PIPELINED_SORTER_LAZY_ALLOCATE_MEMORY, true);
-    PipelinedSorter sorter = new PipelinedSorter(this.outputContext, conf, numOutputs, (128l << 20));
+    PipelinedSorter sorter = new PipelinedSorter(this.outputContext, conf, numOutputs, (128L << 20));
     assertEquals(1, sorter.buffers.size(), "Expected 1 sort buffers. current len=" + sorter.buffers.size());
     assertEquals(32 * 1024 * 1024 - 64, sorter.buffers.get(0).capacity());
     writeData(sorter, 100, 1024 * 1024, false); // 100 1 MB KV. Will spill
@@ -788,7 +788,7 @@ public class TestPipelinedSorter {
     // Get 32 MB buffer first invariably and proceed with the rest.
     conf.setInt(TezRuntimeConfiguration.TEZ_RUNTIME_IO_SORT_MB, 48);
     conf.setBoolean(TezRuntimeConfiguration.TEZ_RUNTIME_PIPELINED_SORTER_LAZY_ALLOCATE_MEMORY, true);
-    sorter = new PipelinedSorter(this.outputContext, conf, numOutputs, (48l << 20));
+    sorter = new PipelinedSorter(this.outputContext, conf, numOutputs, (48L << 20));
     assertEquals(1, sorter.buffers.size(), "Expected 1 sort buffers. current len=" + sorter.buffers.size());
     assertEquals(32 * 1024 * 1024 - 64, sorter.buffers.get(0).capacity());
     writeData(sorter, 20, 1024 * 1024, false); // 100 1 MB KV. Will spill
