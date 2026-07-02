@@ -283,12 +283,12 @@ public class TestShuffleVertexManager extends TestShuffleVertexManagerUtils {
     assertEquals(3, manager.totalNumBipartiteSourceTasks);
 
     //Tasks should be scheduled in task 2, 0, 1 order
-    long[] sizes = new long[]{(100 * 1000L * 1000L), (0l), (5000 * 1000L * 1000L)};
+    long[] sizes = new long[]{(100 * 1000L * 1000L), (0L), (5000 * 1000L * 1000L)};
     VertexManagerEvent vmEvent = getVertexManagerEvent(sizes, 1060000000, r1);
     manager.onVertexManagerEventReceived(vmEvent); //send VM event
 
     //stats from another vertex (more of empty stats)
-    sizes = new long[]{(0l), (0l), (0l)};
+    sizes = new long[]{(0L), (0L), (0L)};
     vmEvent = getVertexManagerEvent(sizes, 1060000000, r1);
     manager.onVertexManagerEventReceived(vmEvent); //send VM event
 

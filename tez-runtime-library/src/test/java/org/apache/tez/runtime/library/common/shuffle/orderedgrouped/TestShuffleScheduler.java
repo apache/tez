@@ -1086,7 +1086,7 @@ public class TestShuffleScheduler {
         @Override
         public Void answer(InvocationOnMock invocation) throws Throwable {
           if (fetcherShouldWait) {
-            Thread.sleep(100000l);
+            Thread.sleep(100000L);
           }
           return null;
         }

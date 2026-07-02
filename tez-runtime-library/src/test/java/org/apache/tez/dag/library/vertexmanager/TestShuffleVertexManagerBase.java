@@ -211,8 +211,8 @@ public class TestShuffleVertexManagerBase extends TestShuffleVertexManagerUtils 
         mockSrcVertexId1, 2, mockSrcVertexId2, 2, mockSrcVertexId3, 2,
         mockManagedVertexId, 4, scheduledTasks, null);
     //{5,9,12,18} in bitmap
-    final long MB = 1024l * 1024l;
-    long[] sizes = new long[]{(0l), (1 * MB), (964 * MB), (48 * MB)};
+    final long MB = 1024L * 1024L;
+    long[] sizes = new long[]{(0L), (1 * MB), (964 * MB), (48 * MB)};
     VertexManagerEvent vmEvent = getVertexManagerEvent(sizes, 0, "Vertex", false);
 
     manager = createManager(shuffleVertexManagerClass, conf, mockContext, 0.01f, 0.75f);

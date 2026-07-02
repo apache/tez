@@ -323,10 +323,10 @@ public class TestGroupedSplits {
     format.setInputFormat(mockWrappedFormat);
 
     job = (JobConf) TezSplitGrouper.newConfigBuilder(job)
-        .setGroupingSplitSize(50*1000*1000l, 500*1000*1000l)
+        .setGroupingSplitSize(50 * 1000 * 1000L, 500 * 1000 * 1000L)
         .build();
     InputSplit mockSplit1 = mock(InputSplit.class);
-    when(mockSplit1.getLength()).thenReturn(10*1000*1000l);
+    when(mockSplit1.getLength()).thenReturn(10 * 1000 * 1000L);
     when(mockSplit1.getLocations()).thenReturn(null);
     int numSplits = 100;
     InputSplit[] mockSplits = new InputSplit[numSplits];
@@ -564,7 +564,7 @@ public class TestGroupedSplits {
     InputSplit[] mockSplits = new InputSplit[numSplits];
     for (int i=0; i<numSplits; i++) {
       InputSplit mockSplit = mock(InputSplit.class);
-      when(mockSplit.getLength()).thenReturn(10*1000*1000l);
+      when(mockSplit.getLength()).thenReturn(10 * 1000 * 1000L);
       when(mockSplit.getLocations()).thenReturn(locations);
       mockSplits[i] = mockSplit;
     }
@@ -595,15 +595,15 @@ public class TestGroupedSplits {
     int numSplits = 3;
     InputSplit[] mockSplits = new InputSplit[numSplits];
     InputSplit mockSplit1 = mock(InputSplit.class);
-    when(mockSplit1.getLength()).thenReturn(10*1000*1000l);
+    when(mockSplit1.getLength()).thenReturn(10 * 1000 * 1000L);
     when(mockSplit1.getLocations()).thenReturn(null);
     mockSplits[0] = mockSplit1;
     InputSplit mockSplit2 = mock(InputSplit.class);
-    when(mockSplit2.getLength()).thenReturn(10*1000*1000l);
+    when(mockSplit2.getLength()).thenReturn(10 * 1000 * 1000L);
     when(mockSplit2.getLocations()).thenReturn(new String[] {null});
     mockSplits[1] = mockSplit2;
     InputSplit mockSplit3 = mock(InputSplit.class);
-    when(mockSplit3.getLength()).thenReturn(10*1000*1000l);
+    when(mockSplit3.getLength()).thenReturn(10 * 1000 * 1000L);
     when(mockSplit3.getLocations()).thenReturn(new String[] {null, null});
     mockSplits[2] = mockSplit3;
 
@@ -637,23 +637,23 @@ public class TestGroupedSplits {
     int numSplits = 5;
     InputSplit[] mockSplits = new InputSplit[numSplits];
     InputSplit mockSplit1 = mock(InputSplit.class);
-    when(mockSplit1.getLength()).thenReturn(100*1000*1000l);
+    when(mockSplit1.getLength()).thenReturn(100 * 1000 * 1000L);
     when(mockSplit1.getLocations()).thenReturn(null);
     mockSplits[0] = mockSplit1;
     InputSplit mockSplit2 = mock(InputSplit.class);
-    when(mockSplit2.getLength()).thenReturn(100*1000*1000l);
+    when(mockSplit2.getLength()).thenReturn(100 * 1000 * 1000L);
     when(mockSplit2.getLocations()).thenReturn(new String[] {null});
     mockSplits[1] = mockSplit2;
     InputSplit mockSplit3 = mock(InputSplit.class);
-    when(mockSplit3.getLength()).thenReturn(100*1000*1000l);
+    when(mockSplit3.getLength()).thenReturn(100 * 1000 * 1000L);
     when(mockSplit3.getLocations()).thenReturn(new String[] {null, null});
     mockSplits[2] = mockSplit3;
     InputSplit mockSplit4 = mock(InputSplit.class);
-    when(mockSplit4.getLength()).thenReturn(100*1000*1000l);
+    when(mockSplit4.getLength()).thenReturn(100 * 1000 * 1000L);
     when(mockSplit4.getLocations()).thenReturn(new String[] {validLocation});
     mockSplits[3] = mockSplit4;
     InputSplit mockSplit5 = mock(InputSplit.class);
-    when(mockSplit5.getLength()).thenReturn(100*1000*1000l);
+    when(mockSplit5.getLength()).thenReturn(100 * 1000 * 1000L);
     when(mockSplit5.getLocations()).thenReturn(new String[] {validLocation, null, validLocation2});
     mockSplits[4] = mockSplit4;
 
@@ -687,7 +687,7 @@ public class TestGroupedSplits {
     JobConf job = new JobConf(defaultConf);
 
     job = (JobConf) TezSplitGrouper.newConfigBuilder(job)
-        .setGroupingSplitSize(12*1000*1000l, 25*1000*1000l)
+        .setGroupingSplitSize(12 * 1000 * 1000L, 25 * 1000 * 1000L)
         .build();
 
     InputFormat mockWrappedFormat = mock(InputFormat.class);
@@ -712,13 +712,13 @@ public class TestGroupedSplits {
       }
     };
 
-    when(mockSplit1.getLength()).thenReturn(1000 * 1000l);
+    when(mockSplit1.getLength()).thenReturn(1000 * 1000L);
     when(mockSplit1.getLocations()).thenReturn(locations);
 
-    when(mockSplit2.getLength()).thenReturn(1000 * 1000l);
+    when(mockSplit2.getLength()).thenReturn(1000 * 1000L);
     when(mockSplit2.getLocations()).thenReturn(locations);
 
-    when(mockSplit3.getLength()).thenReturn(2 * 1000 * 1000l + 1);
+    when(mockSplit3.getLength()).thenReturn(2 * 1000 * 1000L + 1);
     when(mockSplit3.getLocations()).thenReturn(locations);
 
     // put multiple splits which should be grouped (1,1,2) Mb, but estimated to be 10x
@@ -741,10 +741,10 @@ public class TestGroupedSplits {
       TezGroupedSplit split = (TezGroupedSplit) group;
       if (split.wrappedSplits.size() == 2) {
         // split1+split2
-        assertEquals(split.getLength(), 2 * 1000 * 1000l);
+        assertEquals(split.getLength(), 2 * 1000 * 1000L);
       } else {
         // split3
-        assertEquals(split.getLength(), 2 * 1000 * 1000l + 1);
+        assertEquals(split.getLength(), 2 * 1000 * 1000L + 1);
       }
     }
   }
@@ -758,15 +758,15 @@ public class TestGroupedSplits {
     int numSplits = 3;
     InputSplit[] mockSplits = new InputSplit[numSplits];
     InputSplit mockSplit1 = mock(InputSplit.class);
-    when(mockSplit1.getLength()).thenReturn(100*1000*1000l);
+    when(mockSplit1.getLength()).thenReturn(100 * 1000 * 1000L);
     when(mockSplit1.getLocations()).thenReturn(new String[] {"location1", "location2"});
     mockSplits[0] = mockSplit1;
     InputSplit mockSplit2 = mock(InputSplit.class);
-    when(mockSplit2.getLength()).thenReturn(100*1000*1000l);
+    when(mockSplit2.getLength()).thenReturn(100 * 1000 * 1000L);
     when(mockSplit2.getLocations()).thenReturn(new String[] {"location3", "location4"});
     mockSplits[1] = mockSplit2;
     InputSplit mockSplit3 = mock(InputSplit.class);
-    when(mockSplit3.getLength()).thenReturn(100*1000*1000l);
+    when(mockSplit3.getLength()).thenReturn(100 * 1000 * 1000L);
     when(mockSplit3.getLocations()).thenReturn(new String[] {"location5", "location6"});
     mockSplits[2] = mockSplit3;
 
@@ -800,15 +800,15 @@ public class TestGroupedSplits {
     int numSplits = 3;
     InputSplit[] mockSplits = new InputSplit[numSplits];
     InputSplit mockSplit1 = mock(InputSplit.class);
-    when(mockSplit1.getLength()).thenReturn(100*1000*1000l);
+    when(mockSplit1.getLength()).thenReturn(100 * 1000 * 1000L);
     when(mockSplit1.getLocations()).thenReturn(new String[] {"location1", "location2"});
     mockSplits[0] = mockSplit1;
     InputSplit mockSplit2 = mock(InputSplit.class);
-    when(mockSplit2.getLength()).thenReturn(100*1000*1000l);
+    when(mockSplit2.getLength()).thenReturn(100 * 1000 * 1000L);
     when(mockSplit2.getLocations()).thenReturn(new String[] {"location3", "location4"});
     mockSplits[1] = mockSplit2;
     InputSplit mockSplit3 = mock(InputSplit.class);
-    when(mockSplit3.getLength()).thenReturn(100*1000*1000l);
+    when(mockSplit3.getLength()).thenReturn(100 * 1000 * 1000L);
     when(mockSplit3.getLocations()).thenReturn(new String[] {"location5", "location6"});
     mockSplits[2] = mockSplit3;
 

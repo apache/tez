@@ -67,7 +67,7 @@ import org.roaringbitmap.RoaringBitmap;
 
 @SuppressWarnings({ "unchecked", "rawtypes" })
 public class TestShuffleVertexManagerUtils {
-  static long MB = 1024l * 1024l;
+  static long MB = 1024L * 1024L;
   TezVertexID vertexId = TezVertexID.fromString("vertex_1436907267600_195589_1_00");
   int taskId = 0;
 

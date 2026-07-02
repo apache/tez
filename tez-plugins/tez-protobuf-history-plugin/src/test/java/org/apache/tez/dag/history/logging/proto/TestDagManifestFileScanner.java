@@ -131,7 +131,7 @@ public class TestDagManifestFileScanner {
 
   private void createManifestEvents(long time, int numEvents) throws IOException {
     for (int i = 0; i < numEvents; ++i) {
-      ApplicationId appId = ApplicationId.newInstance(1000l, i);
+      ApplicationId appId = ApplicationId.newInstance(1000L, i);
       ManifestEntryProto proto = ManifestEntryProto.newBuilder()
           .setAppId(appId.toString())
           .setDagFilePath("dummy_dag_path_" + i)

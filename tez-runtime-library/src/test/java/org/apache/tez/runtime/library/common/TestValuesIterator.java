@@ -557,7 +557,7 @@ public class TestValuesIterator {
   private InputContext createTezInputContext() {
     TezCounters counters = new TezCounters();
     InputContext inputContext = mock(InputContext.class);
-    doReturn(1024 * 1024 * 100l).when(inputContext).getTotalMemoryAvailableToTask();
+    doReturn(1024 * 1024 * 100L).when(inputContext).getTotalMemoryAvailableToTask();
     doReturn(counters).when(inputContext).getCounters();
     doReturn(1).when(inputContext).getInputIndex();
     doReturn("srcVertex").when(inputContext).getSourceVertexName();

@@ -92,7 +92,7 @@ public class TestShuffleHandlerJobs {
       conf.set(serviceStr, ShuffleHandler.class.getName());
       conf.setInt(ShuffleHandler.SHUFFLE_PORT_CONFIG_KEY, 0);
       conf.set("fs.defaultFS", remoteFs.getUri().toString());   // use HDFS
-      conf.setLong(YarnConfiguration.DEBUG_NM_DELETE_DELAY_SEC, 0l);
+      conf.setLong(YarnConfiguration.DEBUG_NM_DELETE_DELAY_SEC, 0L);
       tezCluster.init(conf);
       tezCluster.start();
     }

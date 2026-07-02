@@ -153,7 +153,7 @@ public class TestPipelinedSorter {
 
     //# partition, # of keys, size per key, InitialMem, blockSize
     conf.setInt(TezRuntimeConfiguration.TEZ_RUNTIME_IO_SORT_MB, 5);
-    basicTest(1, 100000, 100, (10 * 1024l * 1024l), 3 << 20);
+    basicTest(1, 100000, 100, (10 * 1024L * 1024L), 3 << 20);
     verifyOutputPermissions(outputContext.getUniqueIdentifier());
   }
 
@@ -161,7 +161,7 @@ public class TestPipelinedSorter {
   public void testWithoutPartitionStats() throws IOException {
     conf.setBoolean(TezRuntimeConfiguration.TEZ_RUNTIME_REPORT_PARTITION_STATS, false);
     //# partition, # of keys, size per key, InitialMem, blockSize
-    basicTest(1, 0, 0, (10 * 1024l * 1024l), 3 << 20);
+    basicTest(1, 0, 0, (10 * 1024L * 1024L), 3 << 20);
     conf.setBoolean(TezRuntimeConfiguration.TEZ_RUNTIME_REPORT_PARTITION_STATS, true);
   }
 
@@ -169,7 +169,7 @@ public class TestPipelinedSorter {
   public void testWithEmptyData() throws IOException {
     conf.setInt(TezRuntimeConfiguration.TEZ_RUNTIME_IO_SORT_MB, 5);
     //# partition, # of keys, size per key, InitialMem, blockSize
-    basicTest(1, 0, 0, (10 * 1024l * 1024l), 3 << 20);
+    basicTest(1, 0, 0, (10 * 1024L * 1024L), 3 << 20);
   }
 
   @Test
@@ -249,26 +249,26 @@ public class TestPipelinedSorter {
   @Test
   public void basicTestWithSmallBlockSize() throws IOException {
     //3 MB key & 3 MB value, whereas block size is just 3 MB
-    basicTest(1, 5, (3 << 20), (10 * 1024l * 1024l), 3 << 20);
+    basicTest(1, 5, (3 << 20), (10 * 1024L * 1024L), 3 << 20);
   }
 
   @Test
   public void testWithLargeKeyValue() throws IOException {
     //15 MB key & 15 MB value, 48 MB sort buffer.  block size is 48MB (or 1 block)
     //meta would be 16 MB
-    basicTest(1, 5, (15 << 20), (48 * 1024l * 1024l), 48 << 20);
+    basicTest(1, 5, (15 << 20), (48 * 1024L * 1024L), 48 << 20);
   }
 
   @Test
   public void testKVExceedsBuffer() throws IOException {
     // a single block of 1mb, 2KV pair, key 1mb, value 1mb
-    basicTest(1, 2, (1 << 20), (1 * 1024l * 1024l), 1<<20);
+    basicTest(1, 2, (1 << 20), (1 * 1024L * 1024L), 1 << 20);
   }
 
   @Test
   public void testKVExceedsBuffer2() throws IOException {
     // a list of 4 blocks each 256kb, 2KV pair, key 1mb, value 1mb
-    basicTest(1, 2, (1 << 20), (1 * 1024l * 1024l), 256<<20);
+    basicTest(1, 2, (1 << 20), (1 * 1024L * 1024L), 256 << 20);
   }
 
   @Test
@@ -384,7 +384,7 @@ public class TestPipelinedSorter {
     // 20 KVpairs of 2X10kb, 10 KV of 2X200kb, 20KV of 2X10kb
     int numkeys[] = {20, 10, 20};
     int keylens[] = {10<<10, 200<<10, 10<<10};
-    basicTest2(1, numkeys, keylens, (10 * 1024l * 1024l), 2);
+    basicTest2(1, numkeys, keylens, (10 * 1024L * 1024L), 2);
   }
 
   @Test
@@ -392,7 +392,7 @@ public class TestPipelinedSorter {
     //Test with custom comparator
     conf.set(TezRuntimeConfiguration.TEZ_RUNTIME_KEY_COMPARATOR_CLASS,
         CustomComparator.class.getName());
-    basicTest(1, 100000, 100, (10 * 1024l * 1024l), 3 << 20);
+    basicTest(1, 100000, 100, (10 * 1024L * 1024L), 3 << 20);
   }
 
   @Test
@@ -632,7 +632,7 @@ public class TestPipelinedSorter {
   public void memTest() throws IOException {
     //Verify if > 2 GB can be set via config
     conf.setInt(TezRuntimeConfiguration.TEZ_RUNTIME_IO_SORT_MB, 3076);
-    long size = ExternalSorter.getInitialMemoryRequirement(conf, 4096 * 1024 * 1024l);
+    long size = ExternalSorter.getInitialMemoryRequirement(conf, 4096 * 1024 * 1024L);
     assertEquals((3076L << 20), size);
 
     //Verify number of block buffers allocated
@@ -775,7 +775,7 @@ public class TestPipelinedSorter {
     // Get 1 buffer with 62 MB. But grow to 2 buffers as data is written
     conf.setInt(TezRuntimeConfiguration.TEZ_RUNTIME_IO_SORT_MB, 300);
     conf.setBoolean(TezRuntimeConfiguration.TEZ_RUNTIME_PIPELINED_SORTER_LAZY_ALLOCATE_MEMORY, true);
-    sorter = new PipelinedSorter(this.outputContext, conf, numOutputs, (300l << 20));
+    sorter = new PipelinedSorter(this.outputContext, conf, numOutputs, (300L << 20));
     assertEquals(1, sorter.buffers.size());
     assertEquals(32 * 1024 * 1024 - 64, sorter.buffers.get(0).capacity());
 
@@ -811,7 +811,7 @@ public class TestPipelinedSorter {
         .TEZ_RUNTIME_PIPELINED_SORTER_MIN_BLOCK_SIZE_IN_MB, 4500);
     try {
       PipelinedSorter sorter = new PipelinedSorter(this.outputContext, conf,
-          numOutputs, (4500l << 20));
+          numOutputs, (4500L << 20));
     } catch (IllegalArgumentException iae) {
       assertTrue(iae.getMessage().contains(TezRuntimeConfiguration
           .TEZ_RUNTIME_PIPELINED_SORTER_MIN_BLOCK_SIZE_IN_MB));
@@ -822,7 +822,7 @@ public class TestPipelinedSorter {
         .TEZ_RUNTIME_PIPELINED_SORTER_MIN_BLOCK_SIZE_IN_MB, -1);
     try {
       PipelinedSorter sorter = new PipelinedSorter(this.outputContext, conf,
-          numOutputs, (4500l << 20));
+          numOutputs, (4500L << 20));
     } catch (IllegalArgumentException iae) {
       assertTrue(iae.getMessage().contains(TezRuntimeConfiguration
           .TEZ_RUNTIME_PIPELINED_SORTER_MIN_BLOCK_SIZE_IN_MB));
@@ -835,7 +835,7 @@ public class TestPipelinedSorter {
         .TEZ_RUNTIME_PIPELINED_SORTER_MIN_BLOCK_SIZE_IN_MB, -1);
     try {
       PipelinedSorter sorter = new PipelinedSorter(this.outputContext, conf,
-          numOutputs, (4500l << 20));
+          numOutputs, (4500L << 20));
     } catch (IllegalArgumentException iae) {
       assertTrue(iae.getMessage().contains(TezRuntimeConfiguration
           .TEZ_RUNTIME_PIPELINED_SORTER_MIN_BLOCK_SIZE_IN_MB));
@@ -848,7 +848,7 @@ public class TestPipelinedSorter {
   //Intentionally not having timeout
   public void testWithLargeKeyValueWithMinBlockSize() throws IOException {
     //2 MB key & 2 MB value, 48 MB sort buffer.  block size is 16MB
-    basicTest(1, 5, (2 << 20), (48 * 1024l * 1024l), 16 << 20);
+    basicTest(1, 5, (2 << 20), (48 * 1024L * 1024L), 16 << 20);
   }
 
   @Test

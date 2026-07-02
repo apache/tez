@@ -98,7 +98,7 @@ public class TestMergeManager {
   @Test
   @Timeout(value = 10000, unit = TimeUnit.MILLISECONDS)
   public void testConfigs() throws IOException {
-    long maxTaskMem = 8192 * 1024 * 1024l;
+    long maxTaskMem = 8192 * 1024 * 1024L;
 
     //Test Shuffle fetch buffer and post merge buffer percentage
     Configuration conf = new TezConfiguration(defaultConf);
@@ -174,7 +174,7 @@ public class TestMergeManager {
             t0exceptionReporter, initialMemoryAvailable, null, false, -1);
     assertTrue(mergeManager.postMergeMemLimit > Integer.MAX_VALUE);
 
-    initialMemoryAvailable = 200 * 1024 * 1024l; //initial mem < memlimit
+    initialMemoryAvailable = 200 * 1024 * 1024L; //initial mem < memlimit
     mergeManager =
         new MergeManager(conf, localFs, localDirAllocator, t0inputContext, null, null, null, null,
             t0exceptionReporter, initialMemoryAvailable, null, false, -1);
@@ -823,7 +823,7 @@ public class TestMergeManager {
 
     MergeManager mergeManagerReal =
         new MergeManager(conf, localFs, localDirAllocator, inputContext, null, null, null, null,
-            exceptionReporter, 1 * 1024l * 1024l, null, false, -1);
+            exceptionReporter, 1 * 1024L * 1024L, null, false, -1);
     MergeManager mergeManager = spy(mergeManagerReal);
 
     // Partition 0 Keys 0-2, Partition 1 Keys 3-5
@@ -1079,7 +1079,7 @@ public class TestMergeManager {
   }
 
   private InputContext createMockInputContext(String uniqueId) {
-    return createMockInputContext(uniqueId, 200 * 1024 * 1024l);
+    return createMockInputContext(uniqueId, 200 * 1024 * 1024L);
   }
 
   private InputContext createMockInputContext(String uniqueId, long mem) {

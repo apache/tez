@@ -96,10 +96,10 @@ public class TestLocalTaskSchedulerService {
   @Timeout(value = 5000, unit = TimeUnit.MILLISECONDS)
   public void testDeallocationBeforeAllocation() throws InterruptedException {
     ApplicationAttemptId appAttemptId =
-        ApplicationAttemptId.newInstance(ApplicationId.newInstance(10000l, 1), 1);
+        ApplicationAttemptId.newInstance(ApplicationId.newInstance(10000L, 1), 1);
 
     TaskSchedulerContext mockContext = TestTaskSchedulerHelpers
-        .setupMockTaskSchedulerContext("", 0, "", false, appAttemptId, 10000l, null, new Configuration());
+        .setupMockTaskSchedulerContext("", 0, "", false, appAttemptId, 10000L, null, new Configuration());
 
     MockLocalTaskSchedulerSerivce taskSchedulerService = new MockLocalTaskSchedulerSerivce(mockContext);
     taskSchedulerService.initialize();
@@ -129,10 +129,10 @@ public class TestLocalTaskSchedulerService {
   @Timeout(value = 5000, unit = TimeUnit.MILLISECONDS)
   public void testDeallocationAfterAllocation() throws InterruptedException {
     ApplicationAttemptId appAttemptId =
-        ApplicationAttemptId.newInstance(ApplicationId.newInstance(10000l, 1), 1);
+        ApplicationAttemptId.newInstance(ApplicationId.newInstance(10000L, 1), 1);
 
     TaskSchedulerContext mockContext = TestTaskSchedulerHelpers
-        .setupMockTaskSchedulerContext("", 0, "", false, appAttemptId, 10000l, null, new Configuration());
+        .setupMockTaskSchedulerContext("", 0, "", false, appAttemptId, 10000L, null, new Configuration());
 
     MockLocalTaskSchedulerSerivce taskSchedulerService =
         new MockLocalTaskSchedulerSerivce(mockContext);

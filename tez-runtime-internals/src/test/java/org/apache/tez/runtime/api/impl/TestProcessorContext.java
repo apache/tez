@@ -83,7 +83,7 @@ public class TestProcessorContext {
     InputReadyTracker inputReadyTracker = mock(InputReadyTracker.class);
     ObjectRegistry objectRegistry = new ObjectRegistryImpl();
     ExecutionContext execContext = new ExecutionContextImpl("localhost");
-    long memAvailable = 10000l;
+    long memAvailable = 10000L;
 
     TezProcessorContextImpl procContext =
         new TezProcessorContextImpl(

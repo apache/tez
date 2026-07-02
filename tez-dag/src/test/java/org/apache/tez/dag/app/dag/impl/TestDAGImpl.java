@@ -1811,7 +1811,7 @@ public class TestDAGImpl {
     assertEquals(5, dag.getSuccessfulVertices());
 
     long dagStatusStartTime = System.currentTimeMillis();
-    DAGStatusBuilder dagStatus = dag.getDAGStatus(EnumSet.noneOf(StatusGetOpts.class), 2000l);
+    DAGStatusBuilder dagStatus = dag.getDAGStatus(EnumSet.noneOf(StatusGetOpts.class), 2000L);
     long dagStatusEndTime = System.currentTimeMillis();
     long diff = dagStatusEndTime - dagStatusStartTime;
     assertTrue(diff >= 0 && diff < 2500);
@@ -1882,7 +1882,7 @@ public class TestDAGImpl {
     }
 
     // Sleep for 2 seconds. Then mark the last vertex is successful.
-    Thread.sleep(2000l);
+    Thread.sleep(2000L);
     if (testState == State.SUCCEEDED) {
       dispatcher.getEventHandler().handle(new DAGEventVertexCompleted(
           TezVertexID.getInstance(dagId, 5), VertexState.SUCCEEDED));
@@ -2370,7 +2370,7 @@ public class TestDAGImpl {
       }
       try {
         dagStatusStartTime = System.currentTimeMillis();
-        dagStatus = dag.getDAGStatus(EnumSet.noneOf(StatusGetOpts.class), 10000l);
+        dagStatus = dag.getDAGStatus(EnumSet.noneOf(StatusGetOpts.class), 10000L);
         dagStatusEndTime = System.currentTimeMillis();
       } catch (TezException e) {
 

@@ -141,7 +141,7 @@ public class TestDefaultSorter {
 
     conf.setFloat(TezRuntimeConfiguration.TEZ_RUNTIME_SORT_SPILL_PERCENT, 0.0f);
     try {
-      new DefaultSorter(context, conf, 10, (10 * 1024 * 1024l));
+      new DefaultSorter(context, conf, 10, (10 * 1024 * 1024L));
       fail();
     } catch(IllegalArgumentException e) {
       assertTrue(e.getMessage().contains(TezRuntimeConfiguration.TEZ_RUNTIME_SORT_SPILL_PERCENT));
@@ -149,7 +149,7 @@ public class TestDefaultSorter {
 
     conf.setFloat(TezRuntimeConfiguration.TEZ_RUNTIME_SORT_SPILL_PERCENT, 1.1f);
     try {
-      new DefaultSorter(context, conf, 10, (10 * 1024 * 1024l));
+      new DefaultSorter(context, conf, 10, (10 * 1024 * 1024L));
       fail();
     } catch(IllegalArgumentException e) {
       assertTrue(e.getMessage().contains(TezRuntimeConfiguration.TEZ_RUNTIME_SORT_SPILL_PERCENT));
@@ -168,7 +168,7 @@ public class TestDefaultSorter {
     conf.set(TezRuntimeConfiguration.TEZ_RUNTIME_VALUE_CLASS, NullWritable.class.getName());
     OutputContext context = createTezOutputContext();
 
-    doReturn(2800 * 1024 * 1024l).when(context).getTotalMemoryAvailableToTask();
+    doReturn(2800 * 1024 * 1024L).when(context).getTotalMemoryAvailableToTask();
 
     //Setting IO_SORT_MB to 2047 MB
     conf.setInt(TezRuntimeConfiguration.TEZ_RUNTIME_IO_SORT_MB, 2047);
@@ -207,7 +207,7 @@ public class TestDefaultSorter {
   public void testSortLimitsWithLargeRecords() throws IOException {
     OutputContext context = createTezOutputContext();
 
-    doReturn(2800 * 1024 * 1024l).when(context).getTotalMemoryAvailableToTask();
+    doReturn(2800 * 1024 * 1024L).when(context).getTotalMemoryAvailableToTask();
 
     //Setting IO_SORT_MB to 2047 MB
     conf.setInt(TezRuntimeConfiguration.TEZ_RUNTIME_IO_SORT_MB, 2047);
@@ -699,7 +699,7 @@ public class TestDefaultSorter {
     doReturn(counters).when(context).getCounters();
     doReturn(workingDirs).when(context).getWorkDirs();
     doReturn(payLoad).when(context).getUserPayload();
-    doReturn(5 * 1024 * 1024l).when(context).getTotalMemoryAvailableToTask();
+    doReturn(5 * 1024 * 1024L).when(context).getTotalMemoryAvailableToTask();
     doReturn(UniqueID).when(context).getUniqueIdentifier();
     doReturn("v1").when(context).getDestinationVertexName();
     doReturn(ByteBuffer.wrap(serviceProviderMetaData.getData())).when(context)

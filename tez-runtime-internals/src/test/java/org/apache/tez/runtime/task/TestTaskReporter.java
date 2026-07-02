@@ -131,7 +131,7 @@ public class TestTaskReporter {
         }
       }
       verify(mockUmbilical, times(3)).heartbeat(any());
-      Thread.sleep(200l);
+      Thread.sleep(200L);
       // Sleep for less than the callable sleep time. No more invocations.
       verify(mockUmbilical, times(3)).heartbeat(any());
     } finally {
