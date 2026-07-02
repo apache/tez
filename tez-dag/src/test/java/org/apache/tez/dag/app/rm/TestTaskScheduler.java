@@ -1566,11 +1566,11 @@ public class TestTaskScheduler {
     Resource resource = Resource.newInstance(1024, 1);
     Priority priority = Priority.newInstance(1);
 
-    String hostsTask1[] = {"host1"};
-    String hostsTask2[] = {"non-allocated-host"};
+    String[] hostsTask1 = {"host1"};
+    String[] hostsTask2 = {"non-allocated-host"};
 
-    String defaultRack[] = {"/default-rack"};
-    String otherRack[] = {"/other-rack"};
+    String[] defaultRack = {"/default-rack"};
+    String[] otherRack = {"/other-rack"};
 
     Object mockTask1 = new MockTask("task1");
     CookieContainerRequest mockCookie1 = mock(CookieContainerRequest.class, RETURNS_DEEP_STUBS);
