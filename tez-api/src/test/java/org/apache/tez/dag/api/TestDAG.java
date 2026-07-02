@@ -18,8 +18,15 @@
  */
 package org.apache.tez.dag.api;
 
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertNull;
+import static org.junit.jupiter.api.Assertions.assertTrue;
+import static org.junit.jupiter.api.Assertions.fail;
+
 import java.util.Collections;
 import java.util.Map;
+import java.util.concurrent.TimeUnit;
 
 import org.apache.hadoop.yarn.api.records.LocalResource;
 import org.apache.hadoop.yarn.api.records.LocalResourceType;
@@ -34,15 +41,16 @@ import org.apache.tez.dag.api.records.DAGProtos.ConfigurationProto;
 import org.apache.tez.dag.api.records.DAGProtos.DAGPlan;
 import org.apache.tez.dag.api.records.DAGProtos.DAGPlan.Builder;
 
-import org.junit.Assert;
-import org.junit.Test;
+import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.Timeout;
 
 public class TestDAG {
 
   private final int dummyTaskCount = 2;
   private final Resource dummyTaskResource = Resource.newInstance(1, 1);
 
-  @Test(timeout = 5000)
+  @Test
+  @Timeout(value = 5000, unit = TimeUnit.MILLISECONDS)
   public void testDuplicatedVertices() {
     Vertex v1 = Vertex.create("v1", ProcessorDescriptor.create("Processor"),
         dummyTaskCount, dummyTaskResource);
@@ -52,14 +60,15 @@ public class TestDAG {
     dag.addVertex(v1);
     try {
       dag.addVertex(v2);
-      Assert.fail("should fail it due to duplicated vertices");
+      fail("should fail it due to duplicated vertices");
     } catch (Exception e) {
       e.printStackTrace();
-      Assert.assertEquals("Vertex v1 already defined!", e.getMessage());
+      assertEquals("Vertex v1 already defined!", e.getMessage());
     }
   }
 
-  @Test(timeout = 5000)
+  @Test
+  @Timeout(value = 5000, unit = TimeUnit.MILLISECONDS)
   public void testDuplicatedEdges() {
     Vertex v1 = Vertex.create("v1", ProcessorDescriptor.create("Processor"),
         dummyTaskCount, dummyTaskResource);
@@ -81,14 +90,15 @@ public class TestDAG {
     dag.addEdge(edge1);
     try {
       dag.addEdge(edge2);
-      Assert.fail("should fail it due to duplicated edges");
+      fail("should fail it due to duplicated edges");
     } catch (Exception e) {
       e.printStackTrace();
-      Assert.assertTrue(e.getMessage().contains("already defined!"));
+      assertTrue(e.getMessage().contains("already defined!"));
     }
   }
 
-  @Test(timeout = 5000)
+  @Test
+  @Timeout(value = 5000, unit = TimeUnit.MILLISECONDS)
   public void testDuplicatedVertexGroup() {
     Vertex v1 = Vertex.create("v1", ProcessorDescriptor.create("Processor"),
         dummyTaskCount, dummyTaskResource);
@@ -102,17 +112,18 @@ public class TestDAG {
 
     try {
       dag.createVertexGroup("group_1", v2, v3);
-      Assert.fail("should fail it due to duplicated VertexGroups");
+      fail("should fail it due to duplicated VertexGroups");
     } catch (Exception e) {
       e.printStackTrace();
-      Assert.assertEquals("VertexGroup group_1 already defined!", e.getMessage());
+      assertEquals("VertexGroup group_1 already defined!", e.getMessage());
     }
     // it is possible to create vertex group with same member but different group name
     dag.createVertexGroup("group_2", v1, v2);
 
   }
 
-  @Test(timeout = 5000)
+  @Test
+  @Timeout(value = 5000, unit = TimeUnit.MILLISECONDS)
   public void testDuplicatedGroupInputEdge() {
     Vertex v1 = Vertex.create("v1",
         ProcessorDescriptor.create("Processor"),
@@ -148,14 +159,15 @@ public class TestDAG {
     dag.addEdge(e1);
     try {
       dag.addEdge(e2);
-      Assert.fail("should fail it due to duplicated GroupInputEdge");
+      fail("should fail it due to duplicated GroupInputEdge");
     } catch (Exception e) {
       e.printStackTrace();
-      Assert.assertTrue(e.getMessage().contains("already defined"));
+      assertTrue(e.getMessage().contains("already defined"));
     }
   }
 
-  @Test(timeout = 5000)
+  @Test
+  @Timeout(value = 5000, unit = TimeUnit.MILLISECONDS)
   public void testDAGConf() {
     DAG dag = DAG.create("DAG-testDAGConf");
     // it's OK to set custom configuration
@@ -164,9 +176,9 @@ public class TestDAG {
     // set invalid AM level configuration
     try {
       dag.setConf(TezConfiguration.TEZ_AM_SESSION_MODE, true+"");
-      Assert.fail();
+      fail();
     } catch (IllegalStateException e) {
-      Assert.assertEquals("tez.am.mode.session is set at the scope of DAG,"
+      assertEquals("tez.am.mode.session is set at the scope of DAG,"
           + " but it is only valid in the scope of AM",
           e.getMessage());
     }
@@ -176,7 +188,8 @@ public class TestDAG {
     dag.setConf(TezConfiguration.TEZ_AM_TASK_MAX_FAILED_ATTEMPTS, 3 + "");
   }
 
-  @Test(timeout = 5000)
+  @Test
+  @Timeout(value = 5000, unit = TimeUnit.MILLISECONDS)
   public void testVertexConf() {
     Vertex v1 = Vertex.create("v1", ProcessorDescriptor.create("dummyProcessor"));
     // it's OK to set custom property
@@ -185,9 +198,9 @@ public class TestDAG {
     // set invalid AM level configuration
     try {
       v1.setConf(TezConfiguration.TEZ_AM_SESSION_MODE, true+"");
-      Assert.fail();
+      fail();
     } catch (IllegalStateException e) {
-      Assert.assertEquals("tez.am.mode.session is set at the scope of VERTEX,"
+      assertEquals("tez.am.mode.session is set at the scope of VERTEX,"
           + " but it is only valid in the scope of AM",
           e.getMessage());
     }
@@ -195,9 +208,9 @@ public class TestDAG {
     // set invalid DAG level configuration
     try {
       v1.setConf(TezConfiguration.TEZ_AM_COMMIT_ALL_OUTPUTS_ON_DAG_SUCCESS, false + "");
-      Assert.fail("should fail due to invalid configuration set");
+      fail("should fail due to invalid configuration set");
     } catch (IllegalStateException e) {
-      Assert.assertEquals("tez.am.commit-all-outputs-on-dag-success is set at the scope of VERTEX,"
+      assertEquals("tez.am.commit-all-outputs-on-dag-success is set at the scope of VERTEX,"
           + " but it is only valid in the scope of DAG",
           e.getMessage());
     }
@@ -205,30 +218,31 @@ public class TestDAG {
     v1.setConf(TezConfiguration.TEZ_AM_TASK_MAX_FAILED_ATTEMPTS, 3 + "");
   }
 
-  @Test(timeout = 5000)
+  @Test
+  @Timeout(value = 5000, unit = TimeUnit.MILLISECONDS)
   public void testDuplicatedInput() {
     Vertex v1 = Vertex.create("v1", ProcessorDescriptor.create("dummyProcessor"));
     DataSourceDescriptor dataSource =
         DataSourceDescriptor.create(InputDescriptor.create("dummyInput"), null, null);
     try {
       v1.addDataSource(null, dataSource);
-      Assert.fail("Should fail due to invalid inputName");
+      fail("Should fail due to invalid inputName");
     } catch (IllegalArgumentException e) {
-      Assert.assertTrue(e.getMessage()
+      assertTrue(e.getMessage()
           .contains("InputName should not be null, empty or white space only,"));
     }
     try {
       v1.addDataSource("", dataSource);
-      Assert.fail("Should fail due to invalid inputName");
+      fail("Should fail due to invalid inputName");
     } catch (IllegalArgumentException e) {
-      Assert.assertTrue(e.getMessage()
+      assertTrue(e.getMessage()
           .contains("InputName should not be null, empty or white space only,"));
     }
     try {
       v1.addDataSource(" ", dataSource);
-      Assert.fail("Should fail due to invalid inputName");
+      fail("Should fail due to invalid inputName");
     } catch (IllegalArgumentException e) {
-      Assert.assertTrue(e.getMessage()
+      assertTrue(e.getMessage()
           .contains("InputName should not be null, empty or white space only,"));
     }
 
@@ -236,36 +250,37 @@ public class TestDAG {
     try {
       v1.addDataSource("input_1",
           DataSourceDescriptor.create(InputDescriptor.create("dummyInput"), null, null));
-      Assert.fail("Should fail due to duplicated input");
+      fail("Should fail due to duplicated input");
     } catch (IllegalArgumentException e) {
-      Assert.assertEquals("Duplicated input:input_1, vertexName=v1", e.getMessage());
+      assertEquals("Duplicated input:input_1, vertexName=v1", e.getMessage());
     }
   }
 
-  @Test(timeout = 5000)
+  @Test
+  @Timeout(value = 5000, unit = TimeUnit.MILLISECONDS)
   public void testDuplicatedOutput_1() {
     Vertex v1 = Vertex.create("v1", ProcessorDescriptor.create("dummyProcessor"));
     DataSinkDescriptor dataSink =
         DataSinkDescriptor.create(OutputDescriptor.create("dummyOutput"), null, null);
     try {
       v1.addDataSink(null, dataSink);
-      Assert.fail("Should fail due to invalid outputName");
+      fail("Should fail due to invalid outputName");
     } catch (IllegalArgumentException e) {
-      Assert.assertTrue(e.getMessage()
+      assertTrue(e.getMessage()
           .contains("OutputName should not be null, empty or white space only,"));
     }
     try {
       v1.addDataSink("", dataSink);
-      Assert.fail("Should fail due to invalid outputName");
+      fail("Should fail due to invalid outputName");
     } catch (IllegalArgumentException e) {
-      Assert.assertTrue(e.getMessage()
+      assertTrue(e.getMessage()
           .contains("OutputName should not be null, empty or white space only,"));
     }
     try {
       v1.addDataSink(" ", dataSink);
-      Assert.fail("Should fail due to invalid outputName");
+      fail("Should fail due to invalid outputName");
     } catch (IllegalArgumentException e) {
-      Assert.assertTrue(e.getMessage()
+      assertTrue(e.getMessage()
           .contains("OutputName should not be null, empty or white space only,"));
     }
 
@@ -274,13 +289,14 @@ public class TestDAG {
     try {
       v1.addDataSink("output_1",
           DataSinkDescriptor.create(OutputDescriptor.create("dummyOutput"), null, null));
-      Assert.fail("Should fail due to duplicated output");
+      fail("Should fail due to duplicated output");
     } catch (IllegalArgumentException e) {
-      Assert.assertEquals("Duplicated output:output_1, vertexName=v1", e.getMessage());
+      assertEquals("Duplicated output:output_1, vertexName=v1", e.getMessage());
     }
   }
 
-  @Test(timeout = 5000)
+  @Test
+  @Timeout(value = 5000, unit = TimeUnit.MILLISECONDS)
   public void testDuplicatedOutput_2() {
     DAG dag = DAG.create("DAG-testDuplicatedOutput_2");
     Vertex v1 = Vertex.create("v1", ProcessorDescriptor.create("dummyProcessor"));
@@ -288,23 +304,23 @@ public class TestDAG {
         DataSinkDescriptor.create(OutputDescriptor.create("dummyOutput"), null, null);
     try {
       v1.addDataSink(null, dataSink);
-      Assert.fail("Should fail due to invalid outputName");
+      fail("Should fail due to invalid outputName");
     } catch (IllegalArgumentException e) {
-      Assert.assertTrue(e.getMessage()
+      assertTrue(e.getMessage()
           .contains("OutputName should not be null, empty or white space only,"));
     }
     try {
       v1.addDataSink("", dataSink);
-      Assert.fail("Should fail due to invalid outputName");
+      fail("Should fail due to invalid outputName");
     } catch (IllegalArgumentException e) {
-      Assert.assertTrue(e.getMessage()
+      assertTrue(e.getMessage()
           .contains("OutputName should not be null, empty or white space only,"));
     }
     try {
       v1.addDataSink(" ", dataSink);
-      Assert.fail("Should fail due to invalid outputName");
+      fail("Should fail due to invalid outputName");
     } catch (IllegalArgumentException e) {
-      Assert.assertTrue(e.getMessage()
+      assertTrue(e.getMessage()
           .contains("OutputName should not be null, empty or white space only,"));
     }
 
@@ -314,9 +330,9 @@ public class TestDAG {
     try {
       vGroup.addDataSink("output_1",
           DataSinkDescriptor.create(OutputDescriptor.create("dummyOutput"), null, null));
-      Assert.fail("Should fail due to duplicated output");
+      fail("Should fail due to duplicated output");
     } catch (IllegalArgumentException e) {
-      Assert.assertEquals("Duplicated output:output_1, vertexName=v1", e.getMessage());
+      assertEquals("Duplicated output:output_1, vertexName=v1", e.getMessage());
     }
   }
 
@@ -324,13 +340,13 @@ public class TestDAG {
   public void testCallerContext() {
     try {
       CallerContext.create("ctxt", "", "", "desc");
-      Assert.fail("Expected failure for invalid args");
+      fail("Expected failure for invalid args");
     } catch (Exception e) {
       // Expected
     }
     try {
       CallerContext.create("", "desc");
-      Assert.fail("Expected failure for invalid args");
+      fail("Expected failure for invalid args");
     } catch (Exception e) {
       // Expected
     }
@@ -339,8 +355,8 @@ public class TestDAG {
     CallerContext.create("ctxt", null);
 
     CallerContext callerContext = CallerContext.create("ctxt", "desc");
-    Assert.assertTrue(callerContext.toString().contains("desc"));
-    Assert.assertFalse(callerContext.contextAsSimpleString().contains("desc"));
+    assertTrue(callerContext.toString().contains("desc"));
+    assertFalse(callerContext.contextAsSimpleString().contains("desc"));
 
   }
 
@@ -361,7 +377,7 @@ public class TestDAG {
     DAGPlan firstPlan = dag.createDag(tezConf, null, null, null, false);
     for (int i = 0; i < 3; ++i) {
         DAGPlan dagPlan = dag.createDag(tezConf, null, null, null, false);
-        Assert.assertEquals(dagPlan, firstPlan);
+        assertEquals(dagPlan, firstPlan);
     }
   }
 
@@ -383,43 +399,43 @@ public class TestDAG {
     // Expect null when history log level is not set in both dag and tezConf
     DAGPlan dagPlan = dag.createDag(tezConf, null, null, null, false);
     Builder builder = DAGPlan.newBuilder(dagPlan);
-    Assert.assertNull(findKVP(builder.getDagConf(), TezConfiguration.TEZ_HISTORY_LOGGING_LOGLEVEL));
+    assertNull(findKVP(builder.getDagConf(), TezConfiguration.TEZ_HISTORY_LOGGING_LOGLEVEL));
 
     // Set tezConf but not dag, expect value in tezConf.
     tezConf.set(TezConfiguration.TEZ_HISTORY_LOGGING_LOGLEVEL, "TASK");
     dagPlan = dag.createDag(tezConf, null, null, null, false);
-    Assert.assertEquals("TASK", findKVP(DAGPlan.newBuilder(dagPlan).getDagConf(),
+    assertEquals("TASK", findKVP(DAGPlan.newBuilder(dagPlan).getDagConf(),
         TezConfiguration.TEZ_HISTORY_LOGGING_LOGLEVEL));
 
     // Set invalid value in tezConf, expect exception.
     tezConf.set(TezConfiguration.TEZ_HISTORY_LOGGING_LOGLEVEL, "invalid");
     try {
       dagPlan = dag.createDag(tezConf, null, null, null, false);
-      Assert.fail("Expected illegal argument exception");
+      fail("Expected illegal argument exception");
     } catch (IllegalArgumentException e) {
-      Assert.assertEquals("Config: " + TezConfiguration.TEZ_HISTORY_LOGGING_LOGLEVEL +
+      assertEquals("Config: " + TezConfiguration.TEZ_HISTORY_LOGGING_LOGLEVEL +
             " is set to invalid value: invalid", e.getMessage());
     }
 
     // Set value in dag, should override tez conf value.
     dag.setHistoryLogLevel(HistoryLogLevel.VERTEX);
     dagPlan = dag.createDag(tezConf, null, null, null, false);
-    Assert.assertEquals("VERTEX", findKVP(DAGPlan.newBuilder(dagPlan).getDagConf(),
+    assertEquals("VERTEX", findKVP(DAGPlan.newBuilder(dagPlan).getDagConf(),
         TezConfiguration.TEZ_HISTORY_LOGGING_LOGLEVEL));
 
     // Set value directly into dagConf.
     dag.setConf(TezConfiguration.TEZ_HISTORY_LOGGING_LOGLEVEL, HistoryLogLevel.DAG.name());
     dagPlan = dag.createDag(tezConf, null, null, null, false);
-    Assert.assertEquals("DAG", findKVP(DAGPlan.newBuilder(dagPlan).getDagConf(),
+    assertEquals("DAG", findKVP(DAGPlan.newBuilder(dagPlan).getDagConf(),
         TezConfiguration.TEZ_HISTORY_LOGGING_LOGLEVEL));
 
     // Set value invalid directly into dagConf and expect exception.
     dag.setConf(TezConfiguration.TEZ_HISTORY_LOGGING_LOGLEVEL, "invalid");
     try {
       dagPlan = dag.createDag(tezConf, null, null, null, false);
-      Assert.fail("Expected illegal argument exception");
+      fail("Expected illegal argument exception");
     } catch (IllegalArgumentException e) {
-      Assert.assertEquals("Config: " + TezConfiguration.TEZ_HISTORY_LOGGING_LOGLEVEL +
+      assertEquals("Config: " + TezConfiguration.TEZ_HISTORY_LOGGING_LOGLEVEL +
             " is set to invalid value: invalid", e.getMessage());
     }
   }
@@ -431,7 +447,7 @@ public class TestDAG {
         if (foundValue == null) {
           foundValue = conf.getConfKeyValues(i).getValue();
         } else {
-          Assert.fail("Multiple values found: " + foundValue + ", " +
+          fail("Multiple values found: " + foundValue + ", " +
               conf.getConfKeyValues(i).getValue());
         }
       }

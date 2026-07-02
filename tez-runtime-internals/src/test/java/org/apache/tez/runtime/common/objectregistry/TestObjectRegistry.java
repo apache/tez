@@ -18,39 +18,50 @@
  */
 package org.apache.tez.runtime.common.objectregistry;
 
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertNotEquals;
+import static org.junit.jupiter.api.Assertions.assertNotNull;
+import static org.junit.jupiter.api.Assertions.assertNull;
+import static org.junit.jupiter.api.Assertions.assertTrue;
+
+import java.util.concurrent.TimeUnit;
+
 import org.apache.tez.runtime.api.ObjectRegistry;
 
-import org.junit.Assert;
-import org.junit.Test;
+import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.Timeout;
 
 public class TestObjectRegistry {
 
   private void testCRUD(ObjectRegistry objectRegistry) {
-    Assert.assertNotNull(objectRegistry);
+    assertNotNull(objectRegistry);
 
-    Assert.assertNull(objectRegistry.get("foo"));
-    Assert.assertFalse(objectRegistry.delete("foo"));
+    assertNull(objectRegistry.get("foo"));
+    assertFalse(objectRegistry.delete("foo"));
     Integer one = new Integer(1);
     Integer two_1 = new Integer(2);
     Integer two_2 = new Integer(3);
-    Assert.assertNull(objectRegistry.cacheForDAG("one", one));
-    Assert.assertEquals(one, objectRegistry.get("one"));
-    Assert.assertNull(objectRegistry.cacheForDAG("two", two_1));
-    Assert.assertNotNull(objectRegistry.cacheForSession("two", two_2));
-    Assert.assertNotEquals(two_1, objectRegistry.get("two"));
-    Assert.assertEquals(two_2, objectRegistry.get("two"));
-    Assert.assertTrue(objectRegistry.delete("one"));
-    Assert.assertFalse(objectRegistry.delete("one"));
+    assertNull(objectRegistry.cacheForDAG("one", one));
+    assertEquals(one, objectRegistry.get("one"));
+    assertNull(objectRegistry.cacheForDAG("two", two_1));
+    assertNotNull(objectRegistry.cacheForSession("two", two_2));
+    assertNotEquals(two_1, objectRegistry.get("two"));
+    assertEquals(two_2, objectRegistry.get("two"));
+    assertTrue(objectRegistry.delete("one"));
+    assertFalse(objectRegistry.delete("one"));
 
   }
 
-  @Test(timeout = 5000)
+  @Test
+  @Timeout(value = 5000, unit = TimeUnit.MILLISECONDS)
   public void testBasicCRUD() {
     ObjectRegistry objectRegistry = new ObjectRegistryImpl();
     testCRUD(objectRegistry);
   }
 
-  @Test(timeout = 5000)
+  @Test
+  @Timeout(value = 5000, unit = TimeUnit.MILLISECONDS)
   public void testClearCache() {
     ObjectRegistry objectRegistry = new ObjectRegistryImpl();
     testCRUD(objectRegistry);
@@ -61,12 +72,12 @@ public class TestObjectRegistry {
     objectRegistry.cacheForDAG(two, two);
 
     ((ObjectRegistryImpl)objectRegistry).clearCache(ObjectRegistryImpl.ObjectLifeCycle.VERTEX);
-    Assert.assertNull(objectRegistry.get(one));
-    Assert.assertNotNull(objectRegistry.get(two));
+    assertNull(objectRegistry.get(one));
+    assertNotNull(objectRegistry.get(two));
 
     objectRegistry.cacheForVertex(one, one);
     ((ObjectRegistryImpl)objectRegistry).clearCache(ObjectRegistryImpl.ObjectLifeCycle.DAG);
-    Assert.assertNotNull(objectRegistry.get(one));
-    Assert.assertNull(objectRegistry.get(two));
+    assertNotNull(objectRegistry.get(one));
+    assertNull(objectRegistry.get(two));
   }
 }

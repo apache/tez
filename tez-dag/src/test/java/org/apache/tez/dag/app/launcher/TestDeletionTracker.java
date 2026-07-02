@@ -18,14 +18,16 @@
  */
 package org.apache.tez.dag.app.launcher;
 
+import static org.junit.jupiter.api.Assertions.assertEquals;
+
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.yarn.api.records.NodeId;
 import org.apache.tez.common.security.JobTokenSecretManager;
 import org.apache.tez.dag.api.TezConfiguration;
 import org.apache.tez.dag.records.TezDAGID;
 
-import org.junit.Assert;
-import org.junit.Test;
+import org.junit.jupiter.api.Test;
+
 
 public class TestDeletionTracker {
 
@@ -41,7 +43,6 @@ public class TestDeletionTracker {
 
       @Override
       protected void setHost(String s) {
-
       }
 
       @Override
@@ -51,24 +52,22 @@ public class TestDeletionTracker {
 
       @Override
       protected void setPort(int i) {
-
       }
 
       @Override
       protected void build() {
-
       }
     };
     // test shuffle port for the nodeId
     int shufflePort = 9999;
     deletionTracker.addNodeShufflePort(nodeId, shufflePort);
-    Assert.assertEquals("Unexpected number of entries in NodeIdShufflePortMap!",
-        1, deletionTracker.getNodeIdShufflePortMap().size());
+    assertEquals(1, deletionTracker.getNodeIdShufflePortMap().size(),
+        "Unexpected number of entries in NodeIdShufflePortMap!");
     deletionTracker.addNodeShufflePort(nodeId, shufflePort);
-    Assert.assertEquals("Unexpected number of entries in NodeIdShufflePortMap!",
-        1, deletionTracker.getNodeIdShufflePortMap().size());
+    assertEquals(1, deletionTracker.getNodeIdShufflePortMap().size(),
+        "Unexpected number of entries in NodeIdShufflePortMap!");
     deletionTracker.dagComplete(new TezDAGID(), new JobTokenSecretManager(new TezConfiguration()));
-    Assert.assertEquals("Unexpected number of entries in NodeIdShufflePortMap after dagComplete!",
-        1, deletionTracker.getNodeIdShufflePortMap().size());
+    assertEquals(1, deletionTracker.getNodeIdShufflePortMap().size(),
+        "Unexpected number of entries in NodeIdShufflePortMap after dagComplete!");
   }
 }

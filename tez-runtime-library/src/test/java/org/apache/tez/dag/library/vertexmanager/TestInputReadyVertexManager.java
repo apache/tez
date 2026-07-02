@@ -18,11 +18,14 @@
  */
 package org.apache.tez.dag.library.vertexmanager;
 
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.fail;
 import static org.mockito.Mockito.*;
 
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
+import java.util.concurrent.TimeUnit;
 
 import org.apache.hadoop.yarn.api.records.Container;
 import org.apache.hadoop.yarn.api.records.ContainerId;
@@ -39,9 +42,9 @@ import org.apache.tez.runtime.api.TaskAttemptIdentifier;
 
 import com.google.common.collect.Lists;
 
-import org.junit.Assert;
-import org.junit.Before;
-import org.junit.Test;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.Timeout;
 import org.mockito.ArgumentCaptor;
 import org.mockito.Captor;
 import org.mockito.MockitoAnnotations;
@@ -52,12 +55,13 @@ public class TestInputReadyVertexManager {
   @Captor
   ArgumentCaptor<List<ScheduleTaskRequest>> requestCaptor;
 
-  @Before
+  @BeforeEach
   public void init() {
     MockitoAnnotations.initMocks(this);
   }
 
-  @Test (timeout=5000)
+  @Test
+  @Timeout(value = 5000, unit = TimeUnit.MILLISECONDS)
   public void testBasicScatterGather() throws Exception {
     HashMap<String, EdgeProperty> mockInputVertices =
         new HashMap<String, EdgeProperty>();
@@ -94,10 +98,11 @@ public class TestInputReadyVertexManager {
     manager.onSourceTaskCompleted(
         TestShuffleVertexManager.createTaskAttemptIdentifier(mockSrcVertexId1, 2));
     verify(mockContext, times(1)).scheduleTasks(requestCaptor.capture());
-    Assert.assertEquals(2, requestCaptor.getValue().size());
+    assertEquals(2, requestCaptor.getValue().size());
   }
 
-  @Test (timeout=5000)
+  @Test
+  @Timeout(value = 5000, unit = TimeUnit.MILLISECONDS)
   public void testBasicOneToOne() throws Exception {
     HashMap<String, EdgeProperty> mockInputVertices =
         new HashMap<String, EdgeProperty>();
@@ -128,33 +133,34 @@ public class TestInputReadyVertexManager {
     manager.onVertexStarted(Collections.singletonList(
         TestShuffleVertexManager.createTaskAttemptIdentifier(mockSrcVertexId1, 0)));
     verify(mockContext, times(1)).scheduleTasks(requestCaptor.capture());
-    Assert.assertEquals(1, requestCaptor.getValue().size());
-    Assert.assertEquals(0, requestCaptor.getValue().get(0).getTaskIndex());
-    Assert.assertEquals(mockSrcVertexId1, requestCaptor.getValue().get(0)
+    assertEquals(1, requestCaptor.getValue().size());
+    assertEquals(0, requestCaptor.getValue().get(0).getTaskIndex());
+    assertEquals(mockSrcVertexId1, requestCaptor.getValue().get(0)
         .getTaskLocationHint().getAffinitizedTask().getVertexName());
-    Assert.assertEquals(0, requestCaptor.getValue().get(0)
+    assertEquals(0, requestCaptor.getValue().get(0)
         .getTaskLocationHint().getAffinitizedTask().getTaskIndex());
     manager.onSourceTaskCompleted(
         TestShuffleVertexManager.createTaskAttemptIdentifier(mockSrcVertexId1, 1));
     verify(mockContext, times(2)).scheduleTasks(requestCaptor.capture());
-    Assert.assertEquals(1, requestCaptor.getValue().size());
-    Assert.assertEquals(1, requestCaptor.getValue().get(0).getTaskIndex());
-    Assert.assertEquals(mockSrcVertexId1, requestCaptor.getValue().get(0)
+    assertEquals(1, requestCaptor.getValue().size());
+    assertEquals(1, requestCaptor.getValue().get(0).getTaskIndex());
+    assertEquals(mockSrcVertexId1, requestCaptor.getValue().get(0)
         .getTaskLocationHint().getAffinitizedTask().getVertexName());
-    Assert.assertEquals(1, requestCaptor.getValue().get(0)
+    assertEquals(1, requestCaptor.getValue().get(0)
         .getTaskLocationHint().getAffinitizedTask().getTaskIndex());
     manager.onSourceTaskCompleted(
         TestShuffleVertexManager.createTaskAttemptIdentifier(mockSrcVertexId1, 2));
     verify(mockContext, times(3)).scheduleTasks(requestCaptor.capture());
-    Assert.assertEquals(1, requestCaptor.getValue().size());
-    Assert.assertEquals(2, requestCaptor.getValue().get(0).getTaskIndex());
-    Assert.assertEquals(mockSrcVertexId1, requestCaptor.getValue().get(0)
+    assertEquals(1, requestCaptor.getValue().size());
+    assertEquals(2, requestCaptor.getValue().get(0).getTaskIndex());
+    assertEquals(mockSrcVertexId1, requestCaptor.getValue().get(0)
         .getTaskLocationHint().getAffinitizedTask().getVertexName());
-    Assert.assertEquals(2, requestCaptor.getValue().get(0)
+    assertEquals(2, requestCaptor.getValue().get(0)
         .getTaskLocationHint().getAffinitizedTask().getTaskIndex());
   }
 
-  @Test (timeout=5000)
+  @Test
+  @Timeout(value = 5000, unit = TimeUnit.MILLISECONDS)
   public void testDelayedConfigureOneToOne() throws Exception {
     HashMap<String, EdgeProperty> mockInputVertices =
         new HashMap<String, EdgeProperty>();
@@ -195,15 +201,16 @@ public class TestInputReadyVertexManager {
     manager.onSourceTaskCompleted(
         TestShuffleVertexManager.createTaskAttemptIdentifier(mockSrcVertexId1, 2));
     verify(mockContext, times(3)).scheduleTasks(requestCaptor.capture());
-    Assert.assertEquals(1, requestCaptor.getValue().size());
-    Assert.assertEquals(2, requestCaptor.getValue().get(0).getTaskIndex());
-    Assert.assertEquals(mockSrcVertexId1, requestCaptor.getValue().get(0)
+    assertEquals(1, requestCaptor.getValue().size());
+    assertEquals(2, requestCaptor.getValue().get(0).getTaskIndex());
+    assertEquals(mockSrcVertexId1, requestCaptor.getValue().get(0)
         .getTaskLocationHint().getAffinitizedTask().getVertexName());
-    Assert.assertEquals(2, requestCaptor.getValue().get(0)
+    assertEquals(2, requestCaptor.getValue().get(0)
         .getTaskLocationHint().getAffinitizedTask().getTaskIndex());
   }
 
-  @Test (timeout=5000)
+  @Test
+  @Timeout(value = 5000, unit = TimeUnit.MILLISECONDS)
   public void testComplex() throws Exception {
     HashMap<String, EdgeProperty> mockInputVertices =
         new HashMap<String, EdgeProperty>();
@@ -271,7 +278,7 @@ public class TestInputReadyVertexManager {
     manager.onVertexStateUpdated(new VertexStateUpdate(mockSrcVertexId2, VertexState.CONFIGURED));
     try {
       manager.onVertexStateUpdated(new VertexStateUpdate(mockSrcVertexId3, VertexState.CONFIGURED));
-      Assert.assertTrue("Should have exception", false);
+      fail("Should have exception");
     } catch (TezUncheckedException e) {
       e.getMessage().contains("1-1 source vertices must have identical concurrency");
     }
@@ -303,21 +310,21 @@ public class TestInputReadyVertexManager {
     manager.onSourceTaskCompleted(
         TestShuffleVertexManager.createTaskAttemptIdentifier(mockSrcVertexId1, 2)); // v1 done
     verify(mockContext, times(1)).scheduleTasks(requestCaptor.capture());
-    Assert.assertEquals(1, requestCaptor.getValue().size());
-    Assert.assertEquals(0, requestCaptor.getValue().get(0).getTaskIndex());
-    Assert.assertEquals(mockSrcVertexId3, requestCaptor.getValue().get(0)
+    assertEquals(1, requestCaptor.getValue().size());
+    assertEquals(0, requestCaptor.getValue().get(0).getTaskIndex());
+    assertEquals(mockSrcVertexId3, requestCaptor.getValue().get(0)
         .getTaskLocationHint().getAffinitizedTask().getVertexName());
-    Assert.assertEquals(0, requestCaptor.getValue().get(0)
+    assertEquals(0, requestCaptor.getValue().get(0)
         .getTaskLocationHint().getAffinitizedTask().getTaskIndex()); // affinity to last completion
     // 1-1 completion triggers since other 1-1 is done
     manager.onSourceTaskCompleted(
         TestShuffleVertexManager.createTaskAttemptIdentifier(mockSrcVertexId3, 1));
     verify(mockContext, times(2)).scheduleTasks(requestCaptor.capture());
-    Assert.assertEquals(1, requestCaptor.getValue().size());
-    Assert.assertEquals(1, requestCaptor.getValue().get(0).getTaskIndex());
-    Assert.assertEquals(mockSrcVertexId3, requestCaptor.getValue().get(0)
+    assertEquals(1, requestCaptor.getValue().size());
+    assertEquals(1, requestCaptor.getValue().get(0).getTaskIndex());
+    assertEquals(mockSrcVertexId3, requestCaptor.getValue().get(0)
         .getTaskLocationHint().getAffinitizedTask().getVertexName());
-    Assert.assertEquals(1, requestCaptor.getValue().get(0)
+    assertEquals(1, requestCaptor.getValue().get(0)
         .getTaskLocationHint().getAffinitizedTask().getTaskIndex()); // affinity to last completion
     // 1-1 completion does not trigger since other 1-1 is not done
     manager.onSourceTaskCompleted(
@@ -327,11 +334,11 @@ public class TestInputReadyVertexManager {
     manager.onSourceTaskCompleted(
         TestShuffleVertexManager.createTaskAttemptIdentifier(mockSrcVertexId2, 2));
     verify(mockContext, times(3)).scheduleTasks(requestCaptor.capture());
-    Assert.assertEquals(1, requestCaptor.getValue().size());
-    Assert.assertEquals(2, requestCaptor.getValue().get(0).getTaskIndex());
-    Assert.assertEquals(mockSrcVertexId2, requestCaptor.getValue().get(0)
+    assertEquals(1, requestCaptor.getValue().size());
+    assertEquals(2, requestCaptor.getValue().get(0).getTaskIndex());
+    assertEquals(mockSrcVertexId2, requestCaptor.getValue().get(0)
         .getTaskLocationHint().getAffinitizedTask().getVertexName());
-    Assert.assertEquals(2, requestCaptor.getValue().get(0)
+    assertEquals(2, requestCaptor.getValue().get(0)
         .getTaskLocationHint().getAffinitizedTask().getTaskIndex()); // affinity to last completion
 
     // no more starts

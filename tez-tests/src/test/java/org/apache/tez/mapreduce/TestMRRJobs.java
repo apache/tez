@@ -18,8 +18,13 @@
  */
 package org.apache.tez.mapreduce;
 
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertTrue;
+
 import java.io.File;
 import java.io.IOException;
+import java.util.concurrent.TimeUnit;
 
 import org.apache.hadoop.RandomTextWriterJob;
 import org.apache.hadoop.conf.Configuration;
@@ -32,6 +37,7 @@ import org.apache.hadoop.hdfs.MiniDFSCluster;
 import org.apache.hadoop.io.compress.DefaultCodec;
 import org.apache.hadoop.mapreduce.Job;
 import org.apache.hadoop.mapreduce.JobStatus;
+import org.apache.hadoop.mapreduce.JobStatus.State;
 import org.apache.hadoop.mapreduce.lib.output.FileOutputCommitter;
 import org.apache.hadoop.mapreduce.lib.output.FileOutputFormat;
 import org.apache.hadoop.yarn.conf.YarnConfiguration;
@@ -40,10 +46,10 @@ import org.apache.tez.mapreduce.examples.MRRSleepJob;
 import org.apache.tez.mapreduce.hadoop.MRJobConfig;
 import org.apache.tez.test.MiniTezCluster;
 
-import org.junit.AfterClass;
-import org.junit.Assert;
-import org.junit.BeforeClass;
-import org.junit.Test;
+import org.junit.jupiter.api.AfterAll;
+import org.junit.jupiter.api.BeforeAll;
+import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.Timeout;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -63,7 +69,7 @@ public class TestMRRJobs {
   private static final String OUTPUT_ROOT_DIR = "/tmp" + Path.SEPARATOR +
       TestMRRJobs.class.getSimpleName();
 
-  @BeforeClass
+  @BeforeAll
   public static void setup() throws IOException {
     try {
       conf.setInt(YarnConfiguration.RM_AM_MAX_ATTEMPTS, 1);
@@ -95,7 +101,7 @@ public class TestMRRJobs {
 
   }
 
-  @AfterClass
+  @AfterAll
   public static void tearDown() {
     if (mrrTezCluster != null) {
       mrrTezCluster.stop();
@@ -107,7 +113,8 @@ public class TestMRRJobs {
     }
   }
 
-  @Test (timeout = 60000)
+  @Test
+  @Timeout(value = 60000, unit = TimeUnit.MILLISECONDS)
   public void testMRRSleepJob() throws IOException, InterruptedException,
       ClassNotFoundException {
     LOG.info("\n\n\nStarting testMRRSleepJob().");
@@ -132,22 +139,22 @@ public class TestMRRJobs {
     String trackingUrl = job.getTrackingURL();
     String jobId = job.getJobID().toString();
     boolean succeeded = job.waitForCompletion(true);
-    Assert.assertTrue(succeeded);
-    Assert.assertEquals(JobStatus.State.SUCCEEDED, job.getJobState());
+    assertTrue(succeeded);
+    assertEquals(State.SUCCEEDED, job.getJobState());
     // There's one bug in YARN that there may be some suffix at the end of trackingURL (YARN-2246)
     // After TEZ-1961, the tracking will change from http://localhost:53419/proxy/application_1430963524753_0005
     // to http://localhost:53419/proxy/application_1430963524753_0005/ui/
     // So here use String#contains to verify.
-    Assert.assertTrue("Tracking URL was " + trackingUrl +
-                      " but didn't Match Job ID " + jobId ,
-          trackingUrl.contains(jobId.substring(jobId.indexOf("_"))));
+    assertTrue(trackingUrl.contains(jobId.substring(jobId.indexOf("_"))),
+        "Tracking URL was " + trackingUrl + " but didn't Match Job ID " + jobId);
 
     // FIXME once counters and task progress can be obtained properly
     // TODO use dag client to test counters and task progress?
     // what about completed jobs?
   }
 
-  @Test (timeout = 60000)
+  @Test
+  @Timeout(value = 60000, unit = TimeUnit.MILLISECONDS)
   public void testRandomWriter() throws IOException, InterruptedException,
       ClassNotFoundException {
 
@@ -171,11 +178,10 @@ public class TestMRRJobs {
     String trackingUrl = job.getTrackingURL();
     String jobId = job.getJobID().toString();
     boolean succeeded = job.waitForCompletion(true);
-    Assert.assertTrue(succeeded);
-    Assert.assertEquals(JobStatus.State.SUCCEEDED, job.getJobState());
-    Assert.assertTrue("Tracking URL was " + trackingUrl +
-                      " but didn't Match Job ID " + jobId ,
-          trackingUrl.contains(jobId.substring(jobId.indexOf("_"))));
+    assertTrue(succeeded);
+    assertEquals(State.SUCCEEDED, job.getJobState());
+    assertTrue(trackingUrl.contains(jobId.substring(jobId.indexOf("_"))),
+        "Tracking URL was " + trackingUrl + " but didn't Match Job ID " + jobId);
 
     // Make sure there are three files in the output-dir
 
@@ -190,12 +196,13 @@ public class TestMRRJobs {
         count++;
       }
     }
-    Assert.assertEquals("Number of part files is wrong!", 3, count);
+    assertEquals(3, count, "Number of part files is wrong!");
 
   }
 
 
-  @Test (timeout = 60000)
+  @Test
+  @Timeout(value = 60000, unit = TimeUnit.MILLISECONDS)
   public void testFailingJob() throws IOException, InterruptedException,
       ClassNotFoundException {
 
@@ -222,14 +229,15 @@ public class TestMRRJobs {
 
     job.submit();
     boolean succeeded = job.waitForCompletion(true);
-    Assert.assertFalse(succeeded);
-    Assert.assertEquals(JobStatus.State.FAILED, job.getJobState());
+    assertFalse(succeeded);
+    assertEquals(JobStatus.State.FAILED, job.getJobState());
 
     // FIXME once counters and task progress can be obtained properly
     // TODO verify failed task diagnostics
   }
 
-  @Test (timeout = 60000)
+  @Test
+  @Timeout(value = 60000, unit = TimeUnit.MILLISECONDS)
   public void testFailingAttempt() throws IOException, InterruptedException,
       ClassNotFoundException {
 
@@ -256,21 +264,20 @@ public class TestMRRJobs {
 
     job.submit();
     boolean succeeded = job.waitForCompletion(true);
-    Assert.assertTrue(succeeded);
-    Assert.assertEquals(JobStatus.State.SUCCEEDED, job.getJobState());
+    assertTrue(succeeded);
+    assertEquals(JobStatus.State.SUCCEEDED, job.getJobState());
 
     // FIXME once counters and task progress can be obtained properly
     // TODO verify failed task diagnostics
   }
 
-  @Test (timeout = 60000)
-  public void testMRRSleepJobWithCompression() throws IOException,
-      InterruptedException, ClassNotFoundException {
+  @Test
+  @Timeout(value = 60000, unit = TimeUnit.MILLISECONDS)
+  public void testMRRSleepJobWithCompression() throws IOException, InterruptedException, ClassNotFoundException {
     LOG.info("\n\n\nStarting testMRRSleepJobWithCompression().");
 
     if (!(new File(MiniTezCluster.APPJAR)).exists()) {
-      LOG.info("MRAppJar " + MiniTezCluster.APPJAR
-               + " not found. Not running test.");
+      LOG.info("MRAppJar " + MiniTezCluster.APPJAR + " not found. Not running test.");
       return;
     }
 
@@ -279,26 +286,23 @@ public class TestMRRJobs {
     MRRSleepJob sleepJob = new MRRSleepJob();
     sleepJob.setConf(sleepConf);
 
-    Job job = sleepJob.createJob(1, 1, 2, 1, 1,
-        1, 1, 1, 1, 1);
+    Job job = sleepJob.createJob(1, 1, 2, 1, 1, 1, 1, 1, 1, 1);
 
     job.setJarByClass(MRRSleepJob.class);
     job.setMaxMapAttempts(1); // speed up failures
 
     // enable compression
     job.getConfiguration().setBoolean(MRJobConfig.MAP_OUTPUT_COMPRESS, true);
-    job.getConfiguration().set(MRJobConfig.MAP_OUTPUT_COMPRESS_CODEC,
-        DefaultCodec.class.getName());
+    job.getConfiguration().set(MRJobConfig.MAP_OUTPUT_COMPRESS_CODEC, DefaultCodec.class.getName());
 
     job.submit();
     String trackingUrl = job.getTrackingURL();
     String jobId = job.getJobID().toString();
     boolean succeeded = job.waitForCompletion(true);
-    Assert.assertTrue(succeeded);
-    Assert.assertEquals(JobStatus.State.SUCCEEDED, job.getJobState());
-    Assert.assertTrue("Tracking URL was " + trackingUrl +
-                      " but didn't Match Job ID " + jobId ,
-          trackingUrl.contains(jobId.substring(jobId.indexOf("_"))));
+    assertTrue(succeeded);
+    assertEquals(State.SUCCEEDED, job.getJobState());
+    assertTrue(trackingUrl.contains(jobId.substring(jobId.indexOf("_"))),
+        "Tracking URL was " + trackingUrl + " but didn't Match Job ID " + jobId);
 
     // FIXME once counters and task progress can be obtained properly
     // TODO use dag client to test counters and task progress?
@@ -306,9 +310,9 @@ public class TestMRRJobs {
 
   }
 
-
   /*
-  //@Test (timeout = 60000)
+  //@Test
+  @Timeout(value = 60000, unit = TimeUnit.MILLISECONDS)
   public void testMRRSleepJobWithSecurityOn() throws IOException,
       InterruptedException, ClassNotFoundException {
 
@@ -351,8 +355,8 @@ public class TestMRRJobs {
         String trackingUrl = job.getTrackingURL();
         String jobId = job.getJobID().toString();
         job.waitForCompletion(true);
-        Assert.assertEquals(JobStatus.State.SUCCEEDED, job.getJobState());
-        Assert.assertTrue("Tracking URL was " + trackingUrl +
+        assertEquals(JobStatus.State.SUCCEEDED, job.getJobState());
+        assertTrue("Tracking URL was " + trackingUrl +
                           " but didn't Match Job ID " + jobId ,
           trackingUrl.endsWith(jobId.substring(jobId.lastIndexOf("_")) + "/"));
         return null;

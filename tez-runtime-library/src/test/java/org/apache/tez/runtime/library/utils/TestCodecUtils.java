@@ -18,6 +18,7 @@
  */
 package org.apache.tez.runtime.library.utils;
 
+import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.mockito.Mockito.mock;
 
 import java.io.IOException;
@@ -51,8 +52,7 @@ import org.apache.tez.runtime.library.api.TezRuntimeConfiguration;
 import org.apache.tez.runtime.library.common.shuffle.orderedgrouped.DummyCompressionCodec;
 import org.apache.tez.runtime.library.common.sort.impl.IFileInputStream;
 
-import org.junit.Assert;
-import org.junit.Test;
+import org.junit.jupiter.api.Test;
 
 public class TestCodecUtils {
 
@@ -85,8 +85,7 @@ public class TestCodecUtils {
               (DecompressorStream) CodecUtils.getDecompressedInputStreamWithBufferSize(codec,
                   mock(IFileInputStream.class), decompressor, modifiedBufferSize);
 
-          Assert.assertEquals("stream buffer size is incorrect", modifiedBufferSize,
-              getBufferSize(stream));
+          assertEquals(modifiedBufferSize, getBufferSize(stream), "stream buffer size is incorrect");
 
           CodecPool.returnDecompressor(decompressor);
         } catch (IOException e) {
@@ -133,8 +132,7 @@ public class TestCodecUtils {
                 (CompressionInputStream) CodecUtils.getDecompressedInputStreamWithBufferSize(codec,
                     mock(IFileInputStream.class), decompressor, modifiedBufferSize);
 
-            Assert.assertEquals("stream buffer size is incorrect", modifiedBufferSize,
-                getBufferSize(stream));
+            assertEquals(modifiedBufferSize, getBufferSize(stream), "stream buffer size is incorrect");
 
             CodecPool.returnDecompressor(decompressor);
           } catch (IOException e) {
@@ -151,8 +149,8 @@ public class TestCodecUtils {
             CompressionOutputStream stream =
                 CodecUtils.createOutputStream(codec, mock(OutputStream.class), compressor);
 
-            Assert.assertEquals("stream buffer size is incorrect",
-                CommonConfigurationKeysPublic.IO_FILE_BUFFER_SIZE_DEFAULT, getBufferSize(stream));
+            assertEquals(CommonConfigurationKeysPublic.IO_FILE_BUFFER_SIZE_DEFAULT, getBufferSize(stream),
+                "stream buffer size is incorrect");
 
             CodecPool.returnCompressor(compressor);
           } catch (Exception e) {
@@ -169,8 +167,8 @@ public class TestCodecUtils {
             CompressionInputStream stream =
                 CodecUtils.createInputStream(codec, mock(InputStream.class), decompressor);
 
-            Assert.assertEquals("stream buffer size is incorrect",
-                CommonConfigurationKeysPublic.IO_FILE_BUFFER_SIZE_DEFAULT, getBufferSize(stream));
+            assertEquals(CommonConfigurationKeysPublic.IO_FILE_BUFFER_SIZE_DEFAULT, getBufferSize(stream),
+                "stream buffer size is incorrect");
 
             CodecPool.returnDecompressor(decompressor);
           } catch (Exception e) {
@@ -190,19 +188,18 @@ public class TestCodecUtils {
   public void testDefaultBufferSize() {
     Configuration conf = new Configuration(); // config with no buffersize set
 
-    Assert.assertEquals(CodecUtils.DEFAULT_BUFFER_SIZE,
-        CodecUtils.getDefaultBufferSize(conf, new DummyCompressionCodec()));
-    Assert.assertEquals(CommonConfigurationKeysPublic.IO_FILE_BUFFER_SIZE_DEFAULT,
+    assertEquals(CodecUtils.DEFAULT_BUFFER_SIZE, CodecUtils.getDefaultBufferSize(conf, new DummyCompressionCodec()));
+    assertEquals(CommonConfigurationKeysPublic.IO_FILE_BUFFER_SIZE_DEFAULT,
         CodecUtils.getDefaultBufferSize(conf, new DefaultCodec()));
-    Assert.assertEquals(CommonConfigurationKeysPublic.IO_FILE_BUFFER_SIZE_DEFAULT,
+    assertEquals(CommonConfigurationKeysPublic.IO_FILE_BUFFER_SIZE_DEFAULT,
         CodecUtils.getDefaultBufferSize(conf, new BZip2Codec()));
-    Assert.assertEquals(CommonConfigurationKeysPublic.IO_FILE_BUFFER_SIZE_DEFAULT,
+    assertEquals(CommonConfigurationKeysPublic.IO_FILE_BUFFER_SIZE_DEFAULT,
         CodecUtils.getDefaultBufferSize(conf, new GzipCodec()));
-    Assert.assertEquals(CommonConfigurationKeys.IO_COMPRESSION_CODEC_SNAPPY_BUFFERSIZE_DEFAULT,
+    assertEquals(CommonConfigurationKeys.IO_COMPRESSION_CODEC_SNAPPY_BUFFERSIZE_DEFAULT,
         CodecUtils.getDefaultBufferSize(conf, new SnappyCodec()));
-    Assert.assertEquals(CommonConfigurationKeys.IO_COMPRESSION_CODEC_ZSTD_BUFFER_SIZE_DEFAULT,
+    assertEquals(CommonConfigurationKeys.IO_COMPRESSION_CODEC_ZSTD_BUFFER_SIZE_DEFAULT,
         CodecUtils.getDefaultBufferSize(conf, new ZStandardCodec()));
-    Assert.assertEquals(CommonConfigurationKeys.IO_COMPRESSION_CODEC_LZ4_BUFFERSIZE_DEFAULT,
+    assertEquals(CommonConfigurationKeys.IO_COMPRESSION_CODEC_LZ4_BUFFERSIZE_DEFAULT,
         CodecUtils.getDefaultBufferSize(conf, new Lz4Codec()));
   }
 

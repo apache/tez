@@ -18,8 +18,11 @@
  */
 package org.apache.tez.common;
 
+import static org.junit.jupiter.api.Assertions.assertTrue;
+
 import java.io.FileNotFoundException;
 import java.io.IOException;
+import java.util.concurrent.TimeUnit;
 
 import org.apache.hadoop.ipc.RemoteException;
 import org.apache.tez.dag.api.SessionNotRunning;
@@ -27,12 +30,13 @@ import org.apache.tez.dag.api.TezException;
 
 import com.google.protobuf.ServiceException;
 
-import org.junit.Assert;
-import org.junit.Test;
+import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.Timeout;
 
 public class TestRPCUtil {
 
-  @Test (timeout=1000)
+  @Test
+  @Timeout(value = 1000, unit = TimeUnit.MILLISECONDS)
   public void testUnknownExceptionUnwrapping() {
     Class<? extends Throwable> exception = TezException.class;
     String className = "UnknownException.class";
@@ -97,8 +101,8 @@ public class TestRPCUtil {
       t = thrown;
     }
 
-    Assert.assertTrue(IOException.class.isInstance(t));
-    Assert.assertTrue(t.getMessage().contains(message));
+    assertTrue(IOException.class.isInstance(t));
+    assertTrue(t.getMessage().contains(message));
   }
 
   @Test
@@ -113,8 +117,8 @@ public class TestRPCUtil {
     } catch (Throwable thrown) {
       t = thrown;
     }
-    Assert.assertTrue(FileNotFoundException.class.isInstance(t));
-    Assert.assertTrue(t.getMessage().contains(message));
+    assertTrue(FileNotFoundException.class.isInstance(t));
+    assertTrue(t.getMessage().contains(message));
   }
 
   @Test
@@ -130,8 +134,8 @@ public class TestRPCUtil {
       t = thrown;
     }
 
-    Assert.assertTrue(NullPointerException.class.isInstance(t));
-    Assert.assertTrue(t.getMessage().contains(message));
+    assertTrue(NullPointerException.class.isInstance(t));
+    assertTrue(t.getMessage().contains(message));
   }
 
   private void verifyRemoteExceptionUnwrapping(
@@ -158,15 +162,13 @@ public class TestRPCUtil {
       t = thrown;
     }
 
-    Assert.assertTrue("Expected exception [" + expectedLocalException
-        + "] but found " + t, expectedLocalException.isInstance(t));
-    Assert.assertTrue(
-        "Expected message [" + message + "] but found " + t.getMessage(), t
-            .getMessage().contains(message));
+    assertTrue(expectedLocalException.isInstance(t),
+        "Expected exception [" + expectedLocalException + "] but found " + t);
+    assertTrue(t.getMessage().contains(message), "Expected message [" + message + "] but found " + t.getMessage());
   }
 
-
-  @Test (timeout=1000)
+  @Test
+  @Timeout(value = 1000, unit = TimeUnit.MILLISECONDS)
   public void testRemoteNonIOExceptionUnwrapping() {
     Class<? extends Throwable> exception = TezException.class;
     verifyRemoteExceptionUnwrapping(exception, IOException.class.getName(), false);

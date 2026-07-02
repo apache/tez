@@ -18,7 +18,9 @@
  */
 package org.apache.tez.runtime.library.common.readers;
 
-import static junit.framework.TestCase.fail;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertTrue;
+import static org.junit.jupiter.api.Assertions.fail;
 import static org.mockito.Mockito.doAnswer;
 import static org.mockito.Mockito.doNothing;
 import static org.mockito.Mockito.doThrow;
@@ -27,6 +29,7 @@ import static org.mockito.Mockito.spy;
 
 import java.io.IOException;
 import java.util.LinkedList;
+import java.util.concurrent.TimeUnit;
 
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.fs.FSDataOutputStream;
@@ -47,10 +50,10 @@ import org.apache.tez.runtime.library.common.shuffle.LocalDiskFetchedInput;
 import org.apache.tez.runtime.library.common.shuffle.impl.ShuffleManager;
 import org.apache.tez.runtime.library.common.sort.impl.IFile;
 
-import org.junit.After;
-import org.junit.Assert;
-import org.junit.Before;
-import org.junit.Test;
+import org.junit.jupiter.api.AfterEach;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.Timeout;
 import org.mockito.invocation.InvocationOnMock;
 import org.mockito.stubbing.Answer;
 import org.slf4j.Logger;
@@ -85,7 +88,7 @@ public class TestUnorderedKVReader {
     }
   }
 
-  @Before
+  @BeforeEach
   public void setUp() throws Exception {
     outputPath = new Path(workDir, outputFileName);
     setupReader();
@@ -145,13 +148,13 @@ public class TestUnorderedKVReader {
     out.close();
   }
 
-  @Before
-  @After
+  @AfterEach
   public void cleanup() throws Exception {
     localFs.delete(workDir, true);
   }
 
-  @Test(timeout = 5000)
+  @Test
+  @Timeout(value = 5000, unit = TimeUnit.MILLISECONDS)
   public void testReadingMultipleTimes() throws Exception {
     int counter = 0;
     while (unorderedKVReader.next()) {
@@ -159,18 +162,19 @@ public class TestUnorderedKVReader {
       unorderedKVReader.getCurrentKey();
       counter++;
     }
-    Assert.assertEquals(1, counter);
+    assertEquals(1, counter);
 
     //Check the reader again. This shouldn't throw EOF exception in IFile
     try {
       boolean next = unorderedKVReader.next();
       fail();
     } catch(IOException ioe) {
-      Assert.assertTrue(ioe.getMessage().contains("For usage, please refer to"));
+      assertTrue(ioe.getMessage().contains("For usage, please refer to"));
     }
   }
 
-  @Test(timeout = 5000)
+  @Test
+  @Timeout(value = 5000, unit = TimeUnit.MILLISECONDS)
   public void testInterruptOnNext() throws IOException, InterruptedException {
     ShuffleManager shuffleManager = mock(ShuffleManager.class);
 

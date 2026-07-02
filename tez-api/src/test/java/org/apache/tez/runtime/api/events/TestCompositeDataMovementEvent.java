@@ -18,25 +18,30 @@
  */
 package org.apache.tez.runtime.api.events;
 
-import java.nio.ByteBuffer;
+import static org.junit.jupiter.api.Assertions.assertEquals;
 
-import org.junit.Assert;
-import org.junit.Test;
+import java.nio.ByteBuffer;
+import java.util.concurrent.TimeUnit;
+
+import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.Timeout;
 
 public class TestCompositeDataMovementEvent {
   ByteBuffer userPayload = ByteBuffer.wrap("Dummy userPayLoad".getBytes());
 
-  @Test(timeout = 5000)
+  @Test
+  @Timeout(value = 5000, unit = TimeUnit.MILLISECONDS)
   public void testGetCount(){
     int numPartitions = 2;
     int startIndex = 2;
     CompositeDataMovementEvent cdme1 =
         CompositeDataMovementEvent.create(startIndex, numPartitions, userPayload);
-    Assert.assertEquals(numPartitions, cdme1.getCount());
-    Assert.assertEquals(startIndex, cdme1.getSourceIndexStart());
+    assertEquals(numPartitions, cdme1.getCount());
+    assertEquals(startIndex, cdme1.getSourceIndexStart());
   }
 
-  @Test(timeout = 5000)
+  @Test
+  @Timeout(value = 5000, unit = TimeUnit.MILLISECONDS)
   public void testGetEvents(){
     int numOutputs = 0;
     int startIndex = 1;
@@ -45,7 +50,7 @@ public class TestCompositeDataMovementEvent {
     for(DataMovementEvent dme: cdme2.getEvents()){
       numOutputs++;
     }
-    Assert.assertEquals(numOutputs, cdme2.getCount());
+    assertEquals(numOutputs, cdme2.getCount());
   }
 
 }

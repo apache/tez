@@ -18,12 +18,14 @@
  */
 package org.apache.tez.dag.history.ats.acls;
 
-import static org.junit.Assert.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 
 import java.io.IOException;
 import java.util.Random;
+import java.util.concurrent.TimeUnit;
 
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.fs.FileSystem;
@@ -44,6 +46,7 @@ import org.apache.tez.dag.api.TezConfiguration;
 import org.apache.tez.dag.api.Vertex;
 import org.apache.tez.dag.api.client.DAGClient;
 import org.apache.tez.dag.api.client.DAGStatus;
+import org.apache.tez.dag.api.client.DAGStatus.State;
 import org.apache.tez.dag.app.AppContext;
 import org.apache.tez.dag.history.DAGHistoryEvent;
 import org.apache.tez.dag.history.HistoryEvent;
@@ -58,10 +61,10 @@ import org.apache.tez.tests.MiniTezClusterWithTimeline;
 import com.google.protobuf.CodedInputStream;
 import com.google.protobuf.CodedOutputStream;
 
-import org.junit.AfterClass;
-import org.junit.Assert;
-import org.junit.BeforeClass;
-import org.junit.Test;
+import org.junit.jupiter.api.AfterAll;
+import org.junit.jupiter.api.BeforeAll;
+import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.Timeout;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -81,7 +84,7 @@ public class TestATSHistoryV15 {
       + TestATSHistoryV15.class.getName() + "-tmpDir";
   private static Path atsActivePath;
 
-  @BeforeClass
+  @BeforeAll
   public static void setup() throws IOException {
     try {
       conf.set(MiniDFSCluster.HDFS_MINIDFS_BASEDIR, TEST_ROOT_DIR);
@@ -129,7 +132,7 @@ public class TestATSHistoryV15 {
     }
   }
 
-  @AfterClass
+  @AfterAll
   public static void tearDown() throws InterruptedException {
     LOG.info("Shutdown invoked");
     Thread.sleep(10000);
@@ -143,7 +146,8 @@ public class TestATSHistoryV15 {
     }
   }
 
-  @Test(timeout=50000)
+  @Test
+  @Timeout(value = 50000, unit = TimeUnit.MILLISECONDS)
   public void testSimpleDAG() throws Exception {
     TezClient tezSession = null;
     ApplicationId applicationId;
@@ -184,11 +188,11 @@ public class TestATSHistoryV15 {
         Thread.sleep(500l);
         dagStatus = dagClient.getDAGStatus(null);
       }
-      assertEquals(DAGStatus.State.SUCCEEDED, dagStatus.getState());
+      assertEquals(State.SUCCEEDED, dagStatus.getState());
 
       // Verify HDFS data
       int count = verifyATSDataOnHDFS(atsActivePath, applicationId);
-      Assert.assertEquals("Count is: " + count, 2, count);
+      assertEquals(2, count, "Count is: " + count);
     } finally {
       if (tezSession != null) {
         tezSession.stop();
@@ -238,11 +242,11 @@ public class TestATSHistoryV15 {
         Thread.sleep(500l);
         dagStatus = dagClient.getDAGStatus(null);
       }
-      assertEquals(DAGStatus.State.SUCCEEDED, dagStatus.getState());
+      assertEquals(State.SUCCEEDED, dagStatus.getState());
 
       // Verify HDFS data
       int count = verifyATSDataOnHDFS(atsActivePath, applicationId);
-      Assert.assertEquals("Count is: " + count, 1, count);
+      assertEquals(1, count, "Count is: " + count);
     } finally {
       if (tezSession != null) {
         tezSession.stop();
@@ -307,18 +311,18 @@ public class TestATSHistoryV15 {
       service.setAppContext(appContext);
 
       TimelineEntityGroupId grpId = service.getGroupId(event);
-      Assert.assertNotNull(grpId);
-      Assert.assertEquals(appId, grpId.getApplicationId());
+      assertNotNull(grpId);
+      assertEquals(appId, grpId.getApplicationId());
       switch (eventType) {
         case AM_LAUNCHED:
         case APP_LAUNCHED:
         case AM_STARTED:
         case CONTAINER_LAUNCHED:
         case CONTAINER_STOPPED:
-          Assert.assertEquals(appId.toString(), grpId.getTimelineEntityGroupId());
+          assertEquals(appId.toString(), grpId.getTimelineEntityGroupId());
           break;
         default:
-          Assert.assertEquals(dagid.toString(), grpId.getTimelineEntityGroupId());
+          assertEquals(dagid.toString(), grpId.getTimelineEntityGroupId());
       }
       service.close();
     }

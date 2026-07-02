@@ -18,13 +18,17 @@
  */
 package org.apache.tez.common;
 
+import static org.junit.jupiter.api.Assertions.assertTrue;
+import static org.junit.jupiter.api.Assertions.fail;
+
 import java.util.concurrent.CountDownLatch;
+import java.util.concurrent.TimeUnit;
 
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.yarn.event.EventHandler;
 
-import org.junit.Assert;
-import org.junit.Test;
+import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.Timeout;
 
 @SuppressWarnings("unchecked")
 public class TestAsyncDispatcherConcurrent {
@@ -94,7 +98,8 @@ public class TestAsyncDispatcherConcurrent {
     }
   }
 
-  @Test (timeout=5000)
+  @Test
+  @Timeout(value = 5000, unit = TimeUnit.MILLISECONDS)
   public void testBasic() throws Exception {
     CountDownLatch latch = new CountDownLatch(4);
     CountDownEventHandler.init(latch);
@@ -115,7 +120,8 @@ public class TestAsyncDispatcherConcurrent {
     central.close();
   }
 
-  @Test (timeout=5000)
+  @Test
+  @Timeout(value = 5000, unit = TimeUnit.MILLISECONDS)
   public void testMultiThreads() throws Exception {
     CountDownLatch latch = new CountDownLatch(4);
     CountDownEventHandler.init(latch);
@@ -134,15 +140,16 @@ public class TestAsyncDispatcherConcurrent {
     central.close();
   }
 
-  @Test (timeout=5000)
+  @Test
+  @Timeout(value = 5000, unit = TimeUnit.MILLISECONDS)
   public void testMultipleRegisterFail() throws Exception {
     AsyncDispatcher central = new AsyncDispatcher("Type1");
     try {
       central.register(TestEventType1.class, new TestEventHandler1());
       central.registerAndCreateDispatcher(TestEventType1.class, new TestEventHandler2(), "Type2", 1);
-      Assert.fail();
+      fail();
     } catch (IllegalStateException e) {
-      Assert.assertTrue(e.getMessage().contains("Cannot register same event on multiple dispatchers"));
+      assertTrue(e.getMessage().contains("Cannot register same event on multiple dispatchers"));
     } finally {
       central.close();
     }
@@ -151,9 +158,9 @@ public class TestAsyncDispatcherConcurrent {
     try {
       central.registerAndCreateDispatcher(TestEventType1.class, new TestEventHandler2(), "Type2", 1);
       central.register(TestEventType1.class, new TestEventHandler1());
-      Assert.fail();
+      fail();
     } catch (IllegalStateException e) {
-      Assert.assertTrue(e.getMessage().contains("Multiple concurrent dispatchers cannot be registered"));
+      assertTrue(e.getMessage().contains("Multiple concurrent dispatchers cannot be registered"));
     } finally {
       central.close();
     }
@@ -162,9 +169,9 @@ public class TestAsyncDispatcherConcurrent {
     try {
       central.registerAndCreateDispatcher(TestEventType1.class, new TestEventHandler2(), "Type2", 1);
       central.registerAndCreateDispatcher(TestEventType1.class, new TestEventHandler2(), "Type2", 1);
-      Assert.fail();
+      fail();
     } catch (IllegalStateException e) {
-      Assert.assertTrue(e.getMessage().contains("Multiple concurrent dispatchers cannot be registered"));
+      assertTrue(e.getMessage().contains("Multiple concurrent dispatchers cannot be registered"));
     } finally {
       central.close();
     }
@@ -173,9 +180,9 @@ public class TestAsyncDispatcherConcurrent {
     try {
       central.registerAndCreateDispatcher(TestEventType1.class, new TestEventHandler2(), "Type2");
       central.registerAndCreateDispatcher(TestEventType1.class, new TestEventHandler2(), "Type2");
-      Assert.fail();
+      fail();
     } catch (IllegalStateException e) {
-      Assert.assertTrue(e.getMessage().contains("Multiple dispatchers cannot be registered for"));
+      assertTrue(e.getMessage().contains("Multiple dispatchers cannot be registered for"));
     } finally {
       central.close();
     }
@@ -186,9 +193,9 @@ public class TestAsyncDispatcherConcurrent {
           TestEventType1.class, new TestEventHandler2(), "Type2", 1);
       central.registerWithExistingDispatcher(TestEventType1.class, new TestEventHandler1(),
           concDispatcher);
-      Assert.fail();
+      fail();
     } catch (IllegalStateException e) {
-      Assert.assertTrue(e.getMessage().contains("Multiple concurrent dispatchers cannot be registered"));
+      assertTrue(e.getMessage().contains("Multiple concurrent dispatchers cannot be registered"));
     } finally {
       central.close();
     }

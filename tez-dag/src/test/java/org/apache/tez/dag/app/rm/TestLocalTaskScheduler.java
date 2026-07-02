@@ -18,9 +18,13 @@
  */
 package org.apache.tez.dag.app.rm;
 
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertFalse;
+
 import java.util.HashMap;
 import java.util.LinkedHashMap;
 import java.util.concurrent.LinkedBlockingQueue;
+import java.util.concurrent.TimeUnit;
 
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.yarn.api.records.ApplicationAttemptId;
@@ -33,13 +37,13 @@ import org.apache.tez.dag.app.rm.LocalTaskSchedulerService.LocalContainerFactory
 import org.apache.tez.dag.app.rm.LocalTaskSchedulerService.SchedulerRequest;
 import org.apache.tez.serviceplugins.api.TaskSchedulerContext;
 
-import org.junit.Assert;
-import org.junit.Test;
+import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.Timeout;
 
 public class TestLocalTaskScheduler {
 
-
-  @Test(timeout = 5000)
+  @Test
+  @Timeout(value = 5000, unit = TimeUnit.MILLISECONDS)
   public void maxTasksAllocationsCannotBeExceeded() {
 
     final int MAX_TASKS = 4;
@@ -49,9 +53,9 @@ public class TestLocalTaskScheduler {
     ApplicationId appId = ApplicationId.newInstance(2000, 1);
     ApplicationAttemptId appAttemptId = ApplicationAttemptId.newInstance(appId, 1);
 
-    TaskSchedulerContext
-        mockContext = TestTaskSchedulerHelpers.setupMockTaskSchedulerContext("", 0, "", true,
-        appAttemptId, 1000L, null, new Configuration());
+    TaskSchedulerContext mockContext =
+        TestTaskSchedulerHelpers.setupMockTaskSchedulerContext("", 0, "", true, appAttemptId, 1000L, null,
+            new Configuration());
 
     LocalContainerFactory containerFactory = new LocalContainerFactory(appAttemptId, 1000);
 
@@ -60,11 +64,7 @@ public class TestLocalTaskScheduler {
 
     // Object under test
     AsyncDelegateRequestHandler requestHandler =
-      new AsyncDelegateRequestHandler(clientRequestQueue,
-          containerFactory,
-          taskAllocations,
-          mockContext,
-          tezConf);
+        new AsyncDelegateRequestHandler(clientRequestQueue, containerFactory, taskAllocations, mockContext, tezConf);
 
     // Allocate up to max tasks
     for (int i = 0; i < MAX_TASKS; i++) {
@@ -75,8 +75,8 @@ public class TestLocalTaskScheduler {
     }
 
     // Only MAX_TASKS number of tasks should have been allocated
-    Assert.assertEquals("Wrong number of allocate tasks", MAX_TASKS, taskAllocations.size());
-    Assert.assertTrue("Another allocation should not fit", !requestHandler.shouldProcess());
+    assertEquals(MAX_TASKS, taskAllocations.size(), "Wrong number of allocate tasks");
+    assertFalse(requestHandler.shouldProcess(), "Another allocation should not fit");
 
     // Deallocate down to zero
     for (int i = 0; i < MAX_TASKS; i++) {
@@ -85,6 +85,6 @@ public class TestLocalTaskScheduler {
     }
 
     // All allocated tasks should have been removed
-    Assert.assertEquals("Wrong number of allocate tasks", 0, taskAllocations.size());
+    assertEquals(0, taskAllocations.size(), "Wrong number of allocate tasks");
   }
 }

@@ -18,7 +18,10 @@
  */
 package org.apache.tez.client.registry.zookeeper;
 
-import static org.junit.Assert.*;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertNotNull;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import java.io.File;
 import java.nio.charset.StandardCharsets;
@@ -37,9 +40,10 @@ import org.apache.tez.client.registry.AMRecord;
 import org.apache.tez.dag.api.TezConfiguration;
 import org.apache.zookeeper.CreateMode;
 
-import org.junit.After;
-import org.junit.Before;
-import org.junit.Test;
+import org.junit.jupiter.api.AfterAll;
+import org.junit.jupiter.api.AfterEach;
+import org.junit.jupiter.api.BeforeAll;
+import org.junit.jupiter.api.Test;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -55,22 +59,26 @@ public class TestZkFrameworkClient {
   private static final File TEST_DIR = new File(System.getProperty("test.build.data", "target"),
       TestZkFrameworkClient.class.getName()).getAbsoluteFile();
 
-  private TestingServer zkServer;
+  private static TestingServer zkServer;
   private ZkFrameworkClient zkFrameworkClient;
   private CuratorFramework curatorClient;
 
-  @Before
-  public void setup() throws Exception {
+  @BeforeAll
+  public static void setup() throws Exception {
     zkServer = new TestingServer(true);
     LOG.info("Started ZooKeeper test server on port: {}", zkServer.getPort());
   }
 
-  @After
-  public void teardown() throws Exception {
+  @AfterEach
+  public void teardownEach() throws Exception {
     if (zkFrameworkClient != null) {
       zkFrameworkClient.close();
     }
     IOUtils.closeQuietly(curatorClient);
+  }
+
+  @AfterAll
+  public static void teardown() throws Exception {
     IOUtils.closeQuietly(zkServer);
   }
 
@@ -84,13 +92,13 @@ public class TestZkFrameworkClient {
     zkFrameworkClient = new ZkFrameworkClient();
     zkFrameworkClient.init(tezConf);
 
-    assertFalse("Client should not be running after init", zkFrameworkClient.isRunning());
+    assertFalse(zkFrameworkClient.isRunning(), "Client should not be running after init");
 
     zkFrameworkClient.start();
-    assertTrue("Client should be running after start", zkFrameworkClient.isRunning());
+    assertTrue(zkFrameworkClient.isRunning(), "Client should be running after start");
 
     zkFrameworkClient.stop();
-    assertFalse("Client should not be running after stop", zkFrameworkClient.isRunning());
+    assertFalse(zkFrameworkClient.isRunning(), "Client should not be running after stop");
   }
 
   /**
@@ -114,12 +122,12 @@ public class TestZkFrameworkClient {
 
     ApplicationReport report = zkFrameworkClient.getApplicationReport(appId);
 
-    assertNotNull("Application report should not be null", report);
-    assertEquals("Application ID should match", appId, report.getApplicationId());
-    assertEquals("Host should match", testHostName, report.getHost());
-    assertEquals("Port should match", testPort, report.getRpcPort());
-    assertEquals("AM host should be cached", testHostName, zkFrameworkClient.getAmHost());
-    assertEquals("AM port should be cached", testPort, zkFrameworkClient.getAmPort());
+    assertNotNull(report, "Application report should not be null");
+    assertEquals(appId, report.getApplicationId(), "Application ID should match");
+    assertEquals(testHostName, report.getHost(), "Host should match");
+    assertEquals(testPort, report.getRpcPort(), "Port should match");
+    assertEquals(testHostName, zkFrameworkClient.getAmHost(), "AM host should be cached");
+    assertEquals(testPort, zkFrameworkClient.getAmPort(), "AM port should be cached");
   }
 
   /**
@@ -139,12 +147,10 @@ public class TestZkFrameworkClient {
 
     ApplicationReport report = zkFrameworkClient.getApplicationReport(appId);
 
-    assertNotNull("Application report should not be null", report);
-    assertEquals("Application ID should match", appId, report.getApplicationId());
-    assertEquals("Final status should be FAILED", FinalApplicationStatus.FAILED,
-        report.getFinalApplicationStatus());
-    assertTrue("Diagnostics should mention missing AM",
-        report.getDiagnostics().contains("AM record not found"));
+    assertNotNull(report, "Application report should not be null");
+    assertEquals(appId, report.getApplicationId(), "Application ID should match");
+    assertEquals(FinalApplicationStatus.FAILED, report.getFinalApplicationStatus(), "Final status should be FAILED");
+    assertTrue(report.getDiagnostics().contains("AM record not found"), "Diagnostics should mention missing AM");
   }
 
   /**
@@ -169,12 +175,12 @@ public class TestZkFrameworkClient {
 
     YarnClientApplication clientApp = zkFrameworkClient.createApplication();
 
-    assertNotNull("YarnClientApplication should not be null", clientApp);
-    assertNotNull("ApplicationSubmissionContext should not be null", clientApp.getApplicationSubmissionContext());
-    assertEquals("Application ID should match", appId, clientApp.getApplicationSubmissionContext().getApplicationId());
-    assertNotNull("GetNewApplicationResponse should not be null", clientApp.getNewApplicationResponse());
-    assertEquals("Response application ID should match",
-        appId, clientApp.getNewApplicationResponse().getApplicationId());
+    assertNotNull(clientApp, "YarnClientApplication should not be null");
+    assertNotNull(clientApp.getApplicationSubmissionContext(), "ApplicationSubmissionContext should not be null");
+    assertEquals(appId, clientApp.getApplicationSubmissionContext().getApplicationId(), "Application ID should match");
+    assertNotNull(clientApp.getNewApplicationResponse(), "GetNewApplicationResponse should not be null");
+    assertEquals(appId, clientApp.getNewApplicationResponse().getApplicationId(),
+        "Response application ID should match");
   }
 
   /**

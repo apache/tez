@@ -18,10 +18,12 @@
  */
 package org.apache.tez.runtime.library.common.writers;
 
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertFalse;
-import static org.junit.Assert.assertNull;
-import static org.junit.Assert.assertTrue;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertInstanceOf;
+import static org.junit.jupiter.api.Assertions.assertNotNull;
+import static org.junit.jupiter.api.Assertions.assertNull;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.Mockito.any;
 import static org.mockito.Mockito.anyList;
 import static org.mockito.Mockito.atLeast;
@@ -39,9 +41,7 @@ import java.io.DataInputStream;
 import java.io.IOException;
 import java.io.InputStream;
 import java.nio.ByteBuffer;
-import java.util.Arrays;
 import java.util.BitSet;
-import java.util.Collection;
 import java.util.HashMap;
 import java.util.Iterator;
 import java.util.List;
@@ -49,8 +49,10 @@ import java.util.Map;
 import java.util.Random;
 import java.util.Set;
 import java.util.UUID;
+import java.util.concurrent.TimeUnit;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
+import java.util.stream.Stream;
 
 import org.apache.hadoop.conf.Configurable;
 import org.apache.hadoop.conf.Configuration;
@@ -83,6 +85,7 @@ import org.apache.tez.runtime.library.api.TezRuntimeConfiguration;
 import org.apache.tez.runtime.library.api.TezRuntimeConfiguration.ReportPartitionStats;
 import org.apache.tez.runtime.library.common.Constants;
 import org.apache.tez.runtime.library.common.sort.impl.IFile;
+import org.apache.tez.runtime.library.common.sort.impl.IFile.Reader;
 import org.apache.tez.runtime.library.common.sort.impl.TezIndexRecord;
 import org.apache.tez.runtime.library.common.sort.impl.TezSpillRecord;
 import org.apache.tez.runtime.library.common.task.local.output.TezTaskOutput;
@@ -99,11 +102,12 @@ import com.google.common.collect.Multimap;
 import com.google.common.collect.Sets;
 import com.google.protobuf.ByteString;
 
-import org.junit.After;
-import org.junit.Before;
-import org.junit.Test;
-import org.junit.runner.RunWith;
-import org.junit.runners.Parameterized;
+import org.junit.jupiter.api.AfterEach;
+import org.junit.jupiter.api.BeforeAll;
+import org.junit.jupiter.api.Timeout;
+import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.Arguments;
+import org.junit.jupiter.params.provider.MethodSource;
 import org.mockito.ArgumentCaptor;
 import org.mockito.invocation.InvocationOnMock;
 import org.mockito.stubbing.Answer;
@@ -111,7 +115,6 @@ import org.roaringbitmap.RoaringBitmap;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-@RunWith(value = Parameterized.class)
 public class TestUnorderedPartitionedKVWriter {
 
   private static final Logger LOG = LoggerFactory.getLogger(TestUnorderedPartitionedKVWriter.class);
@@ -128,45 +131,40 @@ public class TestUnorderedPartitionedKVWriter {
   private ReportPartitionStats reportPartitionStats;
   private Configuration defaultConf = new Configuration();
 
-  public TestUnorderedPartitionedKVWriter(boolean shouldCompress,
-      ReportPartitionStats reportPartitionStats) {
+  public void setupInit(boolean shouldCompress, ReportPartitionStats reportPartitionStats) {
     this.shouldCompress = shouldCompress;
     this.reportPartitionStats = reportPartitionStats;
   }
 
   @SuppressWarnings("deprecation")
-  @Parameterized.Parameters(name = "test[{0}, {1}]")
-  public static Collection<Object[]> data() {
-    Object[][] data = new Object[][] {
-        { false, ReportPartitionStats.DISABLED },
-        { false, ReportPartitionStats.ENABLED },
-        { false, ReportPartitionStats.NONE },
-        { false, ReportPartitionStats.MEMORY_OPTIMIZED },
-        { false, ReportPartitionStats.PRECISE },
-        { true, ReportPartitionStats.DISABLED },
-        { true, ReportPartitionStats.ENABLED },
-        { true, ReportPartitionStats.NONE },
-        { true, ReportPartitionStats.MEMORY_OPTIMIZED },
-        { true, ReportPartitionStats.PRECISE }};
-    return Arrays.asList(data);
+  public static Stream<Arguments> data() {
+    return Stream.of(Arguments.of(false, ReportPartitionStats.DISABLED),
+        Arguments.of(false, ReportPartitionStats.ENABLED), Arguments.of(false, ReportPartitionStats.NONE),
+        Arguments.of(false, ReportPartitionStats.MEMORY_OPTIMIZED), Arguments.of(false, ReportPartitionStats.PRECISE),
+        Arguments.of(true, ReportPartitionStats.DISABLED), Arguments.of(true, ReportPartitionStats.ENABLED),
+        Arguments.of(true, ReportPartitionStats.NONE), Arguments.of(true, ReportPartitionStats.MEMORY_OPTIMIZED),
+        Arguments.of(true, ReportPartitionStats.PRECISE));
   }
 
-  @Before
-  public void setup() throws IOException {
+  @BeforeAll
+  public static void setup() throws IOException {
     LOG.info("Setup. Using test dir: " + TEST_ROOT_DIR);
     localFs = FileSystem.getLocal(new Configuration());
     localFs.delete(TEST_ROOT_DIR, true);
     localFs.mkdirs(TEST_ROOT_DIR);
   }
 
-  @After
+  @AfterEach
   public void cleanup() throws IOException {
     LOG.info("CleanUp");
     localFs.delete(TEST_ROOT_DIR, true);
   }
 
-  @Test(timeout = 10000)
-  public void testBufferSizing() throws IOException {
+  @ParameterizedTest(name = "test[{0}, {1}]")
+  @MethodSource("data")
+  @Timeout(value = 10000, unit = TimeUnit.MILLISECONDS)
+  public void testBufferSizing(boolean shouldCompress, ReportPartitionStats reportPartitionStats) throws IOException {
+    setupInit(shouldCompress, reportPartitionStats);
     ApplicationId appId = ApplicationId.newInstance(10000000, 1);
     TezCounters counters = new TezCounters();
     String uniqueId = UUID.randomUUID().toString();
@@ -250,107 +248,187 @@ public class TestUnorderedPartitionedKVWriter {
     assertEquals(1, kvWriter.spillLimit);
   }
 
-  @Test(timeout = 10000)
-  public void testNoSpill() throws IOException, InterruptedException {
+  @ParameterizedTest(name = "test[{0}, {1}]")
+  @MethodSource("data")
+  @Timeout(value = 10000, unit = TimeUnit.MILLISECONDS)
+  public void testNoSpill(boolean shouldCompress, ReportPartitionStats reportPartitionStats)
+      throws IOException, InterruptedException {
+    setupInit(shouldCompress, reportPartitionStats);
     baseTest(10, 10, null, shouldCompress, -1, 0);
   }
 
-  @Test(timeout = 10000)
-  public void testSingleSpill() throws IOException, InterruptedException {
+  @ParameterizedTest(name = "test[{0}, {1}]")
+  @MethodSource("data")
+  @Timeout(value = 10000, unit = TimeUnit.MILLISECONDS)
+  public void testSingleSpill(boolean shouldCompress, ReportPartitionStats reportPartitionStats)
+      throws IOException, InterruptedException {
+    setupInit(shouldCompress, reportPartitionStats);
     baseTest(50, 10, null, shouldCompress, -1, 0);
   }
 
-  @Test(timeout = 10000)
-  public void testMultipleSpills() throws IOException, InterruptedException {
+  @ParameterizedTest(name = "test[{0}, {1}]")
+  @MethodSource("data")
+  @Timeout(value = 10000, unit = TimeUnit.MILLISECONDS)
+  public void testMultipleSpills(boolean shouldCompress, ReportPartitionStats reportPartitionStats)
+      throws IOException, InterruptedException {
+    setupInit(shouldCompress, reportPartitionStats);
     baseTest(200, 10, null, shouldCompress, -1, 0);
   }
 
-  @Test(timeout = 10000)
-  public void testMultipleSpillsWithSmallBuffer() throws IOException, InterruptedException {
+  @ParameterizedTest(name = "test[{0}, {1}]")
+  @MethodSource("data")
+  @Timeout(value = 10000, unit = TimeUnit.MILLISECONDS)
+  public void testMultipleSpillsWithSmallBuffer(boolean shouldCompress, ReportPartitionStats reportPartitionStats)
+      throws IOException, InterruptedException {
+    setupInit(shouldCompress, reportPartitionStats);
     // numBuffers is much higher than available threads.
     baseTest(200, 10, null, shouldCompress, 512, 0, 9600, false);
   }
 
-  @Test(timeout = 10000)
-  public void testMergeBuffersAndSpill() throws IOException, InterruptedException {
+  @ParameterizedTest(name = "test[{0}, {1}]")
+  @MethodSource("data")
+  @Timeout(value = 10000, unit = TimeUnit.MILLISECONDS)
+  public void testMergeBuffersAndSpill(boolean shouldCompress, ReportPartitionStats reportPartitionStats)
+      throws IOException, InterruptedException {
+    setupInit(shouldCompress, reportPartitionStats);
     baseTest(200, 10, null, shouldCompress, 2048, 10);
   }
 
-  @Test(timeout = 10000)
-  public void testNoRecords() throws IOException, InterruptedException {
+  @ParameterizedTest(name = "test[{0}, {1}]")
+  @MethodSource("data")
+  @Timeout(value = 10000, unit = TimeUnit.MILLISECONDS)
+  public void testNoRecords(boolean shouldCompress, ReportPartitionStats reportPartitionStats)
+      throws IOException, InterruptedException {
+    setupInit(shouldCompress, reportPartitionStats);
     baseTest(0, 10, null, shouldCompress, -1, 0);
   }
 
-  @Test(timeout = 10000)
-  public void testNoRecords_SinglePartition() throws IOException, InterruptedException {
+  @ParameterizedTest(name = "test[{0}, {1}]")
+  @MethodSource("data")
+  @Timeout(value = 10000, unit = TimeUnit.MILLISECONDS)
+  public void testNoRecords_SinglePartition(boolean shouldCompress, ReportPartitionStats reportPartitionStats)
+      throws IOException, InterruptedException {
+    setupInit(shouldCompress, reportPartitionStats);
     // skipBuffers
     baseTest(0, 1, null, shouldCompress, -1, 0, 2048, false);
     // Check with data via events
     baseTest(0, 1, null, shouldCompress, -1, 0, 2048, true);
   }
 
-  @Test(timeout = 10000)
-  public void testSkippedPartitions() throws IOException, InterruptedException {
+  @ParameterizedTest(name = "test[{0}, {1}]")
+  @MethodSource("data")
+  @Timeout(value = 10000, unit = TimeUnit.MILLISECONDS)
+  public void testSkippedPartitions(boolean shouldCompress, ReportPartitionStats reportPartitionStats)
+      throws IOException, InterruptedException {
+    setupInit(shouldCompress, reportPartitionStats);
     baseTest(200, 10, Sets.newHashSet(2, 5), shouldCompress, -1, 0);
   }
 
-  @Test(timeout = 10000)
-  public void testNoSpill_SinglePartition() throws IOException, InterruptedException {
+  @ParameterizedTest(name = "test[{0}, {1}]")
+  @MethodSource("data")
+  @Timeout(value = 10000, unit = TimeUnit.MILLISECONDS)
+  public void testNoSpill_SinglePartition(boolean shouldCompress, ReportPartitionStats reportPartitionStats)
+      throws IOException, InterruptedException {
+    setupInit(shouldCompress, reportPartitionStats);
     baseTest(10, 1, null, shouldCompress, -1, 0);
   }
 
-  @Test(timeout = 10000)
-  public void testSpill_SinglePartition() throws IOException, InterruptedException {
+  @ParameterizedTest(name = "test[{0}, {1}]")
+  @MethodSource("data")
+  @Timeout(value = 10000, unit = TimeUnit.MILLISECONDS)
+  public void testSpill_SinglePartition(boolean shouldCompress, ReportPartitionStats reportPartitionStats)
+      throws IOException, InterruptedException {
+    setupInit(shouldCompress, reportPartitionStats);
     baseTest(1000, 1, null, shouldCompress, -1, 0, 2048, true);
   }
 
-  @Test(timeout = 10000)
-  public void testRandomText() throws IOException, InterruptedException {
+  @ParameterizedTest(name = "test[{0}, {1}]")
+  @MethodSource("data")
+  @Timeout(value = 10000, unit = TimeUnit.MILLISECONDS)
+  public void testRandomText(boolean shouldCompress, ReportPartitionStats reportPartitionStats)
+      throws IOException, InterruptedException {
+    setupInit(shouldCompress, reportPartitionStats);
     textTest(100, 10, 2048, 0, 0, 0, false, true);
   }
 
-  @Test(timeout = 10000)
-  public void testLargeKeys() throws IOException, InterruptedException {
+  @ParameterizedTest(name = "test[{0}, {1}]")
+  @MethodSource("data")
+  @Timeout(value = 10000, unit = TimeUnit.MILLISECONDS)
+  public void testLargeKeys(boolean shouldCompress, ReportPartitionStats reportPartitionStats)
+      throws IOException, InterruptedException {
+    setupInit(shouldCompress, reportPartitionStats);
     textTest(0, 10, 2048, 10, 0, 0, false, true);
   }
 
-  @Test(timeout = 10000)
-  public void testLargevalues() throws IOException, InterruptedException {
+  @ParameterizedTest(name = "test[{0}, {1}]")
+  @MethodSource("data")
+  @Timeout(value = 10000, unit = TimeUnit.MILLISECONDS)
+  public void testLargevalues(boolean shouldCompress, ReportPartitionStats reportPartitionStats)
+      throws IOException, InterruptedException {
+    setupInit(shouldCompress, reportPartitionStats);
     textTest(0, 10, 2048, 0, 10, 0, false, true);
   }
 
-  @Test(timeout = 10000)
-  public void testLargeKvPairs() throws IOException, InterruptedException {
+  @ParameterizedTest(name = "test[{0}, {1}]")
+  @MethodSource("data")
+  @Timeout(value = 10000, unit = TimeUnit.MILLISECONDS)
+  public void testLargeKvPairs(boolean shouldCompress, ReportPartitionStats reportPartitionStats)
+      throws IOException, InterruptedException {
+    setupInit(shouldCompress, reportPartitionStats);
     textTest(0, 10, 2048, 0, 0, 10, false, true);
   }
 
-  @Test(timeout = 10000)
-  public void testTextMixedRecords() throws IOException, InterruptedException {
+  @ParameterizedTest(name = "test[{0}, {1}]")
+  @MethodSource("data")
+  @Timeout(value = 10000, unit = TimeUnit.MILLISECONDS)
+  public void testTextMixedRecords(boolean shouldCompress, ReportPartitionStats reportPartitionStats)
+      throws IOException, InterruptedException {
+    setupInit(shouldCompress, reportPartitionStats);
     textTest(100, 10, 2048, 10, 10, 10, false, true);
   }
 
-  @Test(timeout = 10000000)
-  public void testRandomTextWithoutFinalMerge() throws IOException, InterruptedException {
+  @ParameterizedTest(name = "test[{0}, {1}]")
+  @MethodSource("data")
+  @Timeout(value = 10000000, unit = TimeUnit.MILLISECONDS)
+  public void testRandomTextWithoutFinalMerge(boolean shouldCompress, ReportPartitionStats reportPartitionStats)
+      throws IOException, InterruptedException {
+    setupInit(shouldCompress, reportPartitionStats);
     textTest(100, 10, 2048, 0, 0, 0, false, false);
   }
 
-  @Test(timeout = 10000)
-  public void testLargeKeysWithoutFinalMerge() throws IOException, InterruptedException {
+  @ParameterizedTest(name = "test[{0}, {1}]")
+  @MethodSource("data")
+  @Timeout(value = 10000, unit = TimeUnit.MILLISECONDS)
+  public void testLargeKeysWithoutFinalMerge(boolean shouldCompress, ReportPartitionStats reportPartitionStats)
+      throws IOException, InterruptedException {
+    setupInit(shouldCompress, reportPartitionStats);
     textTest(0, 10, 2048, 10, 0, 0, false, false);
   }
 
-  @Test(timeout = 10000)
-  public void testLargevaluesWithoutFinalMerge() throws IOException, InterruptedException {
+  @ParameterizedTest(name = "test[{0}, {1}]")
+  @MethodSource("data")
+  @Timeout(value = 10000, unit = TimeUnit.MILLISECONDS)
+  public void testLargevaluesWithoutFinalMerge(boolean shouldCompress, ReportPartitionStats reportPartitionStats)
+      throws IOException, InterruptedException {
+    setupInit(shouldCompress, reportPartitionStats);
     textTest(0, 10, 2048, 0, 10, 0, false, false);
   }
 
-  @Test(timeout = 10000)
-  public void testLargeKvPairsWithoutFinalMerge() throws IOException, InterruptedException {
+  @ParameterizedTest(name = "test[{0}, {1}]")
+  @MethodSource("data")
+  @Timeout(value = 10000, unit = TimeUnit.MILLISECONDS)
+  public void testLargeKvPairsWithoutFinalMerge(boolean shouldCompress, ReportPartitionStats reportPartitionStats)
+      throws IOException, InterruptedException {
+    setupInit(shouldCompress, reportPartitionStats);
     textTest(0, 10, 2048, 0, 0, 10, false, false);
   }
 
-  @Test(timeout = 10000)
-  public void testTextMixedRecordsWithoutFinalMerge() throws IOException, InterruptedException {
+  @ParameterizedTest(name = "test[{0}, {1}]")
+  @MethodSource("data")
+  @Timeout(value = 10000, unit = TimeUnit.MILLISECONDS)
+  public void testTextMixedRecordsWithoutFinalMerge(boolean shouldCompress, ReportPartitionStats reportPartitionStats)
+      throws IOException, InterruptedException {
+    setupInit(shouldCompress, reportPartitionStats);
     textTest(100, 10, 2048, 10, 10, 10, false, false);
   }
 
@@ -488,11 +566,11 @@ public class TestUnorderedPartitionedKVWriter {
     // Validate the events
     assertEquals(2, events.size());
 
-    assertTrue(events.get(0) instanceof VertexManagerEvent);
+    assertInstanceOf(VertexManagerEvent.class, events.getFirst());
     VertexManagerEvent vme = (VertexManagerEvent) events.get(0);
     verifyPartitionStats(vme, partitionsWithData);
 
-    assertTrue(events.get(1) instanceof CompositeDataMovementEvent);
+    assertInstanceOf(CompositeDataMovementEvent.class, events.get(1));
     CompositeDataMovementEvent cdme = (CompositeDataMovementEvent) events.get(1);
     assertEquals(0, cdme.getSourceIndexStart());
     assertEquals(numPartitions, cdme.getCount());
@@ -610,43 +688,73 @@ public class TestUnorderedPartitionedKVWriter {
     for (int i = 0; i < stats.length; i++) {
       // The stats should be greater than zero if and only if
       // the partition has data
-      assertTrue(expectedPartitionsWithData.get(i) == (stats[i] > 0));
+      assertEquals(expectedPartitionsWithData.get(i), (stats[i] > 0));
     }
   }
 
-  @Test(timeout = 10000)
-  public void testNoSpill_WithPipelinedShuffle() throws IOException, InterruptedException {
+  @ParameterizedTest(name = "test[{0}, {1}]")
+  @MethodSource("data")
+  @Timeout(value = 10000, unit = TimeUnit.MILLISECONDS)
+  public void testNoSpill_WithPipelinedShuffle(boolean shouldCompress, ReportPartitionStats reportPartitionStats)
+      throws IOException, InterruptedException {
+    setupInit(shouldCompress, reportPartitionStats);
     baseTestWithPipelinedTransfer(10, 10, null, shouldCompress);
   }
 
-  @Test(timeout = 10000)
-  public void testSingleSpill_WithPipelinedShuffle() throws IOException, InterruptedException {
+  @ParameterizedTest(name = "test[{0}, {1}]")
+  @MethodSource("data")
+  @Timeout(value = 10000, unit = TimeUnit.MILLISECONDS)
+  public void testSingleSpill_WithPipelinedShuffle(boolean shouldCompress, ReportPartitionStats reportPartitionStats)
+      throws IOException, InterruptedException {
+    setupInit(shouldCompress, reportPartitionStats);
     baseTestWithPipelinedTransfer(50, 10, null, shouldCompress);
   }
 
-  @Test(timeout = 10000)
-  public void testMultipleSpills_WithPipelinedShuffle() throws IOException, InterruptedException {
+  @ParameterizedTest(name = "test[{0}, {1}]")
+  @MethodSource("data")
+  @Timeout(value = 10000, unit = TimeUnit.MILLISECONDS)
+  public void testMultipleSpills_WithPipelinedShuffle(boolean shouldCompress, ReportPartitionStats reportPartitionStats)
+      throws IOException, InterruptedException {
+    setupInit(shouldCompress, reportPartitionStats);
     baseTestWithPipelinedTransfer(200, 10, null, shouldCompress);
   }
 
-  @Test(timeout = 10000)
-  public void testNoRecords_WithPipelinedShuffle() throws IOException, InterruptedException {
+  @ParameterizedTest(name = "test[{0}, {1}]")
+  @MethodSource("data")
+  @Timeout(value = 10000, unit = TimeUnit.MILLISECONDS)
+  public void testNoRecords_WithPipelinedShuffle(boolean shouldCompress, ReportPartitionStats reportPartitionStats)
+      throws IOException, InterruptedException {
+    setupInit(shouldCompress, reportPartitionStats);
     baseTestWithPipelinedTransfer(0, 10, null, shouldCompress);
   }
 
-  @Test(timeout = 10000)
-  public void testNoRecords_SinglePartition_WithPipelinedShuffle() throws IOException, InterruptedException {
+  @ParameterizedTest(name = "test[{0}, {1}]")
+  @MethodSource("data")
+  @Timeout(value = 10000, unit = TimeUnit.MILLISECONDS)
+  public void testNoRecords_SinglePartition_WithPipelinedShuffle(boolean shouldCompress,
+                                                                 ReportPartitionStats reportPartitionStats)
+      throws IOException, InterruptedException {
+    setupInit(shouldCompress, reportPartitionStats);
     // skipBuffers
     baseTestWithPipelinedTransfer(0, 1, null, shouldCompress);
   }
 
-  @Test(timeout = 10000)
-  public void testSkippedPartitions_WithPipelinedShuffle() throws IOException, InterruptedException {
+  @ParameterizedTest(name = "test[{0}, {1}]")
+  @MethodSource("data")
+  @Timeout(value = 10000, unit = TimeUnit.MILLISECONDS)
+  public void testSkippedPartitions_WithPipelinedShuffle(boolean shouldCompress,
+                                                         ReportPartitionStats reportPartitionStats)
+      throws IOException, InterruptedException {
+    setupInit(shouldCompress, reportPartitionStats);
     baseTestWithPipelinedTransfer(200, 10, Sets.newHashSet(2, 5), shouldCompress);
   }
 
-  @Test(timeout = 10000)
-  public void testLargeKvPairs_WithPipelinedShuffle() throws IOException, InterruptedException {
+  @ParameterizedTest(name = "test[{0}, {1}]")
+  @MethodSource("data")
+  @Timeout(value = 10000, unit = TimeUnit.MILLISECONDS)
+  public void testLargeKvPairs_WithPipelinedShuffle(boolean shouldCompress, ReportPartitionStats reportPartitionStats)
+      throws IOException, InterruptedException {
+    setupInit(shouldCompress, reportPartitionStats);
     textTest(0, 10, 2048, 10, 20, 50, true, false);
   }
 
@@ -710,11 +818,11 @@ public class TestUnorderedPartitionedKVWriter {
     List<Event> lastEvents = kvWriter.close();
 
     if (numPartitions == 1) {
-      assertEquals(false, kvWriter.skipBuffers);
+      assertFalse(kvWriter.skipBuffers);
     }
 
     //no events are sent to kvWriter upon close with pipelining
-    assertTrue(lastEvents.size() == 0);
+    assertEquals(0, lastEvents.size());
     verify(outputContext, atLeast(numExpectedSpills)).sendEvents(eventCaptor.capture());
     int numOfCapturedEvents = eventCaptor.getAllValues().size();
     lastEvents = eventCaptor.getAllValues().get(numOfCapturedEvents - 1);
@@ -723,12 +831,12 @@ public class TestUnorderedPartitionedKVWriter {
     for (int i=0; i<numOfCapturedEvents; i++) {
       List<Event> events = eventCaptor.getAllValues().get(i);
       if (i < numOfCapturedEvents - 1) {
-        assertTrue(events.size() == 1);
-        assertTrue(events.get(0) instanceof CompositeDataMovementEvent);
+        assertEquals(1, events.size());
+        assertInstanceOf(CompositeDataMovementEvent.class, events.getFirst());
       } else {
-        assertTrue(events.size() == 2);
-        assertTrue(events.get(0) instanceof VertexManagerEvent);
-        assertTrue(events.get(1) instanceof CompositeDataMovementEvent);
+        assertEquals(2, events.size());
+        assertInstanceOf(VertexManagerEvent.class, events.get(0));
+        assertInstanceOf(CompositeDataMovementEvent.class, events.get(1));
       }
     }
     verifyPartitionStats(VMEvent, partitionsWithData);
@@ -777,18 +885,18 @@ public class TestUnorderedPartitionedKVWriter {
     long additionalSpillBytesRead = additionalSpillBytesReadCounter.getValue();
 
     //No additional spill bytes written when final merge is disabled.
-    assertEquals(additionalSpillBytesWritten, 0);
+    assertEquals(0, additionalSpillBytesWritten);
 
     //No additional spills when final merge is disabled.
-    assertTrue(additionalSpillBytesWritten == additionalSpillBytesRead);
+    assertEquals(additionalSpillBytesWritten, additionalSpillBytesRead);
 
     //No additional spills when final merge is disabled.
-    assertEquals(numAdditionalSpillsCounter.getValue(), 0);
+    assertEquals(0, numAdditionalSpillsCounter.getValue());
 
-    assertTrue(lastEvents.size() > 0);
+    assertFalse(lastEvents.isEmpty());
     //Get the last event
     int index = lastEvents.size() - 1;
-    assertTrue(lastEvents.get(index) instanceof CompositeDataMovementEvent);
+    assertInstanceOf(CompositeDataMovementEvent.class, lastEvents.get(index));
     CompositeDataMovementEvent cdme =
         (CompositeDataMovementEvent)lastEvents.get(index);
     assertEquals(0, cdme.getSourceIndexStart());
@@ -820,14 +928,14 @@ public class TestUnorderedPartitionedKVWriter {
   }
 
   private void checkPermissions(Path outputFile, Path indexFile) throws IOException {
-    assertEquals("Incorrect output permissions (user)", FsAction.READ_WRITE,
-        localFs.getFileStatus(outputFile).getPermission().getUserAction());
-    assertEquals("Incorrect output permissions (group)", FsAction.READ,
-        localFs.getFileStatus(outputFile).getPermission().getGroupAction());
-    assertEquals("Incorrect index permissions (user)", FsAction.READ_WRITE,
-        localFs.getFileStatus(indexFile).getPermission().getUserAction());
-    assertEquals("Incorrect index permissions (group)", FsAction.READ,
-        localFs.getFileStatus(indexFile).getPermission().getGroupAction());
+    assertEquals(FsAction.READ_WRITE, localFs.getFileStatus(outputFile).getPermission().getUserAction(),
+        "Incorrect output permissions (user)");
+    assertEquals(FsAction.READ, localFs.getFileStatus(outputFile).getPermission().getGroupAction(),
+        "Incorrect output permissions (group)");
+    assertEquals(FsAction.READ_WRITE, localFs.getFileStatus(indexFile).getPermission().getUserAction(),
+        "Incorrect index permissions (user)");
+    assertEquals(FsAction.READ, localFs.getFileStatus(indexFile).getPermission().getGroupAction(),
+        "Incorrect index permissions (group)");
   }
 
   private void verifyEmptyPartitions(DataMovementEventPayloadProto eventProto,
@@ -863,38 +971,70 @@ public class TestUnorderedPartitionedKVWriter {
     }
   }
 
-  @Test(timeout = 10000)
-  public void testNoSpill_WithFinalMergeDisabled() throws IOException, InterruptedException {
+  @ParameterizedTest(name = "test[{0}, {1}]")
+  @MethodSource("data")
+  @Timeout(value = 10000, unit = TimeUnit.MILLISECONDS)
+  public void testNoSpill_WithFinalMergeDisabled(boolean shouldCompress, ReportPartitionStats reportPartitionStats)
+      throws IOException, InterruptedException {
+    setupInit(shouldCompress, reportPartitionStats);
     baseTestWithFinalMergeDisabled(10, 10, null, shouldCompress);
   }
 
-  @Test(timeout = 10000)
-  public void testSingleSpill_WithFinalMergeDisabled() throws IOException, InterruptedException {
+  @ParameterizedTest(name = "test[{0}, {1}]")
+  @MethodSource("data")
+  @Timeout(value = 10000, unit = TimeUnit.MILLISECONDS)
+  public void testSingleSpill_WithFinalMergeDisabled(boolean shouldCompress, ReportPartitionStats reportPartitionStats)
+      throws IOException, InterruptedException {
+    setupInit(shouldCompress, reportPartitionStats);
     baseTestWithFinalMergeDisabled(50, 10, null, shouldCompress);
   }
 
-  @Test(timeout = 10000)
-  public void testSinglePartition_WithFinalMergeDisabled() throws IOException, InterruptedException {
+  @ParameterizedTest(name = "test[{0}, {1}]")
+  @MethodSource("data")
+  @Timeout(value = 10000, unit = TimeUnit.MILLISECONDS)
+  public void testSinglePartition_WithFinalMergeDisabled(boolean shouldCompress,
+                                                         ReportPartitionStats reportPartitionStats)
+      throws IOException, InterruptedException {
+    setupInit(shouldCompress, reportPartitionStats);
     baseTestWithFinalMergeDisabled(0, 1, null, shouldCompress);
   }
 
-  @Test(timeout = 10000)
-  public void testMultipleSpills_WithFinalMergeDisabled() throws IOException, InterruptedException {
+  @ParameterizedTest(name = "test[{0}, {1}]")
+  @MethodSource("data")
+  @Timeout(value = 10000, unit = TimeUnit.MILLISECONDS)
+  public void testMultipleSpills_WithFinalMergeDisabled(boolean shouldCompress,
+                                                        ReportPartitionStats reportPartitionStats)
+      throws IOException, InterruptedException {
+    setupInit(shouldCompress, reportPartitionStats);
     baseTestWithFinalMergeDisabled(200, 10, null, shouldCompress);
   }
 
-  @Test(timeout = 10000)
-  public void testNoRecords_WithFinalMergeDisabled() throws IOException, InterruptedException {
+  @ParameterizedTest(name = "test[{0}, {1}]")
+  @MethodSource("data")
+  @Timeout(value = 10000, unit = TimeUnit.MILLISECONDS)
+  public void testNoRecords_WithFinalMergeDisabled(boolean shouldCompress, ReportPartitionStats reportPartitionStats)
+      throws IOException, InterruptedException {
+    setupInit(shouldCompress, reportPartitionStats);
     baseTestWithFinalMergeDisabled(0, 10, null, shouldCompress);
   }
 
-  @Test(timeout = 10000)
-  public void testNoRecords_SinglePartition_WithFinalMergeDisabled() throws IOException, InterruptedException {
+  @ParameterizedTest(name = "test[{0}, {1}]")
+  @MethodSource("data")
+  @Timeout(value = 10000, unit = TimeUnit.MILLISECONDS)
+  public void testNoRecords_SinglePartition_WithFinalMergeDisabled(boolean shouldCompress,
+                                                                   ReportPartitionStats reportPartitionStats)
+      throws IOException, InterruptedException {
+    setupInit(shouldCompress, reportPartitionStats);
     baseTestWithFinalMergeDisabled(0, 1, null, shouldCompress);
   }
 
-  @Test(timeout = 10000)
-  public void testSkippedPartitions_WithFinalMergeDisabled() throws IOException, InterruptedException {
+  @ParameterizedTest(name = "test[{0}, {1}]")
+  @MethodSource("data")
+  @Timeout(value = 10000, unit = TimeUnit.MILLISECONDS)
+  public void testSkippedPartitions_WithFinalMergeDisabled(boolean shouldCompress,
+                                                           ReportPartitionStats reportPartitionStats)
+      throws IOException, InterruptedException {
+    setupInit(shouldCompress, reportPartitionStats);
     baseTestWithFinalMergeDisabled(200, 10, Sets.newHashSet(2, 5), shouldCompress);
   }
 
@@ -957,7 +1097,7 @@ public class TestUnorderedPartitionedKVWriter {
     List<Event> lastEvents = kvWriter.close();
 
     if (numPartitions == 1) {
-      assertEquals(true, kvWriter.skipBuffers);
+      assertTrue(kvWriter.skipBuffers);
     }
 
     // max events sent are spills + one VM event. If there are no spills, atleast empty
@@ -1013,9 +1153,8 @@ public class TestUnorderedPartitionedKVWriter {
     if (numRecordsWritten > 0) {
       assertTrue(fileOutputBytes > 0);
       if (!shouldCompress) {
-        assertTrue("fileOutputBytes=" + fileOutputBytes + ", outputRecordBytes="
-                +outputRecordBytesCounter.getValue(),
-            fileOutputBytes > outputRecordBytesCounter.getValue());
+        assertTrue(fileOutputBytes > outputRecordBytesCounter.getValue(),
+            "fileOutputBytes=" + fileOutputBytes + ", outputRecordBytes=" + outputRecordBytesCounter.getValue());
       }
     } else {
       assertEquals(0, fileOutputBytes);
@@ -1026,18 +1165,18 @@ public class TestUnorderedPartitionedKVWriter {
     long additionalSpillBytesRead = additionalSpillBytesReadCounter.getValue();
 
     //No additional spill bytes written when final merge is disabled.
-    assertEquals(additionalSpillBytesWritten, 0);
+    assertEquals(0, additionalSpillBytesWritten);
 
     //No additional spills when final merge is disabled.
-    assertTrue(additionalSpillBytesWritten == additionalSpillBytesRead);
+    assertEquals(additionalSpillBytesWritten, additionalSpillBytesRead);
 
     //No additional spills when final merge is disabled.
-    assertEquals(numAdditionalSpillsCounter.getValue(), 0);
+    assertEquals(0, numAdditionalSpillsCounter.getValue());
 
-    assertTrue(lastEvents.size() > 0);
+    assertFalse(lastEvents.isEmpty());
     //Get the last event
     int index = lastEvents.size() - 1;
-    assertTrue(lastEvents.get(index) instanceof CompositeDataMovementEvent);
+    assertInstanceOf(CompositeDataMovementEvent.class, lastEvents.get(index));
     CompositeDataMovementEvent cdme =
         (CompositeDataMovementEvent)lastEvents.get(index);
     assertEquals(0, cdme.getSourceIndexStart());
@@ -1062,14 +1201,14 @@ public class TestUnorderedPartitionedKVWriter {
       cdme = (CompositeDataMovementEvent)event;
       eventProto = DataMovementEventPayloadProto.parseFrom(ByteString.copyFrom(cdme.getUserPayload()));
 
-      assertEquals(false, eventProto.getPipelined());
+      assertFalse(eventProto.getPipelined());
       if (eventProto.hasPathComponent()) {
         //for final merge disabled cases, it should have _spillId
         Matcher matcher = mergePathComponentPattern.matcher(eventProto.getPathComponent());
-        assertTrue("spill id should be present in path component " + eventProto.getPathComponent(), matcher.matches());
+        assertTrue(matcher.matches(), "spill id should be present in path component " + eventProto.getPathComponent());
         assertEquals(2, matcher.groupCount());
         assertEquals(uniqueId, matcher.group(1));
-        assertTrue("spill id should be present in path component", matcher.group(2) != null);
+        assertNotNull(matcher.group(2), "spill id should be present in path component");
         Path outputPath = new Path(outputContext.getWorkDirs()[0],
             "output/" + eventProto.getPathComponent() + "/" + Constants.TEZ_RUNTIME_TASK_OUTPUT_FILENAME_STRING);
         Path indexPath = outputPath.suffix(Constants.TEZ_RUNTIME_TASK_OUTPUT_INDEX_SUFFIX_STRING);
@@ -1077,7 +1216,7 @@ public class TestUnorderedPartitionedKVWriter {
       } else {
         assertEquals(0, eventProto.getSpillId());
         if (outputRecordsCounter.getValue() > 0) {
-          assertEquals(true, eventProto.getLastEvent());
+          assertTrue(eventProto.getLastEvent());
         } else {
           byte[] emptyPartitions = TezCommonUtils.decompressByteStringToByteArray(eventProto
               .getEmptyPartitions());
@@ -1172,12 +1311,12 @@ public class TestUnorderedPartitionedKVWriter {
     List<Event> events = kvWriter.close();
 
     if (numPartitions == 1) {
-      assertEquals(true, kvWriter.skipBuffers);
+      assertTrue(kvWriter.skipBuffers);
 
       // VM & DME events
       assertEquals(2, events.size());
       Event event1 = events.get(1);
-      assertTrue(event1 instanceof CompositeDataMovementEvent);
+      assertInstanceOf(CompositeDataMovementEvent.class, event1);
       CompositeDataMovementEvent dme = (CompositeDataMovementEvent) event1;
       ByteBuffer bb = dme.getUserPayload();
       ShuffleUserPayloads.DataMovementEventPayloadProto shufflePayload =
@@ -1256,10 +1395,10 @@ public class TestUnorderedPartitionedKVWriter {
     BitSet emptyPartitionBits = null;
     // Verify the events returned
     assertEquals(2, events.size());
-    assertTrue(events.get(0) instanceof VertexManagerEvent);
+    assertInstanceOf(VertexManagerEvent.class, events.getFirst());
     VertexManagerEvent vme = (VertexManagerEvent) events.get(0);
     verifyPartitionStats(vme, partitionsWithData);
-    assertTrue(events.get(1) instanceof CompositeDataMovementEvent);
+    assertInstanceOf(CompositeDataMovementEvent.class, events.get(1));
     CompositeDataMovementEvent cdme = (CompositeDataMovementEvent) events.get(1);
     assertEquals(0, cdme.getSourceIndexStart());
     assertEquals(numOutputs, cdme.getCount());
@@ -1302,24 +1441,23 @@ public class TestUnorderedPartitionedKVWriter {
       return;
     }
 
-    boolean isInMem= eventProto.getData().hasData();
+    boolean isInMem = eventProto.getData().hasData();
     assertTrue(localFs.exists(outputFilePath));
-    assertEquals("Incorrect output permissions (user)", FsAction.READ_WRITE,
-            localFs.getFileStatus(outputFilePath).getPermission().getUserAction());
-    assertEquals("Incorrect output permissions (group)", FsAction.READ,
-            localFs.getFileStatus(outputFilePath).getPermission().getGroupAction());
-    if( !isInMem ) {
+    assertEquals(FsAction.READ_WRITE, localFs.getFileStatus(outputFilePath).getPermission().getUserAction(),
+        "Incorrect output permissions (user)");
+    assertEquals(FsAction.READ, localFs.getFileStatus(outputFilePath).getPermission().getGroupAction(),
+        "Incorrect output permissions (group)");
+    if (!isInMem) {
       assertTrue(localFs.exists(spillFilePath));
-      assertEquals("Incorrect index permissions (user)", FsAction.READ_WRITE,
-              localFs.getFileStatus(spillFilePath).getPermission().getUserAction());
-      assertEquals("Incorrect index permissions (group)", FsAction.READ,
-              localFs.getFileStatus(spillFilePath).getPermission().getGroupAction());
+      assertEquals(FsAction.READ_WRITE, localFs.getFileStatus(spillFilePath).getPermission().getUserAction(),
+          "Incorrect index permissions (user)");
+      assertEquals(FsAction.READ, localFs.getFileStatus(spillFilePath).getPermission().getGroupAction(),
+          "Incorrect index permissions (group)");
 
       // verify no intermediate spill files have been left around
       synchronized (kvWriter.spillInfoList) {
         for (SpillInfo spill : kvWriter.spillInfoList) {
-          assertFalse("lingering intermediate spill file " + spill.outPath,
-                  localFs.exists(spill.outPath));
+          assertFalse(localFs.exists(spill.outPath), "lingering intermediate spill file " + spill.outPath);
         }
       }
     }
@@ -1330,27 +1468,25 @@ public class TestUnorderedPartitionedKVWriter {
     IntWritable keyDeser = new IntWritable();
     LongWritable valDeser = new LongWritable();
     for (int i = 0; i < numOutputs; i++) {
-      IFile.Reader reader = null;
+      Reader reader;
       InputStream inStream;
       if (isInMem) {
         // Read from in memory payload
         int dataLoadSize = eventProto.getData().getData().size();
         inStream = new ByteArrayInputStream(eventProto.getData().getData().toByteArray());
-        reader = new IFile.Reader(inStream, dataLoadSize, codec, null,
-                null, false, 0, -1);
+        reader = new Reader(inStream, dataLoadSize, codec, null, null, false, 0, -1);
       } else {
         TezSpillRecord spillRecord = new TezSpillRecord(spillFilePath, conf);
         TezIndexRecord indexRecord = spillRecord.getIndex(i);
         if (skippedPartitions != null && skippedPartitions.contains(i)) {
-          assertFalse("The Index Record for partition " + i + " should not have any data", indexRecord.hasData());
+          assertFalse(indexRecord.hasData(), "The Index Record for partition " + i + " should not have any data");
           continue;
         }
 
         FSDataInputStream tmpStream = FileSystem.getLocal(conf).open(outputFilePath);
         tmpStream.seek(indexRecord.getStartOffset());
         inStream = tmpStream;
-        reader = new IFile.Reader(tmpStream, indexRecord.getPartLength(), codec, null,
-                null, false, 0, -1);
+        reader = new Reader(tmpStream, indexRecord.getPartLength(), codec, null, null, false, 0, -1);
       }
 
       while (reader.nextRawKey(keyBuffer)) {

@@ -18,7 +18,11 @@
  */
 package org.apache.tez.history;
 
-import static org.junit.Assert.*;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertNotNull;
+import static org.junit.jupiter.api.Assertions.assertTrue;
+import static org.junit.jupiter.api.Assertions.fail;
 
 import java.io.BufferedWriter;
 import java.io.File;
@@ -56,7 +60,7 @@ import org.apache.tez.dag.api.DAG;
 import org.apache.tez.dag.api.DataSinkDescriptor;
 import org.apache.tez.dag.api.DataSourceDescriptor;
 import org.apache.tez.dag.api.Edge;
-import org.apache.tez.dag.api.EdgeProperty;
+import org.apache.tez.dag.api.EdgeProperty.DataMovementType;
 import org.apache.tez.dag.api.ProcessorDescriptor;
 import org.apache.tez.dag.api.TezConfiguration;
 import org.apache.tez.dag.api.TezException;
@@ -71,6 +75,8 @@ import org.apache.tez.dag.history.logging.ats.ATSHistoryLoggingService;
 import org.apache.tez.dag.history.logging.impl.SimpleHistoryLoggingService;
 import org.apache.tez.dag.records.TezDAGID;
 import org.apache.tez.examples.WordCount;
+import org.apache.tez.examples.WordCount.SumProcessor;
+import org.apache.tez.examples.WordCount.TokenProcessor;
 import org.apache.tez.history.parser.ATSFileParser;
 import org.apache.tez.history.parser.SimpleHistoryParser;
 import org.apache.tez.history.parser.datamodel.BaseInfo;
@@ -94,9 +100,9 @@ import org.apache.tez.tests.MiniTezClusterWithTimeline;
 
 import com.google.common.collect.Sets;
 
-import org.junit.AfterClass;
-import org.junit.BeforeClass;
-import org.junit.Test;
+import org.junit.jupiter.api.AfterAll;
+import org.junit.jupiter.api.BeforeAll;
+import org.junit.jupiter.api.Test;
 
 public class TestHistoryParser {
 
@@ -122,7 +128,7 @@ public class TestHistoryParser {
   private static String DOWNLOAD_DIR = TEST_ROOT_DIR + Path.SEPARATOR + "download";
   private static String yarnTimelineAddress;
 
-  @BeforeClass
+  @BeforeAll
   public static void setupCluster() throws Exception {
     conf = new Configuration();
     conf.setBoolean(DFSConfigKeys.DFS_NAMENODE_EDITS_NOEDITLOGCHANNELFLUSH, false);
@@ -136,7 +142,7 @@ public class TestHistoryParser {
     setupTezCluster();
   }
 
-  @AfterClass
+  @AfterAll
   public static void shutdownCluster() {
     try {
       if (miniDFSCluster != null) {
@@ -155,7 +161,7 @@ public class TestHistoryParser {
     }
   }
 
-  // @Before
+  // @BeforeAll
   public static void setupTezCluster() throws Exception {
     conf.setInt(TezRuntimeConfiguration.TEZ_RUNTIME_SHUFFLE_CONNECT_TIMEOUT, 3 * 1000);
     conf.setInt(TezRuntimeConfiguration.TEZ_RUNTIME_SHUFFLE_READ_TIMEOUT, 3 * 1000);
@@ -207,7 +213,7 @@ public class TestHistoryParser {
     String[] args = { "--dagId=" + dagId, "--downloadDir=" + DOWNLOAD_DIR, "--yarnTimelineAddress=" + yarnTimelineAddress };
 
     int result = ATSImportTool.process(args);
-    assertTrue(result == 0);
+    assertEquals(0, result);
 
     //Parse ATS data and verify results
     DagInfo dagInfoFromATS = getDagInfo(dagId);
@@ -244,44 +250,40 @@ public class TestHistoryParser {
     //Now parse via SimpleHistory
     SimpleHistoryParser parser = new SimpleHistoryParser(Arrays.asList(localFile));
     DagInfo dagInfo = parser.getDAGData(dagId);
-    assertTrue(dagInfo.getDagId().equals(dagId));
+    assertEquals(dagInfo.getDagId(), dagId);
     return dagInfo;
   }
 
   private void checkConfig(DagInfo dagInfo) {
-    assertTrue("DagInfo is " + dagInfo, dagInfo != null);
-    //Check configs
-    assertTrue("DagInfo config size=" + dagInfo.getAppConfig().size(),
-        dagInfo.getAppConfig().size() > 0);
-    //Sample config element
-    assertTrue("DagInfo config=" + dagInfo.getAppConfig(),
-        Integer.parseInt(dagInfo.getAppConfig().get("dfs.replication")) > 0);
+    assertNotNull(dagInfo, "DagInfo is " + dagInfo);
+    // Check configs
+    assertFalse(dagInfo.getAppConfig().isEmpty(), "DagInfo config size=" + dagInfo.getAppConfig().size());
+    // Sample config element
+    assertTrue(Integer.parseInt(dagInfo.getAppConfig().get("dfs.replication")) > 0,
+        "DagInfo config=" + dagInfo.getAppConfig());
   }
 
   private void verifyJobSpecificInfo(DagInfo dagInfo) {
     //Job specific
-    assertTrue(dagInfo.getNumVertices() == 2);
-    assertTrue(dagInfo.getName().equals("WordCount"));
-    assertTrue(dagInfo.getVertex(TOKENIZER).getProcessorClassName().equals(
-        WordCount.TokenProcessor.class.getName()));
-    assertTrue(dagInfo.getVertex(SUMMATION).getProcessorClassName()
-        .equals(WordCount.SumProcessor.class.getName()));
+    assertEquals(2, dagInfo.getNumVertices());
+    assertEquals("WordCount", dagInfo.getName());
+    assertEquals(dagInfo.getVertex(TOKENIZER).getProcessorClassName(), TokenProcessor.class.getName());
+    assertEquals(dagInfo.getVertex(SUMMATION).getProcessorClassName(), SumProcessor.class.getName());
     assertTrue(dagInfo.getFinishTime() > dagInfo.getStartTime());
-    assertTrue(dagInfo.getEdges().size() == 1);
+    assertEquals(1, dagInfo.getEdges().size());
     EdgeInfo edgeInfo = dagInfo.getEdges().iterator().next();
-    assertTrue(edgeInfo.getDataMovementType().
-        equals(EdgeProperty.DataMovementType.SCATTER_GATHER.toString()));
-    assertTrue(edgeInfo.getSourceVertex().getVertexName().equals(TOKENIZER));
-    assertTrue(edgeInfo.getDestinationVertex().getVertexName().equals(SUMMATION));
-    assertTrue(edgeInfo.getInputVertexName().equals(TOKENIZER));
-    assertTrue(edgeInfo.getOutputVertexName().equals(SUMMATION));
-    assertTrue(edgeInfo.getEdgeSourceClass().equals(OrderedPartitionedKVOutput.class.getName()));
-    assertTrue(edgeInfo.getEdgeDestinationClass().equals(OrderedGroupedKVInput.class.getName()));
-    assertTrue(dagInfo.getVertices().size() == 2);
+    assertEquals(edgeInfo.getDataMovementType(), DataMovementType.SCATTER_GATHER.toString());
+    assertEquals(TOKENIZER, edgeInfo.getSourceVertex().getVertexName());
+    assertEquals(SUMMATION, edgeInfo.getDestinationVertex().getVertexName());
+    assertEquals(TOKENIZER, edgeInfo.getInputVertexName());
+    assertEquals(SUMMATION, edgeInfo.getOutputVertexName());
+    assertEquals(edgeInfo.getEdgeSourceClass(), OrderedPartitionedKVOutput.class.getName());
+    assertEquals(edgeInfo.getEdgeDestinationClass(), OrderedGroupedKVInput.class.getName());
+    assertEquals(2, dagInfo.getVertices().size());
     String lastSourceTA = null;
     String lastDataEventSourceTA = null;
     for (VertexInfo vertexInfo : dagInfo.getVertices()) {
-      assertTrue(vertexInfo.getKilledTasksCount() == 0);
+      assertEquals(0, vertexInfo.getKilledTasksCount());
       assertTrue(vertexInfo.getInitRequestedTime() > 0);
       assertTrue(vertexInfo.getInitTime() > 0);
       assertTrue(vertexInfo.getStartRequestedTime() > 0);
@@ -290,15 +292,15 @@ public class TestHistoryParser {
       assertTrue(vertexInfo.getFinishTime() > vertexInfo.getStartTime());
       long finishTime = 0;
       for (TaskInfo taskInfo : vertexInfo.getTasks()) {
-        assertTrue(taskInfo.getNumberOfTaskAttempts() == 1);
+        assertEquals(1, taskInfo.getNumberOfTaskAttempts());
         assertTrue(taskInfo.getMaxTaskAttemptDuration() >= 0);
         assertTrue(taskInfo.getMinTaskAttemptDuration() >= 0);
         assertTrue(taskInfo.getAvgTaskAttemptDuration() >= 0);
-        assertTrue(taskInfo.getLastTaskAttemptToFinish() != null);
-        assertTrue(taskInfo.getContainersMapping().size() > 0);
-        assertTrue(taskInfo.getSuccessfulTaskAttempts().size() > 0);
-        assertTrue(taskInfo.getFailedTaskAttempts().size() == 0);
-        assertTrue(taskInfo.getKilledTaskAttempts().size() == 0);
+        assertNotNull(taskInfo.getLastTaskAttemptToFinish());
+        assertFalse(taskInfo.getContainersMapping().isEmpty());
+        assertFalse(taskInfo.getSuccessfulTaskAttempts().isEmpty());
+        assertEquals(0, taskInfo.getFailedTaskAttempts().size());
+        assertEquals(0, taskInfo.getKilledTaskAttempts().size());
         assertTrue(taskInfo.getFinishTime() > taskInfo.getStartTime());
         List<TaskAttemptInfo> attempts = taskInfo.getTaskAttempts();
         if (vertexInfo.getVertexName().equals(TOKENIZER)) {
@@ -316,7 +318,7 @@ public class TestHistoryParser {
               lastDataEventSourceTA = item.getTaskAttemptId();
             } else {
               // all attempts should have the same last data event source TA
-              assertTrue(lastDataEventSourceTA.equals(item.getTaskAttemptId()));
+              assertEquals(lastDataEventSourceTA, item.getTaskAttemptId());
             }
           }
         }
@@ -327,20 +329,20 @@ public class TestHistoryParser {
           assertTrue(attemptInfo.getFinishTime() > attemptInfo.getStartTime());
         }
       }
-      assertTrue(vertexInfo.getLastTaskToFinish() != null);
+      assertNotNull(vertexInfo.getLastTaskToFinish());
       if (vertexInfo.getVertexName().equals(TOKENIZER)) {
-        assertTrue(vertexInfo.getInputEdges().size() == 0);
-        assertTrue(vertexInfo.getOutputEdges().size() == 1);
-        assertTrue(vertexInfo.getOutputVertices().size() == 1);
-        assertTrue(vertexInfo.getInputVertices().size() == 0);
+        assertEquals(0, vertexInfo.getInputEdges().size());
+        assertEquals(1, vertexInfo.getOutputEdges().size());
+        assertEquals(1, vertexInfo.getOutputVertices().size());
+        assertEquals(0, vertexInfo.getInputVertices().size());
       } else {
-        assertTrue(vertexInfo.getInputEdges().size() == 1);
-        assertTrue(vertexInfo.getOutputEdges().size() == 0);
-        assertTrue(vertexInfo.getOutputVertices().size() == 0);
-        assertTrue(vertexInfo.getInputVertices().size() == 1);
+        assertEquals(1, vertexInfo.getInputEdges().size());
+        assertEquals(0, vertexInfo.getOutputEdges().size());
+        assertEquals(0, vertexInfo.getOutputVertices().size());
+        assertEquals(1, vertexInfo.getInputVertices().size());
       }
     }
-    assertTrue(lastSourceTA.equals(lastDataEventSourceTA));
+    assertEquals(lastSourceTA, lastDataEventSourceTA);
   }
 
   /**
@@ -383,7 +385,7 @@ public class TestHistoryParser {
     String[] args = { "--dagId=" + dagId, "--downloadDir=" + DOWNLOAD_DIR, "--yarnTimelineAddress=" + yarnTimelineAddress };
 
     int result = ATSImportTool.process(args);
-    assertTrue(result == 0);
+    assertEquals(0, result);
 
     //Parse ATS data
     DagInfo dagInfo = getDagInfo(dagId);
@@ -395,16 +397,16 @@ public class TestHistoryParser {
 
     //Dag specific
     VertexInfo summationVertex = dagInfo.getVertex(SUMMATION);
-    assertTrue(summationVertex.getFailedTasks().size() == 1); //1 task, 4 attempts failed
-    assertTrue(summationVertex.getFailedTasks().get(0).getFailedTaskAttempts().size() == 4);
-    assertTrue(summationVertex.getStatus().equals(VertexState.FAILED.toString()));
+    assertEquals(1, summationVertex.getFailedTasks().size()); //1 task, 4 attempts failed
+    assertEquals(4, summationVertex.getFailedTasks().getFirst().getFailedTaskAttempts().size());
+    assertEquals(summationVertex.getStatus(), VertexState.FAILED.toString());
 
-    assertTrue(dagInfo.getFailedVertices().size() == 1);
-    assertTrue(dagInfo.getFailedVertices().get(0).getVertexName().equals(SUMMATION));
-    assertTrue(dagInfo.getSuccessfullVertices().size() == 1);
-    assertTrue(dagInfo.getSuccessfullVertices().get(0).getVertexName().equals(TOKENIZER));
+    assertEquals(1, dagInfo.getFailedVertices().size());
+    assertEquals(SUMMATION, dagInfo.getFailedVertices().getFirst().getVertexName());
+    assertEquals(1, dagInfo.getSuccessfullVertices().size());
+    assertEquals(TOKENIZER, dagInfo.getSuccessfullVertices().getFirst().getVertexName());
 
-    assertTrue(dagInfo.getStatus().equals(DAGState.FAILED.toString()));
+    assertEquals(dagInfo.getStatus(), DAGState.FAILED.toString());
 
     verifyCounter(dagInfo.getCounter(DAGCounter.NUM_FAILED_TASKS.toString()), null, 4);
     verifyCounter(dagInfo.getCounter(DAGCounter.NUM_SUCCEEDED_TASKS.toString()), null, 1);
@@ -425,8 +427,8 @@ public class TestHistoryParser {
       for (TaskAttemptInfo attemptInfo : taskInfo.getTaskAttempts()) {
         if (lastAttempt != null) {
           // failed attempt should be causal TA of next attempt
-          assertTrue(lastAttempt.getTaskAttemptId().equals(attemptInfo.getCreationCausalTA()));
-          assertTrue(lastAttempt.getTerminationCause() != null);
+          assertEquals(lastAttempt.getTaskAttemptId(), attemptInfo.getCreationCausalTA());
+          assertNotNull(lastAttempt.getTerminationCause());
         }
         lastAttempt = attemptInfo;
       }
@@ -453,26 +455,26 @@ public class TestHistoryParser {
   }
 
   private void isVertexEqual(VertexInfo vertexInfo1, VertexInfo vertexInfo2) {
-    assertTrue(vertexInfo1 != null);
-    assertTrue(vertexInfo2 != null);
-    assertTrue(vertexInfo1.getVertexName().equals(vertexInfo2.getVertexName()));
-    assertTrue(vertexInfo1.getProcessorClassName().equals(vertexInfo2.getProcessorClassName()));
-    assertTrue(vertexInfo1.getNumTasks() == vertexInfo2.getNumTasks());
-    assertTrue(vertexInfo1.getCompletedTasksCount() == vertexInfo2.getCompletedTasksCount());
-    assertTrue(vertexInfo1.getStatus().equals(vertexInfo2.getStatus()));
+    assertNotNull(vertexInfo1);
+    assertNotNull(vertexInfo2);
+    assertEquals(vertexInfo1.getVertexName(), vertexInfo2.getVertexName());
+    assertEquals(vertexInfo1.getProcessorClassName(), vertexInfo2.getProcessorClassName());
+    assertEquals(vertexInfo1.getNumTasks(), vertexInfo2.getNumTasks());
+    assertEquals(vertexInfo1.getCompletedTasksCount(), vertexInfo2.getCompletedTasksCount());
+    assertEquals(vertexInfo1.getStatus(), vertexInfo2.getStatus());
 
     isEdgeEqual(vertexInfo1.getInputEdges(), vertexInfo2.getInputEdges());
     isEdgeEqual(vertexInfo1.getOutputEdges(), vertexInfo2.getOutputEdges());
 
-    assertTrue(vertexInfo1.getInputVertices().size() == vertexInfo2.getInputVertices().size());
-    assertTrue(vertexInfo1.getOutputVertices().size() == vertexInfo2.getOutputVertices().size());
+    assertEquals(vertexInfo1.getInputVertices().size(), vertexInfo2.getInputVertices().size());
+    assertEquals(vertexInfo1.getOutputVertices().size(), vertexInfo2.getOutputVertices().size());
 
-    assertTrue(vertexInfo1.getNumTasks() == vertexInfo2.getNumTasks());
+    assertEquals(vertexInfo1.getNumTasks(), vertexInfo2.getNumTasks());
     isTaskEqual(vertexInfo1.getTasks(), vertexInfo2.getTasks());
   }
 
   private void isVertexEqual(List<VertexInfo> vertexList1, List<VertexInfo> vertexList2) {
-    assertTrue("Vertices sizes should be the same", vertexList1.size() == vertexList2.size());
+    assertEquals(vertexList1.size(), vertexList2.size(), "Vertices sizes should be the same");
     Iterator<VertexInfo> it1 = vertexList1.iterator();
     Iterator<VertexInfo> it2 = vertexList2.iterator();
     while (it1.hasNext()) {
@@ -484,15 +486,15 @@ public class TestHistoryParser {
   }
 
   private void isEdgeEqual(EdgeInfo edgeInfo1, EdgeInfo edgeInfo2) {
-    assertTrue(edgeInfo1 != null);
-    assertTrue(edgeInfo2 != null);
+    assertNotNull(edgeInfo1);
+    assertNotNull(edgeInfo2);
     String info1 = edgeInfo1.toString();
     String info2 = edgeInfo1.toString();
-    assertTrue(info1.equals(info2));
+    assertEquals(info1, info2);
   }
 
   private void isEdgeEqual(Collection<EdgeInfo> info1, Collection<EdgeInfo> info2) {
-    assertTrue("sizes should be the same", info1.size() == info1.size());
+    assertEquals(info1.size(), info1.size(), "sizes should be the same");
     Iterator<EdgeInfo> it1 = info1.iterator();
     Iterator<EdgeInfo> it2 = info2.iterator();
     while (it1.hasNext()) {
@@ -502,7 +504,7 @@ public class TestHistoryParser {
   }
 
   private void isTaskEqual(Collection<TaskInfo> info1, Collection<TaskInfo> info2) {
-    assertTrue("sizes should be the same", info1.size() == info1.size());
+    assertEquals(info1.size(), info1.size(), "sizes should be the same");
     Iterator<TaskInfo> it1 = info1.iterator();
     Iterator<TaskInfo> it2 = info2.iterator();
     while (it1.hasNext()) {
@@ -512,14 +514,13 @@ public class TestHistoryParser {
   }
 
   private void isTaskEqual(TaskInfo taskInfo1, TaskInfo taskInfo2) {
-    assertTrue(taskInfo1 != null);
-    assertTrue(taskInfo2 != null);
-    assertTrue(taskInfo1.getVertexInfo() != null);
-    assertTrue(taskInfo2.getVertexInfo() != null);
-    assertTrue(taskInfo1.getStatus().equals(taskInfo2.getStatus()));
-    assertTrue(
-        taskInfo1.getVertexInfo().getVertexName()
-            .equals(taskInfo2.getVertexInfo().getVertexName()));
+    assertNotNull(taskInfo1);
+    assertNotNull(taskInfo2);
+    assertNotNull(taskInfo1.getVertexInfo());
+    assertNotNull(taskInfo2.getVertexInfo());
+    assertEquals(taskInfo1.getStatus(), taskInfo2.getStatus());
+    assertEquals(taskInfo1.getVertexInfo().getVertexName(),
+        taskInfo2.getVertexInfo().getVertexName());
     isTaskAttemptEqual(taskInfo1.getTaskAttempts(), taskInfo2.getTaskAttempts());
 
     //Verify counters
@@ -556,13 +557,13 @@ public class TestHistoryParser {
 
       //check if other counter has the same value
       assertTrue(counter2.containsKey(entry.getKey()));
-      assertTrue(counter2.get(entry.getKey()).getValue() == val);
+      assertEquals(counter2.get(entry.getKey()).getValue(), val);
     }
   }
 
   private void isTaskAttemptEqual(Collection<TaskAttemptInfo> info1,
       Collection<TaskAttemptInfo> info2) {
-    assertTrue("sizes should be the same", info1.size() == info1.size());
+    assertEquals(info1.size(), info1.size(), "sizes should be the same");
     Iterator<TaskAttemptInfo> it1 = info1.iterator();
     Iterator<TaskAttemptInfo> it2 = info2.iterator();
     while (it1.hasNext()) {
@@ -572,13 +573,13 @@ public class TestHistoryParser {
   }
 
   private void isTaskAttemptEqual(TaskAttemptInfo info1, TaskAttemptInfo info2) {
-    assertTrue(info1 != null);
-    assertTrue(info2 != null);
-    assertTrue(info1.getTaskInfo() != null);
-    assertTrue(info2.getTaskInfo() != null);
-    assertTrue(info1.getStatus().equals(info2.getStatus()));
-    assertTrue(info1.getTaskInfo().getVertexInfo().getVertexName().equals(info2.getTaskInfo()
-        .getVertexInfo().getVertexName()));
+    assertNotNull(info1);
+    assertNotNull(info2);
+    assertNotNull(info1.getTaskInfo());
+    assertNotNull(info2.getTaskInfo());
+    assertEquals(info1.getStatus(), info2.getStatus());
+    assertEquals(info1.getTaskInfo().getVertexInfo().getVertexName(),
+        info2.getTaskInfo().getVertexInfo().getVertexName());
 
     //Verify counters
     isCountersSame(info1, info2);
@@ -608,7 +609,7 @@ public class TestHistoryParser {
         + Path.SEPARATOR + dagId + ".zip");
     ATSFileParser parser = new ATSFileParser(Arrays.asList(downloadedFile));
     DagInfo dagInfo = parser.getDAGData(dagId);
-    assertTrue(dagInfo.getDagId().equals(dagId));
+    assertEquals(dagInfo.getDagId(), dagId);
     return dagInfo;
   }
 
@@ -618,10 +619,10 @@ public class TestHistoryParser {
     for (Map.Entry<String, TezCounter> entry : counterMap.entrySet()) {
       if (counterGroupName != null) {
         if (entry.getKey().equals(counterGroupName)) {
-          assertTrue(entry.getValue().getValue() == expectedVal);
+          assertEquals(entry.getValue().getValue(), expectedVal);
         }
       } else {
-        assertTrue(entry.getValue().getValue() == expectedVal);
+        assertEquals(entry.getValue().getValue(), expectedVal);
       }
     }
   }
@@ -709,17 +710,17 @@ public class TestHistoryParser {
   private void verifyDagInfo(DagInfo dagInfo, boolean ats) {
     if (ats) {
       VersionInfo versionInfo = dagInfo.getVersionInfo();
-      assertTrue(versionInfo != null); //should be present post 0.5.4
-      assertTrue(versionInfo.getVersion() != null);
-      assertTrue(versionInfo.getRevision() != null);
-      assertTrue(versionInfo.getBuildTime() != null);
+      assertNotNull(versionInfo); //should be present post 0.5.4
+      assertNotNull(versionInfo.getVersion());
+      assertNotNull(versionInfo.getRevision());
+      assertNotNull(versionInfo.getBuildTime());
     }
 
-    assertTrue(dagInfo.getUserName() != null);
-    assertTrue(!dagInfo.getUserName().isEmpty());
+    assertNotNull(dagInfo.getUserName());
+    assertFalse(dagInfo.getUserName().isEmpty());
     assertTrue(dagInfo.getStartTime() > 0);
     assertTrue(dagInfo.getFinishTimeInterval() > 0);
-    assertTrue(dagInfo.getStartTimeInterval() == 0);
+    assertEquals(0, dagInfo.getStartTimeInterval());
     assertTrue(dagInfo.getStartTime() > 0);
     if (dagInfo.getStatus().equalsIgnoreCase(DAGState.SUCCEEDED.toString())) {
       assertTrue(dagInfo.getFinishTime() >= dagInfo.getStartTime());
@@ -741,15 +742,15 @@ public class TestHistoryParser {
     }
 
     VertexInfo fastestVertex = dagInfo.getFastestVertex();
-    assertTrue(fastestVertex != null);
+    assertNotNull(fastestVertex);
 
     if (dagInfo.getStatus().equals(DAGState.SUCCEEDED)) {
-      assertTrue(dagInfo.getSlowestVertex() != null);
+      assertNotNull(dagInfo.getSlowestVertex());
     }
   }
 
   private void verifyVertex(VertexInfo vertexInfo, boolean hasFailedTasks) {
-    assertTrue(vertexInfo != null);
+    assertNotNull(vertexInfo);
     if (hasFailedTasks) {
       assertTrue(vertexInfo.getFailedTasksCount() > 0);
     }
@@ -757,19 +758,19 @@ public class TestHistoryParser {
     assertTrue(vertexInfo.getStartTime() > 0);
     assertTrue(vertexInfo.getFinishTimeInterval() > 0);
     assertTrue(vertexInfo.getStartTimeInterval() < vertexInfo.getFinishTimeInterval());
-    assertTrue(vertexInfo.getVertexName() != null);
+    assertNotNull(vertexInfo.getVertexName());
     if (!hasFailedTasks) {
       assertTrue(vertexInfo.getFinishTime() > 0);
-      assertTrue(vertexInfo.getFailedTasks().size() == 0);
-      assertTrue(vertexInfo.getSucceededTasksCount() == vertexInfo.getSuccessfulTasks().size());
-      assertTrue(vertexInfo.getFailedTasksCount() == 0);
+      assertEquals(0, vertexInfo.getFailedTasks().size());
+      assertEquals(vertexInfo.getSucceededTasksCount(), vertexInfo.getSuccessfulTasks().size());
+      assertEquals(0, vertexInfo.getFailedTasksCount());
       assertTrue(vertexInfo.getAvgTaskDuration() > 0);
       assertTrue(vertexInfo.getMaxTaskDuration() > 0);
       assertTrue(vertexInfo.getMinTaskDuration() > 0);
       assertTrue(vertexInfo.getTimeTaken() > 0);
       assertTrue(vertexInfo.getStatus().equalsIgnoreCase(VertexState.SUCCEEDED.toString()));
       assertTrue(vertexInfo.getCompletedTasksCount() > 0);
-      assertTrue(vertexInfo.getFirstTaskToStart() != null);
+      assertNotNull(vertexInfo.getFirstTaskToStart());
       assertTrue(vertexInfo.getSucceededTasksCount() > 0);
       assertTrue(vertexInfo.getTasks().size() > 0);
       assertTrue(vertexInfo.getFinishTime() > vertexInfo.getStartTime());
@@ -785,30 +786,30 @@ public class TestHistoryParser {
       verifyTask(taskInfo, true);
     }
 
-    assertTrue(vertexInfo.getProcessorClassName() != null);
-    assertTrue(vertexInfo.getStatus() != null);
-    assertTrue(vertexInfo.getDagInfo() != null);
+    assertNotNull(vertexInfo.getProcessorClassName());
+    assertNotNull(vertexInfo.getStatus());
+    assertNotNull(vertexInfo.getDagInfo());
     assertTrue(vertexInfo.getInitTimeInterval() > 0);
     assertTrue(vertexInfo.getNumTasks() > 0);
   }
 
   private void verifyTask(TaskInfo taskInfo, boolean hasFailedAttempts) {
-    assertTrue(taskInfo != null);
-    assertTrue(taskInfo.getStatus() != null);
+    assertNotNull(taskInfo);
+    assertNotNull(taskInfo.getStatus());
     assertTrue(taskInfo.getStartTimeInterval() > 0);
 
     //Not testing for killed attempts. So if there are no failures, it should succeed
     if (!hasFailedAttempts) {
-      assertTrue(taskInfo.getStatus().equals(TaskState.SUCCEEDED.toString()));
+      assertEquals(taskInfo.getStatus(), TaskState.SUCCEEDED.toString());
       assertTrue(taskInfo.getFinishTimeInterval() > 0 && taskInfo.getFinishTime() > taskInfo
           .getFinishTimeInterval());
       assertTrue(
           taskInfo.getStartTimeInterval() > 0 && taskInfo.getStartTime() > taskInfo.getStartTimeInterval());
-      assertTrue(taskInfo.getSuccessfulAttemptId() != null);
-      assertTrue(taskInfo.getSuccessfulTaskAttempt() != null);
+      assertNotNull(taskInfo.getSuccessfulAttemptId());
+      assertNotNull(taskInfo.getSuccessfulTaskAttempt());
       assertTrue(taskInfo.getFinishTime() > taskInfo.getStartTime());
     }
-    assertTrue(taskInfo.getTaskId() != null);
+    assertNotNull(taskInfo.getTaskId());
 
     for (TaskAttemptInfo attemptInfo : taskInfo.getTaskAttempts()) {
       verifyTaskAttemptInfo(attemptInfo);
@@ -827,12 +828,12 @@ public class TestHistoryParser {
       assertTrue(attemptInfo.getFinishTime() > attemptInfo.getStartTime());
       assertTrue(attemptInfo.getFinishTime() > attemptInfo.getFinishTimeInterval());
       assertTrue(attemptInfo.getStartTime() > attemptInfo.getStartTimeInterval());
-      assertTrue(attemptInfo.getNodeId() != null);
+      assertNotNull(attemptInfo.getNodeId());
       assertTrue(attemptInfo.getTimeTaken() != -1);
-      assertTrue(attemptInfo.getEvents() != null);
-      assertTrue(attemptInfo.getTezCounters() != null);
-      assertTrue(attemptInfo.getContainer() != null);
+      assertNotNull(attemptInfo.getEvents());
+      assertNotNull(attemptInfo.getTezCounters());
+      assertNotNull(attemptInfo.getContainer());
     }
-    assertTrue(attemptInfo.getTaskInfo() != null);
+    assertNotNull(attemptInfo.getTaskInfo());
   }
 }

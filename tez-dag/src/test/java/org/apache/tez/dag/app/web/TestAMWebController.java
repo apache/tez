@@ -18,6 +18,10 @@
  */
 package org.apache.tez.dag.app.web;
 
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertNotNull;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.Mockito.any;
 import static org.mockito.Mockito.anyString;
 import static org.mockito.Mockito.doNothing;
@@ -38,6 +42,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import java.util.TreeMap;
+import java.util.concurrent.TimeUnit;
 
 import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
@@ -67,9 +72,9 @@ import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.Maps;
 
-import org.junit.Assert;
-import org.junit.Before;
-import org.junit.Test;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.Timeout;
 import org.mockito.ArgumentCaptor;
 import org.mockito.Captor;
 import org.mockito.MockitoAnnotations;
@@ -81,7 +86,7 @@ public class TestAMWebController {
   HttpServletRequest mockRequest;
   String[] userGroups = {};
 
-  @Before
+  @BeforeEach
   public void setup() {
     MockitoAnnotations.initMocks(this);
 
@@ -98,24 +103,20 @@ public class TestAMWebController {
   public void testEncodeHeaders() {
     String validOrigin = "http://localhost:12345";
     String encodedValidOrigin = AMWebController.encodeHeader(validOrigin);
-    Assert.assertEquals("Valid origin encoding should match exactly",
-        validOrigin, encodedValidOrigin);
+    assertEquals(validOrigin, encodedValidOrigin, "Valid origin encoding should match exactly");
 
     String httpResponseSplitOrigin = validOrigin + " \nSecondHeader: value";
-    String encodedResponseSplitOrigin =
-        AMWebController.encodeHeader(httpResponseSplitOrigin);
-    Assert.assertEquals("Http response split origin should be protected against",
-        validOrigin, encodedResponseSplitOrigin);
+    String encodedResponseSplitOrigin = AMWebController.encodeHeader(httpResponseSplitOrigin);
+    assertEquals(validOrigin, encodedResponseSplitOrigin, "Http response split origin should be protected against");
 
     // Test Origin List
     String validOriginList = "http://foo.example.com:12345 http://bar.example.com:12345";
-    String encodedValidOriginList = AMWebController
-        .encodeHeader(validOriginList);
-    Assert.assertEquals("Valid origin list encoding should match exactly",
-        validOriginList, encodedValidOriginList);
+    String encodedValidOriginList = AMWebController.encodeHeader(validOriginList);
+    assertEquals(validOriginList, encodedValidOriginList, "Valid origin list encoding should match exactly");
   }
 
-  @Test(timeout = 5000)
+  @Test
+  @Timeout(value = 5000, unit = TimeUnit.MILLISECONDS)
   public void testCorsHeadersWithOrigin() {
     AMWebController amWebController = new AMWebController(mockRequestContext, mockAppContext,
         "TEST_HISTORY_URL");
@@ -131,7 +132,8 @@ public class TestAMWebController {
     verify(mockResponse).setHeader("Access-Control-Allow-Origin", originURL);
   }
 
-  @Test(timeout = 5000)
+  @Test
+  @Timeout(value = 5000, unit = TimeUnit.MILLISECONDS)
   public void testCorsHeadersAreSet() {
     AMWebController amWebController = new AMWebController(mockRequestContext, mockAppContext,
         "TEST_HISTORY_URL");
@@ -147,7 +149,8 @@ public class TestAMWebController {
         "X-Requested-With,Content-Type,Accept,Origin");
   }
 
-  @Test (timeout = 5000)
+  @Test
+  @Timeout(value = 5000, unit = TimeUnit.MILLISECONDS)
   public void sendErrorResponseIfNoAccess() throws Exception {
     AMWebController amWebController = new AMWebController(mockRequestContext, mockAppContext,
         "TEST_HISTORY_URL");
@@ -174,7 +177,8 @@ public class TestAMWebController {
   @Captor
   ArgumentCaptor<Map<String, AMWebController.ProgressInfo>> singleResultCaptor;
 
-  @Test (timeout = 5000)
+  @Test
+  @Timeout(value = 5000, unit = TimeUnit.MILLISECONDS)
   public void testDagProgressResponse() {
     AMWebController amWebController = new AMWebController(mockRequestContext, mockAppContext,
         "TEST_HISTORY_URL");
@@ -193,14 +197,15 @@ public class TestAMWebController {
     verify(spy).renderJSON(singleResultCaptor.capture());
 
     final Map<String, AMWebController.ProgressInfo> result = singleResultCaptor.getValue();
-    Assert.assertEquals(1, result.size());
-    Assert.assertTrue(result.containsKey("dagProgress"));
+    assertEquals(1, result.size());
+    assertTrue(result.containsKey("dagProgress"));
     AMWebController.ProgressInfo progressInfo = result.get("dagProgress");
-    Assert.assertTrue("dag_1422960590892_0007_42".equals(progressInfo.getId()));
-    Assert.assertEquals(66.0, progressInfo.getProgress(), 0.1);
+    assertEquals("dag_1422960590892_0007_42", progressInfo.getId());
+    assertEquals(66.0, progressInfo.getProgress(), 0.1);
   }
 
-  @Test (timeout = 5000)
+  @Test
+  @Timeout(value = 5000, unit = TimeUnit.MILLISECONDS)
   public void testVertexProgressResponse() {
     AMWebController amWebController = new AMWebController(mockRequestContext, mockAppContext,
         "TEST_HISTORY_URL");
@@ -224,14 +229,15 @@ public class TestAMWebController {
     verify(spy).renderJSON(singleResultCaptor.capture());
 
     final Map<String, AMWebController.ProgressInfo> result = singleResultCaptor.getValue();
-    Assert.assertEquals(1, result.size());
-    Assert.assertTrue(result.containsKey("vertexProgress"));
+    assertEquals(1, result.size());
+    assertTrue(result.containsKey("vertexProgress"));
     AMWebController.ProgressInfo progressInfo = result.get("vertexProgress");
-    Assert.assertTrue("vertex_1422960590892_0007_42_43".equals(progressInfo.getId()));
-    Assert.assertEquals(66.0f, progressInfo.getProgress(), 0.1);
+    assertEquals("vertex_1422960590892_0007_42_43", progressInfo.getId());
+    assertEquals(66.0f, progressInfo.getProgress(), 0.1);
   }
 
-  @Test (timeout = 5000)
+  @Test
+  @Timeout(value = 5000, unit = TimeUnit.MILLISECONDS)
   public void testHasAccessWithAclsDisabled() {
     Configuration conf = new Configuration(false);
     conf.setBoolean(TezConfiguration.TEZ_AM_ACLS_ENABLED, false);
@@ -239,14 +245,15 @@ public class TestAMWebController {
 
     when(mockAppContext.getAMACLManager()).thenReturn(aclManager);
 
-    Assert.assertEquals(true, AMWebController._hasAccess(null, mockAppContext));
+    assertTrue(AMWebController._hasAccess(null, mockAppContext));
 
     UserGroupInformation mockUser = UserGroupInformation.createUserForTesting(
         "mockUser", userGroups);
-    Assert.assertEquals(true, AMWebController._hasAccess(mockUser, mockAppContext));
+    assertTrue(AMWebController._hasAccess(mockUser, mockAppContext));
   }
 
-  @Test (timeout = 5000)
+  @Test
+  @Timeout(value = 5000, unit = TimeUnit.MILLISECONDS)
   public void testHasAccess() {
     Configuration conf = new Configuration(false);
     conf.setBoolean(TezConfiguration.TEZ_AM_ACLS_ENABLED, true);
@@ -254,15 +261,15 @@ public class TestAMWebController {
 
     when(mockAppContext.getAMACLManager()).thenReturn(aclManager);
 
-    Assert.assertEquals(false, AMWebController._hasAccess(null, mockAppContext));
+    assertFalse(AMWebController._hasAccess(null, mockAppContext));
 
     UserGroupInformation mockUser = UserGroupInformation.createUserForTesting(
         "mockUser", userGroups);
-    Assert.assertEquals(false, AMWebController._hasAccess(mockUser, mockAppContext));
+    assertFalse(AMWebController._hasAccess(mockUser, mockAppContext));
 
     UserGroupInformation testUser = UserGroupInformation.createUserForTesting(
         "amUser", userGroups);
-    Assert.assertEquals(true, AMWebController._hasAccess(testUser, mockAppContext));
+    assertTrue(AMWebController._hasAccess(testUser, mockAppContext));
   }
 
 
@@ -272,7 +279,8 @@ public class TestAMWebController {
   ArgumentCaptor<Map<String,Object>> returnResultCaptor;
 
   @SuppressWarnings("unchecked")
-  @Test(timeout = 5000)
+  @Test
+  @Timeout(value = 5000, unit = TimeUnit.MILLISECONDS)
   public void testGetDagInfo() {
     AMWebController amWebController = new AMWebController(mockRequestContext, mockAppContext,
         "TEST_HISTORY_URL");
@@ -310,20 +318,21 @@ public class TestAMWebController {
     verify(spy).renderJSON(returnResultCaptor.capture());
 
     final Map<String, Object> result = returnResultCaptor.getValue();
-    Assert.assertEquals(1, result.size());
-    Assert.assertTrue(result.containsKey("dag"));
+    assertEquals(1, result.size());
+    assertTrue(result.containsKey("dag"));
     Map<String, String> dagInfo = (Map<String, String>) result.get("dag");
 
-    Assert.assertEquals(4, dagInfo.size());
-    Assert.assertTrue("dag_1422960590892_0007_42".equals(dagInfo.get("id")));
-    Assert.assertEquals("66.0", dagInfo.get("progress"));
-    Assert.assertEquals("RUNNING", dagInfo.get("status"));
-    Assert.assertNotNull(dagInfo.get("counters"));
+    assertEquals(4, dagInfo.size());
+    assertEquals("dag_1422960590892_0007_42", dagInfo.get("id"));
+    assertEquals("66.0", dagInfo.get("progress"));
+    assertEquals("RUNNING", dagInfo.get("status"));
+    assertNotNull(dagInfo.get("counters"));
 
   }
 
   @SuppressWarnings("unchecked")
-  @Test(timeout = 5000)
+  @Test
+  @Timeout(value = 5000, unit = TimeUnit.MILLISECONDS)
   public void testGetVerticesInfoGetAll() {
     Vertex mockVertex1 = createMockVertex("vertex_1422960590892_0007_42_00", VertexState.RUNNING,
         0.33f, 3);
@@ -332,11 +341,11 @@ public class TestAMWebController {
 
     final Map<String, Object> result = getVerticesTestHelper(0, mockVertex1, mockVertex2);
 
-    Assert.assertEquals(1, result.size());
+    assertEquals(1, result.size());
 
-    Assert.assertTrue(result.containsKey("vertices"));
+    assertTrue(result.containsKey("vertices"));
     ArrayList<Map<String, String>> verticesInfo = (ArrayList<Map<String, String>>) result.get("vertices");
-    Assert.assertEquals(2, verticesInfo.size());
+    assertEquals(2, verticesInfo.size());
 
     Map<String, String> vertex1Result = verticesInfo.get(0);
     Map<String, String> vertex2Result = verticesInfo.get(1);
@@ -346,7 +355,8 @@ public class TestAMWebController {
   }
 
   @SuppressWarnings("unchecked")
-  @Test(timeout = 5000)
+  @Test
+  @Timeout(value = 5000, unit = TimeUnit.MILLISECONDS)
   public void testGetVerticesInfoGetPartial() {
     Vertex mockVertex1 = createMockVertex("vertex_1422960590892_0007_42_00", VertexState.RUNNING,
         0.33f, 3);
@@ -355,11 +365,11 @@ public class TestAMWebController {
 
     final Map<String, Object> result = getVerticesTestHelper(1, mockVertex1, mockVertex2);
 
-    Assert.assertEquals(1, result.size());
+    assertEquals(1, result.size());
 
-    Assert.assertTrue(result.containsKey("vertices"));
+    assertTrue(result.containsKey("vertices"));
     List<Map<String, String>> verticesInfo = (List<Map<String, String>>) result.get("vertices");
-    Assert.assertEquals(1, verticesInfo.size());
+    assertEquals(1, verticesInfo.size());
 
     Map<String, String> vertex1Result = verticesInfo.get(0);
 
@@ -448,38 +458,39 @@ public class TestAMWebController {
 
   private void verifySingleVertexResult(Vertex mockVertex2, Map<String, String> vertex2Result) {
     ProgressBuilder progress;
-    Assert.assertEquals(mockVertex2.getVertexId().toString(), vertex2Result.get("id"));
-    Assert.assertEquals(mockVertex2.getState().toString(), vertex2Result.get("status"));
-    Assert.assertEquals(Float.toString(mockVertex2.getCompletedTaskProgress()), vertex2Result.get("progress"));
+    assertEquals(mockVertex2.getVertexId().toString(), vertex2Result.get("id"));
+    assertEquals(mockVertex2.getState().toString(), vertex2Result.get("status"));
+    assertEquals(Float.toString(mockVertex2.getCompletedTaskProgress()), vertex2Result.get("progress"));
     progress = mockVertex2.getVertexProgress();
-    Assert.assertEquals(Integer.toString(progress.getTotalTaskCount()),
+    assertEquals(Integer.toString(progress.getTotalTaskCount()),
         vertex2Result.get("totalTasks"));
-    Assert.assertEquals(Integer.toString(progress.getRunningTaskCount()),
+    assertEquals(Integer.toString(progress.getRunningTaskCount()),
         vertex2Result.get("runningTasks"));
-    Assert.assertEquals(Integer.toString(progress.getSucceededTaskCount()),
+    assertEquals(Integer.toString(progress.getSucceededTaskCount()),
         vertex2Result.get("succeededTasks"));
-    Assert.assertEquals(Integer.toString(progress.getKilledTaskAttemptCount()),
+    assertEquals(Integer.toString(progress.getKilledTaskAttemptCount()),
         vertex2Result.get("killedTaskAttempts"));
-    Assert.assertEquals(Integer.toString(progress.getFailedTaskAttemptCount()),
+    assertEquals(Integer.toString(progress.getFailedTaskAttemptCount()),
         vertex2Result.get("failedTaskAttempts"));
     String str0 = Long.toString(mockVertex2.getInitTime());
     String str1 = vertex2Result.get("initTime");
-    Assert.assertEquals(Long.toString(mockVertex2.getInitTime()),
+    assertEquals(Long.toString(mockVertex2.getInitTime()),
         vertex2Result.get("initTime"));
-    Assert.assertEquals(Long.toString(mockVertex2.getStartTime()),
+    assertEquals(Long.toString(mockVertex2.getStartTime()),
         vertex2Result.get("startTime"));
-    Assert.assertEquals(Long.toString(mockVertex2.getFinishTime()),
+    assertEquals(Long.toString(mockVertex2.getFinishTime()),
         vertex2Result.get("finishTime"));
-    Assert.assertEquals(Long.toString(mockVertex2.getFirstTaskStartTime()),
+    assertEquals(Long.toString(mockVertex2.getFirstTaskStartTime()),
         vertex2Result.get("firstTaskStartTime"));
-    Assert.assertEquals(Long.toString(mockVertex2.getLastTaskFinishTime()),
+    assertEquals(Long.toString(mockVertex2.getLastTaskFinishTime()),
         vertex2Result.get("lastTaskFinishTime"));
   }
 
   //-- Get Tasks Info Tests -----------------------------------------------------------------------
 
   @SuppressWarnings("unchecked")
-  @Test(timeout = 5000)
+  @Test
+  @Timeout(value = 5000, unit = TimeUnit.MILLISECONDS)
   public void testGetTasksInfoWithTaskIds() {
     List <Task> tasks = createMockTasks();
     List <Integer> vertexMinIds = Arrays.asList();
@@ -491,12 +502,12 @@ public class TestAMWebController {
     Map<String, Object> result = getTasksTestHelper(tasks, taskMinIds, vertexMinIds,
         AMWebController.MAX_QUERIED);
 
-    Assert.assertEquals(1, result.size());
-    Assert.assertTrue(result.containsKey("tasks"));
+    assertEquals(1, result.size());
+    assertTrue(result.containsKey("tasks"));
 
     ArrayList<Map<String, String>> tasksInfo = (ArrayList<Map<String, String>>) result.
         get("tasks");
-    Assert.assertEquals(3, tasksInfo.size());
+    assertEquals(3, tasksInfo.size());
 
     verifySingleTaskResult(tasks.get(0), tasksInfo.get(0));
     verifySingleTaskResult(tasks.get(3), tasksInfo.get(1));
@@ -505,18 +516,19 @@ public class TestAMWebController {
     // With limit
     result = getTasksTestHelper(tasks, taskMinIds, vertexMinIds, 2);
 
-    Assert.assertEquals(1, result.size());
-    Assert.assertTrue(result.containsKey("tasks"));
+    assertEquals(1, result.size());
+    assertTrue(result.containsKey("tasks"));
 
     tasksInfo = (ArrayList<Map<String, String>>) result.get("tasks");
-    Assert.assertEquals(2, tasksInfo.size());
+    assertEquals(2, tasksInfo.size());
 
     verifySingleTaskResult(tasks.get(0), tasksInfo.get(0));
     verifySingleTaskResult(tasks.get(3), tasksInfo.get(1));
   }
 
   @SuppressWarnings("unchecked")
-  @Test(timeout = 5000)
+  @Test
+  @Timeout(value = 5000, unit = TimeUnit.MILLISECONDS)
   public void testGetTasksInfoGracefulTaskFetch() {
     List <Task> tasks = createMockTasks();
     List <Integer> vertexMinIds = Arrays.asList();
@@ -528,19 +540,20 @@ public class TestAMWebController {
     Map<String, Object> result = getTasksTestHelper(tasks, taskMinIds, vertexMinIds,
         AMWebController.MAX_QUERIED);
 
-    Assert.assertEquals(1, result.size());
-    Assert.assertTrue(result.containsKey("tasks"));
+    assertEquals(1, result.size());
+    assertTrue(result.containsKey("tasks"));
 
     ArrayList<Map<String, String>> tasksInfo = (ArrayList<Map<String, String>>) result.
         get("tasks");
-    Assert.assertEquals(2, tasksInfo.size());
+    assertEquals(2, tasksInfo.size());
 
     verifySingleTaskResult(tasks.get(0), tasksInfo.get(0));
     verifySingleTaskResult(tasks.get(1), tasksInfo.get(1));
   }
 
   @SuppressWarnings("unchecked")
-  @Test(timeout = 5000)
+  @Test
+  @Timeout(value = 5000, unit = TimeUnit.MILLISECONDS)
   public void testGetTasksInfoWithVertexId() {
     List <Task> tasks = createMockTasks();
     List <Integer> vertexMinIds = Arrays.asList(0);
@@ -549,12 +562,12 @@ public class TestAMWebController {
     Map<String, Object> result = getTasksTestHelper(tasks, taskMinIds, vertexMinIds,
         AMWebController.MAX_QUERIED);
 
-    Assert.assertEquals(1, result.size());
-    Assert.assertTrue(result.containsKey("tasks"));
+    assertEquals(1, result.size());
+    assertTrue(result.containsKey("tasks"));
 
     ArrayList<Map<String, String>> tasksInfo = (ArrayList<Map<String, String>>) result.
         get("tasks");
-    Assert.assertEquals(4, tasksInfo.size());
+    assertEquals(4, tasksInfo.size());
 
     sortMapList(tasksInfo, "id");
     verifySingleTaskResult(tasks.get(0), tasksInfo.get(0));
@@ -565,15 +578,16 @@ public class TestAMWebController {
     // With limit
     result = getTasksTestHelper(tasks, taskMinIds, vertexMinIds, 2);
 
-    Assert.assertEquals(1, result.size());
-    Assert.assertTrue(result.containsKey("tasks"));
+    assertEquals(1, result.size());
+    assertTrue(result.containsKey("tasks"));
 
     tasksInfo = (ArrayList<Map<String, String>>) result.get("tasks");
-    Assert.assertEquals(2, tasksInfo.size());
+    assertEquals(2, tasksInfo.size());
   }
 
   @SuppressWarnings("unchecked")
-  @Test(timeout = 5000)
+  @Test
+  @Timeout(value = 5000, unit = TimeUnit.MILLISECONDS)
   public void testGetTasksInfoWithJustDAGId() {
     List <Task> tasks = createMockTasks();
     List <Integer> vertexMinIds = Arrays.asList();
@@ -582,12 +596,12 @@ public class TestAMWebController {
     Map<String, Object> result = getTasksTestHelper(tasks, taskMinIds, vertexMinIds,
         AMWebController.MAX_QUERIED);
 
-    Assert.assertEquals(1, result.size());
-    Assert.assertTrue(result.containsKey("tasks"));
+    assertEquals(1, result.size());
+    assertTrue(result.containsKey("tasks"));
 
     ArrayList<Map<String, String>> tasksInfo = (ArrayList<Map<String, String>>) result.
         get("tasks");
-    Assert.assertEquals(4, tasksInfo.size());
+    assertEquals(4, tasksInfo.size());
 
     sortMapList(tasksInfo, "id");
     verifySingleTaskResult(tasks.get(0), tasksInfo.get(0));
@@ -598,11 +612,11 @@ public class TestAMWebController {
     // With limit
     result = getTasksTestHelper(tasks, taskMinIds, vertexMinIds, 2);
 
-    Assert.assertEquals(1, result.size());
-    Assert.assertTrue(result.containsKey("tasks"));
+    assertEquals(1, result.size());
+    assertTrue(result.containsKey("tasks"));
 
     tasksInfo = (ArrayList<Map<String, String>>) result.get("tasks");
-    Assert.assertEquals(2, tasksInfo.size());
+    assertEquals(2, tasksInfo.size());
   }
 
   private void sortMapList(ArrayList<Map<String, String>> list, String propertyName) {
@@ -712,16 +726,17 @@ public class TestAMWebController {
   }
 
   private void verifySingleTaskResult(Task mockTask, Map<String, String> taskResult) {
-    Assert.assertEquals(3, taskResult.size());
-    Assert.assertEquals(mockTask.getTaskID().toString(), taskResult.get("id"));
-    Assert.assertEquals(mockTask.getState().toString(), taskResult.get("status"));
-    Assert.assertEquals(Float.toString(mockTask.getProgress()), taskResult.get("progress"));
+    assertEquals(3, taskResult.size());
+    assertEquals(mockTask.getTaskID().toString(), taskResult.get("id"));
+    assertEquals(mockTask.getState().toString(), taskResult.get("status"));
+    assertEquals(Float.toString(mockTask.getProgress()), taskResult.get("progress"));
   }
 
   //-- Get Attempts Info Tests -----------------------------------------------------------------------
 
   @SuppressWarnings("unchecked")
-  @Test(timeout = 5000)
+  @Test
+  @Timeout(value = 5000, unit = TimeUnit.MILLISECONDS)
   public void testGetAttemptsInfoWithIds() {
     List <TaskAttempt> attempts = createMockAttempts();
     List <Integer> vertexMinIds = Arrays.asList();
@@ -735,12 +750,12 @@ public class TestAMWebController {
     Map<String, Object> result = getAttemptsTestHelper(attempts, attemptMinIds, vertexMinIds,
         taskMinIds, AMWebController.MAX_QUERIED);
 
-    Assert.assertEquals(1, result.size());
-    Assert.assertTrue(result.containsKey("attempts"));
+    assertEquals(1, result.size());
+    assertTrue(result.containsKey("attempts"));
 
     ArrayList<Map<String, String>> attemptsInfo = (ArrayList<Map<String, String>>) result.
         get("attempts");
-    Assert.assertEquals(4, attemptsInfo.size());
+    assertEquals(4, attemptsInfo.size());
 
     verifySingleAttemptResult(attempts.get(0), attemptsInfo.get(0));
     verifySingleAttemptResult(attempts.get(1), attemptsInfo.get(1));
@@ -750,11 +765,11 @@ public class TestAMWebController {
     // With limit
     result = getAttemptsTestHelper(attempts, attemptMinIds, vertexMinIds, taskMinIds, 2);
 
-    Assert.assertEquals(1, result.size());
-    Assert.assertTrue(result.containsKey("attempts"));
+    assertEquals(1, result.size());
+    assertTrue(result.containsKey("attempts"));
 
     attemptsInfo = (ArrayList<Map<String, String>>) result.get("attempts");
-    Assert.assertEquals(2, attemptsInfo.size());
+    assertEquals(2, attemptsInfo.size());
 
     verifySingleAttemptResult(attempts.get(0), attemptsInfo.get(0));
     verifySingleAttemptResult(attempts.get(1), attemptsInfo.get(1));
@@ -859,10 +874,10 @@ public class TestAMWebController {
   }
 
   private void verifySingleAttemptResult(TaskAttempt mockTask, Map<String, String> taskResult) {
-    Assert.assertEquals(3, taskResult.size());
-    Assert.assertEquals(mockTask.getTaskAttemptID().toString(), taskResult.get("id"));
-    Assert.assertEquals(mockTask.getState().toString(), taskResult.get("status"));
-    Assert.assertEquals(Float.toString(mockTask.getProgress()), taskResult.get("progress"));
+    assertEquals(3, taskResult.size());
+    assertEquals(mockTask.getTaskAttemptID().toString(), taskResult.get("id"));
+    assertEquals(mockTask.getState().toString(), taskResult.get("status"));
+    assertEquals(Float.toString(mockTask.getProgress()), taskResult.get("progress"));
   }
 
 }

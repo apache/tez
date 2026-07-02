@@ -18,18 +18,22 @@
  */
 package org.apache.tez.runtime.library.cartesianproduct;
 
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertFalse;
-import static org.junit.Assert.assertTrue;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertTrue;
+
+import java.util.concurrent.TimeUnit;
 
 import org.apache.tez.runtime.library.utils.Grouper;
 
-import org.junit.Test;
+import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.Timeout;
 
 public class TestGrouper {
   private Grouper grouper = new Grouper();
 
-  @Test(timeout = 5000)
+  @Test
+  @Timeout(value = 5000, unit = TimeUnit.MILLISECONDS)
   public void testEvenlyGrouping() {
     grouper.init(4, 2);
     assertEquals(0, grouper.getFirstItemInGroup(0));
@@ -44,7 +48,8 @@ public class TestGrouper {
     assertFalse(grouper.isInGroup(2, 0));
   }
 
-  @Test(timeout = 5000)
+  @Test
+  @Timeout(value = 5000, unit = TimeUnit.MILLISECONDS)
   public void testUnevenlyGrouping() {
     grouper.init(5, 2);
     assertEquals(0, grouper.getFirstItemInGroup(0));
@@ -59,7 +64,8 @@ public class TestGrouper {
     assertFalse(grouper.isInGroup(3, 0));
   }
 
-  @Test(timeout = 5000)
+  @Test
+  @Timeout(value = 5000, unit = TimeUnit.MILLISECONDS)
   public void testSingleGroup() {
     grouper.init(4, 1);
     assertEquals(0, grouper.getFirstItemInGroup(0));
@@ -70,7 +76,8 @@ public class TestGrouper {
     assertTrue(grouper.isInGroup(3, 0));
   }
 
-  @Test(timeout = 5000)
+  @Test
+  @Timeout(value = 5000, unit = TimeUnit.MILLISECONDS)
   public void testNoGrouping() {
     grouper.init(2, 2);
     assertEquals(0, grouper.getFirstItemInGroup(0));

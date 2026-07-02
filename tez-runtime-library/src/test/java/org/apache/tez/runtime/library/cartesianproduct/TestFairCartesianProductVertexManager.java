@@ -19,9 +19,9 @@
 package org.apache.tez.runtime.library.cartesianproduct;
 
 import static org.apache.tez.dag.api.EdgeProperty.DataMovementType.BROADCAST;
-import static org.junit.Assert.assertArrayEquals;
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertArrayEquals;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.mockito.Mockito.any;
 import static org.mockito.Mockito.anyInt;
 import static org.mockito.Mockito.anyMap;
@@ -37,6 +37,7 @@ import java.util.Arrays;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.concurrent.TimeUnit;
 
 import org.apache.tez.dag.api.EdgeManagerPluginDescriptor;
 import org.apache.tez.dag.api.EdgeProperty;
@@ -58,8 +59,9 @@ import com.google.common.primitives.Ints;
 import com.google.protobuf.ByteString;
 import com.google.protobuf.InvalidProtocolBufferException;
 
-import org.junit.Before;
-import org.junit.Test;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.Timeout;
 import org.mockito.ArgumentCaptor;
 import org.mockito.Captor;
 import org.mockito.MockitoAnnotations;
@@ -72,7 +74,7 @@ public class TestFairCartesianProductVertexManager {
   private FairCartesianProductVertexManager vertexManager;
   private VertexManagerPluginContext ctx;
 
-  @Before
+  @BeforeEach
   public void setup() {
     MockitoAnnotations.openMocks(this);
     ctx = mock(VertexManagerPluginContext.class);
@@ -218,7 +220,8 @@ public class TestFairCartesianProductVertexManager {
     }
   }
 
-  @Test(timeout = 5000)
+  @Test
+  @Timeout(value = 5000, unit = TimeUnit.MILLISECONDS)
   public void testDAGVertexOnlyGroupByMaxParallelism() throws Exception {
     setupDAGVertexOnly(30, 1, 30, 1);
     vertexManager.onVertexStateUpdated(new VertexStateUpdate("v0", VertexState.CONFIGURED));
@@ -246,7 +249,8 @@ public class TestFairCartesianProductVertexManager {
     verifyScheduleRequest(2, 12, 13, 18, 19, 24, 25);
   }
 
-  @Test(timeout = 5000)
+  @Test
+  @Timeout(value = 5000, unit = TimeUnit.MILLISECONDS)
   public void testDAGVertexOnlyGroupByMinOpsPerWorker() throws Exception {
     setupDAGVertexOnly(100, 10000, 10, 10);
     vertexManager.onVertexStateUpdated(new VertexStateUpdate("v0", VertexState.CONFIGURED));
@@ -278,7 +282,8 @@ public class TestFairCartesianProductVertexManager {
     verifyScheduleRequest(1, 1);
   }
 
-  @Test(timeout = 5000)
+  @Test
+  @Timeout(value = 5000, unit = TimeUnit.MILLISECONDS)
   public void testDAGVertexGroup() throws Exception {
     setupDAGVertexGroup(100, 1, 1);
 
@@ -310,7 +315,8 @@ public class TestFairCartesianProductVertexManager {
     verifyScheduleRequest(2, 1, 6, 11, 16, 21, 26, 31, 36, 41, 46);
   }
 
-  @Test(timeout = 5000)
+  @Test
+  @Timeout(value = 5000, unit = TimeUnit.MILLISECONDS)
   public void testDAGVertexGroupOnly() throws Exception {
     setupDAGVertexGroupOnly(100, 1, 1);
 
@@ -345,7 +351,8 @@ public class TestFairCartesianProductVertexManager {
     verifyScheduleRequest(1, 3, 13, 23);
   }
 
-  @Test(timeout = 5000)
+  @Test
+  @Timeout(value = 5000, unit = TimeUnit.MILLISECONDS)
   public void testSchedulingVertexOnlyWithBroadcast() throws Exception {
     setupDAGVertexOnlyWithBroadcast(30, 1, 1);
     vertexManager.onVertexStateUpdated(new VertexStateUpdate("v0", VertexState.CONFIGURED));
@@ -366,7 +373,8 @@ public class TestFairCartesianProductVertexManager {
   }
 
 
-  @Test(timeout = 5000)
+  @Test
+  @Timeout(value = 5000, unit = TimeUnit.MILLISECONDS)
   public void testOnVertexStart() throws Exception {
     setupDAGVertexOnly(6, 1, 6, 1);
     vertexManager.onVertexStateUpdated(new VertexStateUpdate("v0", VertexState.CONFIGURED));
@@ -380,7 +388,8 @@ public class TestFairCartesianProductVertexManager {
     verifyScheduleRequest(1, 0);
   }
 
-  @Test(timeout = 5000)
+  @Test
+  @Timeout(value = 5000, unit = TimeUnit.MILLISECONDS)
   public void testZeroSrcTask() throws Exception {
     ctx = mock(VertexManagerPluginContext.class);
     vertexManager = new FairCartesianProductVertexManager(ctx);
@@ -420,7 +429,8 @@ public class TestFairCartesianProductVertexManager {
     vertexManager.onVertexStateUpdated(new VertexStateUpdate("v0", VertexState.CONFIGURED));
     vertexManager.onVertexStateUpdated(new VertexStateUpdate("v1", VertexState.CONFIGURED));
   }
-  @Test(timeout = 5000)
+  @Test
+  @Timeout(value = 5000, unit = TimeUnit.MILLISECONDS)
   public void testGroupingFraction() throws Exception {
     setupGroupingFractionTest();
     vertexManager.onVertexManagerEventReceived(getVMEvent(10000, "v0", 0));
@@ -439,7 +449,8 @@ public class TestFairCartesianProductVertexManager {
         eq(24), any(), edgePropertiesCaptor.capture());
   }
 
-  @Test(timeout = 5000)
+  @Test
+  @Timeout(value = 5000, unit = TimeUnit.MILLISECONDS)
   public void testGroupFractionWithZeroStats() throws Exception {
     setupGroupingFractionTest();
 
@@ -453,7 +464,8 @@ public class TestFairCartesianProductVertexManager {
         anyInt(), any(), anyMap());
   }
 
-  @Test(timeout = 5000)
+  @Test
+  @Timeout(value = 5000, unit = TimeUnit.MILLISECONDS)
   public void testGroupingFractionWithZeroOutput() throws Exception {
     setupGroupingFractionTest();
 
@@ -467,7 +479,8 @@ public class TestFairCartesianProductVertexManager {
         eq(0), any(), edgePropertiesCaptor.capture());
   }
 
-  @Test(timeout = 5000)
+  @Test
+  @Timeout(value = 5000, unit = TimeUnit.MILLISECONDS)
   public void testZeroSrcOutput() throws Exception {
     setupDAGVertexOnly(10, 1, 10, 1);
     vertexManager.onVertexStateUpdated(new VertexStateUpdate("v0", VertexState.CONFIGURED));
@@ -481,7 +494,8 @@ public class TestFairCartesianProductVertexManager {
         eq(0), any(), edgePropertiesCaptor.capture());
   }
 
-  @Test(timeout = 5000)
+  @Test
+  @Timeout(value = 5000, unit = TimeUnit.MILLISECONDS)
   public void testDisableGrouping() throws Exception {
     when(ctx.getInputVertexEdgeProperties()).thenReturn(getEdgePropertyMap(2));
     setSrcParallelism(ctx, 1, 2, 3);
@@ -500,7 +514,8 @@ public class TestFairCartesianProductVertexManager {
         eq(6), any(), edgePropertiesCaptor.capture());
   }
 
-  @Test(timeout = 5000)
+  @Test
+  @Timeout(value = 5000, unit = TimeUnit.MILLISECONDS)
   public void testParallelismTwoSkewedSource() throws Exception {
     setupDAGVertexOnly(100, 10000, 10, 10);
     vertexManager.onVertexStateUpdated(new VertexStateUpdate("v0", VertexState.CONFIGURED));
@@ -519,7 +534,8 @@ public class TestFairCartesianProductVertexManager {
       new int[]{99, 1}, 100);
   }
 
-  @Test(timeout = 5000)
+  @Test
+  @Timeout(value = 5000, unit = TimeUnit.MILLISECONDS)
   public void testParallelismThreeSkewedSource() throws Exception {
     when(ctx.getInputVertexEdgeProperties()).thenReturn(getEdgePropertyMap(3));
     setSrcParallelism(ctx, 10, 2, 3, 4);

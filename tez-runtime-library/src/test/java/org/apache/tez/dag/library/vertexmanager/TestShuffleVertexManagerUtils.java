@@ -18,7 +18,6 @@
  */
 package org.apache.tez.dag.library.vertexmanager;
 
-
 import static org.mockito.Mockito.any;
 import static org.mockito.Mockito.anyInt;
 import static org.mockito.Mockito.anyList;

@@ -18,12 +18,11 @@
  */
 package org.apache.tez.client.registry.zookeeper;
 
-
 import static org.apache.tez.frameworkplugins.FrameworkMode.STANDALONE_ZOOKEEPER;
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertFalse;
-import static org.junit.Assert.assertNotNull;
-import static org.junit.Assert.assertTrue;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertNotNull;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import java.io.File;
 import java.util.List;
@@ -46,9 +45,11 @@ import org.apache.tez.dag.app.DAGAppMaster;
 import org.apache.tez.dag.app.LocalNodeContext;
 import org.apache.tez.dag.app.MockDAGAppMaster;
 
-import org.junit.After;
-import org.junit.Before;
-import org.junit.Test;
+import org.junit.jupiter.api.AfterAll;
+import org.junit.jupiter.api.AfterEach;
+import org.junit.jupiter.api.BeforeAll;
+import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.Timeout;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -73,7 +74,7 @@ public class TestZkAMRegistryClient {
    * Embedded ZooKeeper server for testing. Uses Apache Curator's {@link TestingServer}
    * to provide an in-memory ZooKeeper instance.
    */
-  private TestingServer zkServer;
+  private static TestingServer zkServer;
 
   /**
    * ZooKeeper-based AM registry client used to discover and retrieve AM records.
@@ -85,19 +86,23 @@ public class TestZkAMRegistryClient {
    */
   private DAGAppMaster dagAppMaster;
 
-  @Before
-  public void setup() throws Exception {
+  @BeforeAll
+  public static void setup() throws Exception {
     zkServer = new TestingServer();
     zkServer.start();
     LOG.info("Started ZooKeeper test server on port: {}", zkServer.getPort());
   }
 
-  @After
-  public void teardown() throws Exception {
+  @AfterEach
+  public void teardownEach() throws Exception {
     if (dagAppMaster != null) {
       dagAppMaster.stop();
     }
     IOUtils.closeQuietly(registryClient);
+  }
+
+  @AfterAll
+  public static void teardown() throws Exception {
     IOUtils.closeQuietly(zkServer);
   }
 
@@ -122,7 +127,8 @@ public class TestZkAMRegistryClient {
    *
    * @throws Exception if any part of the test fails
    */
-  @Test(timeout = 10000)
+  @Test
+  @Timeout(value = 10000, unit = TimeUnit.MILLISECONDS)
   public void testZkAmRegistryDiscovery() throws Exception {
     TezConfiguration tezConf = getTezConfForZkDiscovery();
 
@@ -153,33 +159,34 @@ public class TestZkAMRegistryClient {
     registryClient.start();
 
     String workingDir = TEST_DIR.toString();
-    String[] localDirs = new String[]{TEST_DIR.toString()};
-    String[] logDirs = new String[]{TEST_DIR + "/logs"};
+    String[] localDirs = new String[] {TEST_DIR.toString()};
+    String[] logDirs = new String[] {TEST_DIR + "/logs"};
     String jobUserName = UserGroupInformation.getCurrentUser().getShortUserName();
 
-    dagAppMaster = new MockDAGAppMaster(attemptId, containerId, SystemClock.getInstance(),
-        System.currentTimeMillis(), true, workingDir, localDirs, logDirs, new AtomicBoolean(true), false, false,
-        new Credentials(), jobUserName, 1, 1, new LocalNodeContext("localhost", 0, 0));
+    dagAppMaster =
+        new MockDAGAppMaster(attemptId, containerId, SystemClock.getInstance(), System.currentTimeMillis(), true,
+            workingDir, localDirs, logDirs, new AtomicBoolean(true), false, false, new Credentials(), jobUserName, 1, 1,
+            new LocalNodeContext("localhost", 0, 0));
 
     dagAppMaster.init(tezConf);
     dagAppMaster.start();
 
     // Wait for AM to be registered in ZooKeeper
     boolean registered = amRegisteredLatch.await(30, TimeUnit.SECONDS);
-    assertTrue("AM was not registered in ZooKeeper within timeout", registered);
-    assertTrue("AM was not discovered by registry client", amDiscovered.get());
+    assertTrue(registered, "AM was not registered in ZooKeeper within timeout");
+    assertTrue(amDiscovered.get(), "AM was not discovered by registry client");
 
     // Verify the AM record is available through the registry client
     AMRecord amRecord = registryClient.getRecord(appId);
-    assertNotNull("AM record should be retrievable from registry", amRecord);
-    assertEquals("Application ID should match", appId, amRecord.getApplicationId());
-    assertNotNull("Host should be set", amRecord.getHostName());
-    assertTrue("Port should be positive", amRecord.getPort() > 0);
+    assertNotNull(amRecord, "AM record should be retrievable from registry");
+    assertEquals(appId, amRecord.getApplicationId(), "Application ID should match");
+    assertNotNull(amRecord.getHostName(), "Host should be set");
+    assertTrue(amRecord.getPort() > 0, "Port should be positive");
 
     // Verify getAllRecords also returns the AM
     List<AMRecord> allRecords = registryClient.getAllRecords();
-    assertNotNull("getAllRecords should not return null", allRecords);
-    assertFalse("getAllRecords should contain at least one record", allRecords.isEmpty());
+    assertNotNull(allRecords, "getAllRecords should not return null");
+    assertFalse(allRecords.isEmpty(), "getAllRecords should contain at least one record");
 
     boolean found = false;
     for (AMRecord record : allRecords) {
@@ -188,7 +195,7 @@ public class TestZkAMRegistryClient {
         break;
       }
     }
-    assertTrue("AM record should be in getAllRecords", found);
+    assertTrue(found, "AM record should be in getAllRecords");
   }
 
   private TezConfiguration getTezConfForZkDiscovery() {

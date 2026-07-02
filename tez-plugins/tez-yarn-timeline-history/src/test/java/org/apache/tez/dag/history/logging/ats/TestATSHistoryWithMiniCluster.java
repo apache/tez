@@ -18,8 +18,13 @@
  */
 package org.apache.tez.dag.history.logging.ats;
 
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertNotNull;
+import static org.junit.jupiter.api.Assertions.assertTrue;
+
 import java.io.IOException;
 import java.util.Random;
+import java.util.concurrent.TimeUnit;
 
 import javax.ws.rs.client.Client;
 import javax.ws.rs.client.ClientBuilder;
@@ -44,10 +49,10 @@ import org.apache.tez.runtime.library.processor.SleepProcessor;
 import org.apache.tez.runtime.library.processor.SleepProcessor.SleepProcessorConfig;
 import org.apache.tez.tests.MiniTezClusterWithTimeline;
 
-import org.junit.AfterClass;
-import org.junit.Assert;
-import org.junit.BeforeClass;
-import org.junit.Test;
+import org.junit.jupiter.api.AfterAll;
+import org.junit.jupiter.api.BeforeAll;
+import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.Timeout;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -66,7 +71,7 @@ public class TestATSHistoryWithMiniCluster {
   private static String TEST_ROOT_DIR = "target" + Path.SEPARATOR
       + TestATSHistoryWithMiniCluster.class.getName() + "-tmpDir";
 
-  @BeforeClass
+  @BeforeAll
   public static void setup() throws IOException {
     try {
       conf.set(MiniDFSCluster.HDFS_MINIDFS_BASEDIR, TEST_ROOT_DIR);
@@ -99,7 +104,7 @@ public class TestATSHistoryWithMiniCluster {
     }
   }
 
-  @AfterClass
+  @AfterAll
   public static void tearDown() throws InterruptedException {
     LOG.info("Shutdown invoked");
     Thread.sleep(10000);
@@ -120,17 +125,18 @@ public class TestATSHistoryWithMiniCluster {
 
     Response response = target.request(MediaType.APPLICATION_JSON)
         .get();
-    Assert.assertEquals(200, response.getStatus());
-    Assert.assertTrue(MediaType.APPLICATION_JSON_TYPE.isCompatible(response.getMediaType()));
+    assertEquals(200, response.getStatus());
+    assertTrue(MediaType.APPLICATION_JSON_TYPE.isCompatible(response.getMediaType()));
 
     K entity = response.readEntity(clazz);
-    Assert.assertNotNull(entity);
+    assertNotNull(entity);
     response.close();
     client.close();
     return entity;
   }
 
-  @Test (timeout=50000)
+  @Test
+  @Timeout(value = 50000, unit = TimeUnit.MILLISECONDS)
   public void testDisabledACls() throws Exception {
     TezClient tezSession = null;
     try {
@@ -163,7 +169,7 @@ public class TestATSHistoryWithMiniCluster {
         Thread.sleep(500l);
         dagStatus = dagClient.getDAGStatus(null);
       }
-      Assert.assertEquals(DAGStatus.State.SUCCEEDED, dagStatus.getState());
+      assertEquals(DAGStatus.State.SUCCEEDED, dagStatus.getState());
     } finally {
       if (tezSession != null) {
         tezSession.stop();

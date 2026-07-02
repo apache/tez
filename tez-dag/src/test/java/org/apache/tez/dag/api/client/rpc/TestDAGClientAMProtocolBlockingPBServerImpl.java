@@ -18,9 +18,9 @@
  */
 package org.apache.tez.dag.api.client.rpc;
 
-import static junit.framework.TestCase.assertEquals;
-import static org.junit.Assert.assertArrayEquals;
-import static org.junit.Assert.assertTrue;
+import static org.junit.jupiter.api.Assertions.assertArrayEquals;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.Mockito.any;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.spy;
@@ -33,6 +33,7 @@ import java.nio.ByteBuffer;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.Random;
+import java.util.concurrent.TimeUnit;
 
 import org.apache.hadoop.fs.CommonConfigurationKeys;
 import org.apache.hadoop.fs.FileSystem;
@@ -52,32 +53,33 @@ import org.apache.tez.dag.api.client.DAGClientHandler;
 import org.apache.tez.dag.api.client.rpc.DAGClientAMProtocolRPC.SubmitDAGRequestProto;
 import org.apache.tez.dag.api.records.DAGProtos.DAGPlan;
 
-import org.junit.Before;
-import org.junit.Rule;
-import org.junit.Test;
-import org.junit.rules.TemporaryFolder;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.Timeout;
+import org.junit.jupiter.api.io.TempDir;
 import org.mockito.ArgumentCaptor;
 import org.mockito.Captor;
 import org.mockito.MockitoAnnotations;
 
 public class TestDAGClientAMProtocolBlockingPBServerImpl {
-  @Rule
-  public TemporaryFolder tmpFolder = new TemporaryFolder(new File("target"));
+  @TempDir
+  public java.nio.file.Path tmpFolder;
 
   @Captor
   private ArgumentCaptor<Map<String, LocalResource>> localResourcesCaptor;
 
-  @Before
+  @BeforeEach
   public void init() {
     MockitoAnnotations.initMocks(this);
   }
 
-  @Test(timeout = 100000)
+  @Test
+  @Timeout(value = 100000, unit = TimeUnit.MILLISECONDS)
   @SuppressWarnings("unchecked")
   public void testSubmitDagInSessionWithLargeDagPlan() throws Exception {
     int maxIPCMsgSize = 1024;
     String dagPlanName = "DAG-testSubmitDagInSessionWithLargeDagPlan";
-    File requestFile = tmpFolder.newFile("request-file");
+    File requestFile = java.nio.file.Files.createFile(tmpFolder.resolve("request-file")).toFile();
     TezConfiguration conf = new TezConfiguration();
     conf.setInt(CommonConfigurationKeys.IPC_MAXIMUM_DATA_LENGTH, maxIPCMsgSize);
 

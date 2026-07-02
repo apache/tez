@@ -17,10 +17,14 @@
  * under the License.
  */
 package org.apache.tez.dag.history.logging.impl;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertNotNull;
+import static org.junit.jupiter.api.Assertions.fail;
 
 import java.util.HashMap;
 import java.util.Map;
 import java.util.Random;
+import java.util.concurrent.TimeUnit;
 
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.yarn.api.records.ApplicationAttemptId;
@@ -75,9 +79,9 @@ import org.apache.tez.dag.records.TezVertexID;
 import org.codehaus.jettison.json.JSONArray;
 import org.codehaus.jettison.json.JSONException;
 import org.codehaus.jettison.json.JSONObject;
-import org.junit.Assert;
-import org.junit.Before;
-import org.junit.Test;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.Timeout;
 
 public class TestHistoryEventJsonConversion {
 
@@ -94,7 +98,7 @@ public class TestHistoryEventJsonConversion {
   private NodeId nodeId;
 
   @SuppressWarnings("deprecation")
-  @Before
+  @BeforeEach
   public void setup() {
     applicationId = ApplicationId.newInstance(9999l, 1);
     applicationAttemptId = ApplicationAttemptId.newInstance(applicationId, 1);
@@ -107,7 +111,8 @@ public class TestHistoryEventJsonConversion {
     nodeId = NodeId.newInstance("node", 13435);
   }
 
-  @Test(timeout = 5000)
+  @Test
+  @Timeout(value = 5000, unit = TimeUnit.MILLISECONDS)
   public void testHandlerExists() throws JSONException {
     for (HistoryEventType eventType : HistoryEventType.values()) {
       HistoryEvent event = null;
@@ -196,7 +201,7 @@ public class TestHistoryEventJsonConversion {
           event = new DAGKillRequestEvent();
           break;
         default:
-          Assert.fail("Unhandled event type " + eventType);
+          fail("Unhandled event type " + eventType);
       }
       if (event == null || !event.isHistoryEvent()) {
         continue;
@@ -204,18 +209,19 @@ public class TestHistoryEventJsonConversion {
       JSONObject json = HistoryEventJsonConversion.convertToJson(event);
       if (eventType == HistoryEventType.DAG_SUBMITTED) {
         try {
-          Assert.assertEquals("Q_" + eventType.name(), json.getJSONObject(ATSConstants.OTHER_INFO)
-              .getString(ATSConstants.DAG_QUEUE_NAME));
-          Assert.assertEquals("Q_" + eventType.name(), json
-              .getJSONObject(ATSConstants.PRIMARY_FILTERS).getString(ATSConstants.DAG_QUEUE_NAME));
+          assertEquals("Q_" + eventType.name(),
+              json.getJSONObject(ATSConstants.OTHER_INFO).getString(ATSConstants.DAG_QUEUE_NAME));
+          assertEquals("Q_" + eventType.name(),
+              json.getJSONObject(ATSConstants.PRIMARY_FILTERS).getString(ATSConstants.DAG_QUEUE_NAME));
         } catch (JSONException ex) {
-          Assert.fail("Exception: " + ex.getMessage() + " for type: " + eventType);
+          fail("Exception: " + ex.getMessage() + " for type: " + eventType);
         }
       }
     }
   }
 
-  @Test(timeout = 5000)
+  @Test
+  @Timeout(value = 5000, unit = TimeUnit.MILLISECONDS)
   public void testConvertVertexReconfigureDoneEvent() throws JSONException {
     TezVertexID vId = TezVertexID.getInstance(
         TezDAGID.getInstance(
@@ -230,32 +236,27 @@ public class TestHistoryEventJsonConversion {
         edgeMgrs, null, true);
 
     JSONObject jsonObject = HistoryEventJsonConversion.convertToJson(event);
-    Assert.assertNotNull(jsonObject);
-    Assert.assertEquals(vId.toString(), jsonObject.getString(ATSConstants.ENTITY_ID));
-    Assert.assertEquals(ATSConstants.TEZ_VERTEX_ID, jsonObject.get(ATSConstants.ENTITY_TYPE));
+    assertNotNull(jsonObject);
+    assertEquals(vId.toString(), jsonObject.getString(ATSConstants.ENTITY_ID));
+    assertEquals(ATSConstants.TEZ_VERTEX_ID, jsonObject.get(ATSConstants.ENTITY_TYPE));
 
     JSONArray events = jsonObject.getJSONArray(ATSConstants.EVENTS);
-    Assert.assertEquals(1, events.length());
+    assertEquals(1, events.length());
 
     JSONObject evt = events.getJSONObject(0);
-    Assert.assertEquals(HistoryEventType.VERTEX_CONFIGURE_DONE.name(),
-        evt.getString(ATSConstants.EVENT_TYPE));
+    assertEquals(HistoryEventType.VERTEX_CONFIGURE_DONE.name(), evt.getString(ATSConstants.EVENT_TYPE));
 
     JSONObject evtInfo = evt.getJSONObject(ATSConstants.EVENT_INFO);
-    Assert.assertEquals(1, evtInfo.getInt(ATSConstants.NUM_TASKS));
-    Assert.assertNotNull(evtInfo.getJSONObject(ATSConstants.UPDATED_EDGE_MANAGERS));
+    assertEquals(1, evtInfo.getInt(ATSConstants.NUM_TASKS));
+    assertNotNull(evtInfo.getJSONObject(ATSConstants.UPDATED_EDGE_MANAGERS));
 
     JSONObject updatedEdgeMgrs = evtInfo.getJSONObject(ATSConstants.UPDATED_EDGE_MANAGERS);
-    Assert.assertEquals(1, updatedEdgeMgrs.length());
-    Assert.assertNotNull(updatedEdgeMgrs.getJSONObject("a"));
+    assertEquals(1, updatedEdgeMgrs.length());
+    assertNotNull(updatedEdgeMgrs.getJSONObject("a"));
     JSONObject updatedEdgeMgr = updatedEdgeMgrs.getJSONObject("a");
 
-    Assert.assertEquals(DataMovementType.CUSTOM.name(),
-        updatedEdgeMgr.getString(DAGUtils.DATA_MOVEMENT_TYPE_KEY));
-    Assert.assertEquals("In", updatedEdgeMgr.getString(DAGUtils.EDGE_DESTINATION_CLASS_KEY));
-    Assert.assertEquals("a.class", updatedEdgeMgr.getString(DAGUtils.EDGE_MANAGER_CLASS_KEY));
-
+    assertEquals(DataMovementType.CUSTOM.name(), updatedEdgeMgr.getString(DAGUtils.DATA_MOVEMENT_TYPE_KEY));
+    assertEquals("In", updatedEdgeMgr.getString(DAGUtils.EDGE_DESTINATION_CLASS_KEY));
+    assertEquals("a.class", updatedEdgeMgr.getString(DAGUtils.EDGE_MANAGER_CLASS_KEY));
   }
-
-
 }

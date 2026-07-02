@@ -18,13 +18,15 @@
  */
 package org.apache.tez.test;
 
-import static org.junit.Assert.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.EnumSet;
 import java.util.List;
 import java.util.Random;
+import java.util.concurrent.TimeUnit;
 
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.fs.CommonConfigurationKeysPublic;
@@ -75,12 +77,12 @@ import org.apache.tez.runtime.library.processor.SimpleProcessor;
 
 import com.google.common.collect.Lists;
 
-import org.junit.After;
-import org.junit.AfterClass;
-import org.junit.Assert;
-import org.junit.Before;
-import org.junit.BeforeClass;
-import org.junit.Test;
+import org.junit.jupiter.api.AfterAll;
+import org.junit.jupiter.api.AfterEach;
+import org.junit.jupiter.api.BeforeAll;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.Timeout;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -100,7 +102,7 @@ public class TestAMRecovery {
   private static String FAIL_ON_PARTIAL_FINISHED = "FAIL_ON_PARTIAL_COMPLETED";
   private static String FAIL_ON_ATTEMPT = "FAIL_ON_ATTEMPT";
 
-  @BeforeClass
+  @BeforeAll
   public static void beforeClass() throws Exception {
     LOG.info("Starting mini clusters");
     try {
@@ -124,7 +126,7 @@ public class TestAMRecovery {
     }
   }
 
-  @AfterClass
+  @AfterAll
   public static void afterClass() throws InterruptedException {
     if (tezSession != null) {
       try {
@@ -153,7 +155,7 @@ public class TestAMRecovery {
     }
   }
 
-  @Before
+  @BeforeEach
   public void setup() throws Exception {
     LOG.info("Starting session");
     Path remoteStagingDir =
@@ -184,7 +186,7 @@ public class TestAMRecovery {
     tezSession.start();
   }
 
-  @After
+  @AfterEach
   public void teardown() throws InterruptedException {
     if (tezSession != null) {
       try {
@@ -204,7 +206,8 @@ public class TestAMRecovery {
    *
    * @throws Exception
    */
-  @Test(timeout = 120000)
+  @Test
+  @Timeout(value = 120000, unit = TimeUnit.MILLISECONDS)
   public void testVertexPartiallyFinished_Broadcast() throws Exception {
     DAG dag =
         createDAG("VertexPartiallyFinished_Broadcast", ControlledImmediateStartVertexManager.class,
@@ -235,7 +238,8 @@ public class TestAMRecovery {
    *
    * @throws Exception
    */
-  @Test(timeout = 120000)
+  @Test
+  @Timeout(value = 120000, unit = TimeUnit.MILLISECONDS)
   public void testVertexCompletelyFinished_Broadcast() throws Exception {
     DAG dag =
         createDAG("VertexCompletelyFinished_Broadcast", ControlledImmediateStartVertexManager.class,
@@ -267,7 +271,8 @@ public class TestAMRecovery {
    *
    * @throws Exception
    */
-  @Test(timeout = 120000)
+  @Test
+  @Timeout(value = 120000, unit = TimeUnit.MILLISECONDS)
   public void testVertexPartialFinished_One2One() throws Exception {
     DAG dag =
         createDAG("VertexPartialFinished_One2One", ControlledInputReadyVertexManager.class,
@@ -299,7 +304,8 @@ public class TestAMRecovery {
    *
    * @throws Exception
    */
-  @Test(timeout = 120000)
+  @Test
+  @Timeout(value = 120000, unit = TimeUnit.MILLISECONDS)
   public void testVertexCompletelyFinished_One2One() throws Exception {
     DAG dag =
         createDAG("VertexCompletelyFinished_One2One", ControlledInputReadyVertexManager.class,
@@ -331,7 +337,8 @@ public class TestAMRecovery {
    *
    * @throws Exception
    */
-  @Test(timeout = 120000)
+  @Test
+  @Timeout(value = 120000, unit = TimeUnit.MILLISECONDS)
   public void testVertexPartiallyFinished_ScatterGather() throws Exception {
     DAG dag =
         createDAG("VertexPartiallyFinished_ScatterGather", ControlledShuffleVertexManager.class,
@@ -363,7 +370,8 @@ public class TestAMRecovery {
    *
    * @throws Exception
    */
-  @Test(timeout = 120000)
+  @Test
+  @Timeout(value = 120000, unit = TimeUnit.MILLISECONDS)
   public void testVertexCompletelyFinished_ScatterGather() throws Exception {
     DAG dag =
         createDAG("VertexCompletelyFinished_ScatterGather", ControlledShuffleVertexManager.class,
@@ -374,8 +382,8 @@ public class TestAMRecovery {
     TezCounter outputCounter = counters.findCounter(TestOutput.COUNTER_NAME, TestOutput.COUNTER_NAME);
     TezCounter inputCounter = counters.findCounter(TestInput.COUNTER_NAME, TestInput.COUNTER_NAME);
     // verify that processor, input and output counters, are all being collected
-    Assert.assertTrue(outputCounter.getValue() > 0);
-    Assert.assertTrue(inputCounter.getValue() > 0);
+    assertTrue(outputCounter.getValue() > 0);
+    assertTrue(inputCounter.getValue() > 0);
 
     List<HistoryEvent> historyEvents1 = readRecoveryLog(1);
     List<HistoryEvent> historyEvents2 = readRecoveryLog(2);
@@ -398,7 +406,8 @@ public class TestAMRecovery {
    *
    * @throws Exception
    */
-  @Test(timeout = 600000)
+  @Test
+  @Timeout(value = 600000, unit = TimeUnit.MILLISECONDS)
   public void testHighMaxAttempt() throws Exception {
     Random rand = new Random();
     tezConf.set(FAIL_ON_ATTEMPT, rand.nextInt(MAX_AM_ATTEMPT) + "");
@@ -416,7 +425,7 @@ public class TestAMRecovery {
     DAGStatus dagStatus =
         dagClient.waitForCompletionWithStatusUpdates(EnumSet
             .of(StatusGetOpts.GET_COUNTERS));
-    Assert.assertEquals(finalState, dagStatus.getState());
+    assertEquals(finalState, dagStatus.getState());
     return dagStatus.getDAGCounters();
   }
 

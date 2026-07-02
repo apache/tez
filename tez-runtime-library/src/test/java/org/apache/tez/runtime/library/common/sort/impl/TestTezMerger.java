@@ -18,8 +18,8 @@
  */
 package org.apache.tez.runtime.library.common.sort.impl;
 
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertTrue;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.Mockito.mock;
 
 import java.io.IOException;
@@ -27,7 +27,9 @@ import java.nio.ByteBuffer;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
+import java.util.Map.Entry;
 import java.util.Random;
+import java.util.concurrent.TimeUnit;
 
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.fs.FSDataOutputStream;
@@ -53,6 +55,7 @@ import org.apache.tez.runtime.library.common.shuffle.orderedgrouped.InMemoryRead
 import org.apache.tez.runtime.library.common.shuffle.orderedgrouped.InMemoryWriter;
 import org.apache.tez.runtime.library.common.shuffle.orderedgrouped.MergeManager;
 import org.apache.tez.runtime.library.common.shuffle.orderedgrouped.TestMergeManager;
+import org.apache.tez.runtime.library.common.sort.impl.TezMerger.MergeQueue;
 
 import com.google.common.collect.LinkedListMultimap;
 import com.google.common.collect.ListMultimap;
@@ -60,8 +63,9 @@ import com.google.common.collect.Lists;
 import com.google.common.collect.Maps;
 import com.google.common.collect.TreeMultimap;
 
-import org.junit.AfterClass;
-import org.junit.Test;
+import org.junit.jupiter.api.AfterAll;
+import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.Timeout;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -102,12 +106,13 @@ public class TestTezMerger {
     comparator = ConfigUtils.getIntermediateInputKeyComparator(DEFAULT_CONF);
   }
 
-  @AfterClass
+  @AfterAll
   public static void cleanup() throws Exception {
     localFs.delete(workDir, true);
   }
 
-  @Test(timeout = 80000)
+  @Test
+  @Timeout(value = 80000, unit = TimeUnit.MILLISECONDS)
   public void testMerge() throws Exception {
     /*
      * test with number of files, keys per file and mergefactor
@@ -171,10 +176,10 @@ public class TestTezMerger {
       String correctResult = expectedResult[i][1];
 
       if (records.isSameKey()) {
-        assertTrue("Expected " + correctResult, correctResult.equalsIgnoreCase(SAME_KEY));
+        assertTrue(correctResult.equalsIgnoreCase(SAME_KEY), "Expected " + correctResult);
         LOG.info("\tSame Key : key=" + k + ", val=" + v);
       } else {
-        assertTrue("Expected " + correctResult, correctResult.equalsIgnoreCase(DIFF_KEY));
+        assertTrue(correctResult.equalsIgnoreCase(DIFF_KEY), "Expected " + correctResult);
         LOG.info("key=" + k + ", val=" + v);
       }
 
@@ -182,7 +187,8 @@ public class TestTezMerger {
     }
   }
 
-  @Test(timeout = 5000)
+  @Test
+  @Timeout(value = 5000, unit = TimeUnit.MILLISECONDS)
   public void testWithCustomComparator_WithEmptyStrings() throws Exception {
     List<Path> pathList = new LinkedList<>();
     List<String> data = Lists.newLinkedList();
@@ -232,7 +238,8 @@ public class TestTezMerger {
     data.clear();
   }
 
-  @Test(timeout = 5000)
+  @Test
+  @Timeout(value = 5000, unit = TimeUnit.MILLISECONDS)
   public void testWithCustomComparator_No_RLE() throws Exception {
     List<Path> pathList = new LinkedList<>();
     List<String> data = Lists.newLinkedList();
@@ -281,7 +288,8 @@ public class TestTezMerger {
     data.clear();
   }
 
-  @Test(timeout = 5000)
+  @Test
+  @Timeout(value = 5000, unit = TimeUnit.MILLISECONDS)
   public void testWithCustomComparator_RLE_acrossFiles() throws Exception {
     List<Path> pathList = new LinkedList<>();
     List<String> data = Lists.newLinkedList();
@@ -320,7 +328,8 @@ public class TestTezMerger {
 
   }
 
-  @Test(timeout = 5000)
+  @Test
+  @Timeout(value = 5000, unit = TimeUnit.MILLISECONDS)
   public void testWithCustomComparator_mixedFiles() throws Exception {
     List<Path> pathList = new LinkedList<>();
     List<String> data = Lists.newLinkedList();
@@ -368,7 +377,8 @@ public class TestTezMerger {
     data.clear();
   }
 
-  @Test(timeout = 5000)
+  @Test
+  @Timeout(value = 5000, unit = TimeUnit.MILLISECONDS)
   public void testWithCustomComparator_RLE() throws Exception {
     List<Path> pathList = new LinkedList<>();
     List<String> data = Lists.newLinkedList();
@@ -406,7 +416,8 @@ public class TestTezMerger {
     data.clear();
   }
 
-  @Test(timeout = 5000)
+  @Test
+  @Timeout(value = 5000, unit = TimeUnit.MILLISECONDS)
   public void testWithCustomComparator_RLE2() throws Exception {
     List<Path> pathList = new LinkedList<>();
     List<String> data = Lists.newLinkedList();
@@ -454,7 +465,8 @@ public class TestTezMerger {
     data.clear();
   }
 
-  @Test(timeout = 5000)
+  @Test
+  @Timeout(value = 5000, unit = TimeUnit.MILLISECONDS)
   public void testWithCustomComparator() throws Exception {
     List<Path> pathList = new LinkedList<>();
     List<String> data = Lists.newLinkedList();
@@ -491,7 +503,8 @@ public class TestTezMerger {
     data.clear();
   }
 
-  @Test(timeout = 5000)
+  @Test
+  @Timeout(value = 5000, unit = TimeUnit.MILLISECONDS)
   public void testWithCustomComparator_RLE3() throws Exception {
     List<Path> pathList = new LinkedList<>();
     List<String> data = Lists.newLinkedList();
@@ -525,7 +538,8 @@ public class TestTezMerger {
     data.clear();
   }
 
-  @Test(timeout = 5000)
+  @Test
+  @Timeout(value = 5000, unit = TimeUnit.MILLISECONDS)
   public void testWithCustomComparator_allEmptyFiles() throws Exception {
     List<Path> pathList = new LinkedList<>();
     List<String> data = Lists.newLinkedList();
@@ -619,7 +633,7 @@ public class TestTezMerger {
         //More than one key should be present in the source data
         assertTrue(VERIFICATION_DATA_SET.get(k.get()).size() > 1);
         //Ensure this is same as the previous key we saw
-        assertEquals("previousKey=" + pk + ", current=" + k.get(), pk, k.get());
+        assertEquals(pk, k.get(), "previousKey=" + pk + ", current=" + k.get());
       } else {
         LOG.info("key=" + k.get() + ", val=" + v.get());
       }
@@ -630,20 +644,19 @@ public class TestTezMerger {
     }
 
     //Verify if the number of distinct entries is the same in source and the test
-    assertEquals("dataMap=" + dataMap.keySet().size() + ", verificationSet=" +
-            VERIFICATION_DATA_SET.keySet().size(), dataMap.keySet().size(), VERIFICATION_DATA_SET.keySet().size());
+    assertEquals(dataMap.keySet().size(), VERIFICATION_DATA_SET.keySet().size(),
+        "dataMap=" + dataMap.keySet().size() + ", verificationSet=" + VERIFICATION_DATA_SET.keySet().size());
 
     //Verify with source data
     for (Integer key : VERIFICATION_DATA_SET.keySet()) {
-      assertEquals("Data size for " + key + " not matching with source; dataSize:" + dataMap
-              .get(key) + ", source:" + VERIFICATION_DATA_SET.get(key).size(),
-              (int) dataMap.get(key), VERIFICATION_DATA_SET.get(key).size());
+      assertEquals((int) dataMap.get(key), VERIFICATION_DATA_SET.get(key).size(),
+          "Data size for " + key + " not matching with source; dataSize:" + dataMap.get(key) + ", source:" +
+          VERIFICATION_DATA_SET.get(key).size());
     }
 
     //Verify if every key has the same number of repeated items in the source dataset as well
-    for (Map.Entry<Integer, Integer> entry : dataMap.entrySet()) {
-      assertEquals(entry.getKey() + "", VERIFICATION_DATA_SET.get(entry.getKey()).size(), (int) entry
-              .getValue());
+    for (Entry<Integer, Integer> entry : dataMap.entrySet()) {
+      assertEquals(VERIFICATION_DATA_SET.get(entry.getKey()).size(), (int) entry.getValue(), entry.getKey() + "");
     }
 
     LOG.info("******************");
@@ -661,7 +674,8 @@ public class TestTezMerger {
     return pathList;
   }
 
-  @Test(timeout = 20000)
+  @Test
+  @Timeout(value = 20000, unit = TimeUnit.MILLISECONDS)
   public void testMergeSegments() throws Exception {
     List<TezMerger.Segment> segments = Lists.newLinkedList();
     segments.addAll(createInMemorySegments(10, 100));
@@ -685,7 +699,7 @@ public class TestTezMerger {
   private void mergeSegments(List<TezMerger.Segment> segmentList, int mergeFactor, boolean
       hasDiskSegments) throws Exception {
     //Merge datasets
-    TezMerger.MergeQueue mergeQueue = new TezMerger.MergeQueue(DEFAULT_CONF, localFs, segmentList,
+    MergeQueue mergeQueue = new MergeQueue(DEFAULT_CONF, localFs, segmentList,
         comparator, new Reporter(), false, false);
 
     TezRawKeyValueIterator records = mergeQueue.merge(
@@ -698,7 +712,7 @@ public class TestTezMerger {
 
     //ensure disk buffers are used
     int diskBufLen = mergeQueue.diskIFileValue.getLength();
-    assertTrue(diskBufLen + " disk buf length should be > 0", (hasDiskSegments == diskBufLen > 0));
+    assertTrue((hasDiskSegments == diskBufLen > 0), diskBufLen + " disk buf length should be > 0");
 
     VERIFICATION_DATA_SET.clear();
   }

@@ -18,8 +18,8 @@
  */
 package org.apache.tez.runtime.library.common.shuffle.impl;
 
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertTrue;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.Mockito.any;
 import static org.mockito.Mockito.anyInt;
 import static org.mockito.Mockito.anyString;
@@ -39,6 +39,7 @@ import java.nio.ByteBuffer;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.concurrent.ExecutorService;
+import java.util.concurrent.TimeUnit;
 
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.fs.Path;
@@ -69,10 +70,10 @@ import org.apache.tez.runtime.library.shuffle.impl.ShuffleUserPayloads.DataMovem
 
 import com.google.common.annotations.VisibleForTesting;
 
-import org.junit.After;
-import org.junit.Assert;
-import org.junit.Before;
-import org.junit.Test;
+import org.junit.jupiter.api.AfterEach;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.Timeout;
 import org.mockito.ArgumentCaptor;
 import org.mockito.invocation.InvocationOnMock;
 import org.mockito.stubbing.Answer;
@@ -86,12 +87,12 @@ public class TestShuffleManager {
   private final Configuration conf = new Configuration();
   private TezExecutors sharedExecutor;
 
-  @Before
+  @BeforeEach
   public void setup() {
     sharedExecutor = new TezSharedExecutor(conf);
   }
 
-  @After
+  @AfterEach
   public void cleanup() {
     sharedExecutor.shutdownNow();
   }
@@ -103,7 +104,8 @@ public class TestShuffleManager {
    * rest of the partitions. Then do the same thing for the next mapper.
    * Verify ShuffleManager is able to get all the events.
   */
-  @Test(timeout = 50000)
+  @Test
+  @Timeout(value = 50000, unit = TimeUnit.MILLISECONDS)
   public void testMultiplePartitions() throws Exception {
     final int numOfMappers = 3;
     final int numOfPartitions = 5;
@@ -188,7 +190,8 @@ public class TestShuffleManager {
     return inputContext;
   }
 
-  @Test(timeout=5000)
+  @Test
+  @Timeout(value = 5000, unit = TimeUnit.MILLISECONDS)
   public void testUseSharedExecutor() throws Exception {
     InputContext inputContext = createInputContext();
     createShuffleManager(inputContext, 2);
@@ -200,7 +203,8 @@ public class TestShuffleManager {
     verify(inputContext).createTezFrameworkExecutorService(anyInt(), anyString());
   }
 
-  @Test (timeout = 20000)
+  @Test
+  @Timeout(value = 20000, unit = TimeUnit.MILLISECONDS)
   public void testProgressWithEmptyPendingHosts() throws Exception {
     InputContext inputContext = createInputContext();
     final ShuffleManager shuffleManager = spy(createShuffleManager(inputContext, 1));
@@ -220,18 +224,16 @@ public class TestShuffleManager {
     verify(inputContext, atLeast(3)).notifyProgress();
   }
 
-  @Test (timeout = 200000)
+  @Test
+  @Timeout(value = 200000, unit = TimeUnit.MILLISECONDS)
   public void testFetchFailed() throws Exception {
     InputContext inputContext = createInputContext();
     final ShuffleManager shuffleManager = spy(createShuffleManager(inputContext, 1));
-    Thread schedulerGetHostThread = new Thread(new Runnable() {
-      @Override
-      public void run() {
-        try {
-          shuffleManager.run();
-        } catch (Exception e) {
-          e.printStackTrace();
-        }
+    Thread schedulerGetHostThread = new Thread(() -> {
+      try {
+        shuffleManager.run();
+      } catch (Exception e) {
+        e.printStackTrace();
       }
     });
     InputAttemptFetchFailure inputAttemptFetchFailure =
@@ -243,16 +245,12 @@ public class TestShuffleManager {
     Thread.sleep(1000);
 
     ArgumentCaptor<List> captor = ArgumentCaptor.forClass(List.class);
-    verify(inputContext, times(1))
-        .sendEvents(captor.capture());
-    Assert.assertEquals("Size was: " + captor.getAllValues().size(),
-        captor.getAllValues().size(), 1);
+    verify(inputContext, times(1)).sendEvents(captor.capture());
+    assertEquals(1, captor.getAllValues().size(), "Size was: " + captor.getAllValues().size());
     List<Event> capturedList = captor.getAllValues().get(0);
-    Assert.assertEquals("Size was: " + capturedList.size(),
-        capturedList.size(), 1);
-    InputReadErrorEvent inputEvent = (InputReadErrorEvent)capturedList.get(0);
-    Assert.assertEquals("Number of failures was: " + inputEvent.getNumFailures(),
-        inputEvent.getNumFailures(), 1);
+    assertEquals(1, capturedList.size(), "Size was: " + capturedList.size());
+    InputReadErrorEvent inputEvent = (InputReadErrorEvent) capturedList.get(0);
+    assertEquals(1, inputEvent.getNumFailures(), "Number of failures was: " + inputEvent.getNumFailures());
 
     shuffleManager.fetchFailed("host1", inputAttemptFetchFailure, false);
     shuffleManager.fetchFailed("host1", inputAttemptFetchFailure, false);
@@ -263,17 +261,12 @@ public class TestShuffleManager {
     // Wait more than five seconds for the batch to go out
     Thread.sleep(5000);
     captor = ArgumentCaptor.forClass(List.class);
-    verify(inputContext, times(2))
-        .sendEvents(captor.capture());
-    Assert.assertEquals("Size was: " + captor.getAllValues().size(),
-        captor.getAllValues().size(), 2);
+    verify(inputContext, times(2)).sendEvents(captor.capture());
+    assertEquals(2, captor.getAllValues().size(), "Size was: " + captor.getAllValues().size());
     capturedList = captor.getAllValues().get(1);
-    Assert.assertEquals("Size was: " + capturedList.size(),
-        capturedList.size(), 1);
-    inputEvent = (InputReadErrorEvent)capturedList.get(0);
-    Assert.assertEquals("Number of failures was: " + inputEvent.getNumFailures(),
-        inputEvent.getNumFailures(), 2);
-
+    assertEquals(1, capturedList.size(), "Size was: " + capturedList.size());
+    inputEvent = (InputReadErrorEvent) capturedList.get(0);
+    assertEquals(2, inputEvent.getNumFailures(), "Number of failures was: " + inputEvent.getNumFailures());
 
     schedulerGetHostThread.interrupt();
   }

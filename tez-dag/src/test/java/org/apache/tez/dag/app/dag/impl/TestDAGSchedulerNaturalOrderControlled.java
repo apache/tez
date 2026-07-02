@@ -18,7 +18,7 @@
  */
 package org.apache.tez.dag.app.dag.impl;
 
-import static org.junit.Assert.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.mockito.Mockito.any;
 import static org.mockito.Mockito.doReturn;
 import static org.mockito.Mockito.mock;
@@ -29,6 +29,7 @@ import static org.mockito.Mockito.verify;
 
 import java.util.HashMap;
 import java.util.Map;
+import java.util.concurrent.TimeUnit;
 
 import org.apache.hadoop.yarn.api.records.ApplicationId;
 import org.apache.hadoop.yarn.event.Event;
@@ -43,13 +44,15 @@ import org.apache.tez.dag.records.TezTaskAttemptID;
 import org.apache.tez.dag.records.TezTaskID;
 import org.apache.tez.dag.records.TezVertexID;
 
-import org.junit.Test;
+import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.Timeout;
 import org.mockito.ArgumentCaptor;
 
 public class TestDAGSchedulerNaturalOrderControlled {
 
   @SuppressWarnings("unchecked")
-  @Test(timeout = 5000)
+  @Test
+  @Timeout(value = 5000, unit = TimeUnit.MILLISECONDS)
   public void testSimpleFlow() {
     EventHandler eventHandler = mock(EventHandler.class);
     DAG dag = createMockDag();
@@ -107,7 +110,8 @@ public class TestDAGSchedulerNaturalOrderControlled {
   }
 
   @SuppressWarnings("unchecked")
-  @Test(timeout = 5000)
+  @Test
+  @Timeout(value = 5000, unit = TimeUnit.MILLISECONDS)
   public void testSourceRequestDelayed() {
     // ShuffleVertexHandler - slowstart simulation
     EventHandler eventHandler = mock(EventHandler.class);
@@ -176,7 +180,8 @@ public class TestDAGSchedulerNaturalOrderControlled {
 
 
   @SuppressWarnings("unchecked")
-  @Test(timeout = 5000)
+  @Test
+  @Timeout(value = 5000, unit = TimeUnit.MILLISECONDS)
   public void testParallelismUpdated() {
     EventHandler eventHandler = mock(EventHandler.class);
     DAG dag = createMockDag();
@@ -227,7 +232,8 @@ public class TestDAGSchedulerNaturalOrderControlled {
   }
 
   @SuppressWarnings("unchecked")
-  @Test(timeout = 5000)
+  @Test
+  @Timeout(value = 5000, unit = TimeUnit.MILLISECONDS)
   public void testMultipleRequestsForSameTask() {
     EventHandler eventHandler = mock(EventHandler.class);
     DAG dag = createMockDag();

@@ -18,10 +18,12 @@
  */
 package org.apache.tez.runtime.common.resources;
 
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertTrue;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.Mockito.doReturn;
 import static org.mockito.Mockito.mock;
+
+import java.util.concurrent.TimeUnit;
 
 import org.apache.hadoop.conf.Configuration;
 import org.apache.tez.dag.api.InputDescriptor;
@@ -34,21 +36,23 @@ import org.apache.tez.runtime.api.MemoryUpdateCallback;
 import org.apache.tez.runtime.api.OutputContext;
 import org.apache.tez.runtime.api.ProcessorContext;
 
-import org.junit.Before;
-import org.junit.Test;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.Timeout;
 
 public class TestMemoryDistributor {
 
   protected Configuration conf = new Configuration();
 
-  @Before
+  @BeforeEach
   public void setup() {
     conf.setBoolean(TezConfiguration.TEZ_TASK_SCALE_MEMORY_ENABLED, true);
     conf.set(TezConfiguration.TEZ_TASK_SCALE_MEMORY_ALLOCATOR_CLASS,
         ScalingAllocator.class.getName());
   }
 
-  @Test(timeout = 5000)
+  @Test
+  @Timeout(value = 5000, unit = TimeUnit.MILLISECONDS)
   public void testScalingNoProcessor() throws TezException {
     MemoryDistributor dist = new MemoryDistributor(2, 1, conf);
 
@@ -82,7 +86,8 @@ public class TestMemoryDistributor {
     assertEquals(1400, e3Callback.assigned);
   }
 
-  @Test(timeout = 5000)
+  @Test
+  @Timeout(value = 5000, unit = TimeUnit.MILLISECONDS)
   public void testScalingNoProcessor2() throws TezException {
     // Real world values
     MemoryDistributor dist = new MemoryDistributor(2, 0, conf);
@@ -107,7 +112,8 @@ public class TestMemoryDistributor {
     assertEquals(88080384l, e2Callback.assigned);
   }
 
-  @Test(timeout = 5000)
+  @Test
+  @Timeout(value = 5000, unit = TimeUnit.MILLISECONDS)
   public void testScalingProcessor() throws TezException {
     MemoryDistributor dist = new MemoryDistributor(2, 1, conf);
 
@@ -149,7 +155,8 @@ public class TestMemoryDistributor {
     assertTrue(e4Callback.assigned >= 1166 && e4Callback.assigned <= 1167);
   }
 
-  @Test(timeout = 5000)
+  @Test
+  @Timeout(value = 5000, unit = TimeUnit.MILLISECONDS)
   public void testScalingDisabled() throws TezException {
     // Real world values
     Configuration conf = new Configuration(this.conf);
@@ -176,7 +183,8 @@ public class TestMemoryDistributor {
     assertEquals(144965632l, e2Callback.assigned);
   }
 
-  @Test(timeout = 5000)
+  @Test
+  @Timeout(value = 5000, unit = TimeUnit.MILLISECONDS)
   public void testReserveFractionConfigured() throws TezException {
     Configuration conf = new Configuration(this.conf);
     conf.setDouble(TezConfiguration.TEZ_TASK_SCALE_MEMORY_RESERVE_FRACTION, 0.5d);

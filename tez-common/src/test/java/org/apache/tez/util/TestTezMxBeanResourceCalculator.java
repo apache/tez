@@ -18,20 +18,26 @@
  */
 package org.apache.tez.util;
 
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertInstanceOf;
+import static org.junit.jupiter.api.Assertions.assertTrue;
+
+import java.util.concurrent.TimeUnit;
+
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.yarn.util.ResourceCalculatorProcessTree;
 import org.apache.tez.dag.api.TezConfiguration;
 
-import org.junit.After;
-import org.junit.Assert;
-import org.junit.Before;
-import org.junit.Test;
+import org.junit.jupiter.api.AfterEach;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.Timeout;
 
 public class TestTezMxBeanResourceCalculator {
 
   private ResourceCalculatorProcessTree resourceCalculator;
 
-  @Before
+  @BeforeEach
   public void setup() throws Exception {
     Configuration conf = new TezConfiguration();
     conf.set(TezConfiguration.TEZ_TASK_RESOURCE_CALCULATOR_PROCESS_TREE_CLASS,
@@ -44,19 +50,20 @@ public class TestTezMxBeanResourceCalculator {
         "", clazz, conf);
   }
 
-  @After
+  @AfterEach
   public void teardown() {
     resourceCalculator = null;
   }
 
-  @Test(timeout=5000)
+  @Test
+  @Timeout(value = 5000, unit = TimeUnit.MILLISECONDS)
   public void testResourceCalculator() {
-    Assert.assertTrue(resourceCalculator instanceof TezMxBeanResourceCalculator);
-    Assert.assertTrue(resourceCalculator.getCumulativeCpuTime() > 0);
-    Assert.assertTrue(resourceCalculator.getVirtualMemorySize() > 0);
-    Assert.assertTrue(resourceCalculator.getRssMemorySize() > 0);
-    Assert.assertTrue(resourceCalculator.getProcessTreeDump().equals(""));
-    Assert.assertTrue(resourceCalculator.checkPidPgrpidForMatch());
+    assertInstanceOf(TezMxBeanResourceCalculator.class, resourceCalculator);
+    assertTrue(resourceCalculator.getCumulativeCpuTime() > 0);
+    assertTrue(resourceCalculator.getVirtualMemorySize() > 0);
+    assertTrue(resourceCalculator.getRssMemorySize() > 0);
+    assertEquals("", resourceCalculator.getProcessTreeDump());
+    assertTrue(resourceCalculator.checkPidPgrpidForMatch());
   }
 
 }

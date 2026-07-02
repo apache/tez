@@ -18,8 +18,11 @@
  */
 package org.apache.tez.runtime.library.common.sort.impl;
 
-import static org.junit.Assert.assertFalse;
-import static org.junit.Assert.assertTrue;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertNotNull;
+import static org.junit.jupiter.api.Assertions.assertNull;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.Mockito.any;
 import static org.mockito.Mockito.atLeastOnce;
 import static org.mockito.Mockito.doReturn;
@@ -69,11 +72,10 @@ import org.apache.tez.runtime.library.testutils.RandomTextGenerator;
 
 import com.google.common.collect.Maps;
 
-import org.junit.After;
-import org.junit.AfterClass;
-import org.junit.Assert;
-import org.junit.Before;
-import org.junit.Test;
+import org.junit.jupiter.api.AfterAll;
+import org.junit.jupiter.api.AfterEach;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
 
 public class TestPipelinedSorter {
   private static Configuration conf;
@@ -102,12 +104,12 @@ public class TestPipelinedSorter {
     }
   }
 
-  @AfterClass
+  @AfterAll
   public static void cleanup() throws IOException {
     localFs.delete(workDir, true);
   }
 
-  @Before
+  @BeforeEach
   public void setup() throws IOException {
     conf = getConf();
     ApplicationId appId = ApplicationId.newInstance(10000, 1);
@@ -139,7 +141,7 @@ public class TestPipelinedSorter {
     return conf;
   }
 
-  @After
+  @AfterEach
   public void reset() throws IOException {
     cleanup();
     localFs.mkdirs(workDir);
@@ -183,7 +185,7 @@ public class TestPipelinedSorter {
     writeData(sorter, 0, 1<<20);
 
     // final merge is disabled. Final output file would not be populated in this case.
-    assertTrue(sorter.finalOutputFile == null);
+    assertNull(sorter.finalOutputFile);
     TezCounter numShuffleChunks = outputContext.getCounters().findCounter(TaskCounter.SHUFFLE_CHUNK_COUNT);
 //    assertTrue(sorter.getNumSpills() == numShuffleChunks.getValue());
     conf.setBoolean(TezRuntimeConfiguration.TEZ_RUNTIME_ENABLE_FINAL_MERGE_IN_OUTPUT, true);
@@ -223,9 +225,9 @@ public class TestPipelinedSorter {
 
     writeData(sorter, numKeys, 1000000);
     if (numKeys == 0) {
-      assertTrue(sorter.getNumSpills() == 1);
+      assertEquals(1, sorter.getNumSpills());
     } else {
-      assertTrue(sorter.getNumSpills() == numKeys + 1);
+      assertEquals(sorter.getNumSpills(), numKeys + 1);
     }
     verifyCounters(sorter, outputContext);
     verifyOutputPermissions(outputContext.getUniqueIdentifier());
@@ -237,9 +239,9 @@ public class TestPipelinedSorter {
         continue;
       }
       if (sendEmptyPartitionDetails) {
-        Assert.assertEquals("Unexpected raw length for " + i + "th partition", 0, tezIndexRecord.getRawLength());
+        assertEquals(0, tezIndexRecord.getRawLength(), "Unexpected raw length for " + i + "th partition");
       } else {
-        Assert.assertEquals("Unexpected raw length for " + i + "th partition", 6, tezIndexRecord.getRawLength());
+        assertEquals(6, tezIndexRecord.getRawLength(), "Unexpected raw length for " + i + "th partition");
       }
     }
   }
@@ -297,9 +299,9 @@ public class TestPipelinedSorter {
     writeData(sorter, 5, 1<<20);
 
     // final merge is disabled. Final output file would not be populated in this case.
-    assertTrue(sorter.finalOutputFile == null);
+    assertNull(sorter.finalOutputFile);
     TezCounter numShuffleChunks = outputContext.getCounters().findCounter(TaskCounter.SHUFFLE_CHUNK_COUNT);
-    assertTrue(sorter.getNumSpills() == numShuffleChunks.getValue());
+    assertEquals(sorter.getNumSpills(), numShuffleChunks.getValue());
     conf.setBoolean(TezRuntimeConfiguration.TEZ_RUNTIME_ENABLE_FINAL_MERGE_IN_OUTPUT, true);
   }
 
@@ -410,7 +412,7 @@ public class TestPipelinedSorter {
     List<Event> events = sorter.close();
 
     //final merge is disabled. Final output file would not be populated in this case.
-    assertTrue(sorter.finalOutputFile == null);
+    assertNull(sorter.finalOutputFile);
     conf.setBoolean(TezRuntimeConfiguration.TEZ_RUNTIME_ENABLE_FINAL_MERGE_IN_OUTPUT, true);
     verify(outputContext, times(0)).sendEvents(any());
     assertTrue(events.size() > 0);
@@ -442,7 +444,7 @@ public class TestPipelinedSorter {
         initialAvailableMem);
 
     writeData(sorter, 25000, 1000);
-    assertFalse("Expecting needsRLE to be false", sorter.needsRLE());
+    assertFalse(sorter.needsRLE(), "Expecting needsRLE to be false");
     verifyCounters(sorter, outputContext);
     verifyOutputPermissions(outputContext.getUniqueIdentifier());
   }
@@ -495,7 +497,7 @@ public class TestPipelinedSorter {
         initialAvailableMem);
 
     writeSimilarKeys(sorter, 25000, 1000, true);
-    assertTrue("Expecting needsRLE to be true", sorter.needsRLE());
+    assertTrue(sorter.needsRLE(), "Expecting needsRLE to be true");
     verifyCounters(sorter, outputContext);
     verifyOutputPermissions(outputContext.getUniqueIdentifier());
   }
@@ -509,7 +511,7 @@ public class TestPipelinedSorter {
     conf.setBoolean(TezRuntimeConfiguration.TEZ_RUNTIME_PIPELINED_SORTER_LAZY_ALLOCATE_MEMORY, true);
 
     PipelinedSorter sorter = new PipelinedSorter(this.outputContext, conf, numOutputs, (100 << 20));
-    Assert.assertTrue(sorter.maxNumberOfBlocks >= 2);
+    assertTrue(sorter.maxNumberOfBlocks >= 2);
 
     // Start filling in with data 1MB Key, 1MB Val.
     for (int i = 0; i < 200; i++) {
@@ -521,8 +523,7 @@ public class TestPipelinedSorter {
 
     for(int i = 0; i< sorter.bufferUsage.size(); i++) {
       int usage = sorter.bufferUsage.get(i);
-      Assert.assertTrue("Buffer index " + i + " is not used correctly. "
-              + " usage: " + usage + ", avg: " + avg, usage >= avg);
+      assertTrue(usage >= avg, "Buffer index " + i + " is not used correctly. " + " usage: " + usage + ", avg: " + avg);
     }
     conf.setBoolean(TezRuntimeConfiguration.TEZ_RUNTIME_PIPELINED_SORTER_LAZY_ALLOCATE_MEMORY, false);
   }
@@ -572,7 +573,7 @@ public class TestPipelinedSorter {
         TezRuntimeConfiguration.TEZ_RUNTIME_REPORT_PARTITION_STATS,
         TezRuntimeConfiguration.TEZ_RUNTIME_REPORT_PARTITION_STATS_DEFAULT));
     if (partitionStats.isEnabled()) {
-      assertTrue(sorter.getPartitionStats() != null);
+      assertNotNull(sorter.getPartitionStats());
     }
 
     verifyCounters(sorter, outputContext);
@@ -600,19 +601,19 @@ public class TestPipelinedSorter {
         context.getCounters().findCounter(TaskCounter.ADDITIONAL_SPILLS_BYTES_READ);
 
     if (sorter.isFinalMergeEnabled()) {
-      assertTrue(additionalSpills.getValue() == (sorter.getNumSpills() - 1));
+      assertEquals(additionalSpills.getValue(), (sorter.getNumSpills() - 1));
       //Number of files served by shuffle-handler
-      assertTrue(1 == numShuffleChunks.getValue());
+      assertEquals(1, numShuffleChunks.getValue());
       if (sorter.getNumSpills() > 1) {
         assertTrue(additionalSpillBytesRead.getValue() > 0);
         assertTrue(additionalSpillBytesWritten.getValue() > 0);
       }
     } else {
-      assertTrue(0 == additionalSpills.getValue());
+      assertEquals(0, additionalSpills.getValue());
       //Number of files served by shuffle-handler
-      assertTrue(sorter.getNumSpills() == numShuffleChunks.getValue());
-      assertTrue(additionalSpillBytesRead.getValue() == 0);
-      assertTrue(additionalSpillBytesWritten.getValue() == 0);
+      assertEquals(sorter.getNumSpills(), numShuffleChunks.getValue());
+      assertEquals(0, additionalSpillBytesRead.getValue());
+      assertEquals(0, additionalSpillBytesWritten.getValue());
     }
 
     TezCounter finalOutputBytes =
@@ -632,7 +633,7 @@ public class TestPipelinedSorter {
     //Verify if > 2 GB can be set via config
     conf.setInt(TezRuntimeConfiguration.TEZ_RUNTIME_IO_SORT_MB, 3076);
     long size = ExternalSorter.getInitialMemoryRequirement(conf, 4096 * 1024 * 1024l);
-    Assert.assertTrue(size == (3076l << 20));
+    assertEquals((3076l << 20), size);
 
     //Verify number of block buffers allocated
     this.initialAvailableMem = 10 * 1024 * 1024;
@@ -640,39 +641,39 @@ public class TestPipelinedSorter {
         .TEZ_RUNTIME_PIPELINED_SORTER_MIN_BLOCK_SIZE_IN_MB, 1);
     PipelinedSorter sorter = new PipelinedSorter(this.outputContext, conf, numOutputs,
         initialAvailableMem);
-    Assert.assertTrue(sorter.maxNumberOfBlocks == 10);
+    assertEquals(10, sorter.maxNumberOfBlocks);
 
     //10 MB available, request for 3 MB chunk. Last 1 MB gets added to previous chunk.
     conf.setInt(TezRuntimeConfiguration
         .TEZ_RUNTIME_PIPELINED_SORTER_MIN_BLOCK_SIZE_IN_MB, 3);
     sorter = new PipelinedSorter(this.outputContext, conf, numOutputs,
         initialAvailableMem);
-    Assert.assertTrue(sorter.maxNumberOfBlocks == 3);
+    assertEquals(3, sorter.maxNumberOfBlocks);
 
     //10 MB available, request for 10 MB min chunk.  Would get 1 block.
     conf.setInt(TezRuntimeConfiguration
         .TEZ_RUNTIME_PIPELINED_SORTER_MIN_BLOCK_SIZE_IN_MB, 10);
     sorter = new PipelinedSorter(this.outputContext, conf, numOutputs,
         initialAvailableMem);
-    Assert.assertTrue(sorter.maxNumberOfBlocks == 1);
+    assertEquals(1, sorter.maxNumberOfBlocks);
 
     //Verify block sizes (10 MB min chunk size), but available mem is zero.
     conf.setInt(TezRuntimeConfiguration
         .TEZ_RUNTIME_PIPELINED_SORTER_MIN_BLOCK_SIZE_IN_MB, 10);
     sorter = new PipelinedSorter(this.outputContext, conf, numOutputs, initialAvailableMem);
-    Assert.assertTrue(sorter.maxNumberOfBlocks == 1);
+    assertEquals(1, sorter.maxNumberOfBlocks);
     int blockSize = sorter.computeBlockSize(0, (10 << 20));
     //available is zero. Can't allocate any more buffer.
-    Assert.assertTrue(blockSize == 0);
+    assertEquals(0, blockSize);
 
     //300 MB available. Request for 200 MB min block size. It would allocate a block with 200 MB,
     // but last 100 would get clubbed. Hence, it would return 300 MB block.
     conf.setInt(TezRuntimeConfiguration
         .TEZ_RUNTIME_PIPELINED_SORTER_MIN_BLOCK_SIZE_IN_MB, 200);
     sorter = new PipelinedSorter(this.outputContext, conf, numOutputs, (300 << 20));
-    Assert.assertTrue(sorter.maxNumberOfBlocks == 1);
+    assertEquals(1, sorter.maxNumberOfBlocks);
     blockSize = sorter.computeBlockSize((300 << 20), (300 << 20));
-    Assert.assertTrue(blockSize == (300 << 20));
+    assertEquals((300 << 20), blockSize);
 
     //300 MB available. Request for 3500 MB min block size. throw exception
     conf.setInt(TezRuntimeConfiguration
@@ -690,24 +691,24 @@ public class TestPipelinedSorter {
     conf.setInt(TezRuntimeConfiguration
         .TEZ_RUNTIME_PIPELINED_SORTER_MIN_BLOCK_SIZE_IN_MB, 32);
     sorter = new PipelinedSorter(this.outputContext, conf, numOutputs, (64 << 20));
-    Assert.assertTrue(sorter.maxNumberOfBlocks == 2);
+    assertEquals(2, sorter.maxNumberOfBlocks);
     blockSize = sorter.computeBlockSize((64 << 20), (64 << 20));
-    Assert.assertTrue(blockSize == (32 << 20));
+    assertEquals((32 << 20), blockSize);
 
     blockSize = sorter.computeBlockSize((32 << 20), (64 << 20));
-    Assert.assertTrue(blockSize == (32 << 20));
+    assertEquals((32 << 20), blockSize);
 
     blockSize = sorter.computeBlockSize((48 << 20), (64 << 20));
-    Assert.assertTrue(blockSize == (48 << 20));
+    assertEquals((48 << 20), blockSize);
 
     //64 MB available. Request for 8 MB min block size.
     conf.setInt(TezRuntimeConfiguration
         .TEZ_RUNTIME_PIPELINED_SORTER_MIN_BLOCK_SIZE_IN_MB, 8);
     sorter = new PipelinedSorter(this.outputContext, conf, numOutputs, (64 << 20));
-    Assert.assertTrue(sorter.maxNumberOfBlocks == 8);
+    assertEquals(8, sorter.maxNumberOfBlocks);
     blockSize = sorter.computeBlockSize((64 << 20), (64 << 20));
     //Should return 16 instead of 8 which is min block size.
-    Assert.assertTrue(blockSize == (8 << 20));
+    assertEquals((8 << 20), blockSize);
   }
 
   @Test
@@ -724,8 +725,7 @@ public class TestPipelinedSorter {
         .TEZ_RUNTIME_PIPELINED_SORTER_LAZY_ALLOCATE_MEMORY, false);
     PipelinedSorter sorter = new PipelinedSorter(this.outputContext, conf,
         numOutputs, (128l << 20));
-    assertTrue("Expected 1 sort buffers. current len=" + sorter.buffers.size(),
-        sorter.buffers.size() == 1);
+    assertEquals(1, sorter.buffers.size(), "Expected 1 sort buffers. current len=" + sorter.buffers.size());
 
     //128 MB. Pre-allocate. Get 2 buffer
     conf.setInt(TezRuntimeConfiguration.TEZ_RUNTIME_IO_SORT_MB, 128);
@@ -735,8 +735,7 @@ public class TestPipelinedSorter {
         .TEZ_RUNTIME_PIPELINED_SORTER_LAZY_ALLOCATE_MEMORY, false);
     sorter = new PipelinedSorter(this.outputContext, conf,
         numOutputs, (128l << 20));
-    assertTrue("Expected 2 sort buffers. current len=" + sorter.buffers.size(),
-        sorter.buffers.size() == 2);
+    assertEquals(2, sorter.buffers.size(), "Expected 2 sort buffers. current len=" + sorter.buffers.size());
 
     //48 MB. Pre-allocate. But request for lesser block size (62). Get 2 buffer
     conf.setInt(TezRuntimeConfiguration.TEZ_RUNTIME_IO_SORT_MB, 48);
@@ -746,66 +745,58 @@ public class TestPipelinedSorter {
         .TEZ_RUNTIME_PIPELINED_SORTER_LAZY_ALLOCATE_MEMORY, false);
     sorter = new PipelinedSorter(this.outputContext, conf,
         numOutputs, (48l << 20));
-    assertTrue("Expected 1 sort buffers. current len=" + sorter.buffers.size(),
-        sorter.buffers.size() == 1);
+    assertEquals(1, sorter.buffers.size(), "Expected 1 sort buffers. current len=" + sorter.buffers.size());
   }
 
   @Test
-  //Intentionally not having timeout
+  // Intentionally not having timeout
   public void test_with_lazyMemAllocation() throws IOException {
     this.numOutputs = 10;
 
-    //128 MB. Do not pre-allocate.
+    // 128 MB. Do not pre-allocate.
     // Get 32 MB buffer first and the another buffer with 96 on filling up
     // the 32 MB buffer.
     conf.setInt(TezRuntimeConfiguration.TEZ_RUNTIME_IO_SORT_MB, 128);
-    conf.setBoolean(TezRuntimeConfiguration
-        .TEZ_RUNTIME_PIPELINED_SORTER_LAZY_ALLOCATE_MEMORY, true);
-    PipelinedSorter sorter = new PipelinedSorter(this.outputContext, conf,
-        numOutputs, (128l << 20));
-    assertTrue("Expected 1 sort buffers. current len=" + sorter.buffers.size(),
-        sorter.buffers.size() == 1);
-    assertTrue(sorter.buffers.get(0).capacity() == 32 * 1024 * 1024 - 64);
-    writeData(sorter, 100, 1024*1024, false); //100 1 MB KV. Will spill
+    conf.setBoolean(TezRuntimeConfiguration.TEZ_RUNTIME_PIPELINED_SORTER_LAZY_ALLOCATE_MEMORY, true);
+    PipelinedSorter sorter = new PipelinedSorter(this.outputContext, conf, numOutputs, (128l << 20));
+    assertEquals(1, sorter.buffers.size(), "Expected 1 sort buffers. current len=" + sorter.buffers.size());
+    assertEquals(32 * 1024 * 1024 - 64, sorter.buffers.get(0).capacity());
+    writeData(sorter, 100, 1024 * 1024, false); // 100 1 MB KV. Will spill
 
-    //Now it should have created 2 buffers, 32 & 96 MB buffers.
-    assertTrue(sorter.buffers.size() == 2);
-    assertTrue(sorter.buffers.get(0).capacity() == 32 * 1024 * 1024 - 64);
-    assertTrue(sorter.buffers.get(1).capacity() == 96 * 1024 * 1024 + 64);
+    // Now it should have created 2 buffers, 32 & 96 MB buffers.
+    assertEquals(2, sorter.buffers.size());
+    assertEquals(32 * 1024 * 1024 - 64, sorter.buffers.get(0).capacity());
+    assertEquals(96 * 1024 * 1024 + 64, sorter.buffers.get(1).capacity());
     closeSorter(sorter);
     verifyCounters(sorter, outputContext);
 
-    //TODO: Not sure if this would fail in build machines due to mem
-    //300 MB. Do not pre-allocate.
+    // TODO: Not sure if this would fail in build machines due to mem
+    // 300 MB. Do not pre-allocate.
     // Get 1 buffer with 62 MB. But grow to 2 buffers as data is written
     conf.setInt(TezRuntimeConfiguration.TEZ_RUNTIME_IO_SORT_MB, 300);
-    conf.setBoolean(TezRuntimeConfiguration
-        .TEZ_RUNTIME_PIPELINED_SORTER_LAZY_ALLOCATE_MEMORY, true);
+    conf.setBoolean(TezRuntimeConfiguration.TEZ_RUNTIME_PIPELINED_SORTER_LAZY_ALLOCATE_MEMORY, true);
     sorter = new PipelinedSorter(this.outputContext, conf, numOutputs, (300l << 20));
-    assertTrue(sorter.buffers.size() == 1);
-    assertTrue(sorter.buffers.get(0).capacity() == 32 * 1024 * 1024 - 64);
+    assertEquals(1, sorter.buffers.size());
+    assertEquals(32 * 1024 * 1024 - 64, sorter.buffers.get(0).capacity());
 
-    writeData(sorter, 50, 1024*1024, false); //50 1 MB KV to allocate 2nd buf
-    assertTrue(sorter.buffers.size() == 2);
-    assertTrue(sorter.buffers.get(0).capacity() == 32 * 1024 * 1024 - 64);
-    assertTrue(sorter.buffers.get(1).capacity() == 268 * 1024 * 1024 + 64);
+    writeData(sorter, 50, 1024 * 1024, false); // 50 1 MB KV to allocate 2nd buf
+    assertEquals(2, sorter.buffers.size());
+    assertEquals(32 * 1024 * 1024 - 64, sorter.buffers.get(0).capacity());
+    assertEquals(268 * 1024 * 1024 + 64, sorter.buffers.get(1).capacity());
 
-    //48 MB. Do not pre-allocate.
+    // 48 MB. Do not pre-allocate.
     // Get 32 MB buffer first invariably and proceed with the rest.
     conf.setInt(TezRuntimeConfiguration.TEZ_RUNTIME_IO_SORT_MB, 48);
-    conf.setBoolean(TezRuntimeConfiguration
-        .TEZ_RUNTIME_PIPELINED_SORTER_LAZY_ALLOCATE_MEMORY, true);
-    sorter = new PipelinedSorter(this.outputContext, conf,
-        numOutputs, (48l << 20));
-    assertTrue("Expected 1 sort buffers. current len=" + sorter.buffers.size(),
-        sorter.buffers.size() == 1);
-    assertTrue(sorter.buffers.get(0).capacity() == 32 * 1024 * 1024 - 64);
-    writeData(sorter, 20, 1024*1024, false); //100 1 MB KV. Will spill
+    conf.setBoolean(TezRuntimeConfiguration.TEZ_RUNTIME_PIPELINED_SORTER_LAZY_ALLOCATE_MEMORY, true);
+    sorter = new PipelinedSorter(this.outputContext, conf, numOutputs, (48l << 20));
+    assertEquals(1, sorter.buffers.size(), "Expected 1 sort buffers. current len=" + sorter.buffers.size());
+    assertEquals(32 * 1024 * 1024 - 64, sorter.buffers.get(0).capacity());
+    writeData(sorter, 20, 1024 * 1024, false); // 100 1 MB KV. Will spill
 
-    //Now it should have created 2 buffers, 32 & 96 MB buffers.
-    assertTrue(sorter.buffers.size() == 2);
-    assertTrue(sorter.buffers.get(0).capacity() == 32 * 1024 * 1024 - 64);
-    assertTrue(sorter.buffers.get(1).capacity() == 16 * 1024 * 1024 + 64);
+    // Now it should have created 2 buffers, 32 & 96 MB buffers.
+    assertEquals(2, sorter.buffers.size());
+    assertEquals(32 * 1024 * 1024 - 64, sorter.buffers.get(0).capacity());
+    assertEquals(16 * 1024 * 1024 + 64, sorter.buffers.get(1).capacity());
     closeSorter(sorter);
   }
 
@@ -887,14 +878,15 @@ public class TestPipelinedSorter {
   }
 
   private void verifyOutputPermissions(String spillId) throws IOException {
-    String subpath = Constants.TEZ_RUNTIME_TASK_OUTPUT_DIR + "/" + spillId
-        + "/" + Constants.TEZ_RUNTIME_TASK_OUTPUT_FILENAME_STRING;
+    String subpath =
+        Constants.TEZ_RUNTIME_TASK_OUTPUT_DIR + "/" + spillId + "/" + Constants.TEZ_RUNTIME_TASK_OUTPUT_FILENAME_STRING;
     Path outputPath = dirAllocator.getLocalPathToRead(subpath, conf);
-    Path indexPath = dirAllocator.getLocalPathToRead(subpath + Constants.TEZ_RUNTIME_TASK_OUTPUT_INDEX_SUFFIX_STRING, conf);
-    Assert.assertEquals("Incorrect output permissions", (short)0640,
-        localFs.getFileStatus(outputPath).getPermission().toShort());
-    Assert.assertEquals("Incorrect index permissions", (short)0640,
-        localFs.getFileStatus(indexPath).getPermission().toShort());
+    Path indexPath =
+        dirAllocator.getLocalPathToRead(subpath + Constants.TEZ_RUNTIME_TASK_OUTPUT_INDEX_SUFFIX_STRING, conf);
+    assertEquals((short) 0640, localFs.getFileStatus(outputPath).getPermission().toShort(),
+        "Incorrect output permissions");
+    assertEquals((short) 0640, localFs.getFileStatus(indexPath).getPermission().toShort(),
+        "Incorrect index permissions");
   }
 
   private void writeData(ExternalSorter sorter, int numKeys, int keyLen) throws IOException {
@@ -974,12 +966,12 @@ public class TestPipelinedSorter {
         reader.nextRawValue(valIn);
         readKey = keyDeserializer.deserialize(readKey);
         readValue = valDeserializer.deserialize(readValue);
-        Assert.assertTrue(key.equals(readKey));
-        Assert.assertTrue(val.equals(readValue));
+        assertEquals(key, readKey);
+        assertEquals(val, readValue);
         numRecordsRead++;
       }
     }
-    Assert.assertTrue(numRecordsRead == sortedDataMap.size());
+    assertEquals(numRecordsRead, sortedDataMap.size());
   }
 
   private static OutputContext createMockOutputContext(TezCounters counters, ApplicationId appId,

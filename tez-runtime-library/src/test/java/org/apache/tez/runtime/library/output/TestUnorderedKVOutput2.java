@@ -18,15 +18,17 @@
  */
 package org.apache.tez.runtime.library.output;
 
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertNotNull;
-import static org.junit.Assert.assertNull;
-import static org.junit.Assert.assertTrue;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertInstanceOf;
+import static org.junit.jupiter.api.Assertions.assertNotNull;
+import static org.junit.jupiter.api.Assertions.assertNull;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import java.io.IOException;
 import java.nio.ByteBuffer;
 import java.util.BitSet;
 import java.util.List;
+import java.util.concurrent.TimeUnit;
 
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.fs.FileSystem;
@@ -44,9 +46,10 @@ import org.apache.tez.runtime.library.shuffle.impl.ShuffleUserPayloads;
 
 import com.google.protobuf.ByteString;
 
-import org.junit.After;
-import org.junit.Before;
-import org.junit.Test;
+import org.junit.jupiter.api.AfterEach;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.Timeout;
 
 // Tests which don't require parameterization
 public class TestUnorderedKVOutput2 {
@@ -54,7 +57,7 @@ public class TestUnorderedKVOutput2 {
   private FileSystem localFs;
   private Path workingDir;
 
-  @Before
+  @BeforeEach
   public void setup() throws IOException {
     conf = new Configuration();
     localFs = FileSystem.getLocal(conf);
@@ -69,12 +72,13 @@ public class TestUnorderedKVOutput2 {
     conf.setStrings(TezRuntimeFrameworkConfigs.LOCAL_DIRS, workingDir.toString());
   }
 
-  @After
+  @AfterEach
   public void cleanup() throws IOException {
     localFs.delete(workingDir, true);
   }
 
-  @Test(timeout = 5000)
+  @Test
+  @Timeout(value = 5000, unit = TimeUnit.MILLISECONDS)
   public void testNonStartedOutput() throws Exception {
     OutputContext outputContext = OutputTestHelpers.createOutputContext();
     int numPartitions = 1;
@@ -83,7 +87,7 @@ public class TestUnorderedKVOutput2 {
     List<Event> events = output.close();
     assertEquals(1, events.size());
     Event event1 = events.get(0);
-    assertTrue(event1 instanceof DataMovementEvent);
+    assertInstanceOf(DataMovementEvent.class, event1);
     DataMovementEvent dme = (DataMovementEvent) event1;
     ByteBuffer bb = dme.getUserPayload();
     ShuffleUserPayloads.DataMovementEventPayloadProto shufflePayload =
@@ -99,7 +103,8 @@ public class TestUnorderedKVOutput2 {
     }
   }
 
-  @Test(timeout = 5000)
+  @Test
+  @Timeout(value = 5000, unit = TimeUnit.MILLISECONDS)
   public void testConfigMerge() throws Exception {
     Configuration localConf = new Configuration(conf);
     localConf.set("config-from-local", "config-from-local-value");
@@ -114,7 +119,8 @@ public class TestUnorderedKVOutput2 {
     assertEquals("config-from-payload-value", configAfterMerge.get("config-from-payload"));
   }
 
-  @Test(timeout = 10000)
+  @Test
+  @Timeout(value = 10000, unit = TimeUnit.MILLISECONDS)
   public void testClose() throws Exception {
     OutputContext outputContext = OutputTestHelpers.createOutputContext(conf, conf, workingDir);
     int numPartitions = 1;

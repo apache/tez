@@ -18,7 +18,7 @@
  */
 package org.apache.tez.mapreduce.combine;
 
-import static org.junit.Assert.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.mockito.Mockito.atLeastOnce;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.verify;
@@ -49,7 +49,7 @@ import org.apache.tez.runtime.library.api.TezRuntimeConfiguration;
 import org.apache.tez.runtime.library.common.sort.impl.IFile.Writer;
 import org.apache.tez.runtime.library.common.sort.impl.TezRawKeyValueIterator;
 
-import org.junit.Test;
+import org.junit.jupiter.api.Test;
 
 public class TestMRCombiner {
 
