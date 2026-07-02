@@ -208,7 +208,7 @@ public class TestZkAMRegistry {
       assertEquals(first.getId() + 1, second.getId(),
           "Each registry should receive the next sequential id");
     } catch (Exception e) {
-        throw new RuntimeException(e);
+      throw new RuntimeException(e);
     }
   }
 
