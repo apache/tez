@@ -18,6 +18,7 @@
  */
 package org.apache.tez.dag.api.client.registry.zookeeper;
 
+import static org.apache.tez.dag.api.client.registry.zookeeper.ZkAMRegistry.extractApplicationId;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertNull;
@@ -172,7 +173,7 @@ public class TestZkAMRegistry {
       // Add record and verify node contents
       registry.add(record);
 
-      String path = zkConfig.getZkNamespace() + "/" + appId.toString();
+      String path = zkConfig.getZkNamespace() + "/" + extractApplicationId(appId);
       byte[] data = checkClient.getData().forPath(path);
 
       assertNotNull(data, "Data should be written to ZooKeeper for AMRecord");
@@ -183,6 +184,31 @@ public class TestZkAMRegistry {
       // Remove record and ensure node is deleted
       registry.remove(record);
       assertNull(checkClient.checkExists().forPath(path), "Node should be removed from ZooKeeper after remove()");
+    }
+  }
+
+  @Test
+  public void testGenerateUniqueIds() throws Exception {
+    TezConfiguration conf = createTezConf();
+    try {
+      ZkAMRegistry registry1 = new ZkAMRegistry("external-id-1");
+      ZkAMRegistry registry2 = new ZkAMRegistry("external-id-2");
+      registry1.init(conf);
+      registry1.start();
+      registry2.init(conf);
+      registry2.start();
+
+      ApplicationId first = registry1.generateNewId();
+      ApplicationId second = registry2.generateNewId();
+
+      assertNotNull(first);
+      assertNotNull(second);
+      assertEquals(first.getClusterTimestamp(), second.getClusterTimestamp(),
+          "Registries in the same namespace should share cluster timestamp");
+      assertEquals(first.getId() + 1, second.getId(),
+          "Each registry should receive the next sequential id");
+    } catch (Exception e) {
+      throw new RuntimeException(e);
     }
   }
 

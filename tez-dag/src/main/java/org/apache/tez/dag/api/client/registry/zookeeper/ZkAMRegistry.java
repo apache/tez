@@ -23,8 +23,6 @@ import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
 
-import org.apache.curator.RetryLoop;
-import org.apache.curator.RetryPolicy;
 import org.apache.curator.framework.CuratorFramework;
 import org.apache.hadoop.classification.InterfaceAudience;
 import org.apache.hadoop.conf.Configuration;
@@ -36,6 +34,8 @@ import org.apache.tez.client.registry.zookeeper.ZkConfig;
 import org.apache.zookeeper.CreateMode;
 import org.apache.zookeeper.KeeperException;
 import org.apache.zookeeper.data.Stat;
+
+import com.google.common.annotations.VisibleForTesting;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -120,39 +120,17 @@ public class ZkAMRegistry implements AMRegistry {
     createNamespaceIfNotExists();
     long namespaceCreationTime = getNamespaceCreationTime();
 
-    boolean success = false;
-    long startTime = System.currentTimeMillis();
-    RetryPolicy retryPolicy = zkConfig.getRetryPolicy();
-    int tryId = 0;
-    for (int i = 0; (i < zkConfig.getCuratorMaxRetries()) && !success; i++) {
-      List<String> children = client.getChildren().forPath(namespace);
-      if (children != null && !children.isEmpty()) {
-        children.sort(Collections.reverseOrder());
-        String last = children.getFirst();
-        ApplicationId lastAppId = ApplicationId.fromString(last);
-        tryId = lastAppId.getId() + 1;
-      }
-      ApplicationId tryAppId = ApplicationId.newInstance(namespaceCreationTime, tryId);
-      try {
-        client
-            .create()
-            .withMode(CreateMode.EPHEMERAL)
-            .forPath(namespace + "/" + tryAppId.toString(), new byte[0]);
-        LOG.debug("Successfully created application id {} for namespace {}", tryAppId, namespace);
-        success = true;
-      } catch (KeeperException.NodeExistsException nodeExists) {
-        LOG.info("Node already exists in ZK for application id {}", tryId);
-        long elapsedTime = System.currentTimeMillis() - startTime;
-        retryPolicy.allowRetry(i + 1, elapsedTime, RetryLoop.getDefaultRetrySleeper());
-        tryId++;
-      }
-    }
-    if (success) {
-      return ApplicationId.newInstance(namespaceCreationTime, tryId);
-    } else {
-      throw new RuntimeException("Could not obtain unique ApplicationId after " +
-          zkConfig.getCuratorMaxRetries() + " tries");
-    }
+    String prefixPath = namespace + "/application_" + namespaceCreationTime + "_";
+    String znodePath = client.create()
+        .withMode(CreateMode.EPHEMERAL_SEQUENTIAL)
+        .forPath(prefixPath, new byte[0]);
+
+    String sequenceStr = znodePath.substring(znodePath.length() - 10);
+    int assignedId = Integer.parseInt(sequenceStr);
+
+    ApplicationId appId = ApplicationId.newInstance(namespaceCreationTime, assignedId);
+    LOG.debug("Successfully created application id {} for namespace {}", appId, namespace);
+    return appId;
   }
 
   @Override
@@ -174,6 +152,11 @@ public class ZkAMRegistry implements AMRegistry {
   }
 
   private String pathFor(AMRecord record) {
-    return namespace + "/" + record.getApplicationId().toString();
+    return namespace + "/" + extractApplicationId(record.getApplicationId());
+  }
+
+  @VisibleForTesting
+  static String extractApplicationId(ApplicationId appId) {
+    return String.format("application_%d_%010d", appId.getClusterTimestamp(), appId.getId());
   }
 }
