@@ -77,10 +77,18 @@ You will need the following things properly installed on your computer.
 
 ### Running Tests
 
-Tests run in **headless Chrome**
-Google Chrome must be installed on your machine.
+Tests run in **headless Chrome**.
 
-#### Step 1: Set `CHROME_BIN` to your Chrome binary
+The build automatically resolves a Chrome/Chromium binary using the following priority:
+
+1. `$CHROME_BIN` environment variable (if set and executable)
+2. Well-known system locations (`/Applications/Google Chrome.app` on macOS,
+   `google-chrome-stable` / `chromium-browser` on Linux)
+3. **Puppeteer's bundled Chromium** — downloaded automatically during `yarn install`
+   (which Maven runs as part of the build), so the build works on a vanilla machine
+   with no pre-installed Chrome.
+
+#### Step 1 (optional): Set `CHROME_BIN` to override Chrome detection
 
 On Linux:
 
@@ -93,6 +101,8 @@ On macOS:
 ```bash
 export CHROME_BIN="/Applications/Google Chrome.app/Contents/MacOS/Google Chrome"
 ```
+
+If `CHROME_BIN` is not set, the launcher falls back to the steps above automatically.
 
 #### Step 2: Run the tests
 

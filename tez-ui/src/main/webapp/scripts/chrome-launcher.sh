@@ -14,25 +14,60 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
+#
+# Locates Chrome/Chromium and launches it with the given arguments.
+# Search order:
+#   1. $CHROME_BIN (if set and executable)
+#   2. Platform-specific well-known locations / PATH entries
+#   3. puppeteer's auto-downloaded Chromium
+#
+# Adding "puppeteer" as a devDependency in package.json means that
+# "yarn install" (run automatically by Maven) will download a bundled
+# Chromium, so the build works on a vanilla machine with no pre-installed
+# Chrome/Chromium.
 
+SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
+WEBAPP_DIR="$(cd "$SCRIPT_DIR/.." && pwd)"
+
+# Returns the path to puppeteer's bundled Chromium binary, if present.
+find_puppeteer_chromium() {
+  _pptr_dir="$WEBAPP_DIR/node_modules/puppeteer/.local-chromium"
+  if [ -d "$_pptr_dir" ]; then
+    find "$_pptr_dir" \( -name "chrome" -o -name "Chromium" \) -type f 2>/dev/null | head -1
+  fi
+}
+
+# 1. Honour an explicit CHROME_BIN override
 if [ -n "$CHROME_BIN" ] && command -v "$CHROME_BIN" > /dev/null 2>&1; then
   exec "$CHROME_BIN" "$@" > /dev/null 2>&1
 fi
 
+# 2. Platform-specific well-known locations
 case "$(uname -s)" in
   Darwin)
-    exec "/Applications/Google Chrome.app/Contents/MacOS/Google Chrome" "$@" > /dev/null 2>&1
+    MAC_CHROME="/Applications/Google Chrome.app/Contents/MacOS/Google Chrome"
+    if [ -x "$MAC_CHROME" ]; then
+      exec "$MAC_CHROME" "$@" > /dev/null 2>&1
+    fi
     ;;
   *)
-    # Linux and other Unix-like systems – try common binary names
+    # Linux and other Unix-like systems – try common binary names in PATH
     for CHROME in google-chrome-stable google-chrome chromium-browser chromium; do
       if command -v "$CHROME" > /dev/null 2>&1; then
         exec "$CHROME" "$@" > /dev/null 2>&1
       fi
     done
-    echo "ERROR: Chrome not found. Install Google Chrome or set CHROME_BIN." >&2
-    exit 1
     ;;
 esac
+
+# 3. Fall back to puppeteer's auto-downloaded Chromium
+PUPPETEER_CHROME="$(find_puppeteer_chromium)"
+if [ -n "$PUPPETEER_CHROME" ] && [ -x "$PUPPETEER_CHROME" ]; then
+  exec "$PUPPETEER_CHROME" "$@" > /dev/null 2>&1
+fi
+
+echo "ERROR: No Chrome/Chromium found. Install Google Chrome or Chromium, or set CHROME_BIN." >&2
+echo "       Alternatively, run 'yarn install' inside src/main/webapp to let puppeteer download Chromium automatically." >&2
+exit 1
 
 
