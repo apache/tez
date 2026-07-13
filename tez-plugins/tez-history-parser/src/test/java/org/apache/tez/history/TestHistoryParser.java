@@ -209,14 +209,13 @@ public class TestHistoryParser {
     String dagId = runWordCount(WordCount.TokenProcessor.class.getName(),
         WordCount.SumProcessor.class.getName(), "WordCount", true);
 
-    //Export the data from ATS
-    String[] args = { "--dagId=" + dagId, "--downloadDir=" + DOWNLOAD_DIR, "--yarnTimelineAddress=" + yarnTimelineAddress };
+    //Retry the ATS export+parse pipeline until the resulting DagInfo actually contains
+    //the expected DAG (two vertices, non-empty vertices/tasks). Under load the AM's async
+    //flush and the timeline server's write path can race the export, leaving empty/partial
+    //entities in the zip. Before TEZ-4733 that produced a misleading
+    //"A JSONObject text must begin with '{'" JSONException at parse time.
+    DagInfo dagInfoFromATS = fetchDagInfoFromAtsWithRetry(dagId, 6, 5_000L);
 
-    int result = ATSImportTool.process(args);
-    assertEquals(0, result);
-
-    //Parse ATS data and verify results
-    DagInfo dagInfoFromATS = getDagInfo(dagId);
     verifyDagInfo(dagInfoFromATS, true);
     verifyJobSpecificInfo(dagInfoFromATS);
     checkConfig(dagInfoFromATS);
@@ -224,7 +223,8 @@ public class TestHistoryParser {
     //Now run with SimpleHistoryLogging
     dagId = runWordCount(WordCount.TokenProcessor.class.getName(),
         WordCount.SumProcessor.class.getName(), "WordCount", false);
-    Thread.sleep(10000); //For all flushes to happen and to avoid half-cooked download.
+
+    waitForHistoryFileReady(dagId, 60_000L);
 
     DagInfo shDagInfo = getDagInfoFromSimpleHistory(dagId);
     verifyDagInfo(shDagInfo, false);
@@ -232,6 +232,77 @@ public class TestHistoryParser {
 
     //Compare dagInfo by parsing ATS data with DagInfo obtained by parsing SimpleHistoryLog
     isDAGEqual(dagInfoFromATS, shDagInfo);
+  }
+
+  /**
+   * the ATS write path is async (AM event queue → timeline client →
+   * timeline server). Even after the DAG client reports the job complete, timeline entities
+   * may still be in transit. Downloading too early produced empty zip entries and a
+   * misleading JSONException: A JSONObject text must begin with '{'} at parse time.
+   */
+  private DagInfo fetchDagInfoFromAtsWithRetry(String dagId, int maxAttempts,
+      long delayMs) throws Exception {
+    String[] args = { "--dagId=" + dagId, "--downloadDir=" + DOWNLOAD_DIR,
+        "--yarnTimelineAddress=" + yarnTimelineAddress };
+    Exception lastError = null;
+    DagInfo lastPartial = null;
+    for (int attempt = 1; attempt <= maxAttempts; attempt++) {
+      try {
+        // Fresh download every attempt — ATSImportTool overwrites the zip.
+        int result = ATSImportTool.process(args);
+        assertEquals(0, result);
+        DagInfo info = getDagInfo(dagId);
+        if (isDagInfoComplete(info)) {
+          return info;
+        }
+        lastPartial = info;
+      } catch (Exception e) {
+        lastError = e;
+      }
+      if (attempt < maxAttempts) {
+        Thread.sleep(delayMs);
+      }
+    }
+    fail("Could not fetch a complete DagInfo for " + dagId + " after " + maxAttempts
+        + " attempts (lastError=" + lastError + ", lastPartial="
+        + (lastPartial == null ? "null"
+            : "vertices=" + lastPartial.getVertices().size()
+            + ", tasks=" + (lastPartial.getVertices().isEmpty() ? 0
+                : lastPartial.getVertices().iterator().next().getTasks().size()))
+        + ")");
+    return null;
+  }
+
+  private static boolean isDagInfoComplete(DagInfo info) {
+    return info != null
+        && info.getVertices().size() >= 2
+        && info.getVertices().stream().allMatch(v ->
+            !v.getTasks().isEmpty()
+                && v.getTasks().stream().allMatch(t -> !t.getTaskAttempts().isEmpty()));
+  }
+
+  private void waitForHistoryFileReady(String dagId, long timeoutMs) throws Exception {
+    TezDAGID tezDAGID = TezDAGID.fromString(dagId);
+    ApplicationAttemptId applicationAttemptId = ApplicationAttemptId.newInstance(tezDAGID
+        .getApplicationId(), 1);
+    Path historyPath = new Path(conf.get("fs.defaultFS")
+        + SIMPLE_HISTORY_DIR + HISTORY_TXT + "."
+        + applicationAttemptId);
+    FileSystem hfs = historyPath.getFileSystem(conf);
+    long deadline = System.currentTimeMillis() + timeoutMs;
+    long lastLen = -1L;
+    while (System.currentTimeMillis() < deadline) {
+      if (hfs.exists(historyPath)) {
+        long len = hfs.getFileStatus(historyPath).getLen();
+        if (len > 0 && len == lastLen) {
+          return;
+        }
+        lastLen = len;
+      }
+      Thread.sleep(500);
+    }
+    fail("Timed out waiting for SimpleHistory file " + historyPath
+        + " to be ready within " + timeoutMs + "ms (lastLen=" + lastLen + ")");
   }
 
   private DagInfo getDagInfoFromSimpleHistory(String dagId) throws TezException, IOException {
