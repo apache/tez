@@ -24,6 +24,7 @@ import static org.apache.hadoop.classification.InterfaceStability.Evolving;
 import java.io.File;
 import java.io.IOException;
 import java.io.InputStream;
+import java.nio.charset.StandardCharsets;
 import java.util.Enumeration;
 import java.util.Iterator;
 import java.util.List;
@@ -174,11 +175,23 @@ public class ATSFileParser extends BaseParser implements ATSData {
     }
   }
 
-  private JSONObject readJson(InputStream in) throws IOException, JSONException {
-    //Read entire content to memory
-    final NonSyncByteArrayOutputStream bout = new NonSyncByteArrayOutputStream();
-    IOUtils.copy(in, bout);
-    return new JSONObject(new String(bout.toByteArray(), "UTF-8"));
+  /**
+   * Parse the raw payload of a single zip entry as JSON.
+   * Returns null if the payload is empty or blank — callers should skip such entries.
+   */
+  private JSONObject readJson(byte[] payload, String entryName) throws JSONException {
+    String text = new String(payload, StandardCharsets.UTF_8);
+    if (text.trim().isEmpty()) {
+      LOG.warn("Skipping zip entry '{}' - payload is empty or whitespace only", entryName);
+      return null;
+    }
+    try {
+      return new JSONObject(text);
+    } catch (JSONException e) {
+      String snippet = text.length() > 200 ? text.substring(0, 200) + "..." : text;
+      throw new JSONException("Failed to parse JSON from zip entry '" + entryName
+          + "' (length=" + text.length() + ", snippet=" + snippet + "): " + e.getMessage());
+    }
   }
 
   /**
@@ -197,7 +210,13 @@ public class ATSFileParser extends BaseParser implements ATSData {
         ZipEntry zipEntry = zipEntries.nextElement();
         LOG.debug("Processing " + zipEntry.getName());
         InputStream inputStream = atsZipFile.getInputStream(zipEntry);
-        JSONObject jsonObject = readJson(inputStream);
+        //Read entire content to memory so we can pass entry name into error messages
+        final NonSyncByteArrayOutputStream bout = new NonSyncByteArrayOutputStream();
+        IOUtils.copy(inputStream, bout);
+        JSONObject jsonObject = readJson(bout.toByteArray(), zipEntry.getName());
+        if (jsonObject == null) {
+          continue;
+        }
 
         //This json can contain dag, vertices, tasks, task_attempts
         JSONObject dagJson = jsonObject.optJSONObject(Constants.DAG);
