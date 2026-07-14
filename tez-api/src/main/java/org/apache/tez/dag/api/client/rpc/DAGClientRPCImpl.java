@@ -280,10 +280,14 @@ public class DAGClientRPCImpl extends DAGClientInternal {
     }
 
     // YARN-808. Cannot ascertain if AM is ready until we connect to it.
-    // workaround check the default string set by YARN
-    if(appReport.getHost() == null || appReport.getHost().equals("N/A") ||
-        appReport.getRpcPort() == 0){
-      // attempt not running
+    // Workaround: check the default strings/sentinels set by YARN.
+    //   port == 0  : protobuf wire default, AM has not called
+    //                registerApplicationMaster() yet.
+    //   port == -1 : AM container is allocated (state=RUNNING) but the
+    //                RPC listener has not been bound yet.
+    if (appReport.getHost() == null || appReport.getHost().equals("N/A") ||
+        appReport.getRpcPort() <= 0) {
+      // AM RPC endpoint not yet available
       return false;
     }
 
