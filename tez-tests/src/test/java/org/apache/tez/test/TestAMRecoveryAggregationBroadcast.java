@@ -26,6 +26,7 @@ import java.io.OutputStreamWriter;
 import java.nio.ByteBuffer;
 import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.Collections;
 import java.util.EnumSet;
 import java.util.HashMap;
@@ -68,6 +69,7 @@ import org.apache.tez.dag.api.client.DAGClient;
 import org.apache.tez.dag.api.client.DAGStatus;
 import org.apache.tez.dag.api.client.DAGStatus.State;
 import org.apache.tez.dag.api.client.StatusGetOpts;
+import org.apache.tez.dag.api.client.VertexStatus;
 import org.apache.tez.dag.api.oldrecords.TaskAttemptState;
 import org.apache.tez.dag.app.RecoveryParser;
 import org.apache.tez.dag.history.HistoryEvent;
@@ -105,7 +107,6 @@ public class TestAMRecoveryAggregationBroadcast {
   private static final String TEST_ROOT_DIR = "target" + Path.SEPARATOR
       + TestAMRecoveryAggregationBroadcast.class.getName() + "-tmpDir";
   private static final Path INPUT_FILE = new Path(TEST_ROOT_DIR, "input.csv");
-  private static final Path OUT_PATH = new Path(TEST_ROOT_DIR, "out-groups");
   private static final String EXPECTED_OUTPUT = "1-5\n1-5\n1-5\n1-5\n1-5\n"
       + "2-4\n2-4\n2-4\n2-4\n" + "3-3\n3-3\n3-3\n" + "4-2\n4-2\n" + "5-1\n";
   private static final String TABLE_SCAN_SLEEP = "tez.test.table.scan.sleep";
@@ -119,6 +120,10 @@ public class TestAMRecoveryAggregationBroadcast {
 
   private TezConfiguration tezConf;
   private TezClient tezSession;
+  // Per-test unique output path.
+  // replaces the former static OUT_PATH so that a stale file from a prior run in the same forked JVM
+  // cannot bleed into a later run.
+  private Path outPath;
 
   @BeforeAll
   public static void setupAll() {
@@ -173,6 +178,7 @@ public class TestAMRecoveryAggregationBroadcast {
     Path remoteStagingDir = remoteFs.makeQualified(new Path(TEST_ROOT_DIR, String
         .valueOf(new Random().nextInt(100000))));
     TezClientUtils.ensureStagingDirExists(dfsConf, remoteStagingDir);
+    outPath = new Path(TEST_ROOT_DIR, "out-groups-" + new Random().nextInt(100000));
 
     tezConf = new TezConfiguration(tezCluster.getConfig());
     tezConf.setInt(TezConfiguration.DAG_RECOVERY_MAX_UNFLUSHED_EVENTS, 0);
@@ -204,7 +210,7 @@ public class TestAMRecoveryAggregationBroadcast {
   @Timeout(value = 120000, unit = TimeUnit.MILLISECONDS)
   public void testSucceed() throws Exception {
     DAG dag = createDAG("Succeed");
-    TezCounters counters = runDAGAndVerify(dag, false);
+    TezCounters counters = runDAGAndVerify(dag, false, Collections.emptyList());
     assertEquals(3, counters.findCounter(DAGCounter.NUM_SUCCEEDED_TASKS).getValue());
 
     List<HistoryEvent> historyEvents1 = readRecoveryLog(1);
@@ -221,7 +227,7 @@ public class TestAMRecoveryAggregationBroadcast {
   public void testTableScanTemporalFailure() throws Exception {
     tezConf.setBoolean(TABLE_SCAN_SLEEP, true);
     DAG dag = createDAG("TableScanTemporalFailure");
-    TezCounters counters = runDAGAndVerify(dag, true);
+    TezCounters counters = runDAGAndVerify(dag, true, Collections.emptyList());
     assertEquals(3, counters.findCounter(DAGCounter.NUM_SUCCEEDED_TASKS).getValue());
 
     List<HistoryEvent> historyEvents1 = readRecoveryLog(1);
@@ -242,7 +248,9 @@ public class TestAMRecoveryAggregationBroadcast {
   public void testAggregationTemporalFailure() throws Exception {
     tezConf.setBoolean(AGGREGATION_SLEEP, true);
     DAG dag = createDAG("AggregationTemporalFailure");
-    TezCounters counters = runDAGAndVerify(dag, true);
+    // Wait for TableScan to be SUCCEEDED before killing the
+    TezCounters counters = runDAGAndVerify(dag, true,
+        Collections.singletonList(TABLE_SCAN));
     assertEquals(3, counters.findCounter(DAGCounter.NUM_SUCCEEDED_TASKS).getValue());
 
     List<HistoryEvent> historyEvents1 = readRecoveryLog(1);
@@ -263,7 +271,9 @@ public class TestAMRecoveryAggregationBroadcast {
   public void testMapJoinTemporalFailure() throws Exception {
     tezConf.setBoolean(MAP_JOIN_SLEEP, true);
     DAG dag = createDAG("MapJoinTemporalFailure");
-    TezCounters counters = runDAGAndVerify(dag, true);
+    // Wait for both upstream vertices to be SUCCEEDED before killing the AM
+    TezCounters counters = runDAGAndVerify(dag, true,
+        Arrays.asList(TABLE_SCAN, AGGREGATION));
     assertEquals(3, counters.findCounter(DAGCounter.NUM_SUCCEEDED_TASKS).getValue());
 
     List<HistoryEvent> historyEvents1 = readRecoveryLog(1);
@@ -310,7 +320,7 @@ public class TestAMRecoveryAggregationBroadcast {
 
     DataSinkDescriptor dataSink = MROutput
         .createConfigBuilder(new Configuration(tezConf), TextOutputFormat.class,
-            OUT_PATH.toString())
+            outPath.toString())
         .build();
     // Broadcast Hash Join
     Vertex mapJoinVertex = Vertex
@@ -339,12 +349,20 @@ public class TestAMRecoveryAggregationBroadcast {
     return dag;
   }
 
-  TezCounters runDAGAndVerify(DAG dag, boolean killAM) throws Exception {
+  TezCounters runDAGAndVerify(DAG dag, boolean killAM,
+      List<String> vertexNamesToWaitFor) throws Exception {
     tezSession.waitTillReady();
     DAGClient dagClient = tezSession.submitDAG(dag);
 
     if (killAM) {
-      TimeUnit.SECONDS.sleep(10);
+      // Deterministic wait: block until every named upstream vertex reaches
+      // SUCCEEDED. Replaces a fixed Thread.sleep(10s) which was too short on
+      // slow CI machines and caused the recovery-log assertions below to
+      // fail intermittently.
+      for (String vertexName : vertexNamesToWaitFor) {
+        waitForVertexSucceeded(dagClient, vertexName,
+            TimeUnit.SECONDS.toMillis(60));
+      }
       YarnClient yarnClient = YarnClient.createYarnClient();
       yarnClient.init(tezConf);
       yarnClient.start();
@@ -356,12 +374,38 @@ public class TestAMRecoveryAggregationBroadcast {
     LOG.info("Diagnosis: " + dagStatus.getDiagnostics());
     assertEquals(State.SUCCEEDED, dagStatus.getState());
 
-    FSDataInputStream in = remoteFs.open(new Path(OUT_PATH, "part-v002-o000-r-00000"));
+    FSDataInputStream in = remoteFs.open(new Path(outPath, "part-v002-o000-r-00000"));
     ByteBuffer buf = ByteBuffer.allocate(100);
     in.read(buf);
     buf.flip();
     assertEquals(EXPECTED_OUTPUT, StandardCharsets.UTF_8.decode(buf).toString());
     return dagStatus.getDAGCounters();
+  }
+
+  private void waitForVertexSucceeded(DAGClient dagClient, String vertexName,
+      long timeoutMs) throws Exception {
+    long deadline = System.currentTimeMillis() + timeoutMs;
+    while (System.currentTimeMillis() < deadline) {
+      // Before the vertex is initialized on the AM, getVertexStatus may
+      // return null - treat that the same as NEW / INITIALIZING and keep
+      // polling.
+      VertexStatus status = dagClient.getVertexStatus(vertexName, null);
+      if (status != null) {
+        VertexStatus.State state = status.getState();
+        if (state == VertexStatus.State.SUCCEEDED) {
+          return;
+        }
+        if (state == VertexStatus.State.FAILED
+            || state == VertexStatus.State.KILLED
+            || state == VertexStatus.State.ERROR) {
+          throw new AssertionError("Vertex " + vertexName
+              + " reached terminal non-success state: " + state);
+        }
+      }
+      TimeUnit.MILLISECONDS.sleep(500);
+    }
+    throw new AssertionError("Timeout waiting for vertex " + vertexName
+        + " to reach SUCCEEDED");
   }
 
   private List<HistoryEvent> readRecoveryLog(int attemptNum) throws IOException {

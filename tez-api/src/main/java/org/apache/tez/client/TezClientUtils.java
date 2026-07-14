@@ -961,7 +961,26 @@ public final class TezClientUtils {
       throw new TezException(e);
     }
 
-    return getAMProxy(conf, appReport.getHost(), appReport.getRpcPort(),
+    // YARN-808 gap: when the AM container is first allocated YARN briefly
+    // reports state=RUNNING before the AM has registered with the RM or bound
+    // its RPC listener. During that window the ApplicationReport contains
+    // sentinel values that must not be passed to
+    // NetUtils.createSocketAddrForHost() (which would throw
+    // IllegalArgumentException: port out of range) or to RPC.getProxy():
+    //   host == null / "N/A" : RM has not received registerApplicationMaster()
+    //   rpcPort == 0         : protobuf wire default
+    //   rpcPort == -1        : container up but RPC listener not yet bound
+    // Returning null lets callers (waitForProxy, sendAMHeartbeat) back off
+    // and retry rather than crash.
+    String amHost = appReport.getHost();
+    int amRpcPort = appReport.getRpcPort();
+    if (amHost == null || amHost.equals("N/A") || amRpcPort <= 0) {
+      LOG.debug("AM RPC endpoint not yet available for {} (host={}, port={})"
+          + " - will retry", applicationId, amHost, amRpcPort);
+      return null;
+    }
+
+    return getAMProxy(conf, amHost, amRpcPort,
         appReport.getClientToAMToken(), ugi);
   }
 
