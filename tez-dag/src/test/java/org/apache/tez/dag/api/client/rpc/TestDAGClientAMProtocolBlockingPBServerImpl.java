@@ -20,6 +20,7 @@ package org.apache.tez.dag.api.client.rpc;
 
 import static org.junit.jupiter.api.Assertions.assertArrayEquals;
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.Mockito.any;
 import static org.mockito.Mockito.mock;
@@ -117,6 +118,9 @@ public class TestDAGClientAMProtocolBlockingPBServerImpl {
 
     requestBuilder.clear().setSerializedRequestPath(requestFile.getAbsolutePath());
     serverImpl.submitDAG(null, requestBuilder.build());
+
+    assertFalse(requestFile.exists(),
+        "The serialized DAG plan file should be deleted once the AM has consumed it");
 
     ArgumentCaptor<DAGPlan> dagPlanCaptor = ArgumentCaptor.forClass(DAGPlan.class);
     verify(dagClientHandler).submitDAG(dagPlanCaptor.capture(), localResourcesCaptor.capture());

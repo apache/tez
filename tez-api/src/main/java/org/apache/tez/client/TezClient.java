@@ -692,7 +692,9 @@ public class TezClient {
           serializedSubmitDAGPlanRequestCounter.incrementAndGet());
 
       FileSystem fs = dagPlanPath.getFileSystem(stagingFs.getConf());
-      try (FSDataOutputStream fsDataOutputStream = fs.create(dagPlanPath, false)) {
+      // Overwrite a possible leftover plan file: when the session outlives the TezClient instances,
+      // a file with the same name may have been left behind by an already consumed submission.
+      try (FSDataOutputStream fsDataOutputStream = fs.create(dagPlanPath, true)) {
         LOG.info("Send dag plan using YARN local resources since it's too large"
             + ", dag plan size=" + request.getSerializedSize()
             + ", max dag plan size through IPC=" + maxSubmitDAGRequestSizeThroughIPC

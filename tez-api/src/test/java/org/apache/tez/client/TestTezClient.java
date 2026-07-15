@@ -70,6 +70,7 @@ import org.apache.hadoop.yarn.api.records.YarnApplicationState;
 import org.apache.hadoop.yarn.client.api.YarnClient;
 import org.apache.hadoop.yarn.exceptions.ApplicationNotFoundException;
 import org.apache.hadoop.yarn.exceptions.YarnException;
+import org.apache.tez.common.TezCommonUtils;
 import org.apache.tez.common.counters.LimitExceededException;
 import org.apache.tez.common.counters.Limits;
 import org.apache.tez.common.counters.TezCounters;
@@ -269,19 +270,11 @@ public class TestTezClient {
     localResourceMap.put(lrName, LocalResource.newInstance(URL.newInstance("file", "localhost", 0, "/test"),
         LocalResourceType.FILE, LocalResourceVisibility.PUBLIC, 1, 1));
 
-    ProcessorDescriptor processorDescriptor = ProcessorDescriptor.create("P");
-    processorDescriptor.setUserPayload(UserPayload.create(ByteBuffer.allocate(payloadSize)));
-    Vertex vertex = Vertex.create("Vertex", processorDescriptor, 1, Resource.newInstance(1, 1));
-    DAG dag = DAG.create("DAG-testTezClientSessionLargeDAGPlan").addVertex(vertex);
-
     client.start();
     client.addAppMasterLocalFiles(localResourceMap);
-    client.submitDAG(dag);
+    SubmitDAGRequestProto request =
+        submitDAGAndCaptureRequest(client, largeDAG("DAG-testTezClientSessionLargeDAGPlan", payloadSize));
     client.stop();
-
-    ArgumentCaptor<SubmitDAGRequestProto> captor = ArgumentCaptor.forClass(SubmitDAGRequestProto.class);
-    verify(client.sessionAmProxy).submitDAG(any(), captor.capture());
-    SubmitDAGRequestProto request = captor.getValue();
 
     if (shouldSerialize) {
       /* we need manually delete the serialized dagplan since staging path here won't be destroyed */
@@ -298,6 +291,54 @@ public class TestTezClient {
       assertTrue(request.hasDAGPlan());
       assertTrue(request.hasAdditionalAmResources());
     }
+  }
+
+  @Test
+  @Timeout(value = 10000, unit = TimeUnit.MILLISECONDS)
+  public void testSessionLargeDAGPlanWithLeftoverPlanFile() throws Exception {
+    // Simulates long-running/external sessions (e.g. Hive with external session pools): the
+    // application and its staging dir outlive the TezClient instances, which are recreated per
+    // query with their serialized-plan-file counter restarting from 0. A plan file left behind
+    // by a previous client generation must not fail subsequent submissions with
+    // FileAlreadyExistsException.
+    TezConfiguration conf = new TezConfiguration();
+    conf.setInt(CommonConfigurationKeys.IPC_MAXIMUM_DATA_LENGTH, 1024 * 1024);
+    conf.set(TezConfiguration.TEZ_AM_STAGING_DIR, STAGING_DIR.getAbsolutePath());
+
+    Path baseStagingPath = TezCommonUtils.getTezBaseStagingPath(conf);
+    FileSystem localFs = FileSystem.getLocal(conf);
+    localFs.delete(baseStagingPath, true);
+
+    // first client generation writes tez-dag.pb1 into the session's staging dir and is then
+    // abandoned without stop() - the session and its staging dir keep running
+    TezClientForTest client1 = configureAndCreateTezClient(null, true, conf);
+    client1.start();
+    submitDAGAndCaptureRequest(client1, largeDAG("DAG-gen1", 2 * 1024 * 1024));
+
+    // second client generation reconnects to the same session: same appId, same staging dir,
+    // restarted plan-file counter - it computes the same tez-dag.pb1 path
+    TezClientForTest client2 = configureAndCreateTezClient(null, true, conf);
+    client2.start();
+    SubmitDAGRequestProto request = submitDAGAndCaptureRequest(client2, largeDAG("DAG-gen2", 2 * 1024 * 1024));
+    client2.stop();
+
+    assertTrue(request.hasSerializedRequestPath());
+
+    localFs.delete(baseStagingPath, true);
+  }
+
+  private DAG largeDAG(String name, int payloadSize) {
+    ProcessorDescriptor processorDescriptor = ProcessorDescriptor.create("P");
+    processorDescriptor.setUserPayload(UserPayload.create(ByteBuffer.allocate(payloadSize)));
+    Vertex vertex = Vertex.create("Vertex", processorDescriptor, 1, Resource.newInstance(1, 1));
+    return DAG.create(name).addVertex(vertex);
+  }
+
+  private SubmitDAGRequestProto submitDAGAndCaptureRequest(TezClientForTest client, DAG dag) throws Exception {
+    client.submitDAG(dag);
+    ArgumentCaptor<SubmitDAGRequestProto> captor = ArgumentCaptor.forClass(SubmitDAGRequestProto.class);
+    verify(client.sessionAmProxy).submitDAG(any(), captor.capture());
+    return captor.getValue();
   }
 
   @Test
