@@ -296,11 +296,8 @@ public class TestTezClient {
   @Test
   @Timeout(value = 10000, unit = TimeUnit.MILLISECONDS)
   public void testSessionLargeDAGPlanWithLeftoverPlanFile() throws Exception {
-    // Simulates long-running/external sessions (e.g. Hive with external session pools): the
-    // application and its staging dir outlive the TezClient instances, which are recreated per
-    // query with their serialized-plan-file counter restarting from 0. A plan file left behind
-    // by a previous client generation must not fail subsequent submissions with
-    // FileAlreadyExistsException.
+    // The session outlives its TezClient instances: a plan file left behind by a previous
+    // client must not fail subsequent submissions.
     TezConfiguration conf = new TezConfiguration();
     conf.setInt(CommonConfigurationKeys.IPC_MAXIMUM_DATA_LENGTH, 1024 * 1024);
     conf.set(TezConfiguration.TEZ_AM_STAGING_DIR, STAGING_DIR.getAbsolutePath());
@@ -309,20 +306,24 @@ public class TestTezClient {
     FileSystem localFs = FileSystem.getLocal(conf);
     localFs.delete(baseStagingPath, true);
 
-    // first client generation writes tez-dag.pb1 into the session's staging dir and is then
-    // abandoned without stop() - the session and its staging dir keep running
+    // client1 writes tez-dag-1.pb and is abandoned without stop()
     TezClientForTest client1 = configureAndCreateTezClient(null, true, conf);
     client1.start();
-    submitDAGAndCaptureRequest(client1, largeDAG("DAG-gen1", 2 * 1024 * 1024));
+    SubmitDAGRequestProto request1 = submitDAGAndCaptureRequest(client1, largeDAG("DAG-client1", 2 * 1024 * 1024));
+    assertTrue(request1.hasSerializedRequestPath());
+    // the mocked AM never consumes the plan file, leaving it behind in the staging dir
+    Path leftoverPlanPath = new Path(request1.getSerializedRequestPath());
+    assertTrue(localFs.exists(leftoverPlanPath));
 
-    // second client generation reconnects to the same session: same appId, same staging dir,
-    // restarted plan-file counter - it computes the same tez-dag.pb1 path
+    // client2 reuses the same session and computes the same tez-dag-1.pb path
     TezClientForTest client2 = configureAndCreateTezClient(null, true, conf);
     client2.start();
-    SubmitDAGRequestProto request = submitDAGAndCaptureRequest(client2, largeDAG("DAG-gen2", 2 * 1024 * 1024));
+    SubmitDAGRequestProto request2 = submitDAGAndCaptureRequest(client2, largeDAG("DAG-client2", 2 * 1024 * 1024));
+    assertTrue(request2.hasSerializedRequestPath());
+    // path collision: client2 overwrote client1's leftover instead of failing
+    assertEquals(leftoverPlanPath, new Path(request2.getSerializedRequestPath()));
+    assertTrue(localFs.exists(leftoverPlanPath));
     client2.stop();
-
-    assertTrue(request.hasSerializedRequestPath());
 
     localFs.delete(baseStagingPath, true);
   }

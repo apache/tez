@@ -688,12 +688,10 @@ public class TezClient {
     SubmitDAGRequestProto request = requestBuilder.build();
     if (request.getSerializedSize() > maxSubmitDAGRequestSizeThroughIPC) {
       Path dagPlanPath = new Path(TezCommonUtils.getTezSystemStagingPath(amConfig.getTezConfiguration(),
-          sessionAppId.toString()), TezConstants.TEZ_PB_PLAN_BINARY_NAME +
-          serializedSubmitDAGPlanRequestCounter.incrementAndGet());
+          sessionAppId.toString()), TezConstants.TEZ_PB_PLAN_BINARY_NAME_FORMAT.formatted(
+          serializedSubmitDAGPlanRequestCounter.incrementAndGet()));
 
       FileSystem fs = dagPlanPath.getFileSystem(stagingFs.getConf());
-      // Overwrite a possible leftover plan file: when the session outlives the TezClient instances,
-      // a file with the same name may have been left behind by an already consumed submission.
       try (FSDataOutputStream fsDataOutputStream = fs.create(dagPlanPath, true)) {
         LOG.info("Send dag plan using YARN local resources since it's too large"
             + ", dag plan size=" + request.getSerializedSize()

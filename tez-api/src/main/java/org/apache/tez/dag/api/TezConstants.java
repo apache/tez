@@ -48,6 +48,7 @@ public final class TezConstants {
   public static final String SERVICE_PLUGINS_DESCRIPTOR_JSON = "service_plugins_descriptor.json";
   public static final String TEZ_PB_BINARY_CONF_NAME = "tez-conf.pb";
   public static final String TEZ_PB_PLAN_BINARY_NAME = "tez-dag.pb";
+  public static final String TEZ_PB_PLAN_BINARY_NAME_FORMAT = "tez-dag-%d.pb";
   public static final String TEZ_PB_PLAN_TEXT_NAME = "tez-dag.pb.txt";
 
   /*
