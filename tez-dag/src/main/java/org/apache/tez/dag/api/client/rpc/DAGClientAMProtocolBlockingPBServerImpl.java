@@ -58,7 +58,12 @@ import com.google.protobuf.CodedInputStream;
 import com.google.protobuf.RpcController;
 import com.google.protobuf.ServiceException;
 
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
 public class DAGClientAMProtocolBlockingPBServerImpl implements DAGClientAMProtocolBlockingPB {
+
+  private static final Logger LOG = LoggerFactory.getLogger(DAGClientAMProtocolBlockingPBServerImpl.class);
 
   DAGClientHandler real;
   final FileSystem stagingFs;
@@ -176,6 +181,12 @@ public class DAGClientAMProtocolBlockingPBServerImpl implements DAGClientAMProto
           request = SubmitDAGRequestProto.parseFrom(in);
         } catch (IOException e) {
           throw wrapException(e);
+        } finally {
+          try {
+            fs.delete(requestPath, false);
+          } catch (IOException e) {
+            LOG.warn("Failed to delete the serialized DAG plan file {}", requestPath, e);
+          }
         }
       }
       DAGPlan dagPlan = request.getDAGPlan();
