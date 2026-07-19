@@ -28,8 +28,10 @@ import static org.mockito.Mockito.doNothing;
 import static org.mockito.Mockito.doReturn;
 import static org.mockito.Mockito.eq;
 import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.reset;
 import static org.mockito.Mockito.spy;
+import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
@@ -121,15 +123,23 @@ public class TestAMWebController {
     AMWebController amWebController = new AMWebController(mockRequestContext, mockAppContext,
         "TEST_HISTORY_URL");
     AMWebController spy = spy(amWebController);
-    String originURL = "http://origin.com:8080";
+    String validOrigin = "http://uihost:9001";
+    String invalidOrigin = "http://origin.com:8080";
 
     doReturn(mockResponse).when(spy).response();
-
     doReturn(mockRequest).when(spy).request();
-    doReturn(originURL).when(mockRequest).getHeader(AMWebController.ORIGIN);
 
+    // Test 1: Valid origin that matches the configured TEZ_HISTORY_URL_BASE
+    doReturn(validOrigin).when(mockRequest).getHeader(AMWebController.ORIGIN);
     spy.setCorsHeaders();
-    verify(mockResponse).setHeader("Access-Control-Allow-Origin", originURL);
+    verify(mockResponse, times(1)).setHeader("Access-Control-Allow-Origin", validOrigin);
+
+    // Test 2: Invalid origin that does not match
+    reset(mockResponse); // Reset the mock to clear the previous invocations
+    doReturn(invalidOrigin).when(mockRequest).getHeader(AMWebController.ORIGIN);
+    spy.setCorsHeaders();
+    // The header should NOT be set because the origin is invalid
+    verify(mockResponse, never()).setHeader(eq("Access-Control-Allow-Origin"), anyString());
   }
 
   @Test
