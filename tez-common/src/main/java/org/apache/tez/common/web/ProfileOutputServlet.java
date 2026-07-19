@@ -29,6 +29,7 @@ import javax.servlet.ServletException;
 import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
 
+import org.apache.hadoop.http.HttpServer2;
 import org.apache.hadoop.yarn.webapp.MimeType;
 
 import org.eclipse.jetty.servlet.DefaultServlet;
@@ -40,6 +41,11 @@ public class ProfileOutputServlet extends DefaultServlet {
   public static final String FILE_QUERY_PARAM = "file";
 
   public void doGet(HttpServletRequest request, HttpServletResponse response) throws ServletException, IOException {
+    if (!HttpServer2.isInstrumentationAccessAllowed(this.getServletContext(), request, response)) {
+      response.setStatus(HttpServletResponse.SC_UNAUTHORIZED);
+      writeMessage(response, ProfileServlet.ACCESS_DENIED_MESSAGE);
+      return;
+    }
     String queriedFile = request.getParameter(FILE_QUERY_PARAM);
     if (queriedFile == null) {
       writeMessage(response, "Run the profiler to be able to receive its output");
