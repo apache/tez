@@ -139,7 +139,7 @@ public class TestAM {
     checkAddress(webUIAddress + "/conf");
     checkAddress(webUIAddress + "/stacks");
     checkAddress(webUIAddress + "/prof", 202);
-    checkAddress(webUIAddress + "/prof-output");
+    checkAddress(webUIAddress + "/prof-output", HttpServletResponse.SC_BAD_REQUEST);
 
     HttpURLConnection connection =
         (HttpURLConnection) URI.create(webUIAddress + "/prof-output?file=../etc/web").toURL().openConnection();

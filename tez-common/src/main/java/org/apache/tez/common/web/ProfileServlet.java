@@ -20,7 +20,6 @@ package org.apache.tez.common.web;
 
 import java.io.File;
 import java.io.IOException;
-import java.io.PrintStream;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
@@ -31,7 +30,6 @@ import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.locks.Lock;
 import java.util.concurrent.locks.ReentrantLock;
 
-import javax.servlet.ServletException;
 import javax.servlet.http.HttpServlet;
 import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
@@ -161,23 +159,15 @@ public class ProfileServlet extends HttpServlet {
     LOG.info("Servlet process PID: {} asyncProfilerHome: {}", pid, asyncProfilerHome);
   }
 
-  public void doGet(HttpServletRequest request, HttpServletResponse response) throws ServletException, IOException {
-    response.setContentType("text/plain; charset=UTF-8");
-    PrintStream out = new PrintStream(response.getOutputStream(), false, "UTF-8");
+  public void doGet(HttpServletRequest request, HttpServletResponse response) throws IOException {
     if (!HttpServer2.isInstrumentationAccessAllowed(this.getServletContext(), request, response)) {
-      response.setStatus(HttpServletResponse.SC_UNAUTHORIZED);
-      setResponseHeader(response);
-      out.println(ACCESS_DENIED_MESSAGE);
-      out.close();
+      response.sendError(HttpServletResponse.SC_UNAUTHORIZED, ACCESS_DENIED_MESSAGE);
       return;
     }
 
     // make sure async profiler home is set
     if (asyncProfilerHome == null || asyncProfilerHome.trim().isEmpty()) {
-      response.setStatus(HttpServletResponse.SC_INTERNAL_SERVER_ERROR);
-      setResponseHeader(response);
-      out.println("ASYNC_PROFILER_HOME env is not set");
-      out.close();
+      response.sendError(HttpServletResponse.SC_INTERNAL_SERVER_ERROR, "ASYNC_PROFILER_HOME env is not set");
       return;
     }
 
@@ -185,10 +175,8 @@ public class ProfileServlet extends HttpServlet {
     pid = getInteger(request, "pid", pid);
     // if pid is not specified in query param and if current process pid cannot be determined
     if (pid == null) {
-      response.setStatus(HttpServletResponse.SC_INTERNAL_SERVER_ERROR);
-      setResponseHeader(response);
-      out.println("'pid' query parameter unspecified or unable to determine PID of current process.");
-      out.close();
+      response.sendError(HttpServletResponse.SC_INTERNAL_SERVER_ERROR,
+          "'pid' query parameter unspecified or unable to determine PID of current process.");
       return;
     }
 
@@ -278,41 +266,39 @@ public class ProfileServlet extends HttpServlet {
             response.setHeader("Refresh", (duration + refreshDelay) + "; URL=" + relativeUrl + '?'
                 + ProfileOutputServlet.FILE_QUERY_PARAM + '=' + outputFile.getName());
 
-            out.println("Profiled PID: " + pid);
-            out.println("Started [" + event.getInternalName()
+            response.getWriter().println("Profiled PID: " + pid);
+            response.getWriter().println("Started [" + event.getInternalName()
                 + "] profiling. This page will automatically redirect to "
                 + relativeUrl + " after " + duration + " seconds.\n\ncommand:\n" + Joiner.on(" ").join(cmd));
-            out.flush();
+            response.getWriter().flush();
           } finally {
             profilerLock.unlock();
           }
         } else {
-          setResponseHeader(response);
-          response.setStatus(HttpServletResponse.SC_INTERNAL_SERVER_ERROR);
-          out.println("Unable to acquire lock. Another instance of profiler might be running.");
           LOG.warn("Unable to acquire lock in {} seconds. Another instance of profiler might be running.",
               lockTimeoutSecs);
+          response.sendError(HttpServletResponse.SC_INTERNAL_SERVER_ERROR,
+              "Unable to acquire lock. Another instance of profiler might be running.");
         }
       } catch (InterruptedException e) {
         LOG.warn("Interrupted while acquiring profile lock.", e);
         response.setStatus(HttpServletResponse.SC_INTERNAL_SERVER_ERROR);
       }
     } else {
-      setResponseHeader(response);
-      response.setStatus(HttpServletResponse.SC_INTERNAL_SERVER_ERROR);
-      out.println("Another instance of profiler is already running.");
+      response.sendError(HttpServletResponse.SC_INTERNAL_SERVER_ERROR,
+          "Another instance of profiler is already running.");
     }
-    out.close();
   }
 
   /**
    * Get the path of the profiler script to be executed.
    * Before async-profiler 3.0, the script was named profiler.sh, and after 3.0 it's bin/asprof
+   *
    * @return
    */
   private String getProfilerScriptPath() {
     Path defaultPath = Paths.get(asyncProfilerHome + "/bin/asprof");
-    return Files.exists(defaultPath)? defaultPath.toString() : asyncProfilerHome + "/profiler.sh";
+    return Files.exists(defaultPath) ? defaultPath.toString() : asyncProfilerHome + "/profiler.sh";
   }
 
   private Integer getInteger(final HttpServletRequest req, final String param, final Integer defaultValue) {

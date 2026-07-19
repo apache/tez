@@ -20,15 +20,14 @@ package org.apache.tez.common.web;
 
 import java.io.File;
 import java.io.IOException;
-import java.io.PrintWriter;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
 
-import javax.servlet.ServletException;
 import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
 
+import org.apache.hadoop.http.HtmlQuoting;
 import org.apache.hadoop.http.HttpServer2;
 import org.apache.hadoop.yarn.webapp.MimeType;
 
@@ -40,46 +39,39 @@ import org.eclipse.jetty.servlet.DefaultServlet;
 public class ProfileOutputServlet extends DefaultServlet {
   public static final String FILE_QUERY_PARAM = "file";
 
-  public void doGet(HttpServletRequest request, HttpServletResponse response) throws ServletException, IOException {
+  public void doGet(HttpServletRequest request, HttpServletResponse response) throws IOException {
     if (!HttpServer2.isInstrumentationAccessAllowed(this.getServletContext(), request, response)) {
-      response.setStatus(HttpServletResponse.SC_UNAUTHORIZED);
-      writeMessage(response, ProfileServlet.ACCESS_DENIED_MESSAGE);
+      response.sendError(HttpServletResponse.SC_UNAUTHORIZED, ProfileServlet.ACCESS_DENIED_MESSAGE);
       return;
     }
     String queriedFile = request.getParameter(FILE_QUERY_PARAM);
     if (queriedFile == null) {
-      writeMessage(response, "Run the profiler to be able to receive its output");
+      response.sendError(HttpServletResponse.SC_BAD_REQUEST, "Run the profiler to be able to receive its output");
       return;
     }
     Path outputDir = Paths.get(ProfileServlet.OUTPUT_DIR).toAbsolutePath().normalize();
     Path requestedPath = outputDir.resolve(queriedFile).normalize();
 
     if (!requestedPath.startsWith(outputDir)) {
-      response.setStatus(HttpServletResponse.SC_FORBIDDEN);
-      writeMessage(response, "Access denied: Invalid Path");
+      response.sendError(HttpServletResponse.SC_FORBIDDEN, "Access denied: Invalid Path");
       return;
     }
     File outputFile = requestedPath.toFile();
 
     if (!outputFile.exists()) {
-      writeMessage(response, "Requested file does not exist: " + queriedFile);
+      response.sendError(HttpServletResponse.SC_NOT_FOUND,
+          "Requested file does not exist: " + HtmlQuoting.quoteHtmlChars(queriedFile));
       return;
     }
     if (outputFile.length() < 100) {
       response.setIntHeader("Refresh", 2);
-      writeMessage(response, "This page auto-refreshes every 2 seconds until output file is ready...");
+      response.setContentType(MimeType.TEXT);
+      response.getWriter().println("This page auto-refreshes every 2 seconds until output file is ready...");
       return;
     }
     response.setContentType(MimeType.HTML);
     response.getOutputStream().write(Files.readAllBytes(Paths.get(outputFile.getPath())));
     response.getOutputStream().flush();
     response.getOutputStream().close();
-  }
-
-  private void writeMessage(HttpServletResponse response, String message) throws IOException {
-    response.setContentType(MimeType.TEXT);
-    PrintWriter out = response.getWriter();
-    out.println(message);
-    out.close();
   }
 }
