@@ -57,8 +57,8 @@ public class ACLManager {
   public ACLManager(String amUser, Configuration conf) {
     this.amUser = amUser;
     this.dagUser = null;
-    this.users = new HashMap<ACLType, Set<String>>();
-    this.groups = new HashMap<ACLType, Set<String>>();
+    this.users = new HashMap<>();
+    this.groups = new HashMap<>();
     aclsEnabled = conf.getBoolean(TezConfiguration.TEZ_AM_ACLS_ENABLED,
         TezConfiguration.TEZ_AM_ACLS_ENABLED_DEFAULT);
     if (!aclsEnabled) {
@@ -76,10 +76,14 @@ public class ACLManager {
   public ACLManager(ACLManager amACLManager, String dagUser, ACLInfo aclInfo) {
     this.amUser = amACLManager.amUser;
     this.dagUser = dagUser;
-    this.users = amACLManager.users;
-    this.groups = amACLManager.groups;
+    // Copy the AM-level maps so per-DAG entries stay scoped to this DAG.
+    this.users = new HashMap<>(amACLManager.users);
+    this.groups = new HashMap<>(amACLManager.groups);
     this.aclsEnabled = amACLManager.aclsEnabled;
     if (!aclsEnabled) {
+      return;
+    }
+    if (aclInfo == null) {
       return;
     }
     if (aclInfo.getUsersWithViewAccessCount() > 0) {
