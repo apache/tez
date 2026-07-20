@@ -48,12 +48,12 @@ import org.slf4j.LoggerFactory;
  * <pre>
  * Servlet that runs async-profiler as web-endpoint.
  * Following options from async-profiler can be specified as query parameter.
- * //  -e event          profiling event: cpu|alloc|lock|cache-misses etc.
+ * //  -e event/method   profiling event: cpu|alloc|lock|cache-misses etc.
+ * //                    OR fully qualified method name: 'ClassName.methodName'
  * //  -d duration       run profiling for{@literal <duration>} seconds (integer)
  * //  -i interval       sampling interval in nanoseconds (long)
  * //  -j jstackdepth    maximum Java stack depth (integer)
  * //  -b bufsize        frame buffer size (long)
- * //  -m method         fully qualified method name: 'ClassName.methodName'
  * //  -t                profile different threads separately
  * //  -s                simple class names instead of FQN
  * //  -o fmt[,fmt...]   output format: summary|traces|flat|collapsed|svg|tree|jfr|html
