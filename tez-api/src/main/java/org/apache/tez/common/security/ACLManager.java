@@ -80,10 +80,7 @@ public class ACLManager {
     this.users = new HashMap<>(amACLManager.users);
     this.groups = new HashMap<>(amACLManager.groups);
     this.aclsEnabled = amACLManager.aclsEnabled;
-    if (!aclsEnabled) {
-      return;
-    }
-    if (aclInfo == null) {
+    if (!aclsEnabled || aclInfo == null) {
       return;
     }
     if (aclInfo.getUsersWithViewAccessCount() > 0) {
