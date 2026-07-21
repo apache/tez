@@ -132,27 +132,36 @@ public class AMWebController extends Controller {
   }
 
   @VisibleForTesting
-  public void setCorsHeaders() {
-    final HttpServletResponse res = response();
-
-    /*
-     * ideally the Origin and other CORS headers should be checked and response headers set only
-     * if it matches the allowed origins. however rm does not forward these headers.
-     */
+  String getTrustedOrigin() {
     String historyUrlBase = appContext.getAMConf().get(TezConfiguration.TEZ_HISTORY_URL_BASE, "");
-    String origin = request().getHeader(ORIGIN);
-    if(origin == null) {
+    if (!historyUrlBase.isEmpty()) {
       try {
         URL url = URI.create(historyUrlBase).toURL();
-        origin = url.getProtocol() + "://" + url.getAuthority();
+        return url.getProtocol() + "://" + url.getAuthority();
       } catch (IllegalArgumentException | MalformedURLException e) {
         LOG.debug("Invalid url set for tez history url base: {}", historyUrlBase, e);
       }
     }
+    return null;
+  }
 
-    if (origin != null) {
-      origin = encodeHeader(origin);
-      res.setHeader(ACCESS_CONTROL_ALLOW_ORIGIN, origin);
+  @VisibleForTesting
+  public void setCorsHeaders() {
+    final HttpServletResponse res = response();
+    String trustedOrigin = getTrustedOrigin();
+    String requestOrigin = request().getHeader(ORIGIN);
+
+    // We cannot blindly reflect the request origin in the Access-Control-Allow-Origin header
+    // because it would allow malicious sites to bypass CORS and access sensitive data,
+    // effectively defeating the purpose of CORS. We must strictly validate the request origin
+    // against the configured, trusted Tez UI base URL before reflecting it.
+    if (trustedOrigin != null) {
+      if (requestOrigin == null || requestOrigin.equals(trustedOrigin)) {
+        res.setHeader(ACCESS_CONTROL_ALLOW_ORIGIN, encodeHeader(trustedOrigin));
+      } else {
+        LOG.debug("CORS validation failed: request origin {} does not match configured Tez UI base URL {}",
+            requestOrigin, trustedOrigin);
+      }
     }
     res.setHeader(ACCESS_CONTROL_ALLOW_METHODS, ALLOWED_METHODS);
     res.setHeader(ACCESS_CONTROL_ALLOW_CREDENTIALS, Boolean.TRUE.toString());
