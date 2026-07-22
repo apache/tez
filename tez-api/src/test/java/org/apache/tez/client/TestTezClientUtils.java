@@ -26,6 +26,8 @@ import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.junit.jupiter.api.Assertions.fail;
+import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.when;
 
 import java.io.File;
 import java.io.FileNotFoundException;
@@ -54,16 +56,19 @@ import org.apache.hadoop.hdfs.DistributedFileSystem;
 import org.apache.hadoop.io.DataInputByteBuffer;
 import org.apache.hadoop.io.Text;
 import org.apache.hadoop.security.Credentials;
+import org.apache.hadoop.security.UserGroupInformation;
 import org.apache.hadoop.security.token.Token;
 import org.apache.hadoop.security.token.TokenIdentifier;
 import org.apache.hadoop.yarn.api.ApplicationConstants;
 import org.apache.hadoop.yarn.api.ApplicationConstants.Environment;
 import org.apache.hadoop.yarn.api.records.ApplicationId;
+import org.apache.hadoop.yarn.api.records.ApplicationReport;
 import org.apache.hadoop.yarn.api.records.ApplicationSubmissionContext;
 import org.apache.hadoop.yarn.api.records.ContainerLaunchContext;
 import org.apache.hadoop.yarn.api.records.LocalResource;
 import org.apache.hadoop.yarn.api.records.LocalResourceVisibility;
 import org.apache.hadoop.yarn.api.records.Resource;
+import org.apache.hadoop.yarn.api.records.YarnApplicationState;
 import org.apache.hadoop.yarn.conf.YarnConfiguration;
 import org.apache.hadoop.yarn.exceptions.YarnException;
 import org.apache.hadoop.yarn.util.Records;
@@ -1002,5 +1007,42 @@ public class TestTezClientUtils {
     // if there is another token in am conf creds of the same token type,
     // session token should be applied while creating ContainerLaunchContext
     assertEquals(sessionToken, amLaunchCredentials.getToken(tokenType));
+  }
+
+  /**
+   * Covers the YARN-808 guard in TezClientUtils#getAMProxy
+   */
+  @Test
+  @Timeout(value = 5000, unit = TimeUnit.MILLISECONDS)
+  public void testGetAMProxyReturnsNullWhenRpcEndpointNotAvailable() throws Exception {
+    TezConfiguration conf = new TezConfiguration();
+    ApplicationId appId = ApplicationId.newInstance(1L, 1);
+    UserGroupInformation ugi = UserGroupInformation.getCurrentUser();
+
+    // Case 1: rpcPort == -1  (YARN-808 gap — AM container up, RPC not bound)
+    assertNull(TezClientUtils.getAMProxy(
+        newRunningFrameworkClient(appId, "somehost", -1), conf, appId, ugi),
+        "rpcPort == -1 should return null");
+
+    // Case 2: rpcPort == 0  (protobuf wire default)
+    assertNull(TezClientUtils.getAMProxy(
+        newRunningFrameworkClient(appId, "somehost", 0), conf, appId, ugi),
+        "rpcPort == 0 should return null");
+
+    // Case 3: host == "N/A"  (RM has not yet received AM registration)
+    assertNull(TezClientUtils.getAMProxy(
+        newRunningFrameworkClient(appId, "N/A", 8080), conf, appId, ugi),
+        "host == N/A should return null");
+  }
+
+  private static FrameworkClient newRunningFrameworkClient(ApplicationId appId,
+      String host, int rpcPort) throws IOException, YarnException {
+    ApplicationReport report = mock(ApplicationReport.class);
+    when(report.getYarnApplicationState()).thenReturn(YarnApplicationState.RUNNING);
+    when(report.getHost()).thenReturn(host);
+    when(report.getRpcPort()).thenReturn(rpcPort);
+    FrameworkClient frameworkClient = mock(FrameworkClient.class);
+    when(frameworkClient.getApplicationReport(appId)).thenReturn(report);
+    return frameworkClient;
   }
 }
