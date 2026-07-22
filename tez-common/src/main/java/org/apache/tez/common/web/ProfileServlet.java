@@ -99,6 +99,8 @@ public class ProfileServlet extends HttpServlet {
   private static final String ALLOWED_METHODS = "GET";
   private static final String ACCESS_CONTROL_ALLOW_ORIGIN = "Access-Control-Allow-Origin";
   private static final String CONTENT_TYPE_TEXT = "text/plain; charset=utf-8";
+
+  public static final String ACCESS_DENIED_MESSAGE = "Unauthorized: Instrumentation access is not allowed!";
   private static final String ASYNC_PROFILER_HOME_ENV = "ASYNC_PROFILER_HOME";
   private static final String ASYNC_PROFILER_HOME_SYSTEM_PROPERTY = "async.profiler.home";
   private static final int DEFAULT_DURATION_SECONDS = 10;
@@ -165,7 +167,7 @@ public class ProfileServlet extends HttpServlet {
     if (!HttpServer2.isInstrumentationAccessAllowed(this.getServletContext(), request, response)) {
       response.setStatus(HttpServletResponse.SC_UNAUTHORIZED);
       setResponseHeader(response);
-      out.println("Unauthorized: Instrumentation access is not allowed!");
+      out.println(ACCESS_DENIED_MESSAGE);
       out.close();
       return;
     }
