@@ -400,20 +400,20 @@ public class TestMRRJobsDAGApi {
     additionalResources.put("test.jar", createLrObjFromPath(relocFilePath));
     additionalResources.put("TezAppJar.jar", createLrObjFromPath(tezAppJarRemote));
 
-    waitForSessionReady(tezSession);
+    waitAndAssertSessionReady(tezSession);
     finalState = testMRRSleepJobDagSubmitCore(true, false, false,
         tezSession, true, MRInputAMSplitGeneratorRelocalizationTest.class, additionalResources);
     assertEquals(DAGStatus.State.SUCCEEDED, finalState);
-    waitForSessionReady(tezSession);
+    waitAndAssertSessionReady(tezSession);
     assertTrue(remoteFs.exists(new Path("/tmp/relocalizationfilefound")));
 
     stopAndVerifyYarnApp(tezSession);
   }
 
-  private void waitForSessionReady(TezClient tezSession)
+  private void waitAndAssertSessionReady(TezClient tezSession)
       throws IOException, TezException, InterruptedException {
-    boolean ready = tezSession.waitTillReady(60, TimeUnit.SECONDS);
-    assertTrue(ready, "TezSession did not reach READY within 60s, current status: "
+    boolean ready = tezSession.waitTillReady(10, TimeUnit.SECONDS);
+    assertTrue(ready, "TezSession did not reach READY within 10s, current status: "
         + tezSession.getAppMasterStatus());
     assertEquals(TezAppMasterStatus.READY, tezSession.getAppMasterStatus());
   }
@@ -520,11 +520,11 @@ public class TestMRRJobsDAGApi {
     State finalState = testMRRSleepJobDagSubmitCore(true, false, false,
         tezSession, false, null, null);
     assertEquals(DAGStatus.State.SUCCEEDED, finalState);
-    waitForSessionReady(tezSession);
+    waitAndAssertSessionReady(tezSession);
     finalState = testMRRSleepJobDagSubmitCore(true, false, false,
         tezSession, false, null, null);
     assertEquals(DAGStatus.State.SUCCEEDED, finalState);
-    waitForSessionReady(tezSession);
+    waitAndAssertSessionReady(tezSession);
 
     stopAndVerifyYarnApp(tezSession);
   }
