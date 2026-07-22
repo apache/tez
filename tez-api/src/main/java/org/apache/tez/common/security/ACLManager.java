@@ -22,6 +22,7 @@ import java.util.Arrays;
 import java.util.Collection;
 import java.util.EnumSet;
 import java.util.HashMap;
+import java.util.LinkedHashSet;
 import java.util.Map;
 import java.util.Map.Entry;
 import java.util.Set;
@@ -76,9 +77,12 @@ public class ACLManager {
   public ACLManager(ACLManager amACLManager, String dagUser, ACLInfo aclInfo) {
     this.amUser = amACLManager.amUser;
     this.dagUser = dagUser;
-    // Copy the AM-level maps so per-DAG entries stay scoped to this DAG.
-    this.users = new HashMap<>(amACLManager.users);
-    this.groups = new HashMap<>(amACLManager.groups);
+    // Deep-copy the AM-level maps so per-DAG entries stay scoped to this DAG.
+    // A shallow copy of the outer map would leave the inner Sets shared with
+    // the AM manager, so a future set.add(...) on any entry would silently
+    // mutate the AM's global ACLs and every sibling DAG's view of them.
+    this.users = deepCopy(amACLManager.users);
+    this.groups = deepCopy(amACLManager.groups);
     this.aclsEnabled = amACLManager.aclsEnabled;
     if (!aclsEnabled || aclInfo == null) {
       return;
@@ -232,6 +236,14 @@ public class ACLManager {
       }
     }
     return acls;
+  }
+
+  private static Map<ACLType, Set<String>> deepCopy(Map<ACLType, Set<String>> source) {
+    Map<ACLType, Set<String>> copy = new HashMap<>(source.size());
+    for (Entry<ACLType, Set<String>> entry : source.entrySet()) {
+      copy.put(entry.getKey(), new LinkedHashSet<>(entry.getValue()));
+    }
+    return copy;
   }
 
   public static String toCommaSeparatedString(Collection<String> collection) {

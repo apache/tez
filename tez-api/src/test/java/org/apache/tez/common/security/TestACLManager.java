@@ -23,7 +23,9 @@ import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import java.io.IOException;
+import java.lang.reflect.Field;
 import java.util.Map;
+import java.util.Set;
 import java.util.concurrent.TimeUnit;
 
 import org.apache.hadoop.conf.Configuration;
@@ -474,6 +476,42 @@ public class TestACLManager {
     // AM-level manager should also be untouched by DAG 1's grants.
     assertFalse(amAclManager.checkAccess(user1, ACLType.DAG_MODIFY_ACL));
     assertFalse(amAclManager.checkAccess(user2, ACLType.DAG_MODIFY_ACL));
+  }
+
+  /**
+   * The per-DAG constructor must deep-copy the AM's ACL sets. Otherwise a
+   * later {@code users.get(ACLType.AM_VIEW_ACL).add(...)} inside the DAG-scoped
+   * manager would silently mutate the AM's global ACLs (and every sibling
+   * DAG's view of them). This test simulates that mutation via reflection so
+   * it catches the shallow-copy regression even though today's code paths
+   * only replace entries via {@code put}.
+   */
+  @Test
+  @Timeout(value = 5000, unit = TimeUnit.MILLISECONDS)
+  public void testDAGConstructorDeepCopiesAMACLs() throws Exception {
+    UserGroupInformation amUser = UserGroupInformation.createUserForTesting("amUser", noGroups);
+    UserGroupInformation dagUser = UserGroupInformation.createUserForTesting("dagUser", noGroups);
+    UserGroupInformation user1 = UserGroupInformation.createUserForTesting("user1", noGroups);
+    UserGroupInformation leakedUser = UserGroupInformation.createUserForTesting("leakedUser", noGroups);
+
+    Configuration conf = new Configuration(false);
+    conf.set(TezConfiguration.TEZ_AM_VIEW_ACLS, user1.getShortUserName());
+    ACLManager amAclManager = new ACLManager(amUser.getShortUserName(), conf);
+
+    ACLManager dagAclManager =
+        new ACLManager(amAclManager, dagUser.getShortUserName(), ACLInfo.getDefaultInstance());
+
+    // Reach into the DAG manager and mutate the AM_VIEW_ACL set in place.
+    // With a deep copy this only affects the DAG manager; with a shallow
+    // copy the AM manager would see the change too.
+    Field usersField = ACLManager.class.getDeclaredField("users");
+    usersField.setAccessible(true);
+    @SuppressWarnings("unchecked")
+    Map<ACLType, Set<String>> dagUsers = (Map<ACLType, Set<String>>) usersField.get(dagAclManager);
+    dagUsers.get(ACLType.AM_VIEW_ACL).add(leakedUser.getShortUserName());
+
+    // The AM manager must NOT have picked up the new user.
+    assertFalse(amAclManager.checkAMViewAccess(leakedUser));
   }
 
   /**
