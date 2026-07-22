@@ -32,6 +32,7 @@
   <modules>
     <module>analyzers</module>
     <module>tez-javadoc-tools</module>
+    <module>tez-tools-webapp</module>
   </modules>
 
   <build>
