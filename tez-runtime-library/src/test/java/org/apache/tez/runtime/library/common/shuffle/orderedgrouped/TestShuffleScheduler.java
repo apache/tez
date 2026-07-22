@@ -814,13 +814,15 @@ public class TestShuffleScheduler {
 
     //Should not get host, as it is added to penalty loop
     MapHost host = scheduler.getHost();
-    assertFalse((host.getHost() + ":" + host.getPort() + ":" + host.getPartitionId()).equalsIgnoreCase("host0:10000"), "Host identifier mismatch");
+    assertFalse((host.getHost() + ":" + host.getPort() + ":" + host.getPartitionId()).equalsIgnoreCase("host0:10000"),
+        "Host identifier mismatch");
 
 
     //Refree thread would release it after INITIAL_PENALTY timeout
     Thread.sleep(ShuffleScheduler.INITIAL_PENALTY + 1000);
     host = scheduler.getHost();
-    assertFalse((host.getHost() + ":" + host.getPort() + ":" + host.getPartitionId()).equalsIgnoreCase("host0:10000"), "Host identifier mismatch");
+    assertFalse((host.getHost() + ":" + host.getPort() + ":" + host.getPartitionId()).equalsIgnoreCase("host0:10000"),
+        "Host identifier mismatch");
   }
 
   @Test
@@ -1086,7 +1088,7 @@ public class TestShuffleScheduler {
         @Override
         public Void answer(InvocationOnMock invocation) throws Throwable {
           if (fetcherShouldWait) {
-            Thread.sleep(100000l);
+            Thread.sleep(100000L);
           }
           return null;
         }

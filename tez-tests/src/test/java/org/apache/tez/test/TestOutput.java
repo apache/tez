@@ -57,7 +57,7 @@ public class TestOutput extends AbstractLogicalOutput {
 
   @Override
   public List<Event> initialize() throws Exception {
-    getContext().requestInitialMemory(0l, null); //Mandatory call
+    getContext().requestInitialMemory(0L, null); //Mandatory call
     return Collections.emptyList();
   }
 

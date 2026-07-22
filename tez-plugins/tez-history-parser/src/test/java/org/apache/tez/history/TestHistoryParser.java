@@ -678,7 +678,7 @@ public class TestHistoryParser {
     CallerContext callerContext = CallerContext.create("TezExamples", "Tez WordCount Example Job");
     ApplicationId appId = tezClient.getAppMasterApplicationId();
     if (appId == null) {
-      appId = ApplicationId.newInstance(1001l, 1);
+      appId = ApplicationId.newInstance(1001L, 1);
     }
     callerContext.setCallerIdAndType(appId.toString(), "TezApplication");
     dag.setCallerContext(callerContext);

@@ -215,7 +215,7 @@ public class TestMRRJobsDAGApi {
     while (!dagStatus.isCompleted()) {
       LOG.info("Waiting for job to complete. Sleeping for 500ms." + " Current state: "
           + dagStatus.getState());
-      Thread.sleep(500l);
+      Thread.sleep(500L);
       dagStatus = dagClient.getDAGStatus(null);
       assertEquals(0, dagStatus.getMemoryUsedByAM(), "Memory used by AM is supposed to be 0 if not requested");
       assertEquals(0, dagStatus.getMemoryUsedByTasks(), "Memory used by tasks is supposed to be 0 if not requested");
@@ -261,7 +261,7 @@ public class TestMRRJobsDAGApi {
     while (!dagStatus.isCompleted()) {
       LOG.info("Waiting for job to complete. Sleeping for 500ms." + " Current state: "
           + dagStatus.getState());
-      Thread.sleep(500l);
+      Thread.sleep(500L);
       dagStatus = dagClient.getDAGStatus(null);
     }
     dagStatus = dagClient.getDAGStatus(Sets.newHashSet(StatusGetOpts.GET_COUNTERS));
@@ -310,7 +310,7 @@ public class TestMRRJobsDAGApi {
     while (!dagStatus.isCompleted()) {
       LOG.info("Waiting for job to complete. Sleeping for 500ms." + " Current state: "
           + dagStatus.getState());
-      Thread.sleep(500l);
+      Thread.sleep(500L);
       dagStatus = dagClient.getDAGStatus(null);
     }
     assertEquals(DAGStatus.State.SUCCEEDED, dagStatus.getState());
@@ -721,7 +721,7 @@ public class TestMRRJobsDAGApi {
       yarnClient.start();
       boolean sentKillSession = false;
       while(true) {
-        Thread.sleep(500l);
+        Thread.sleep(500L);
         ApplicationReport appReport =
             yarnClient.getApplicationReport(tezSession.getAppMasterApplicationId());
         if (appReport == null) {
@@ -763,7 +763,7 @@ public class TestMRRJobsDAGApi {
     while (!dagStatus.isCompleted()) {
       LOG.info("Waiting for job to complete. Sleeping for 500ms."
           + " Current state: " + dagStatus.getState());
-      Thread.sleep(500l);
+      Thread.sleep(500L);
       if(killDagWhileRunning
           && dagStatus.getState() == DAGStatus.State.RUNNING) {
         LOG.info("Killing running dag/session");

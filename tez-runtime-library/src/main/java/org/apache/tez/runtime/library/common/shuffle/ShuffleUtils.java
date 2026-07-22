@@ -77,7 +77,7 @@ import org.slf4j.LoggerFactory;
 public final class ShuffleUtils {
 
   private static final Logger LOG = LoggerFactory.getLogger(ShuffleUtils.class);
-  private static final long MB = 1024l * 1024l;
+  private static final long MB = 1024L * 1024L;
 
   static final ThreadLocal<DecimalFormat> MBPS_FORMAT =
       new ThreadLocal<DecimalFormat>() {

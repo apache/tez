@@ -948,8 +948,8 @@ public class TestTaskScheduler {
     TezAMRMClientAsync<CookieContainerRequest> mockRMClient = spy(
         new AMRMClientAsyncForTest(new AMRMClientForTest(), 100));
 
-    long minTime = 1000l;
-    long maxTime = 100000l;
+    long minTime = 1000L;
+    long maxTime = 100000L;
     Configuration conf1 = new Configuration();
     conf1.setLong(TezConfiguration.TEZ_AM_CONTAINER_IDLE_RELEASE_TIMEOUT_MIN_MILLIS, minTime);
     conf1.setLong(TezConfiguration.TEZ_AM_CONTAINER_IDLE_RELEASE_TIMEOUT_MAX_MILLIS, minTime);
@@ -1566,11 +1566,11 @@ public class TestTaskScheduler {
     Resource resource = Resource.newInstance(1024, 1);
     Priority priority = Priority.newInstance(1);
 
-    String hostsTask1[] = {"host1"};
-    String hostsTask2[] = {"non-allocated-host"};
+    String[] hostsTask1 = {"host1"};
+    String[] hostsTask2 = {"non-allocated-host"};
 
-    String defaultRack[] = {"/default-rack"};
-    String otherRack[] = {"/other-rack"};
+    String[] defaultRack = {"/default-rack"};
+    String[] otherRack = {"/other-rack"};
 
     Object mockTask1 = new MockTask("task1");
     CookieContainerRequest mockCookie1 = mock(CookieContainerRequest.class, RETURNS_DEEP_STUBS);

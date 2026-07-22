@@ -58,7 +58,7 @@ public class TestLocalTaskSchedulerService {
     //value in integer
     long value = 4*1024*1024;
     resource = ltss.createResource(value,core);
-    assertEquals((int)(value/(1024*1024)),resource.getMemory());
+    assertEquals((int)(value/(1024*1024)),resource.getMemorySize());
   }
 
   @Test
@@ -96,10 +96,10 @@ public class TestLocalTaskSchedulerService {
   @Timeout(value = 5000, unit = TimeUnit.MILLISECONDS)
   public void testDeallocationBeforeAllocation() throws InterruptedException {
     ApplicationAttemptId appAttemptId =
-        ApplicationAttemptId.newInstance(ApplicationId.newInstance(10000l, 1), 1);
+        ApplicationAttemptId.newInstance(ApplicationId.newInstance(10000L, 1), 1);
 
     TaskSchedulerContext mockContext = TestTaskSchedulerHelpers
-        .setupMockTaskSchedulerContext("", 0, "", false, appAttemptId, 10000l, null, new Configuration());
+        .setupMockTaskSchedulerContext("", 0, "", false, appAttemptId, 10000L, null, new Configuration());
 
     MockLocalTaskSchedulerSerivce taskSchedulerService = new MockLocalTaskSchedulerSerivce(mockContext);
     taskSchedulerService.initialize();
@@ -129,10 +129,10 @@ public class TestLocalTaskSchedulerService {
   @Timeout(value = 5000, unit = TimeUnit.MILLISECONDS)
   public void testDeallocationAfterAllocation() throws InterruptedException {
     ApplicationAttemptId appAttemptId =
-        ApplicationAttemptId.newInstance(ApplicationId.newInstance(10000l, 1), 1);
+        ApplicationAttemptId.newInstance(ApplicationId.newInstance(10000L, 1), 1);
 
     TaskSchedulerContext mockContext = TestTaskSchedulerHelpers
-        .setupMockTaskSchedulerContext("", 0, "", false, appAttemptId, 10000l, null, new Configuration());
+        .setupMockTaskSchedulerContext("", 0, "", false, appAttemptId, 10000L, null, new Configuration());
 
     MockLocalTaskSchedulerSerivce taskSchedulerService =
         new MockLocalTaskSchedulerSerivce(mockContext);
@@ -168,7 +168,7 @@ public class TestLocalTaskSchedulerService {
     Long grandchildTask1 = new Long(4);
 
     TaskSchedulerContext mockContext =
-        TestTaskSchedulerHelpers.setupMockTaskSchedulerContext("", 0, "", true, appAttemptId, 1000l, null, tezConf);
+        TestTaskSchedulerHelpers.setupMockTaskSchedulerContext("", 0, "", true, appAttemptId, 1000L, null, tezConf);
     when(mockContext.getVertexIndexForTask(parentTask1)).thenReturn(0);
     when(mockContext.getVertexIndexForTask(parentTask2)).thenReturn(0);
     when(mockContext.getVertexIndexForTask(childTask1)).thenReturn(1);

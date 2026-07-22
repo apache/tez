@@ -226,6 +226,7 @@ public class TestShuffleManager {
 
   @Test
   @Timeout(value = 200000, unit = TimeUnit.MILLISECONDS)
+  @SuppressWarnings({"unchecked", "rawtypes"})
   public void testFetchFailed() throws Exception {
     InputContext inputContext = createInputContext();
     final ShuffleManager shuffleManager = spy(createShuffleManager(inputContext, 1));

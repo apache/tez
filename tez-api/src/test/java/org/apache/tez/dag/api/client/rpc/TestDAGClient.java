@@ -359,7 +359,7 @@ public class TestDAGClient {
     long diff;
 
     TezConfiguration tezConf = new TezConfiguration();
-    tezConf.setLong(TezConfiguration.TEZ_DAG_STATUS_POLLINTERVAL_MS, 800l);
+    tezConf.setLong(TezConfiguration.TEZ_DAG_STATUS_POLLINTERVAL_MS, 800L);
 
     DAGClientImplForTest dagClient = new DAGClientImplForTest(mockAppId, dagIdStr, tezConf, null);
     DAGClientRPCImplForTest dagClientRpc =
@@ -376,10 +376,10 @@ public class TestDAGClient {
     dagClient.setRmDagStatus(rmDagStatus);
 
     startTime = System.currentTimeMillis();
-    dagStatus = dagClient.getDAGStatus(EnumSet.noneOf(StatusGetOpts.class), 2000l);
+    dagStatus = dagClient.getDAGStatus(EnumSet.noneOf(StatusGetOpts.class), 2000L);
     endTime = System.currentTimeMillis();
     diff = endTime - startTime;
-    assertTrue(diff > 1500l && diff < 2500l);
+    assertTrue(diff > 1500L && diff < 2500L);
     // One at start. Second and Third within the sleep. Fourth at final refresh.
     assertEquals(0, dagClientRpc.numGetStatusViaAmInvocations); // No AM available, so no invocations to AM
     assertEquals(4, dagClient.numGetStatusViaRmInvocations);
@@ -394,10 +394,10 @@ public class TestDAGClient {
     dagClientRpc.setAMProxy(createMockProxy(DAGStatusStateProto.DAG_RUNNING, -1));
 
     startTime = System.currentTimeMillis();
-    dagStatus = dagClient.getDAGStatus(EnumSet.noneOf(StatusGetOpts.class), 2000l);
+    dagStatus = dagClient.getDAGStatus(EnumSet.noneOf(StatusGetOpts.class), 2000L);
     endTime = System.currentTimeMillis();
     diff = endTime - startTime;
-    assertTrue(diff > 1500l && diff < 2500l);
+    assertTrue(diff > 1500L && diff < 2500L);
     // Directly from AM
     assertEquals(0, dagClient.numGetStatusViaRmInvocations);
     // Directly from AM - one refresh. One with timeout.
@@ -411,13 +411,13 @@ public class TestDAGClient {
     rmDagStatus =
         new DAGStatus(constructDagStatusProto(DAGStatusStateProto.DAG_RUNNING), DagStatusSource.RM);
     dagClient.setRmDagStatus(rmDagStatus);
-    dagClientRpc.setAMProxy(createMockProxy(DAGStatusStateProto.DAG_SUCCEEDED, 1000l));
+    dagClientRpc.setAMProxy(createMockProxy(DAGStatusStateProto.DAG_SUCCEEDED, 1000L));
 
     startTime = System.currentTimeMillis();
-    dagStatus = dagClient.getDAGStatus(EnumSet.noneOf(StatusGetOpts.class), 2000l);
+    dagStatus = dagClient.getDAGStatus(EnumSet.noneOf(StatusGetOpts.class), 2000L);
     endTime = System.currentTimeMillis();
     diff = endTime - startTime;
-    assertTrue(diff > 500l && diff < 1500l);
+    assertTrue(diff > 500L && diff < 1500L);
     // Directly from AM
     assertEquals(0, dagClient.numGetStatusViaRmInvocations);
     // Directly from AM - previous request cached, so single invocation only.

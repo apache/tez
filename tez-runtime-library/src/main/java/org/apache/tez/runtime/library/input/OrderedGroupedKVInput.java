@@ -102,7 +102,7 @@ public class OrderedGroupedKVInput extends AbstractLogicalInput {
     this.conf = TezUtils.createConfFromBaseConfAndPayload(getContext());
 
     if (this.getNumPhysicalInputs() == 0) {
-      getContext().requestInitialMemory(0l, null);
+      getContext().requestInitialMemory(0L, null);
       isStarted.set(true);
       getContext().inputIsReady();
       LOG.info("input fetch not required since there are 0 physical inputs for input vertex: "
