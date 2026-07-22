@@ -26,7 +26,7 @@ REPO=
 usage() {
   cat <<EOF 1>&2
 Usage: $0 [-h] [-tez <Tez version>] [-repo <Docker repo>]
-Build the Apache Tez (AM) Docker image
+Build the Apache Tez (AM and WORKER) Docker image
 -help                Display help
 -tez                 Build image with the specified Tez version
 -repo                Docker repository
@@ -84,12 +84,22 @@ else
   exit 1
 fi
 
+AUX_JAR_PATH="$PROJECT_ROOT/tez-plugins/tez-aux-services/target/tez-aux-services-$TEZ_VERSION.jar"
+if [ -f "$AUX_JAR_PATH" ]; then
+  echo "--> Found local Tez aux services jar at: $AUX_JAR_PATH"
+  cp "$AUX_JAR_PATH" "$WORK_DIR/"
+else
+  echo "--> Error: Local Tez aux services artifact not found at $AUX_JAR_PATH"
+  exit 1
+fi
+
 # -------------------------------------------------------------------------
 # BUILD CONTEXT PREPARATION
 # -------------------------------------------------------------------------
 cp -R "$SCRIPT_DIR/conf" "$WORK_DIR/"
 cp "$SCRIPT_DIR/entrypoint.sh" "$WORK_DIR/"
 cp "$SCRIPT_DIR/am-entrypoint.sh" "$WORK_DIR/"
+cp "$SCRIPT_DIR/worker-entrypoint.sh" "$WORK_DIR/"
 cp "$SCRIPT_DIR/Dockerfile" "$WORK_DIR/"
 
 echo "Building Docker image..."

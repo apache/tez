@@ -16,22 +16,15 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-package org.apache.tez.runtime.api;
+package org.apache.tez.runtime.api.impl;
 
-import org.apache.hadoop.classification.InterfaceAudience;
+import org.apache.tez.runtime.api.ExecutionContext;
 
-/**
- * The context for the executor within which a task runs. May be shared between tasks
- *
- * <p>This interface is not meant to be implemented by users
- */
-@InterfaceAudience.Public
-public interface ExecutionContext {
+/** Local or Standalone implementation of ExecutionContext. */
+public record LocalExecutionContext(String hostName) implements ExecutionContext {
 
-  /**
-   * Get the hostname on which the JVM is running.
-   *
-   * @return the hostname
-   */
-  String getHostName();
+  @Override
+  public String getHostName() {
+    return hostName;
+  }
 }

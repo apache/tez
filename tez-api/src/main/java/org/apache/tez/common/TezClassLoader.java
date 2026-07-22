@@ -55,7 +55,7 @@ public class TezClassLoader extends URLClassLoader {
 
     LOG.info(
         "Created TezClassLoader with parent classloader: {}, thread: {}, system classloader: {}",
-        TezClassLoader.class.getClassLoader(), Thread.currentThread().getId(),
+        TezClassLoader.class.getClassLoader(), Thread.currentThread().threadId(),
         ClassLoader.getSystemClassLoader());
   }
 
@@ -70,7 +70,7 @@ public class TezClassLoader extends URLClassLoader {
   public static void setupTezClassLoader() {
     LOG.debug(
         "Setting up TezClassLoader: thread: {}, current thread classloader: {} system classloader: {}",
-        Thread.currentThread().getId(), Thread.currentThread().getContextClassLoader(),
+        Thread.currentThread().threadId(), Thread.currentThread().getContextClassLoader(),
         ClassLoader.getSystemClassLoader());
     Thread.currentThread().setContextClassLoader(INSTANCE);
   }
