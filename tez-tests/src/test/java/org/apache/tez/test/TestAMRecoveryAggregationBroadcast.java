@@ -249,8 +249,7 @@ public class TestAMRecoveryAggregationBroadcast {
     tezConf.setBoolean(AGGREGATION_SLEEP, true);
     DAG dag = createDAG("AggregationTemporalFailure");
     // Wait for TableScan to be SUCCEEDED before killing the
-    TezCounters counters = runDAGAndVerify(dag, true,
-        Collections.singletonList(TABLE_SCAN));
+    TezCounters counters = runDAGAndVerify(dag, true, Collections.singletonList(TABLE_SCAN));
     assertEquals(3, counters.findCounter(DAGCounter.NUM_SUCCEEDED_TASKS).getValue());
 
     List<HistoryEvent> historyEvents1 = readRecoveryLog(1);
@@ -272,8 +271,7 @@ public class TestAMRecoveryAggregationBroadcast {
     tezConf.setBoolean(MAP_JOIN_SLEEP, true);
     DAG dag = createDAG("MapJoinTemporalFailure");
     // Wait for both upstream vertices to be SUCCEEDED before killing the AM
-    TezCounters counters = runDAGAndVerify(dag, true,
-        Arrays.asList(TABLE_SCAN, AGGREGATION));
+    TezCounters counters = runDAGAndVerify(dag, true, Arrays.asList(TABLE_SCAN, AGGREGATION));
     assertEquals(3, counters.findCounter(DAGCounter.NUM_SUCCEEDED_TASKS).getValue());
 
     List<HistoryEvent> historyEvents1 = readRecoveryLog(1);
@@ -319,8 +317,7 @@ public class TestAMRecoveryAggregationBroadcast {
             .create(AggregationProcessor.class.getName()).setUserPayload(payload), 1);
 
     DataSinkDescriptor dataSink = MROutput
-        .createConfigBuilder(new Configuration(tezConf), TextOutputFormat.class,
-            outPath.toString())
+        .createConfigBuilder(new Configuration(tezConf), TextOutputFormat.class, outPath.toString())
         .build();
     // Broadcast Hash Join
     Vertex mapJoinVertex = Vertex
@@ -349,8 +346,7 @@ public class TestAMRecoveryAggregationBroadcast {
     return dag;
   }
 
-  TezCounters runDAGAndVerify(DAG dag, boolean killAM,
-      List<String> vertexNamesToWaitFor) throws Exception {
+  TezCounters runDAGAndVerify(DAG dag, boolean killAM, List<String> vertexNamesToWaitFor) throws Exception {
     tezSession.waitTillReady();
     DAGClient dagClient = tezSession.submitDAG(dag);
 
@@ -360,8 +356,7 @@ public class TestAMRecoveryAggregationBroadcast {
       // slow CI machines and caused the recovery-log assertions below to
       // fail intermittently.
       for (String vertexName : vertexNamesToWaitFor) {
-        waitForVertexSucceeded(dagClient, vertexName,
-            TimeUnit.SECONDS.toMillis(60));
+        waitForVertexSucceeded(dagClient, vertexName, TimeUnit.SECONDS.toMillis(60));
       }
       YarnClient yarnClient = YarnClient.createYarnClient();
       yarnClient.init(tezConf);
@@ -384,28 +379,29 @@ public class TestAMRecoveryAggregationBroadcast {
 
   private void waitForVertexSucceeded(DAGClient dagClient, String vertexName,
       long timeoutMs) throws Exception {
-    long deadline = System.currentTimeMillis() + timeoutMs;
-    while (System.currentTimeMillis() < deadline) {
+    long timeoutNanos = TimeUnit.MILLISECONDS.toNanos(timeoutMs);
+    long startNanos = System.nanoTime();
+    while ((System.nanoTime() - startNanos) < timeoutNanos) {
       // Before the vertex is initialized on the AM, getVertexStatus may
-      // return null - treat that the same as NEW / INITIALIZING and keep
-      // polling.
+      // return null - treat that the same as NEW / INITIALIZING and keep polling.
       VertexStatus status = dagClient.getVertexStatus(vertexName, null);
       if (status != null) {
         VertexStatus.State state = status.getState();
-        if (state == VertexStatus.State.SUCCEEDED) {
-          return;
-        }
-        if (state == VertexStatus.State.FAILED
-            || state == VertexStatus.State.KILLED
-            || state == VertexStatus.State.ERROR) {
-          throw new AssertionError("Vertex " + vertexName
-              + " reached terminal non-success state: " + state);
+        switch (state) {
+          case SUCCEEDED -> {
+            return;
+          }
+          case FAILED, KILLED, ERROR ->
+              throw new AssertionError(
+                  "Vertex " + vertexName + " reached terminal non-success state: " + state);
+          default -> {
+            // Still running / initializing; fall through to sleep and poll again.
+          }
         }
       }
       TimeUnit.MILLISECONDS.sleep(500);
     }
-    throw new AssertionError("Timeout waiting for vertex " + vertexName
-        + " to reach SUCCEEDED");
+    throw new AssertionError("Timeout waiting for vertex " + vertexName + " to reach SUCCEEDED");
   }
 
   private List<HistoryEvent> readRecoveryLog(int attemptNum) throws IOException {
