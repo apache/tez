@@ -19,7 +19,9 @@
 package org.apache.tez.common.security;
 
 import java.io.IOException;
+import java.lang.reflect.Field;
 import java.util.Map;
+import java.util.Set;
 
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.security.UserGroupInformation;
@@ -417,4 +419,104 @@ public class TestACLManager {
 
   }
 
+  /**
+   * Per-DAG ACLs should stay scoped to their DAG and not carry over to
+   * sibling DAGs sharing the same AM ACLManager.
+   */
+  @Test(timeout = 5000)
+  public void testDAGACLsDoNotLeakAcrossDAGs() throws IOException {
+    UserGroupInformation amUser = UserGroupInformation.createUserForTesting("amUser", noGroups);
+    UserGroupInformation dag1User = UserGroupInformation.createUserForTesting("dag1User", noGroups);
+    UserGroupInformation dag2User = UserGroupInformation.createUserForTesting("dag2User", noGroups);
+    UserGroupInformation user1 = UserGroupInformation.createUserForTesting("user1", noGroups);
+    String[] grp1 = new String[] {"grp1"};
+    UserGroupInformation user2 = UserGroupInformation.createUserForTesting("user2", grp1);
+
+    Configuration conf = new Configuration(false);
+    ACLManager amAclManager = new ACLManager(amUser.getShortUserName(), conf);
+
+    ACLInfo.Builder dag1Builder = ACLInfo.newBuilder();
+    dag1Builder.addUsersWithViewAccess(user1.getShortUserName());
+    dag1Builder.addUsersWithModifyAccess(user1.getShortUserName());
+    dag1Builder.addGroupsWithViewAccess("grp1");
+    dag1Builder.addGroupsWithModifyAccess("grp1");
+    ACLManager dag1AclManager =
+        new ACLManager(amAclManager, dag1User.getShortUserName(), dag1Builder.build());
+
+    Assert.assertTrue(dag1AclManager.checkDAGModifyAccess(user1));
+    Assert.assertTrue(dag1AclManager.checkDAGViewAccess(user1));
+    Assert.assertTrue(dag1AclManager.checkDAGModifyAccess(user2));
+    Assert.assertTrue(dag1AclManager.checkDAGViewAccess(user2));
+
+    // DAG 2 in the same session has an empty ACLInfo — DAG 1's grants must
+    // not carry over.
+    ACLManager dag2AclManager = new ACLManager(amAclManager, dag2User.getShortUserName(),
+        ACLInfo.getDefaultInstance());
+
+    Assert.assertFalse(dag2AclManager.checkDAGModifyAccess(user1));
+    Assert.assertFalse(dag2AclManager.checkDAGViewAccess(user1));
+    Assert.assertFalse(dag2AclManager.checkDAGModifyAccess(user2));
+    Assert.assertFalse(dag2AclManager.checkDAGViewAccess(user2));
+
+    // AM-level manager should also be untouched by DAG 1's grants.
+    Assert.assertFalse(amAclManager.checkAccess(user1, ACLType.DAG_MODIFY_ACL));
+    Assert.assertFalse(amAclManager.checkAccess(user2, ACLType.DAG_MODIFY_ACL));
+  }
+
+  /**
+   * The per-DAG constructor must deep-copy the AM's ACL sets. Otherwise a
+   * later {@code users.get(ACLType.AM_VIEW_ACL).add(...)} inside the DAG-scoped
+   * manager would silently mutate the AM's global ACLs (and every sibling
+   * DAG's view of them). This test simulates that mutation via reflection so
+   * it catches the shallow-copy regression even though today's code paths
+   * only replace entries via {@code put}.
+   */
+  @Test(timeout = 5000)
+  public void testDAGConstructorDeepCopiesAMACLs() throws Exception {
+    UserGroupInformation amUser = UserGroupInformation.createUserForTesting("amUser", noGroups);
+    UserGroupInformation dagUser = UserGroupInformation.createUserForTesting("dagUser", noGroups);
+    UserGroupInformation user1 = UserGroupInformation.createUserForTesting("user1", noGroups);
+    UserGroupInformation leakedUser = UserGroupInformation.createUserForTesting("leakedUser", noGroups);
+
+    Configuration conf = new Configuration(false);
+    conf.set(TezConfiguration.TEZ_AM_VIEW_ACLS, user1.getShortUserName());
+    ACLManager amAclManager = new ACLManager(amUser.getShortUserName(), conf);
+
+    ACLManager dagAclManager =
+        new ACLManager(amAclManager, dagUser.getShortUserName(), ACLInfo.getDefaultInstance());
+
+    // Reach into the DAG manager and mutate the AM_VIEW_ACL set in place.
+    // With a deep copy this only affects the DAG manager; with a shallow
+    // copy the AM manager would see the change too.
+    Field usersField = ACLManager.class.getDeclaredField("users");
+    usersField.setAccessible(true);
+    @SuppressWarnings("unchecked")
+    Map<ACLType, Set<String>> dagUsers = (Map<ACLType, Set<String>>) usersField.get(dagAclManager);
+    dagUsers.get(ACLType.AM_VIEW_ACL).add(leakedUser.getShortUserName());
+
+    // The AM manager must NOT have picked up the new user.
+    Assert.assertFalse(amAclManager.checkAMViewAccess(leakedUser));
+  }
+
+  /**
+   * The per-DAG constructor must tolerate a null ACLInfo (the disabled-ACLs
+   * test above already relies on this via a different code path, but with
+   * ACLs enabled the null must still not NPE).
+   */
+  @Test(timeout = 5000)
+  public void testDAGConstructorAcceptsNullACLInfo() {
+    UserGroupInformation amUser = UserGroupInformation.createUserForTesting("amUser", noGroups);
+    UserGroupInformation dagUser = UserGroupInformation.createUserForTesting("dagUser", noGroups);
+    UserGroupInformation other = UserGroupInformation.createUserForTesting("other", noGroups);
+
+    Configuration conf = new Configuration(false);
+    ACLManager amAclManager = new ACLManager(amUser.getShortUserName(), conf);
+    ACLManager dagAclManager =
+        new ACLManager(amAclManager, dagUser.getShortUserName(), null);
+
+    Assert.assertTrue(dagAclManager.checkDAGViewAccess(dagUser));
+    Assert.assertTrue(dagAclManager.checkDAGModifyAccess(dagUser));
+    Assert.assertFalse(dagAclManager.checkDAGViewAccess(other));
+    Assert.assertFalse(dagAclManager.checkDAGModifyAccess(other));
+  }
 }
