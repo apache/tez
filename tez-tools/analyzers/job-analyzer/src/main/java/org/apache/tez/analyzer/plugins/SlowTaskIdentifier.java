@@ -54,6 +54,7 @@ public class SlowTaskIdentifier extends TezAnalyzerBase implements Analyzer {
   public SlowTaskIdentifier(Configuration config) {
     super(config);
     this.csvResult = new CSVResult(headers);
+    this.configProperties.add(NO_OF_TASKS);
   }
 
   @Override
