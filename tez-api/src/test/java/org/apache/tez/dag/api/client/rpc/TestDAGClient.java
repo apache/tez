@@ -49,7 +49,9 @@ import org.apache.hadoop.security.UserGroupInformation;
 import org.apache.hadoop.security.ssl.KeyStoreTestUtil;
 import org.apache.hadoop.yarn.api.records.ApplicationId;
 import org.apache.hadoop.yarn.api.records.ApplicationReport;
+import org.apache.hadoop.yarn.api.records.YarnApplicationState;
 import org.apache.hadoop.yarn.exceptions.YarnException;
+import org.apache.hadoop.yarn.util.Records;
 import org.apache.tez.client.FrameworkClient;
 import org.apache.tez.common.CachedEntity;
 import org.apache.tez.dag.api.NoCurrentDAGException;
@@ -722,6 +724,59 @@ public class TestDAGClient {
         assertEquals(1, dagClientImpl.numGetStatusViaRmInvocations);
         assertEquals(1, dagClientRpc.numGetStatusViaAmInvocations);
       }
+    }
+  }
+
+  /**
+   * Covers the YARN-808 guard in DAGClientRPCImpl#createAMProxyIfNeeded
+   */
+  @Test
+  @Timeout(value = 5000, unit = TimeUnit.MILLISECONDS)
+  public void testCreateAMProxyIfNeededReturnsFalseOnBadEndpoint() throws Exception {
+    TezConfiguration tezConf = new TezConfiguration();
+
+    // Case: rpcPort == 0 (protobuf default sentinel).
+    try (DAGClientRPCImplWithFakeReport client = newFakeReportClient(tezConf, "somehost", 0)) {
+      assertFalse(client.createAMProxyIfNeeded(), "rpcPort == 0 should return false");
+    }
+
+    // Case: rpcPort == -1 (YARN-808 gap — AM allocated but RPC not bound).
+    try (DAGClientRPCImplWithFakeReport client = newFakeReportClient(tezConf, "somehost", -1)) {
+      assertFalse(client.createAMProxyIfNeeded(), "rpcPort == -1 should return false");
+    }
+
+    // Case: host == null.
+    try (DAGClientRPCImplWithFakeReport client = newFakeReportClient(tezConf, null, 8080)) {
+      assertFalse(client.createAMProxyIfNeeded(), "host == null should return false");
+    }
+
+    // Case: host == "N/A".
+    try (DAGClientRPCImplWithFakeReport client = newFakeReportClient(tezConf, "N/A", 8080)) {
+      assertFalse(client.createAMProxyIfNeeded(), "host == N/A should return false");
+    }
+  }
+
+  private DAGClientRPCImplWithFakeReport newFakeReportClient(TezConfiguration conf,
+      String host, int rpcPort) throws IOException {
+    ApplicationReport report = Records.newRecord(ApplicationReport.class);
+    report.setYarnApplicationState(YarnApplicationState.RUNNING);
+    report.setHost(host);
+    report.setRpcPort(rpcPort);
+    return new DAGClientRPCImplWithFakeReport(mockAppId, dagIdStr, conf, report);
+  }
+
+  private static final class DAGClientRPCImplWithFakeReport extends DAGClientRPCImpl {
+    private final ApplicationReport fakeReport;
+
+    DAGClientRPCImplWithFakeReport(ApplicationId appId, String dagId,
+        TezConfiguration conf, ApplicationReport fakeReport) throws IOException {
+      super(appId, dagId, conf, null, UserGroupInformation.getCurrentUser());
+      this.fakeReport = fakeReport;
+    }
+
+    @Override
+    ApplicationReport getAppReport() {
+      return fakeReport;
     }
   }
 
