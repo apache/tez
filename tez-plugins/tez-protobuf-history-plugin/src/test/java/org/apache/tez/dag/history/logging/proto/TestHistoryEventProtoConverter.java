@@ -109,7 +109,7 @@ public class TestHistoryEventProtoConverter {
 
   @BeforeEach
   public void setup() {
-    applicationId = ApplicationId.newInstance(9999l, 1);
+    applicationId = ApplicationId.newInstance(9999L, 1);
     applicationAttemptId = ApplicationAttemptId.newInstance(applicationId, 1);
     tezDAGID = TezDAGID.getInstance(applicationId, random.nextInt());
     tezVertexID = TezVertexID.getInstance(tezDAGID, random.nextInt());
@@ -272,18 +272,18 @@ public class TestHistoryEventProtoConverter {
     if (entityType != null) {
       switch (entityType) { // Intentional fallthrough.
       case TEZ_TASK_ATTEMPT_ID:
-        assertEquals(tezTaskAttemptID.toString(), proto.getTaskAttemptId());
+          assertEquals(tezTaskAttemptID.toString(), proto.getTaskAttemptId());
       case TEZ_TASK_ID:
-        assertEquals(tezTaskID.toString(), proto.getTaskId());
+          assertEquals(tezTaskID.toString(), proto.getTaskId());
       case TEZ_VERTEX_ID:
-        assertEquals(tezVertexID.toString(), proto.getVertexId());
+          assertEquals(tezVertexID.toString(), proto.getVertexId());
       case TEZ_DAG_ID:
-        assertEquals(tezDAGID.toString(), proto.getDagId());
+          assertEquals(tezDAGID.toString(), proto.getDagId());
       case TEZ_APPLICATION:
-        assertEquals(applicationId.toString(), proto.getAppId());
+          assertEquals(applicationId.toString(), proto.getAppId());
         break;
       default:
-        fail("Invalid type: " + entityType.name());
+          fail("Invalid type: " + entityType.name());
       }
     }
     assertEquals(numData, proto.getEventDataCount());

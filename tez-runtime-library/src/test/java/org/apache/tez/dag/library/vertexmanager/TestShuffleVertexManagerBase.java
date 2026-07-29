@@ -65,7 +65,7 @@ import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.Arguments;
 import org.junit.jupiter.params.provider.MethodSource;
 
-@SuppressWarnings({ "unchecked", "rawtypes" })
+@SuppressWarnings({ "unchecked", "rawtypes", "checkstyle:MethodLength" })
 public class TestShuffleVertexManagerBase extends TestShuffleVertexManagerUtils {
 
   List<TaskAttemptIdentifier> emptyCompletions = null;
@@ -211,8 +211,8 @@ public class TestShuffleVertexManagerBase extends TestShuffleVertexManagerUtils 
         mockSrcVertexId1, 2, mockSrcVertexId2, 2, mockSrcVertexId3, 2,
         mockManagedVertexId, 4, scheduledTasks, null);
     //{5,9,12,18} in bitmap
-    final long MB = 1024l * 1024l;
-    long[] sizes = new long[]{(0l), (1 * MB), (964 * MB), (48 * MB)};
+    final long MB = 1024L * 1024L;
+    long[] sizes = new long[]{(0L), (1 * MB), (964 * MB), (48 * MB)};
     VertexManagerEvent vmEvent = getVertexManagerEvent(sizes, 0, "Vertex", false);
 
     manager = createManager(shuffleVertexManagerClass, conf, mockContext, 0.01f, 0.75f);
@@ -432,8 +432,8 @@ public class TestShuffleVertexManagerBase extends TestShuffleVertexManagerUtils 
     // TODO improve tests for parallelism
     assertEquals(0, manager.pendingTasks.size()); // all tasks scheduled
     assertEquals(2, scheduledTasks.size());
-    assertTrue(scheduledTasks.contains(new Integer(0)));
-    assertTrue(scheduledTasks.contains(new Integer(1)));
+    assertTrue(scheduledTasks.contains(0));
+    assertTrue(scheduledTasks.contains(1));
     assertEquals(2, manager.numBipartiteSourceTasksCompleted);
     assertEquals(2, manager.numVertexManagerEventsReceived);
     assertEquals(100 * MB, manager.completedSourceTasksOutputSize);
@@ -808,7 +808,7 @@ public class TestShuffleVertexManagerBase extends TestShuffleVertexManagerUtils 
   @ParameterizedTest(name = "test[{0}]")
   @MethodSource("data")
   @Timeout(value = 5000, unit = TimeUnit.MILLISECONDS)
-  public void test_Tez1649_with_scatter_gather_edges(
+  public void testTez1649WithScatterGatherEdges(
       Class<? extends ShuffleVertexManagerBase> shuffleVertexManagerClass) throws IOException {
     Configuration conf = new Configuration();
     ShuffleVertexManagerBase manager = null;
@@ -930,7 +930,7 @@ public class TestShuffleVertexManagerBase extends TestShuffleVertexManagerUtils 
   @ParameterizedTest(name = "test[{0}]")
   @MethodSource("data")
   @Timeout(value = 5000, unit = TimeUnit.MILLISECONDS)
-  public void test_Tez1649_with_mixed_edges(Class<? extends ShuffleVertexManagerBase> shuffleVertexManagerClass) {
+  public void testTez1649WithMixedEdges(Class<? extends ShuffleVertexManagerBase> shuffleVertexManagerClass) {
     Configuration conf = new Configuration();
     ShuffleVertexManagerBase manager = null;
 
@@ -1126,7 +1126,8 @@ public class TestShuffleVertexManagerBase extends TestShuffleVertexManagerUtils 
   @ParameterizedTest(name = "test[{0}]")
   @MethodSource("data")
   @Timeout(value = 5000, unit = TimeUnit.MILLISECONDS)
-  public void testTezDrainCompletionsOnVertexStart(Class<? extends ShuffleVertexManagerBase> shuffleVertexManagerClass) {
+  public void testTezDrainCompletionsOnVertexStart(
+      Class<? extends ShuffleVertexManagerBase> shuffleVertexManagerClass) {
     Configuration conf = new Configuration();
     ShuffleVertexManagerBase manager;
 

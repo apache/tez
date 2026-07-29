@@ -297,7 +297,7 @@ public class TestInput extends AbstractLogicalInput {
 
   @Override
   public List<Event> initialize() throws Exception {
-    getContext().requestInitialMemory(0l, null); //Mandatory call.
+    getContext().requestInitialMemory(0L, null); //Mandatory call.
     getContext().inputIsReady();
     if (getContext().getUserPayload() != null && getContext().getUserPayload().hasPayload()) {
       String vName = getContext().getTaskVertexName();
