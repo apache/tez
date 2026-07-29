@@ -245,7 +245,7 @@ public class TestAMRecoveryAggregationBroadcast {
   public void testAggregationTemporalFailure() throws Exception {
     tezConf.setBoolean(AGGREGATION_SLEEP, true);
     DAG dag = createDAG("AggregationTemporalFailure");
-    // Wait for TableScan to be SUCCEEDED before killing the
+    // Wait for TableScan to be SUCCEEDED before killing the AM
     TezCounters counters = runDAGAndVerify(dag, true, Collections.singletonList(TABLE_SCAN));
     assertEquals(3, counters.findCounter(DAGCounter.NUM_SUCCEEDED_TASKS).getValue());
 
