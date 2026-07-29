@@ -46,9 +46,9 @@ For instructions on how to contribute to Tez, refer to:
 Requirements
 ------------
 
-* JDK 21+
+* JDK 25+
 * Maven 3.9.14 or later
-* spotbugs 4.9.3 or later (if running spotbugs)
+* spotbugs 4.10.2 or later (if running spotbugs)
 * ProtocolBuffer 3.25.5
 * Hadoop 3.x
 
