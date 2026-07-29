@@ -1033,6 +1033,11 @@ public class TestTezClientUtils {
     assertNull(TezClientUtils.getAMProxy(
         newRunningFrameworkClient(appId, "N/A", 8080), conf, appId, ugi),
         "host == N/A should return null");
+
+    // Case 4: host == null  (RM has not yet received AM registration)
+    assertNull(TezClientUtils.getAMProxy(
+        newRunningFrameworkClient(appId, null, 8080), conf, appId, ugi),
+        "host == null should return null");
   }
 
   private static FrameworkClient newRunningFrameworkClient(ApplicationId appId,

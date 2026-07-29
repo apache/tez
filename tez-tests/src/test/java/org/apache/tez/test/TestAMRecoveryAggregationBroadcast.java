@@ -120,9 +120,6 @@ public class TestAMRecoveryAggregationBroadcast {
 
   private TezConfiguration tezConf;
   private TezClient tezSession;
-  // Per-test unique output path.
-  // replaces the former static OUT_PATH so that a stale file from a prior run in the same forked JVM
-  // cannot bleed into a later run.
   private Path outPath;
 
   @BeforeAll
@@ -351,10 +348,7 @@ public class TestAMRecoveryAggregationBroadcast {
     DAGClient dagClient = tezSession.submitDAG(dag);
 
     if (killAM) {
-      // Deterministic wait: block until every named upstream vertex reaches
-      // SUCCEEDED. Replaces a fixed Thread.sleep(10s) which was too short on
-      // slow CI machines and caused the recovery-log assertions below to
-      // fail intermittently.
+      // Deterministic wait: block until every named upstream vertex reaches SUCCEEDED.
       for (String vertexName : vertexNamesToWaitFor) {
         waitForVertexSucceeded(dagClient, vertexName, TimeUnit.SECONDS.toMillis(60));
       }
