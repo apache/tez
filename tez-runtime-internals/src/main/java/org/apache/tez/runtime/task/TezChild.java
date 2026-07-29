@@ -74,7 +74,7 @@ import org.apache.tez.dag.utils.RelocalizationUtils;
 import org.apache.tez.hadoop.shim.HadoopShim;
 import org.apache.tez.hadoop.shim.HadoopShimsLoader;
 import org.apache.tez.runtime.api.ExecutionContext;
-import org.apache.tez.runtime.api.impl.ExecutionContextImpl;
+import org.apache.tez.runtime.api.impl.YarnExecutionContext;
 import org.apache.tez.runtime.common.objectregistry.ObjectRegistryImpl;
 import org.apache.tez.runtime.hook.TezTaskAttemptHook;
 import org.apache.tez.runtime.internals.api.TaskReporterInterface;
@@ -517,52 +517,49 @@ public class TezChild {
         hadoopShim);
   }
 
-  public static void main(String[] args) throws IOException, InterruptedException, TezException {
+  public static void main(String[] args) throws Exception {
     TezClassLoader.setupTezClassLoader();
     final Configuration defaultConf = new Configuration();
-
-    Thread.setDefaultUncaughtExceptionHandler(new YarnUncaughtExceptionHandler());
-    final String pid = System.getenv().get("JVM_PID");
-
 
     assert args.length == 5;
     String host = args[0];
     int port = Integer.parseInt(args[1]);
-    final String containerIdentifier = args[2];
-    final String tokenIdentifier = args[3];
-    final int attemptNumber = Integer.parseInt(args[4]);
-    final String[] localDirs = TezCommonUtils.getTrimmedStrings(System.getenv(Environment.LOCAL_DIRS
-        .name()));
-    CallerContext.setCurrent(new CallerContext.Builder("tez_"+tokenIdentifier).build());
-    LOG.info("TezChild starting with PID=" + pid + ", containerIdentifier=" + containerIdentifier);
-    if (LOG.isDebugEnabled()) {
-      LOG.debug("Info from cmd line: AM-host: " + host + " AM-port: " + port
-          + " containerIdentifier: " + containerIdentifier + " appAttemptNumber: " + attemptNumber
-          + " tokenIdentifier: " + tokenIdentifier);
-    }
+    String containerIdentifier = args[2];
+    String tokenIdentifier = args[3];
+    int attemptNumber = Integer.parseInt(args[4]);
 
-    // Security framework already loaded the tokens into current ugi
     DAGProtos.ConfigurationProto confProto =
         TezUtilsInternal.readUserSpecifiedTezConfiguration(System.getenv(Environment.PWD.name()));
     TezUtilsInternal.addUserSpecifiedTezConfiguration(defaultConf, confProto.getConfKeyValuesList());
-    UserGroupInformation.setConfiguration(defaultConf);
+    Thread.setDefaultUncaughtExceptionHandler(new YarnUncaughtExceptionHandler());
+    final String pid = System.getenv().get("JVM_PID");
+    String[] localDirs = TezCommonUtils.getTrimmedStrings(System.getenv(Environment.LOCAL_DIRS.name()));
+
+    CallerContext.setCurrent(new CallerContext.Builder("tez_" + tokenIdentifier).build());
+    LOG.info("TezChild starting with PID={}, containerIdentifier={}", pid, containerIdentifier);
+    if (LOG.isDebugEnabled()) {
+      LOG.debug(
+          "Info from cmd line: AM-host: {} AM-port: {} containerIdentifier: {} appAttemptNumber: {} tokenIdentifier: " +
+          "{}", host, port, containerIdentifier, attemptNumber, tokenIdentifier);
+    }
     Credentials credentials = UserGroupInformation.getCurrentUser().getCredentials();
+
+    // Security framework already loaded the tokens into current ugi
+    UserGroupInformation.setConfiguration(defaultConf);
 
     HadoopShim hadoopShim = new HadoopShimsLoader(defaultConf).getHadoopShim();
 
     // log the system properties
     if (LOG.isInfoEnabled()) {
       String systemPropsToLog = TezCommonUtils.getSystemPropertiesToLog(defaultConf);
-      if (systemPropsToLog != null) {
-        LOG.info(systemPropsToLog);
-      }
+      LOG.info(systemPropsToLog);
     }
 
-    TezChild tezChild = newTezChild(defaultConf, host, port, containerIdentifier,
-        tokenIdentifier, attemptNumber, localDirs, System.getenv(Environment.PWD.name()),
-        System.getenv(), pid, new ExecutionContextImpl(System.getenv(Environment.NM_HOST.name())),
-        credentials, Runtime.getRuntime().maxMemory(), System
-            .getenv(ApplicationConstants.Environment.USER.toString()), null, true, hadoopShim);
+    TezChild tezChild =
+        newTezChild(defaultConf, host, port, containerIdentifier, tokenIdentifier, attemptNumber, localDirs,
+            System.getenv(Environment.PWD.name()), System.getenv(), pid, new YarnExecutionContext(), credentials,
+            Runtime.getRuntime().maxMemory(), System.getenv(ApplicationConstants.Environment.USER.toString()), null,
+            true, hadoopShim);
     ContainerExecutionResult result = tezChild.run();
     LOG.info("TezChild is about to exit from main(), run() returned result: {}", result.toString());
   }
