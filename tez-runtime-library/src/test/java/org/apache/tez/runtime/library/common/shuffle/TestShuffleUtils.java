@@ -81,7 +81,6 @@ import com.google.protobuf.ByteString;
 
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
-import org.mockito.ArgumentMatchers;
 import org.slf4j.Logger;
 
 public class TestShuffleUtils {
@@ -398,14 +397,14 @@ public class TestShuffleUtils {
       logger.logIndividualFetchComplete(10, 100, 1000, "testType", ident);
     }
     verify(activeLogger, times(0)).info(anyString());
-    verify(aggregateLogger, times(1)).info(anyString(), ArgumentMatchers.<Object[]>any());
+    verify(aggregateLogger, times(1)).info(anyString(), any(), any(), any(), any(), any());
 
     when(activeLogger.isInfoEnabled()).thenReturn(true);
     for (int i = 0; i < 1000; i++) {
       logger.logIndividualFetchComplete(10, 100, 1000, "testType", ident);
     }
     verify(activeLogger, times(1000)).info(anyString());
-    verify(aggregateLogger, times(1)).info(anyString(), ArgumentMatchers.<Object[]>any());
+    verify(aggregateLogger, times(1)).info(anyString(), any(), any(), any(), any(), any());
   }
 
   /**
