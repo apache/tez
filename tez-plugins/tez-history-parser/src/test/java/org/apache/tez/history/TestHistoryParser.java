@@ -33,6 +33,7 @@ import java.util.Collection;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
+import java.util.concurrent.TimeUnit;
 
 import org.apache.commons.cli.ParseException;
 import org.apache.commons.io.FileUtils;
@@ -118,6 +119,7 @@ public class TestHistoryParser {
   private final static String SUMMATION = "Summation";
   private final static String SIMPLE_HISTORY_DIR = "/tmp/simplehistory/";
   private final static String HISTORY_TXT = "history.txt";
+  private static final long ATS_RETRY_DELAY_MS = 5_000L;
 
   private static Configuration conf = new Configuration();
   private static FileSystem fs;
@@ -212,9 +214,8 @@ public class TestHistoryParser {
     //Retry the ATS export+parse pipeline until the resulting DagInfo actually contains
     //the expected DAG (two vertices, non-empty vertices/tasks). Under load the AM's async
     //flush and the timeline server's write path can race the export, leaving empty/partial
-    //entities in the zip. Before TEZ-4733 that produced a misleading
-    //"A JSONObject text must begin with '{'" JSONException at parse time.
-    DagInfo dagInfoFromATS = fetchDagInfoFromAtsWithRetry(dagId, 6, 5_000L);
+    //entities in the zip.
+    DagInfo dagInfoFromATS = fetchDagInfoFromAtsWithRetry(dagId, 6, 2);
 
     verifyDagInfo(dagInfoFromATS, true);
     verifyJobSpecificInfo(dagInfoFromATS);
@@ -235,32 +236,33 @@ public class TestHistoryParser {
   }
 
   /**
-   * the ATS write path is async (AM event queue → timeline client →
-   * timeline server). Even after the DAG client reports the job complete, timeline entities
-   * may still be in transit. Downloading too early produced empty zip entries and a
-   * misleading JSONException: A JSONObject text must begin with '{'} at parse time.
+   * The ATS write path is async (AM event queue → timeline client → timeline server). Even
+   * after the DAG client reports the job complete, timeline entities may still be in transit,
+   * so an export triggered right after completion can capture a partial snapshot (empty zip
+   * entries, or a DagInfo with fewer vertices / empty task lists). Retry the export+parse
+   * pipeline until {@link #isDagInfoComplete} confirms the snapshot is populated.
    */
   private DagInfo fetchDagInfoFromAtsWithRetry(String dagId, int maxAttempts,
-      long delayMs) throws Exception {
+      int expectedNumOfVertices) throws Exception {
     String[] args = { "--dagId=" + dagId, "--downloadDir=" + DOWNLOAD_DIR,
         "--yarnTimelineAddress=" + yarnTimelineAddress };
     Exception lastError = null;
     DagInfo lastPartial = null;
-    for (int attempt = 1; attempt <= maxAttempts; attempt++) {
+    for (int attempt = 0; attempt < maxAttempts; attempt++) {
       try {
         // Fresh download every attempt — ATSImportTool overwrites the zip.
         int result = ATSImportTool.process(args);
         assertEquals(0, result);
         DagInfo info = getDagInfo(dagId);
-        if (isDagInfoComplete(info)) {
+        if (isDagInfoComplete(info, expectedNumOfVertices)) {
           return info;
         }
         lastPartial = info;
       } catch (Exception e) {
         lastError = e;
       }
-      if (attempt < maxAttempts) {
-        Thread.sleep(delayMs);
+      if (attempt < maxAttempts - 1) {
+        Thread.sleep(ATS_RETRY_DELAY_MS);
       }
     }
     fail("Could not fetch a complete DagInfo for " + dagId + " after " + maxAttempts
@@ -273,9 +275,16 @@ public class TestHistoryParser {
     return null;
   }
 
-  private static boolean isDagInfoComplete(DagInfo info) {
+  /**
+   * ATS parsing can succeed on a partially-written zip: the reader returns a DagInfo with
+   * fewer vertices than the DAG actually has, or vertices whose task/attempt lists are still
+   * empty. That's the race we're guarding against — a "successful" parse is not proof the
+   * export was complete. We know the expected vertex count from the DAG under test, so require
+   * it explicitly and require every vertex to have at least one task with at least one attempt.
+   */
+  private static boolean isDagInfoComplete(DagInfo info, int expectedNumOfVertices) {
     return info != null
-        && info.getVertices().size() >= 2
+        && info.getVertices().size() >= expectedNumOfVertices
         && info.getVertices().stream().allMatch(v ->
             !v.getTasks().isEmpty()
                 && v.getTasks().stream().allMatch(t -> !t.getTaskAttempts().isEmpty()));
@@ -283,15 +292,13 @@ public class TestHistoryParser {
 
   private void waitForHistoryFileReady(String dagId, long timeoutMs) throws Exception {
     TezDAGID tezDAGID = TezDAGID.fromString(dagId);
-    ApplicationAttemptId applicationAttemptId = ApplicationAttemptId.newInstance(tezDAGID
-        .getApplicationId(), 1);
+    ApplicationAttemptId applicationAttemptId = ApplicationAttemptId.newInstance(tezDAGID.getApplicationId(), 1);
     Path historyPath = new Path(conf.get("fs.defaultFS")
-        + SIMPLE_HISTORY_DIR + HISTORY_TXT + "."
-        + applicationAttemptId);
+        + SIMPLE_HISTORY_DIR + HISTORY_TXT + "." + applicationAttemptId);
     FileSystem hfs = historyPath.getFileSystem(conf);
-    long deadline = System.currentTimeMillis() + timeoutMs;
+    long deadlineNanos = System.nanoTime() + TimeUnit.MILLISECONDS.toNanos(timeoutMs);
     long lastLen = -1L;
-    while (System.currentTimeMillis() < deadline) {
+    while (System.nanoTime() < deadlineNanos) {
       if (hfs.exists(historyPath)) {
         long len = hfs.getFileStatus(historyPath).getLen();
         if (len > 0 && len == lastLen) {

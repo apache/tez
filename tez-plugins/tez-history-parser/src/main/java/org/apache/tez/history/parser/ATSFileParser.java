@@ -176,13 +176,20 @@ public class ATSFileParser extends BaseParser implements ATSData {
   }
 
   /**
-   * Parse the raw payload of a single zip entry as JSON.
-   * Returns null if the payload is empty or blank — callers should skip such entries.
+   * Read a zip entry's payload and parse it as JSON.
+   * Returns null if the payload contains only whitespace (including a zero-length payload) —
+   * callers should skip such entries.
+   *
+   * @throws JSONException if the payload is non-blank but not valid JSON
    */
-  private JSONObject readJson(byte[] payload, String entryName) throws JSONException {
-    String text = new String(payload, StandardCharsets.UTF_8);
+  private JSONObject readJson(InputStream inputStream, String entryName)
+      throws IOException, JSONException {
+    NonSyncByteArrayOutputStream bout = new NonSyncByteArrayOutputStream();
+    IOUtils.copy(inputStream, bout);
+    String text = new String(bout.toByteArray(), StandardCharsets.UTF_8);
     if (text.trim().isEmpty()) {
-      LOG.warn("Skipping zip entry '{}' - payload is empty or whitespace only", entryName);
+      LOG.warn("Skipping zip entry '{}' - payload is whitespace only (length={})",
+          entryName, text.length());
       return null;
     }
     try {
@@ -203,17 +210,15 @@ public class ATSFileParser extends BaseParser implements ATSData {
    */
   private void parseATSZipFile(File atsFile)
       throws IOException, JSONException, TezException, InterruptedException {
-    final ZipFile atsZipFile = new ZipFile(atsFile);
-    try {
+    try (ZipFile atsZipFile = new ZipFile(atsFile)) {
       Enumeration<? extends ZipEntry> zipEntries = atsZipFile.entries();
       while (zipEntries.hasMoreElements()) {
         ZipEntry zipEntry = zipEntries.nextElement();
         LOG.debug("Processing " + zipEntry.getName());
-        InputStream inputStream = atsZipFile.getInputStream(zipEntry);
-        //Read entire content to memory so we can pass entry name into error messages
-        final NonSyncByteArrayOutputStream bout = new NonSyncByteArrayOutputStream();
-        IOUtils.copy(inputStream, bout);
-        JSONObject jsonObject = readJson(bout.toByteArray(), zipEntry.getName());
+        JSONObject jsonObject;
+        try (InputStream inputStream = atsZipFile.getInputStream(zipEntry)) {
+          jsonObject = readJson(inputStream, zipEntry.getName());
+        }
         if (jsonObject == null) {
           continue;
         }
@@ -249,8 +254,6 @@ public class ATSFileParser extends BaseParser implements ATSData {
           processApplication(tezAppJson);
         }
       }
-    } finally {
-      atsZipFile.close();
     }
   }
 }

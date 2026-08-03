@@ -100,10 +100,8 @@ public class TestATSFileParser {
     assertNotNull(cause);
     String msg = cause.getMessage();
     assertNotNull(msg);
-    assertTrue(msg.contains(DAG_ID),
-        "Error should name the offending zip entry, got: " + msg);
-    assertTrue(msg.contains("<html>"),
-        "Error should include a snippet of the offending payload, got: " + msg);
+    assertTrue(msg.contains(DAG_ID), "Error should name the offending zip entry, got: " + msg);
+    assertTrue(msg.contains("<html>"), "Error should include a snippet of the offending payload, got: " + msg);
   }
 
   private record ZipContent(String name, String payload) {
