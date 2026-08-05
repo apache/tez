@@ -40,6 +40,7 @@ import org.apache.hadoop.io.compress.CompressionCodec;
 import org.apache.tez.common.CallableWithNdc;
 import org.apache.tez.common.TezRuntimeFrameworkConfigs;
 import org.apache.tez.common.TezUtilsInternal;
+import org.apache.tez.common.counters.TaskCounter;
 import org.apache.tez.common.counters.TezCounter;
 import org.apache.tez.common.security.JobTokenSecretManager;
 import org.apache.tez.http.BaseHttpConnection;
@@ -77,6 +78,7 @@ class FetcherOrderedGrouped extends CallableWithNdc<Void> {
   private final TezCounter wrongLengthErrs;
   private final TezCounter badIdErrs;
   private final TezCounter wrongReduceErrs;
+  private final TezCounter ioTimeCounter;
   private final FetchedInputAllocatorOrderedGrouped allocator;
   private final ShuffleScheduler scheduler;
   private final ExceptionReporter exceptionReporter;
@@ -153,6 +155,7 @@ class FetcherOrderedGrouped extends CallableWithNdc<Void> {
     this.badIdErrs = badIdErrsCounter;
     this.connectionErrs = connectionErrsCounter;
     this.wrongReduceErrs = wrongReduceErrsCounter;
+    this.ioTimeCounter = inputContext.getCounters().findCounter(TaskCounter.SHUFFLE_IO_TIME_MILLISECONDS);
     this.applicationId = inputContext.getApplicationId().toString();
     this.dagId = inputContext.getDagIdentifier();
 
@@ -229,6 +232,9 @@ class FetcherOrderedGrouped extends CallableWithNdc<Void> {
     synchronized (cleanupLock) {
       try {
         if (httpConnection != null) {
+          if (input instanceof MeasuredDataInputStream && ioTimeCounter != null) {
+            ioTimeCounter.increment(((MeasuredDataInputStream) input).getElapsedTimeMs());
+          }
           httpConnection.cleanup(disconnect);
           httpConnection = null;
         }
