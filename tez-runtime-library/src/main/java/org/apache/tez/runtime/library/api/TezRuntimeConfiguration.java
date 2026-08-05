@@ -417,6 +417,13 @@ public final class TezRuntimeConfiguration {
       0.90f;
 
   /**
+   * Enables measuring network IO time in shuffle fetchers.
+   */
+  @ConfigurationProperty(type = "boolean")
+  public static final String TEZ_RUNTIME_SHUFFLE_MEASURE_IO_TIME = TEZ_RUNTIME_PREFIX + "shuffle.measure.io.time";
+  public static final boolean TEZ_RUNTIME_SHUFFLE_MEASURE_IO_TIME_DEFAULT = false;
+
+  /**
    * Enables fetch failures by a configuration. Should be used for testing only.
    */
   @ConfigurationProperty(type = "boolean")

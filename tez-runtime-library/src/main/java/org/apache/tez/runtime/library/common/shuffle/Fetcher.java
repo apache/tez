@@ -55,6 +55,7 @@ import org.apache.tez.common.security.JobTokenSecretManager;
 import org.apache.tez.dag.api.TezUncheckedException;
 import org.apache.tez.http.BaseHttpConnection;
 import org.apache.tez.http.HttpConnectionParams;
+import org.apache.tez.http.MeasuredDataInputStream;
 import org.apache.tez.runtime.api.InputContext;
 import org.apache.tez.runtime.library.api.TezRuntimeConfiguration;
 import org.apache.tez.runtime.library.common.CompositeInputAttemptIdentifier;
@@ -565,6 +566,10 @@ public class Fetcher extends CallableWithNdc<FetchResult> {
   protected void setupConnectionInternal(String host, Collection<InputAttemptIdentifier> attempts)
       throws IOException, InterruptedException {
     input = httpConnection.getInputStream();
+    if (conf.getBoolean(TezRuntimeConfiguration.TEZ_RUNTIME_SHUFFLE_MEASURE_IO_TIME,
+        TezRuntimeConfiguration.TEZ_RUNTIME_SHUFFLE_MEASURE_IO_TIME_DEFAULT)) {
+      input = new MeasuredDataInputStream(input);
+    }
     httpConnection.validate();
   }
 
