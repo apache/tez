@@ -40,11 +40,14 @@ import org.apache.hadoop.io.compress.CompressionCodec;
 import org.apache.tez.common.CallableWithNdc;
 import org.apache.tez.common.TezRuntimeFrameworkConfigs;
 import org.apache.tez.common.TezUtilsInternal;
+import org.apache.tez.common.counters.TaskCounter;
 import org.apache.tez.common.counters.TezCounter;
 import org.apache.tez.common.security.JobTokenSecretManager;
 import org.apache.tez.http.BaseHttpConnection;
 import org.apache.tez.http.HttpConnectionParams;
+import org.apache.tez.http.MeasuredDataInputStream;
 import org.apache.tez.runtime.api.InputContext;
+import org.apache.tez.runtime.library.api.TezRuntimeConfiguration;
 import org.apache.tez.runtime.library.common.Constants;
 import org.apache.tez.runtime.library.common.InputAttemptIdentifier;
 import org.apache.tez.runtime.library.common.shuffle.InputAttemptFetchFailure;
@@ -75,6 +78,7 @@ class FetcherOrderedGrouped extends CallableWithNdc<Void> {
   private final TezCounter wrongLengthErrs;
   private final TezCounter badIdErrs;
   private final TezCounter wrongReduceErrs;
+  private final TezCounter ioTimeCounter;
   private final FetchedInputAllocatorOrderedGrouped allocator;
   private final ShuffleScheduler scheduler;
   private final ExceptionReporter exceptionReporter;
@@ -151,6 +155,7 @@ class FetcherOrderedGrouped extends CallableWithNdc<Void> {
     this.badIdErrs = badIdErrsCounter;
     this.connectionErrs = connectionErrsCounter;
     this.wrongReduceErrs = wrongReduceErrsCounter;
+    this.ioTimeCounter = inputContext.getCounters().findCounter(TaskCounter.SHUFFLE_IO_TIME_MILLISECONDS);
     this.applicationId = inputContext.getApplicationId().toString();
     this.dagId = inputContext.getDagIdentifier();
 
@@ -227,6 +232,9 @@ class FetcherOrderedGrouped extends CallableWithNdc<Void> {
     synchronized (cleanupLock) {
       try {
         if (httpConnection != null) {
+          if (input instanceof MeasuredDataInputStream && ioTimeCounter != null) {
+            ioTimeCounter.increment(((MeasuredDataInputStream) input).getElapsedTimeMs());
+          }
           httpConnection.cleanup(disconnect);
           httpConnection = null;
         }
@@ -392,6 +400,10 @@ class FetcherOrderedGrouped extends CallableWithNdc<Void> {
   protected void setupConnectionInternal(MapHost host, Collection<InputAttemptIdentifier> attempts)
       throws IOException, InterruptedException {
     input = httpConnection.getInputStream();
+    if (conf.getBoolean(TezRuntimeConfiguration.TEZ_RUNTIME_SHUFFLE_MEASURE_IO_TIME,
+        TezRuntimeConfiguration.TEZ_RUNTIME_SHUFFLE_MEASURE_IO_TIME_DEFAULT)) {
+      input = new MeasuredDataInputStream(input);
+    }
     httpConnection.validate();
   }
 
