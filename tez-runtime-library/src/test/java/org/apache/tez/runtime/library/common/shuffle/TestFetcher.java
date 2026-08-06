@@ -333,10 +333,6 @@ public class TestFetcher {
       throws Exception {
     Configuration conf = new Configuration();
 
-    InputContext inputContext = mock(InputContext.class);
-    doReturn(new TezCounters()).when(inputContext).getCounters();
-    doReturn("vertex").when(inputContext).getSourceVertexName();
-
     Fetcher.FetcherBuilder builder = new Fetcher.FetcherBuilder(mock(ShuffleManager.class), null,
         null, createMockInputContext(), null, conf, true, HOST, PORT,
         false, true, false);
@@ -361,6 +357,7 @@ public class TestFetcher {
     doReturn(1).when(inputContext).getDagIdentifier();
     doReturn("sourceVertex").when(inputContext).getSourceVertexName();
     doReturn("taskVertex").when(inputContext).getTaskVertexName();
+    doReturn(new TezCounters()).when(inputContext).getCounters();
 
     return inputContext;
   }

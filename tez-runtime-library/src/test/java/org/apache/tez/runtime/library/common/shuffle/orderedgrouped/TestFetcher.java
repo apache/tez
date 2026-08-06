@@ -60,6 +60,7 @@ import org.apache.hadoop.fs.FileSystem;
 import org.apache.hadoop.fs.Path;
 import org.apache.hadoop.fs.RawLocalFileSystem;
 import org.apache.hadoop.yarn.api.records.ApplicationId;
+import org.apache.tez.common.counters.TaskCounter;
 import org.apache.tez.common.counters.TezCounter;
 import org.apache.tez.common.counters.TezCounters;
 import org.apache.tez.common.security.JobTokenSecretManager;
@@ -797,5 +798,63 @@ public class TestFetcher {
     doReturn("task_Vertex").when(inputContext).getTaskVertexName();
 
     return inputContext;
+  }
+
+  @Test
+  public void testShuffleMeasureIOTime() throws Exception {
+    Configuration conf = new TezConfiguration();
+    conf.setBoolean(TezRuntimeConfiguration.TEZ_RUNTIME_SHUFFLE_MEASURE_IO_TIME, true);
+
+    ShuffleScheduler scheduler = mock(ShuffleScheduler.class);
+    MergeManager merger = mock(MergeManager.class);
+    Shuffle shuffle = mock(Shuffle.class);
+
+    final MapHost host = new MapHost(HOST, PORT, 1, 1);
+    InputContext inputContext = createMockInputContext();
+    FetcherOrderedGrouped mockFetcher =
+        new FetcherOrderedGrouped(null, scheduler, merger, shuffle, null, false, 0, null, conf, getRawFs(conf), false,
+            HOST, PORT, host, ioErrsCounter, wrongLengthErrsCounter, badIdErrsCounter, wrongMapErrsCounter,
+            connectionErrsCounter, wrongReduceErrsCounter, false, false, true, false, inputContext);
+    final FetcherOrderedGrouped fetcher = spy(mockFetcher);
+
+    final List<InputAttemptIdentifier> srcAttempts =
+        List.of(new InputAttemptIdentifier(0, 1, InputAttemptIdentifier.PATH_PREFIX + "pathComponent_0"));
+    doReturn(srcAttempts).when(scheduler).getMapsForHost(host);
+
+    URL url =
+        ShuffleUtils.constructInputURL("http" + "://" + HOST + ":" + PORT + "/mapOutput?job=job_123&&reduce=1&map=",
+            srcAttempts, false);
+    fetcher.httpConnection = new FakeHttpConnection(url, null, "", null) {
+      @Override
+      public DataInputStream getInputStream() {
+        ByteArrayInputStream bin = new ByteArrayInputStream(new byte[1024]) {
+          @Override
+          public int read(byte[] b, int off, int len) {
+            try {
+              Thread.sleep(10);
+            } catch (InterruptedException e) {
+              Thread.currentThread().interrupt();
+            }
+            return super.read(b, off, len);
+          }
+        };
+        return new DataInputStream(bin);
+      }
+    };
+
+    fetcher.setupConnectionInternal(host, srcAttempts);
+
+    // Read some bytes to trigger the elapsed time measurement
+    byte[] buffer = new byte[10];
+    int bytesRead = fetcher.input.read(buffer, 0, buffer.length);
+    assertEquals(10, bytesRead);
+
+    // shutDown will update the counter
+    fetcher.shutDown();
+
+    // Check if io time counter is updated
+    TezCounter ioTimeCounter = inputContext.getCounters().findCounter(TaskCounter.SHUFFLE_IO_TIME_MILLISECONDS);
+    long ioTime = ioTimeCounter.getValue();
+    assertTrue(ioTime >= 10, "IO Time should be at least 10ms, but was " + ioTime);
   }
 }

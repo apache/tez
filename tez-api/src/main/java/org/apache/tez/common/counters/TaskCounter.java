@@ -190,6 +190,11 @@ public enum TaskCounter {
   SHUFFLE_BYTES_DISK_DIRECT,
 
   /**
+   * Time spent waiting on network I/O during shuffle. Represented in milliseconds.
+   */
+  SHUFFLE_IO_TIME_MILLISECONDS,
+
+  /**
    * Number of Memory to Disk merges performed during sort-merge.
    * Used by ShuffledMergedInput
    */
