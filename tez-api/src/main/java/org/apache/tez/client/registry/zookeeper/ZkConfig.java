@@ -125,13 +125,21 @@ public class ZkConfig {
     return connectionTimeoutMs;
   }
 
-  public String getZookeeperTrustStorePassword() { return sslTruststorePassword; }
+  public String getZookeeperTrustStorePassword() {
+    return sslTruststorePassword;
+  }
 
-  public String getZookeeperTrustStoreLocation() { return sslTruststoreLocation; }
+  public String getZookeeperTrustStoreLocation() {
+    return sslTruststoreLocation;
+  }
 
-  public String getZookeeperKeyStorePassword() { return sslKeystorePassword; }
+  public String getZookeeperKeyStorePassword() {
+    return sslKeystorePassword;
+  }
 
-  public String getZookeeperKeyStoreLocation() { return sslKeystoreLocation; }
+  public String getZookeeperKeyStoreLocation() {
+    return sslKeystoreLocation;
+  }
 
   /**
    * Returns whether the zookeeper connection will be secure or insecure.
@@ -174,10 +182,10 @@ public class ZkConfig {
             .build();
   }
 
-  private boolean isValidSslEnabledValue(String sslEnabled) {
-    return sslEnabled == null || sslEnabled.isEmpty()
-        || sslEnabled.trim().equalsIgnoreCase("true")
-        || sslEnabled.trim().equalsIgnoreCase("false");
+  private boolean isValidSslEnabledValue(String value) {
+    return value == null || value.isEmpty()
+        || value.trim().equalsIgnoreCase("true")
+        || value.trim().equalsIgnoreCase("false");
   }
 
   /**
