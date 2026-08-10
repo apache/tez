@@ -52,9 +52,9 @@ public class TestZkAMRegistryClient {
 
   private static final String KEYSTORE_PASSWORD = "secret";
   private static final String TRUSTSTORE_PASSWORD = "changeit";
-  private static String TEST_ROOT_DIR = "target" + Path.SEPARATOR
+  private static String testRootDir = "target" + Path.SEPARATOR
           + TestZkAMRegistryClient.class.getName() + "-tmpDir";
-  private static File keysStoresDir = new File(TEST_ROOT_DIR, "keystores");
+  private static File keysStoresDir = new File(testRootDir, "keystores");
   private static String serverKS;
   private static String trustKS;
 
@@ -70,17 +70,17 @@ public class TestZkAMRegistryClient {
     setupKeyStores();
 
     Map<String, Object> customProperties = ImmutableMap.of(
-      // NettyServerCnxnFactory required for SSL/TLS support
-      "serverCnxnFactory", "org.apache.zookeeper.server.NettyServerCnxnFactory",
-      // secureClientPort opens a new port for secure connections
-      "secureClientPort", Integer.toString(secureClientPort),
-      "ssl.clientAuth", "none",
-      "ssl.keyStore.location", serverKS,
-      "ssl.keyStore.password", KEYSTORE_PASSWORD,
-      "ssl.trustStore.location", trustKS,
-      "ssl.trustStore.password", TRUSTSTORE_PASSWORD,
-      "ssl.keyStore.type", "JKS",
-      "ssl.trustStore.type", "JKS"
+        // NettyServerCnxnFactory required for SSL/TLS support
+        "serverCnxnFactory", "org.apache.zookeeper.server.NettyServerCnxnFactory",
+        // secureClientPort opens a new port for secure connections
+        "secureClientPort", Integer.toString(secureClientPort),
+        "ssl.clientAuth", "none",
+        "ssl.keyStore.location", serverKS,
+        "ssl.keyStore.password", KEYSTORE_PASSWORD,
+        "ssl.trustStore.location", trustKS,
+        "ssl.trustStore.password", TRUSTSTORE_PASSWORD,
+        "ssl.keyStore.type", "JKS",
+        "ssl.trustStore.type", "JKS"
     );
 
     // the clientPort parameter causes an insecure port to be opened
@@ -166,7 +166,8 @@ public class TestZkAMRegistryClient {
       registry.start();
 
       ApplicationId appId = ApplicationId.newInstance(System.currentTimeMillis(), 1);
-      AMRecord amRecordRegistered = new AMRecord(appId, "hostName", "testHostIp", 1234, "testExternalId", "testComputeName");
+      AMRecord amRecordRegistered =
+          new AMRecord(appId, "hostName", "testHostIp", 1234, "testExternalId", "testComputeName");
       registry.add(amRecordRegistered);
 
       ZkAMRegistryClient registryClient = ZkAMRegistryClient.getClient(conf);
@@ -185,9 +186,7 @@ public class TestZkAMRegistryClient {
   }
 
   /**
-   * Create keystore and truststore for the tests
-   *
-   * @throws Exception
+   * Create keystore and truststore for the tests.
    */
   private static void setupKeyStores() throws Exception {
     keysStoresDir.mkdirs();
