@@ -19,10 +19,13 @@
 package org.apache.tez.client.registry.zookeeper;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertThrows;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 
+import java.util.Optional;
 import java.util.concurrent.TimeUnit;
 
 import org.apache.curator.RetryPolicy;
@@ -239,7 +242,7 @@ public class TestZkConfig {
     conf.set(TezConfiguration.TEZ_AM_ZOOKEEPER_QUORUM, "dummyZkQuorum");
     ZkConfig zkConf = new ZkConfig(conf);
 
-    assertNull(zkConf.isSslEnabled());
+    assertEquals(Optional.empty(), zkConf.isSslEnabled());
     assertNull(zkConf.getZookeeperKeyStoreLocation());
     assertNull(zkConf.getZookeeperKeyStorePassword());
     assertNull(zkConf.getZookeeperTrustStoreLocation());
@@ -253,7 +256,7 @@ public class TestZkConfig {
     conf.set(TezConfiguration.TEZ_AM_ZOOKEEPER_SSL_ENABLE, ""); // empty means not set
     ZkConfig zkConf = new ZkConfig(conf);
 
-    assertNull(zkConf.isSslEnabled());
+    assertEquals(Optional.empty(), zkConf.isSslEnabled());
     assertNull(zkConf.getZookeeperKeyStoreLocation());
     assertNull(zkConf.getZookeeperKeyStorePassword());
     assertNull(zkConf.getZookeeperTrustStoreLocation());
@@ -271,7 +274,8 @@ public class TestZkConfig {
     conf.set(TezConfiguration.TEZ_AM_ZOOKEEPER_SSL_TRUSTSTORE_PASSWORD, "changeit");
     ZkConfig zkConf = new ZkConfig(conf);
 
-    assertEquals(zkConf.isSslEnabled(), Boolean.TRUE);
+    assertTrue(zkConf.isSslEnabled().isPresent());
+    assertTrue(zkConf.isSslEnabled().get());
     assertEquals(zkConf.getZookeeperKeyStoreLocation(), "/keystore.jks");
     assertEquals(zkConf.getZookeeperKeyStorePassword(), "secret");
     assertEquals(zkConf.getZookeeperTrustStoreLocation(), "/truststore.jks");
@@ -285,7 +289,8 @@ public class TestZkConfig {
     conf.set(TezConfiguration.TEZ_AM_ZOOKEEPER_SSL_ENABLE, "False");
     ZkConfig zkConf = new ZkConfig(conf);
 
-    assertEquals(zkConf.isSslEnabled(), Boolean.FALSE);
+    assertTrue(zkConf.isSslEnabled().isPresent());
+    assertFalse(zkConf.isSslEnabled().get());
     assertNull(zkConf.getZookeeperKeyStoreLocation());
     assertNull(zkConf.getZookeeperKeyStorePassword());
     assertNull(zkConf.getZookeeperTrustStoreLocation());

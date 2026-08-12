@@ -18,6 +18,7 @@
  */
 package org.apache.tez.client.registry.zookeeper;
 
+import java.util.Optional;
 import java.util.concurrent.TimeUnit;
 
 import org.apache.curator.RetryPolicy;
@@ -143,17 +144,17 @@ public class ZkConfig {
 
   /**
    * Returns whether the zookeeper connection will be secure or insecure.
-   * @return An optional boolean value that indicates whether zookeeper client uses a secure
-   * zookeeper connection. A null value indicates that it is not specified, and in this case
-   * the default settings of zookeeper are used, which can be controlled by specific JVM
-   * properties.
+   * @return An Optional containing the boolean value that indicates whether zookeeper client
+   * uses a secure zookeeper connection. An empty Optional indicates that it is not specified,
+   * and in this case the default settings of zookeeper are used, which can be controlled by
+   * specific JVM properties.
    * @see TezConfiguration#TEZ_AM_ZOOKEEPER_SSL_ENABLE
    */
-  public Boolean isSslEnabled() {
+  public Optional<Boolean> isSslEnabled() {
     if (this.sslEnabled == null || this.sslEnabled.isEmpty()) {
-      return null;
+      return Optional.empty();
     }
-    return Boolean.parseBoolean(sslEnabled);
+    return Optional.of(Boolean.parseBoolean(sslEnabled));
   }
 
   public RetryPolicy getRetryPolicy() {
@@ -161,7 +162,7 @@ public class ZkConfig {
   }
 
   public CuratorFramework createCuratorFramework() {
-    if (isSslEnabled() == null) {
+    if (!isSslEnabled().isPresent()) {
       return CuratorFrameworkFactory.newClient(
               getZkQuorum(),
               getSessionTimeoutMs(),
@@ -176,7 +177,7 @@ public class ZkConfig {
             .connectionTimeoutMs(getConnectionTimeoutMs())
             .retryPolicy(getRetryPolicy())
             .zookeeperFactory(
-                    new SSLZookeeperFactory(isSslEnabled(), getZookeeperKeyStoreLocation(),
+                    new SSLZookeeperFactory(isSslEnabled().get(), getZookeeperKeyStoreLocation(),
                             getZookeeperKeyStorePassword(), getZookeeperTrustStoreLocation(),
                             getZookeeperTrustStorePassword()))
             .build();

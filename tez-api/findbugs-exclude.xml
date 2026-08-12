@@ -143,10 +143,4 @@
     <Bug pattern="REFLC_REFLECTION_MAY_INCREASE_ACCESSIBILITY_OF_CLASS" />
   </Match>
 
-  <!-- TEZ-4749 -->
-  <Match>
-    <Class name="org.apache.tez.client.registry.zookeeper.ZkConfig" />
-    <Method name="isSslEnabled" />
-    <Bug pattern="NP_BOOLEAN_RETURN_NULL" />
-  </Match>
 </FindBugsFilter>
