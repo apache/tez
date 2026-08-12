@@ -165,7 +165,7 @@ public class ZkConfig {
   }
 
   public CuratorFramework createCuratorFramework() {
-    if (!isSslEnabled().isPresent()) {
+    if (isSslEnabled().isEmpty()) {
       return CuratorFrameworkFactory.newClient(
               getZkQuorum(),
               getSessionTimeoutMs(),
@@ -179,17 +179,13 @@ public class ZkConfig {
     zkClientConfig.setProperty(ZKClientConfig.ZOOKEEPER_CLIENT_CNXN_SOCKET,
             "org.apache.zookeeper.ClientCnxnSocketNetty");
     if (isSslEnabled().get()) {
-      ClientX509Util x509Util = new ClientX509Util();
-      if (StringUtils.isEmpty(getZookeeperKeyStoreLocation())) {
-        LOG.warn("Missing keystoreLocation parameter");
+      try (ClientX509Util x509Util = new ClientX509Util()) {
+        setStoreConfig(zkClientConfig, x509Util.getSslKeystoreLocationProperty(), getZookeeperKeyStoreLocation(),
+            x509Util.getSslKeystorePasswdProperty(), getZookeeperKeyStorePassword(), "keystore");
+
+        setStoreConfig(zkClientConfig, x509Util.getSslTruststoreLocationProperty(), getZookeeperTrustStoreLocation(),
+            x509Util.getSslTruststorePasswdProperty(), getZookeeperTrustStorePassword(), "truststore");
       }
-      if (StringUtils.isEmpty(getZookeeperTrustStoreLocation())) {
-        LOG.warn("Missing trustStoreLocation parameter");
-      }
-      zkClientConfig.setProperty(x509Util.getSslKeystoreLocationProperty(), getZookeeperKeyStoreLocation());
-      zkClientConfig.setProperty(x509Util.getSslKeystorePasswdProperty(), getZookeeperKeyStorePassword());
-      zkClientConfig.setProperty(x509Util.getSslTruststoreLocationProperty(), getZookeeperTrustStoreLocation());
-      zkClientConfig.setProperty(x509Util.getSslTruststorePasswdProperty(), getZookeeperTrustStorePassword());
     }
 
     return CuratorFrameworkFactory.builder()
@@ -199,6 +195,19 @@ public class ZkConfig {
             .retryPolicy(getRetryPolicy())
             .zkClientConfig(zkClientConfig)
             .build();
+  }
+
+  private void setStoreConfig(ZKClientConfig config, String locationProp, String locationVal, String passwordProp,
+                              String passwordVal, String storeName) {
+    if (StringUtils.isEmpty(locationVal)) {
+      LOG.info("No {} location configured, using ZooKeeper client defaults", storeName);
+      return;
+    }
+
+    config.setProperty(locationProp, locationVal);
+    if (StringUtils.isNotEmpty(passwordVal)) {
+      config.setProperty(passwordProp, passwordVal);
+    }
   }
 
   private boolean isValidSslEnabledValue(String value) {
