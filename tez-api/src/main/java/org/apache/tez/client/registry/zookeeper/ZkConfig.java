@@ -21,6 +21,7 @@ package org.apache.tez.client.registry.zookeeper;
 import java.util.Optional;
 import java.util.concurrent.TimeUnit;
 
+import org.apache.commons.lang3.StringUtils;
 import org.apache.curator.RetryPolicy;
 import org.apache.curator.framework.CuratorFramework;
 import org.apache.curator.framework.CuratorFrameworkFactory;
@@ -28,6 +29,8 @@ import org.apache.curator.retry.ExponentialBackoffRetry;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.fs.Path;
 import org.apache.tez.dag.api.TezConfiguration;
+import org.apache.zookeeper.client.ZKClientConfig;
+import org.apache.zookeeper.common.ClientX509Util;
 
 import com.google.common.base.Preconditions;
 import com.google.common.base.Strings;
@@ -171,15 +174,30 @@ public class ZkConfig {
       );
     }
 
+    ZKClientConfig zkClientConfig = new ZKClientConfig();
+    zkClientConfig.setProperty(ZKClientConfig.SECURE_CLIENT, Boolean.toString(isSslEnabled().get()));
+    zkClientConfig.setProperty(ZKClientConfig.ZOOKEEPER_CLIENT_CNXN_SOCKET,
+            "org.apache.zookeeper.ClientCnxnSocketNetty");
+    if (isSslEnabled().get()) {
+      ClientX509Util x509Util = new ClientX509Util();
+      if (StringUtils.isEmpty(getZookeeperKeyStoreLocation())) {
+        LOG.warn("Missing keystoreLocation parameter");
+      }
+      if (StringUtils.isEmpty(getZookeeperTrustStoreLocation())) {
+        LOG.warn("Missing trustStoreLocation parameter");
+      }
+      zkClientConfig.setProperty(x509Util.getSslKeystoreLocationProperty(), getZookeeperKeyStoreLocation());
+      zkClientConfig.setProperty(x509Util.getSslKeystorePasswdProperty(), getZookeeperKeyStorePassword());
+      zkClientConfig.setProperty(x509Util.getSslTruststoreLocationProperty(), getZookeeperTrustStoreLocation());
+      zkClientConfig.setProperty(x509Util.getSslTruststorePasswdProperty(), getZookeeperTrustStorePassword());
+    }
+
     return CuratorFrameworkFactory.builder()
             .connectString(getZkQuorum())
             .sessionTimeoutMs(getSessionTimeoutMs())
             .connectionTimeoutMs(getConnectionTimeoutMs())
             .retryPolicy(getRetryPolicy())
-            .zookeeperFactory(
-                    new SSLZookeeperFactory(isSslEnabled().get(), getZookeeperKeyStoreLocation(),
-                            getZookeeperKeyStorePassword(), getZookeeperTrustStoreLocation(),
-                            getZookeeperTrustStorePassword()))
+            .zkClientConfig(zkClientConfig)
             .build();
   }
 
