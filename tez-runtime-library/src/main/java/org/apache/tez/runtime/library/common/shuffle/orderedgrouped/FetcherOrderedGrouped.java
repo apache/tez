@@ -238,7 +238,7 @@ class FetcherOrderedGrouped extends CallableWithNdc<Void> {
     synchronized (cleanupLock) {
       try {
         if (httpConnection != null) {
-          if (input instanceof MeasuredDataInputStream && ioTimeCounter != null) {
+          if (ioTimeCounter != null && input != null) {
             ioTimeCounter.increment(((MeasuredDataInputStream) input).getElapsedTimeMs());
             ioBytesCounter.increment(((MeasuredDataInputStream) input).getBytesRead());
           }

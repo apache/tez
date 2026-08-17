@@ -828,7 +828,7 @@ public class Fetcher extends CallableWithNdc<FetchResult> {
     synchronized (isShutDown) {
       try {
         if (httpConnection != null) {
-          if (input instanceof MeasuredDataInputStream && ioTimeCounter != null) {
+          if (ioTimeCounter != null && input != null) {
             ioTimeCounter.increment(((MeasuredDataInputStream) input).getElapsedTimeMs());
             ioBytesCounter.increment(((MeasuredDataInputStream) input).getBytesRead());
           }
