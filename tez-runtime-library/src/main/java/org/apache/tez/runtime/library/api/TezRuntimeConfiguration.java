@@ -418,6 +418,8 @@ public final class TezRuntimeConfiguration {
 
   /**
    * Enables measuring network IO time in shuffle fetchers.
+   * Warning: enabling this counter might have a slight overhead.
+   * See {@link org.apache.tez.http.MeasuredDataInputStream} for more details.
    */
   @ConfigurationProperty(type = "boolean")
   public static final String TEZ_RUNTIME_SHUFFLE_MEASURE_IO_TIME = TEZ_RUNTIME_PREFIX + "shuffle.measure.io.time";

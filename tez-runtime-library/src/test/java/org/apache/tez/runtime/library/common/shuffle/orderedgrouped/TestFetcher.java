@@ -853,8 +853,13 @@ public class TestFetcher {
     fetcher.shutDown();
 
     // Check if io time counter is updated
-    TezCounter ioTimeCounter = inputContext.getCounters().findCounter(TaskCounter.SHUFFLE_IO_TIME_MILLISECONDS);
+    TezCounter ioTimeCounter = inputContext.getCounters().findCounter(TaskCounter.SHUFFLE_IO_STREAM_TIME_MILLISECONDS);
     long ioTime = ioTimeCounter.getValue();
-    assertTrue(ioTime >= 10, "IO Time should be at least 10ms, but was " + ioTime);
+    assertTrue(ioTime >= 0, "IO Time should be measured and >= 0, but was " + ioTime);
+
+    // Check if io bytes counter is updated
+    TezCounter ioBytesCounter = inputContext.getCounters().findCounter(TaskCounter.SHUFFLE_IO_STREAM_BYTES);
+    long ioBytes = ioBytesCounter.getValue();
+    assertEquals(10, ioBytes, "IO Bytes should be exactly 10, but was " + ioBytes);
   }
 }

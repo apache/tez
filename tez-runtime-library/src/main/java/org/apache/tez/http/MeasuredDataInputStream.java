@@ -41,8 +41,13 @@ public class MeasuredDataInputStream extends DataInputStream {
     return measuredIn.getElapsedTimeMs();
   }
 
+  public long getBytesRead() {
+    return measuredIn.getBytesRead();
+  }
+
   private static class MeasuredInputStream extends FilterInputStream {
     private long elapsedTimeNanos = 0;
+    private long bytesRead = 0;
 
     MeasuredInputStream(InputStream in) {
       super(in);
@@ -51,29 +56,42 @@ public class MeasuredDataInputStream extends DataInputStream {
     @Override
     public int read() throws IOException {
       long start = System.nanoTime();
-      int ret = super.read();
+      int val = super.read();
       elapsedTimeNanos += (System.nanoTime() - start);
-      return ret;
+      if (val != -1) {
+        bytesRead += 1;
+      }
+      return val;
     }
 
     @Override
     public int read(byte[] b) throws IOException {
       long start = System.nanoTime();
-      int ret = super.read(b);
+      int bytes = super.read(b);
       elapsedTimeNanos += (System.nanoTime() - start);
-      return ret;
+      if (bytes > 0) {
+        bytesRead += bytes;
+      }
+      return bytes;
     }
 
     @Override
     public int read(byte[] b, int off, int len) throws IOException {
       long start = System.nanoTime();
-      int ret = super.read(b, off, len);
+      int bytes = super.read(b, off, len);
       elapsedTimeNanos += (System.nanoTime() - start);
-      return ret;
+      if (bytes > 0) {
+        bytesRead += bytes;
+      }
+      return bytes;
     }
 
     public long getElapsedTimeMs() {
       return TimeUnit.NANOSECONDS.toMillis(elapsedTimeNanos);
+    }
+
+    public long getBytesRead() {
+      return bytesRead;
     }
   }
 }

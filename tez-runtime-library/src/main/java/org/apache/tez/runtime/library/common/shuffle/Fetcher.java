@@ -181,6 +181,7 @@ public class Fetcher extends CallableWithNdc<FetchResult> {
   BaseHttpConnection httpConnection;
   private HttpConnectionParams httpConnectionParams;
   private final TezCounter ioTimeCounter;
+  private final TezCounter ioBytesCounter;
 
   private final boolean localDiskFetchEnabled;
   private final boolean sharedFetchEnabled;
@@ -223,9 +224,12 @@ public class Fetcher extends CallableWithNdc<FetchResult> {
     this.localDiskFetchEnabled = localDiskFetchEnabled;
     this.sharedFetchEnabled = sharedFetchEnabled;
 
-    this.ioTimeCounter = conf.getBoolean(TezRuntimeConfiguration.TEZ_RUNTIME_SHUFFLE_MEASURE_IO_TIME,
-        TezRuntimeConfiguration.TEZ_RUNTIME_SHUFFLE_MEASURE_IO_TIME_DEFAULT) ?
-        inputContext.getCounters().findCounter(TaskCounter.SHUFFLE_IO_TIME_MILLISECONDS) : null;
+    boolean measureTime = conf.getBoolean(TezRuntimeConfiguration.TEZ_RUNTIME_SHUFFLE_MEASURE_IO_TIME,
+        TezRuntimeConfiguration.TEZ_RUNTIME_SHUFFLE_MEASURE_IO_TIME_DEFAULT);
+    this.ioTimeCounter =
+        measureTime ? inputContext.getCounters().findCounter(TaskCounter.SHUFFLE_IO_STREAM_TIME_MILLISECONDS) : null;
+    this.ioBytesCounter =
+        measureTime ? inputContext.getCounters().findCounter(TaskCounter.SHUFFLE_IO_STREAM_BYTES) : null;
 
     this.fetcherIdentifier = fetcherIdGen.getAndIncrement();
 
@@ -826,6 +830,7 @@ public class Fetcher extends CallableWithNdc<FetchResult> {
         if (httpConnection != null) {
           if (input instanceof MeasuredDataInputStream && ioTimeCounter != null) {
             ioTimeCounter.increment(((MeasuredDataInputStream) input).getElapsedTimeMs());
+            ioBytesCounter.increment(((MeasuredDataInputStream) input).getBytesRead());
           }
           httpConnection.cleanup(disconnect);
         }
