@@ -190,6 +190,21 @@ public enum TaskCounter {
   SHUFFLE_BYTES_DISK_DIRECT,
 
   /**
+   * Time spent waiting on network I/O during shuffle. Represented in milliseconds.
+   * Only populated if "tez.runtime.shuffle.measure.io.time" is enabled.
+   * Warning: enabling this counter might have a slight overhead.
+   */
+  SHUFFLE_IO_STREAM_TIME_MILLISECONDS,
+
+  /**
+   * Actual bytes read from the network I/O streams during shuffle.
+   * Should be equal to SHUFFLE_BYTES if no issues occur.
+   * Only populated if "tez.runtime.shuffle.measure.io.time" is enabled.
+   * Warning: enabling this counter might have a slight overhead.
+   */
+  SHUFFLE_IO_STREAM_BYTES,
+
+  /**
    * Number of Memory to Disk merges performed during sort-merge.
    * Used by ShuffledMergedInput
    */

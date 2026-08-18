@@ -51,10 +51,13 @@ import org.apache.hadoop.yarn.api.records.ApplicationId;
 import org.apache.tez.common.CallableWithNdc;
 import org.apache.tez.common.Preconditions;
 import org.apache.tez.common.TezUtilsInternal;
+import org.apache.tez.common.counters.TaskCounter;
+import org.apache.tez.common.counters.TezCounter;
 import org.apache.tez.common.security.JobTokenSecretManager;
 import org.apache.tez.dag.api.TezUncheckedException;
 import org.apache.tez.http.BaseHttpConnection;
 import org.apache.tez.http.HttpConnectionParams;
+import org.apache.tez.http.MeasuredDataInputStream;
 import org.apache.tez.runtime.api.InputContext;
 import org.apache.tez.runtime.library.api.TezRuntimeConfiguration;
 import org.apache.tez.runtime.library.common.CompositeInputAttemptIdentifier;
@@ -177,6 +180,8 @@ public class Fetcher extends CallableWithNdc<FetchResult> {
 
   BaseHttpConnection httpConnection;
   private HttpConnectionParams httpConnectionParams;
+  private final TezCounter ioTimeCounter;
+  private final TezCounter ioBytesCounter;
 
   private final boolean localDiskFetchEnabled;
   private final boolean sharedFetchEnabled;
@@ -218,6 +223,13 @@ public class Fetcher extends CallableWithNdc<FetchResult> {
 
     this.localDiskFetchEnabled = localDiskFetchEnabled;
     this.sharedFetchEnabled = sharedFetchEnabled;
+
+    boolean measureTime = conf.getBoolean(TezRuntimeConfiguration.TEZ_RUNTIME_SHUFFLE_MEASURE_IO_TIME,
+        TezRuntimeConfiguration.TEZ_RUNTIME_SHUFFLE_MEASURE_IO_TIME_DEFAULT);
+    this.ioTimeCounter =
+        measureTime ? inputContext.getCounters().findCounter(TaskCounter.SHUFFLE_IO_STREAM_TIME_MILLISECONDS) : null;
+    this.ioBytesCounter =
+        measureTime ? inputContext.getCounters().findCounter(TaskCounter.SHUFFLE_IO_STREAM_BYTES) : null;
 
     this.fetcherIdentifier = fetcherIdGen.getAndIncrement();
 
@@ -565,6 +577,9 @@ public class Fetcher extends CallableWithNdc<FetchResult> {
   protected void setupConnectionInternal(String host, Collection<InputAttemptIdentifier> attempts)
       throws IOException, InterruptedException {
     input = httpConnection.getInputStream();
+    if (ioTimeCounter != null) {
+      input = new MeasuredDataInputStream(input);
+    }
     httpConnection.validate();
   }
 
@@ -813,6 +828,10 @@ public class Fetcher extends CallableWithNdc<FetchResult> {
     synchronized (isShutDown) {
       try {
         if (httpConnection != null) {
+          if (ioTimeCounter != null && input != null) {
+            ioTimeCounter.increment(((MeasuredDataInputStream) input).getElapsedTimeMs());
+            ioBytesCounter.increment(((MeasuredDataInputStream) input).getBytesRead());
+          }
           httpConnection.cleanup(disconnect);
         }
       } catch (IOException e) {

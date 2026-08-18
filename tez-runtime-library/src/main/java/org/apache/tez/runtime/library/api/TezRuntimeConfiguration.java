@@ -417,6 +417,15 @@ public final class TezRuntimeConfiguration {
       0.90f;
 
   /**
+   * Enables measuring network IO time in shuffle fetchers.
+   * Warning: enabling this counter might have a slight overhead.
+   * See {@link org.apache.tez.http.MeasuredDataInputStream} for more details.
+   */
+  @ConfigurationProperty(type = "boolean")
+  public static final String TEZ_RUNTIME_SHUFFLE_MEASURE_IO_TIME = TEZ_RUNTIME_PREFIX + "shuffle.measure.io.time";
+  public static final boolean TEZ_RUNTIME_SHUFFLE_MEASURE_IO_TIME_DEFAULT = false;
+
+  /**
    * Enables fetch failures by a configuration. Should be used for testing only.
    */
   @ConfigurationProperty(type = "boolean")
@@ -639,6 +648,7 @@ public final class TezRuntimeConfiguration {
     TEZ_RUNTIME_KEYS.add(TEZ_RUNTIME_SHUFFLE_ENABLE_SSL);
     TEZ_RUNTIME_KEYS.add(TEZ_RUNTIME_SHUFFLE_FETCH_VERIFY_DISK_CHECKSUM);
     TEZ_RUNTIME_KEYS.add(TEZ_RUNTIME_SHUFFLE_FETCH_BUFFER_PERCENT);
+    TEZ_RUNTIME_KEYS.add(TEZ_RUNTIME_SHUFFLE_MEASURE_IO_TIME);
     TEZ_RUNTIME_KEYS.add(TEZ_RUNTIME_SHUFFLE_MEMORY_LIMIT_PERCENT);
     TEZ_RUNTIME_KEYS.add(TEZ_RUNTIME_SHUFFLE_MERGE_PERCENT);
     TEZ_RUNTIME_KEYS.add(TEZ_RUNTIME_SHUFFLE_MEMTOMEM_SEGMENTS);
