@@ -39,6 +39,13 @@
     <allow-root-build>--allow-root=false</allow-root-build>
 
     <skipTests>false</skipTests>
+
+    <!--
+      Chrome binary used by testem for headless UI tests.
+      Override on the command line: -Dchrome.bin="/path/to/chrome"
+      Falls back to google-chrome-stable when not overridden.
+    -->
+    <chrome.bin>google-chrome-stable</chrome.bin>
   </properties>
 
   <profiles>
@@ -92,8 +99,7 @@
                   <argument>test:mvn</argument>
                 </arguments>
                 <environmentVariables>
-                  <!-- workaround for systems using a newer OpenSSL (3+) which is incompatible with PhantomJS -->
-                  <OPENSSL_CONF>/dev/null</OPENSSL_CONF>
+                  <CHROME_BIN>${chrome.bin}</CHROME_BIN>
                 </environmentVariables>
               </configuration>
             </execution>
@@ -154,8 +160,7 @@
                   <argument>test:mvn</argument>
                 </arguments>
                 <environmentVariables>
-                  <!-- workaround for systems using a newer OpenSSL (3+) which is incompatible with PhantomJS -->
-                  <OPENSSL_CONF>/dev/null</OPENSSL_CONF>
+                  <CHROME_BIN>${chrome.bin}</CHROME_BIN>
                 </environmentVariables>
               </configuration>
             </execution>
