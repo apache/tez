@@ -520,7 +520,7 @@ public class TestExceptionPropagation {
 
     @Override
     public List<Event> initialize() throws Exception {
-      getContext().requestInitialMemory(0l, null); // mandatory call
+      getContext().requestInitialMemory(0L, null); // mandatory call
       if (this.exLocation == ExceptionLocation.INPUT_INITIALIZE) {
         throw new Exception(this.exLocation.name());
       } else if ( getContext().getSourceVertexName().equals("v1")) {
@@ -598,7 +598,7 @@ public class TestExceptionPropagation {
 
     @Override
     public List<Event> initialize() throws Exception {
-      getContext().requestInitialMemory(0l, null); // mandatory call
+      getContext().requestInitialMemory(0L, null); // mandatory call
       if (this.exLocation == ExceptionLocation.OUTPUT_INITIALIZE) {
         throw new RuntimeException(this.exLocation.name());
       }

@@ -42,7 +42,7 @@ public class TestDeprecatedKeys {
     JobConf jobConf = new JobConf();
 
     jobConf.setFloat(MRJobConfig.SHUFFLE_INPUT_BUFFER_PERCENT, 0.4f);
-    jobConf.setLong(MRJobConfig.REDUCE_MEMORY_TOTAL_BYTES, 20000l);
+    jobConf.setLong(MRJobConfig.REDUCE_MEMORY_TOTAL_BYTES, 20000L);
     jobConf.setInt(MRJobConfig.IO_SORT_FACTOR, 2000);
     jobConf.setFloat(MRJobConfig.SHUFFLE_MEMORY_LIMIT_PERCENT, 0.55f);
     jobConf.setFloat(MRJobConfig.REDUCE_MEMTOMEM_THRESHOLD, 0.60f);
@@ -54,7 +54,7 @@ public class TestDeprecatedKeys {
     MRHelpers.translateMRConfToTez(jobConf);
 
     assertEquals(0.4f, jobConf.getFloat(TezRuntimeConfiguration.TEZ_RUNTIME_SHUFFLE_FETCH_BUFFER_PERCENT, 0f), 0.01f);
-    assertEquals(20000l, jobConf.getLong(Constants.TEZ_RUNTIME_TASK_MEMORY, 0));
+    assertEquals(20000L, jobConf.getLong(Constants.TEZ_RUNTIME_TASK_MEMORY, 0));
     assertEquals(2000, jobConf.getInt(TezRuntimeConfiguration.TEZ_RUNTIME_IO_SORT_FACTOR, 0));
     assertEquals(0.55f, jobConf.getFloat(TezRuntimeConfiguration.TEZ_RUNTIME_SHUFFLE_MEMORY_LIMIT_PERCENT, 0), 0.01f);
     assertEquals(0.60f, jobConf.getFloat(TezRuntimeConfiguration.TEZ_RUNTIME_SHUFFLE_MEMTOMEM_SEGMENTS, 0), 0.01f);

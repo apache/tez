@@ -63,8 +63,9 @@ import org.mockito.Captor;
 import org.mockito.MockitoAnnotations;
 
 public class TestDAGClientAMProtocolBlockingPBServerImpl {
+  @SuppressWarnings("checkstyle:VisibilityModifier")
   @TempDir
-  public java.nio.file.Path tmpFolder;
+  java.nio.file.Path tmpFolder;
 
   @Captor
   private ArgumentCaptor<Map<String, LocalResource>> localResourcesCaptor;

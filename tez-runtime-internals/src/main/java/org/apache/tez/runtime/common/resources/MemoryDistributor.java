@@ -210,7 +210,7 @@ public class MemoryDistributor {
 
   private void validateAllocations(Iterable<Long> allocations, int numRequestors) {
     Objects.requireNonNull(allocations);
-    long totalAllocated = 0l;
+    long totalAllocated = 0L;
     int numAllocations = 0;
     for (Long l : allocations) {
       totalAllocated += l;

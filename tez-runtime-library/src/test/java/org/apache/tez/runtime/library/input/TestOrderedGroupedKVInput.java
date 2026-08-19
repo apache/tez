@@ -106,7 +106,7 @@ public class TestOrderedGroupedKVInput {
 
     doReturn(payLoad).when(inputContext).getUserPayload();
     doReturn(workingDirs).when(inputContext).getWorkDirs();
-    doReturn(200 * 1024 * 1024l).when(inputContext).getTotalMemoryAvailableToTask();
+    doReturn(200 * 1024 * 1024L).when(inputContext).getTotalMemoryAvailableToTask();
     doReturn(counters).when(inputContext).getCounters();
     doReturn(new Configuration(false)).when(inputContext).getContainerConfiguration();
 
