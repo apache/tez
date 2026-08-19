@@ -94,6 +94,10 @@ cat <<EOF > "$HADOOP_HOME/etc/hadoop/yarn-site.xml"
         <name>yarn.nodemanager.aux-services</name>
         <value>mapreduce_shuffle</value>
     </property>
+    <property>
+        <name>yarn.nodemanager.disk-health-checker.max-disk-utilization-per-disk-percentage</name>
+        <value>99.0</value>
+    </property>
 </configuration>
 EOF
 
