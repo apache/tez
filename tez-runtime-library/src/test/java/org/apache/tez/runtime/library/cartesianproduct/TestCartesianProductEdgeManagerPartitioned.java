@@ -30,17 +30,15 @@ import java.nio.ByteBuffer;
 import java.util.Map;
 import java.util.concurrent.TimeUnit;
 
+import org.apache.hadoop.thirdparty.protobuf.ByteString;
 import org.apache.tez.dag.api.EdgeManagerPluginContext;
 import org.apache.tez.dag.api.EdgeManagerPluginOnDemand.CompositeEventRouteMetadata;
 import org.apache.tez.dag.api.EdgeManagerPluginOnDemand.EventRouteMetadata;
 import org.apache.tez.dag.api.UserPayload;
 
-import com.google.protobuf.ByteString;
-
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.Timeout;
-
 public class TestCartesianProductEdgeManagerPartitioned {
   private EdgeManagerPluginContext mockContext;
   private CartesianProductEdgeManagerPartitioned edgeManager;

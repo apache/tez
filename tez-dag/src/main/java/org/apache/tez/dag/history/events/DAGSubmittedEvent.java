@@ -23,6 +23,9 @@ import java.io.OutputStream;
 import java.util.Map;
 
 import org.apache.hadoop.conf.Configuration;
+import org.apache.hadoop.thirdparty.protobuf.CodedInputStream;
+import org.apache.hadoop.thirdparty.protobuf.CodedOutputStream;
+import org.apache.hadoop.thirdparty.protobuf.ExtensionRegistry;
 import org.apache.hadoop.yarn.api.records.ApplicationAttemptId;
 import org.apache.hadoop.yarn.api.records.LocalResource;
 import org.apache.hadoop.yarn.util.ConverterUtils;
@@ -37,10 +40,6 @@ import org.apache.tez.dag.records.TezDAGID;
 import org.apache.tez.dag.recovery.records.RecoveryProtos.DAGSubmittedProto;
 import org.apache.tez.dag.recovery.records.RecoveryProtos.SummaryEventProto;
 import org.apache.tez.dag.utils.ProtoUtils;
-
-import com.google.protobuf.CodedInputStream;
-import com.google.protobuf.CodedOutputStream;
-import com.google.protobuf.ExtensionRegistry;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
