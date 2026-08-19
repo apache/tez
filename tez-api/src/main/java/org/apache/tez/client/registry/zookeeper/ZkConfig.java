@@ -18,8 +18,10 @@
  */
 package org.apache.tez.client.registry.zookeeper;
 
+import java.util.Optional;
 import java.util.concurrent.TimeUnit;
 
+import org.apache.commons.lang3.StringUtils;
 import org.apache.curator.RetryPolicy;
 import org.apache.curator.framework.CuratorFramework;
 import org.apache.curator.framework.CuratorFrameworkFactory;
@@ -27,6 +29,8 @@ import org.apache.curator.retry.ExponentialBackoffRetry;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.fs.Path;
 import org.apache.tez.dag.api.TezConfiguration;
+import org.apache.zookeeper.client.ZKClientConfig;
+import org.apache.zookeeper.common.ClientX509Util;
 
 import com.google.common.base.Preconditions;
 import com.google.common.base.Strings;
@@ -49,6 +53,11 @@ public class ZkConfig {
   private final int curatorMaxRetries;
   private final int sessionTimeoutMs;
   private final int connectionTimeoutMs;
+  private final String sslEnabled;
+  private final String sslKeystoreLocation;
+  private final String sslKeystorePassword;
+  private final String sslTruststoreLocation;
+  private final String sslTruststorePassword;
 
   public ZkConfig(Configuration conf) {
     zkQuorum = conf.get(TezConfiguration.TEZ_AM_ZOOKEEPER_QUORUM);
@@ -84,6 +93,16 @@ public class ZkConfig {
         TezConfiguration.TEZ_AM_CURATOR_SESSION_TIMEOUT_DEFAULT, TimeUnit.MILLISECONDS));
     connectionTimeoutMs = Math.toIntExact(conf.getTimeDuration(TezConfiguration.TEZ_AM_CURATOR_CONNECTION_TIMEOUT,
         TezConfiguration.TEZ_AM_CURATOR_CONNECTION_TIMEOUT_DEFAULT, TimeUnit.MILLISECONDS));
+    sslEnabled = conf.get(TezConfiguration.TEZ_AM_ZOOKEEPER_SSL_ENABLE);
+    Preconditions.checkArgument(
+        isValidSslEnabledValue(sslEnabled),
+        "If the optional %s setting is set, then the value should be a boolean value instead of '%s'",
+        TezConfiguration.TEZ_AM_ZOOKEEPER_SSL_ENABLE,
+        sslEnabled);
+    sslKeystoreLocation = conf.get(TezConfiguration.TEZ_AM_ZOOKEEPER_SSL_KEYSTORE_LOCATION);
+    sslKeystorePassword = conf.get(TezConfiguration.TEZ_AM_ZOOKEEPER_SSL_KEYSTORE_PASSWORD);
+    sslTruststoreLocation = conf.get(TezConfiguration.TEZ_AM_ZOOKEEPER_SSL_TRUSTSTORE_LOCATION);
+    sslTruststorePassword = conf.get(TezConfiguration.TEZ_AM_ZOOKEEPER_SSL_TRUSTSTORE_PASSWORD);
   }
 
   public String getZkQuorum() {
@@ -110,17 +129,91 @@ public class ZkConfig {
     return connectionTimeoutMs;
   }
 
+  public String getZookeeperTrustStorePassword() {
+    return sslTruststorePassword;
+  }
+
+  public String getZookeeperTrustStoreLocation() {
+    return sslTruststoreLocation;
+  }
+
+  public String getZookeeperKeyStorePassword() {
+    return sslKeystorePassword;
+  }
+
+  public String getZookeeperKeyStoreLocation() {
+    return sslKeystoreLocation;
+  }
+
+  /**
+   * Returns whether the zookeeper connection will be secure or insecure.
+   * @return An Optional containing the boolean value that indicates whether zookeeper client
+   * uses a secure zookeeper connection. An empty Optional indicates that it is not specified,
+   * and in this case the default settings of zookeeper are used, which can be controlled by
+   * specific JVM properties.
+   * @see TezConfiguration#TEZ_AM_ZOOKEEPER_SSL_ENABLE
+   */
+  public Optional<Boolean> isSslEnabled() {
+    if (this.sslEnabled == null || this.sslEnabled.isEmpty()) {
+      return Optional.empty();
+    }
+    return Optional.of(Boolean.parseBoolean(sslEnabled));
+  }
+
   public RetryPolicy getRetryPolicy() {
     return new ExponentialBackoffRetry(getCuratorBackoffSleepMs(), getCuratorMaxRetries());
   }
 
   public CuratorFramework createCuratorFramework() {
-    return CuratorFrameworkFactory.newClient(
-        getZkQuorum(),
-        getSessionTimeoutMs(),
-        getConnectionTimeoutMs(),
-        getRetryPolicy()
-    );
+    if (isSslEnabled().isEmpty()) {
+      return CuratorFrameworkFactory.newClient(
+              getZkQuorum(),
+              getSessionTimeoutMs(),
+              getConnectionTimeoutMs(),
+              getRetryPolicy()
+      );
+    }
+
+    ZKClientConfig zkClientConfig = new ZKClientConfig();
+    zkClientConfig.setProperty(ZKClientConfig.SECURE_CLIENT, Boolean.toString(isSslEnabled().get()));
+    zkClientConfig.setProperty(ZKClientConfig.ZOOKEEPER_CLIENT_CNXN_SOCKET,
+            "org.apache.zookeeper.ClientCnxnSocketNetty");
+    if (isSslEnabled().get()) {
+      try (ClientX509Util x509Util = new ClientX509Util()) {
+        setStoreConfig(zkClientConfig, x509Util.getSslKeystoreLocationProperty(), getZookeeperKeyStoreLocation(),
+            x509Util.getSslKeystorePasswdProperty(), getZookeeperKeyStorePassword(), "keystore");
+
+        setStoreConfig(zkClientConfig, x509Util.getSslTruststoreLocationProperty(), getZookeeperTrustStoreLocation(),
+            x509Util.getSslTruststorePasswdProperty(), getZookeeperTrustStorePassword(), "truststore");
+      }
+    }
+
+    return CuratorFrameworkFactory.builder()
+            .connectString(getZkQuorum())
+            .sessionTimeoutMs(getSessionTimeoutMs())
+            .connectionTimeoutMs(getConnectionTimeoutMs())
+            .retryPolicy(getRetryPolicy())
+            .zkClientConfig(zkClientConfig)
+            .build();
+  }
+
+  private void setStoreConfig(ZKClientConfig config, String locationProp, String locationVal, String passwordProp,
+                              String passwordVal, String storeName) {
+    if (StringUtils.isEmpty(locationVal)) {
+      LOG.info("No {} location configured, using ZooKeeper client defaults", storeName);
+      return;
+    }
+
+    config.setProperty(locationProp, locationVal);
+    if (StringUtils.isNotEmpty(passwordVal)) {
+      config.setProperty(passwordProp, passwordVal);
+    }
+  }
+
+  private boolean isValidSslEnabledValue(String value) {
+    return value == null || value.isEmpty()
+        || value.trim().equalsIgnoreCase("true")
+        || value.trim().equalsIgnoreCase("false");
   }
 
   /**
