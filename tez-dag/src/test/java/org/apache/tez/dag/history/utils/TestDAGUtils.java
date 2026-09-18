@@ -222,4 +222,32 @@ public class TestDAGUtils {
     }
   }
 
+  @Test
+  public void testConvertConfigurationToATSMapRedactsSecrets() {
+    Configuration conf = new Configuration(false);
+    // Non-sensitive properties must pass through unchanged.
+    conf.set("tez.am.dag.scheduler.class",
+        "org.apache.tez.dag.app.dag.impl.DAGSchedulerNaturalOrder");
+    conf.set("mapreduce.job.name", "normal-job");
+    // These keys are covered by Hadoop's default
+    // hadoop.security.sensitive-config-keys pattern.
+    conf.set("fs.s3a.secret.key", "wJalrXUtnFEMI/K7MDENG/bPxRfiCYSECRET");
+    conf.set("fs.s3a.access.key", "AKIAIOSFODNN7EXAMPLE");
+    conf.set("ssl.server.keystore.password", "SuperSecretKeystorePass!");
+    conf.set("hadoop.security.credential.provider.password", "credpass");
+
+    Map<String, String> ats = DAGUtils.convertConfigurationToATSMap(conf);
+
+    assertEquals("org.apache.tez.dag.app.dag.impl.DAGSchedulerNaturalOrder",
+        ats.get("tez.am.dag.scheduler.class"));
+    assertEquals("normal-job", ats.get("mapreduce.job.name"));
+    assertFalse(ats.get("fs.s3a.secret.key").contains("SECRET"),
+        "s3a secret key must be redacted, got: " + ats.get("fs.s3a.secret.key"));
+    assertFalse(ats.get("ssl.server.keystore.password").contains("SuperSecret"),
+        "keystore password must be redacted, got: " + ats.get("ssl.server.keystore.password"));
+    assertFalse(ats.get("hadoop.security.credential.provider.password").contains("credpass"),
+        "credential provider password must be redacted, got: "
+            + ats.get("hadoop.security.credential.provider.password"));
+  }
+
 }
