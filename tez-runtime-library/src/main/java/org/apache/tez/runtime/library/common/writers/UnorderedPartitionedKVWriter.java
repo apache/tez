@@ -861,13 +861,16 @@ public class UnorderedPartitionedKVWriter extends BaseUnorderedPartitionedKVWrit
       }
 
       //For pipelined case, send out an event in case finalspill generated a spill file.
-      if (finalSpill() != null) {
+      SpillResult result = finalSpill();
+      // The events below read the task counters, and this buffer's rows reach them only here.
+      // Not before finalSpill: its empty-buffer branch reads localOutputRecordsCounter.
+      updateTezCountersAndNotify();
+      if (result != null) {
         // VertexManagerEvent is only sent at the end and thus sizePerPartition is used
         // for the sum of all spills.
         mayBeSendEventsForSpill(currentBuffer.recordsPerPartition,
             sizePerPartition, numSpills.get() - 1, true);
       }
-      updateTezCountersAndNotify();
       cleanupCurrentBuffer();
       return events;
     }
@@ -905,9 +908,10 @@ public class UnorderedPartitionedKVWriter extends BaseUnorderedPartitionedKVWrit
     outputContext.notifyProgress();
     DataMovementEventPayloadProto.Builder payloadBuilder = DataMovementEventPayloadProto
         .newBuilder();
-    if (numPartitions == 1) {
-      payloadBuilder.setNumRecord((int) outputRecordsCounter.getValue());
-    }
+    // writeLargeRecord bypasses outputRecordsCounter, so the count has to add them back. This is
+    // the sum ShuffleUtils.generateVMEvent reports.
+    ShuffleUtils.setNumRecord(payloadBuilder, numPartitions,
+        outputRecordsCounter.getValue() + outputLargeRecordsCounter.getValue());
 
     String host = getHost();
     if (emptyPartitions.cardinality() != 0) {

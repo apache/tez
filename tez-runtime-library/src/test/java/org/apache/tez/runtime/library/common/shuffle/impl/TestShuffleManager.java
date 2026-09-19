@@ -49,6 +49,7 @@ import org.apache.hadoop.security.token.Token;
 import org.apache.tez.common.TezExecutors;
 import org.apache.tez.common.TezRuntimeFrameworkConfigs;
 import org.apache.tez.common.TezSharedExecutor;
+import org.apache.tez.common.counters.TaskCounter;
 import org.apache.tez.common.counters.TezCounters;
 import org.apache.tez.common.security.JobTokenIdentifier;
 import org.apache.tez.common.security.JobTokenSecretManager;
@@ -158,6 +159,94 @@ public class TestShuffleManager {
     assertTrue(shuffleManager.isFetcherExecutorShutdown());
     assertEquals(numOfMappers * numOfPartitions,
         shuffleManager.getNumOfCompletedInputs());
+  }
+
+  /**
+   * An input that wrote no rows reports zero. Counting it only in numInputs and not in the
+   * denominator spreads the mean of the inputs that had data over the ones that did not.
+   */
+  @Test
+  public void testInputsThatWroteNothingJoinTheDenominator() throws Exception {
+    InputContext inputContext = createInputContext();
+    ShuffleManager shuffleManager = createShuffleManager(inputContext, 10);
+    shuffleManager.updateApproximateInputRecords(0, 1000);
+    shuffleManager.updateApproximateInputRecords(1, 1000);
+    for (int input = 2; input < 10; input++) {
+      shuffleManager.updateApproximateInputRecords(input, 0);
+    }
+    assertEquals(2000L, approximateInputRecords(inputContext));
+  }
+
+  /**
+   * numRecord is the source task's running OUTPUT_RECORDS, so a pipelined input reports a new
+   * total per spill. Summing the reports counts the earlier spills again.
+   */
+  @Test
+  public void testOnlyTheLatestReportPerInputIsCounted() throws Exception {
+    InputContext inputContext = createInputContext();
+    ShuffleManager shuffleManager = createShuffleManager(inputContext, 2);
+    shuffleManager.updateApproximateInputRecords(0, 100);
+    shuffleManager.updateApproximateInputRecords(0, 200);
+    shuffleManager.updateApproximateInputRecords(0, 300);
+    shuffleManager.updateApproximateInputRecords(1, 300);
+    assertEquals(600L, approximateInputRecords(inputContext));
+  }
+
+  /** Read before every input has reported, the value is the mean so far across all of them. */
+  @Test
+  public void testExtrapolatesOverTheInputsThatHaveNotReported() throws Exception {
+    InputContext inputContext = createInputContext();
+    ShuffleManager shuffleManager = createShuffleManager(inputContext, 8);
+    shuffleManager.updateApproximateInputRecords(0, 500);
+    assertEquals(4000L, approximateInputRecords(inputContext));
+    shuffleManager.updateApproximateInputRecords(1, 300);
+    assertEquals(3200L, approximateInputRecords(inputContext));
+  }
+
+  /**
+   * The remainder of the mean is scaled too. Scaling only the quotient multiplies its truncation
+   * by every input: 301 rows over 3 reporting inputs of 10 reads 1000, not 1003.
+   */
+  @Test
+  public void testTheMeanIsNotTruncatedBeforeItIsScaled() throws Exception {
+    InputContext inputContext = createInputContext();
+    ShuffleManager shuffleManager = createShuffleManager(inputContext, 10);
+    shuffleManager.updateApproximateInputRecords(0, 100);
+    shuffleManager.updateApproximateInputRecords(1, 100);
+    shuffleManager.updateApproximateInputRecords(2, 101);
+    assertEquals(1003L, approximateInputRecords(inputContext));
+  }
+
+  /**
+   * The mean is scaled without ever forming recordsReported * numInputs, so only the answer has
+   * to fit in a long: 2e18 rows over 2 of 8 inputs is 8e18, while multiplying first would be
+   * 1.6e19 and wrap negative.
+   */
+  @Test
+  public void testOnlyTheResultHasToFitInALong() throws Exception {
+    InputContext inputContext = createInputContext();
+    ShuffleManager shuffleManager = createShuffleManager(inputContext, 8);
+    shuffleManager.updateApproximateInputRecords(0, 1_000_000_000_000_000_000L);
+    shuffleManager.updateApproximateInputRecords(1, 1_000_000_000_000_000_000L);
+    assertEquals(8_000_000_000_000_000_000L, approximateInputRecords(inputContext));
+  }
+
+  /**
+   * Spill callbacks read the record counter and send their event without a lock between, so a
+   * smaller total can arrive after a larger one. Subtracting it would drop the counter by the
+   * difference times the extrapolation factor.
+   */
+  @Test
+  public void testAReportThatLostTheRaceIsIgnored() throws Exception {
+    InputContext inputContext = createInputContext();
+    ShuffleManager shuffleManager = createShuffleManager(inputContext, 2);
+    shuffleManager.updateApproximateInputRecords(0, 1000);
+    shuffleManager.updateApproximateInputRecords(0, 500);
+    assertEquals(2000L, approximateInputRecords(inputContext));
+  }
+
+  private long approximateInputRecords(InputContext inputContext) {
+    return inputContext.getCounters().findCounter(TaskCounter.APPROXIMATE_INPUT_RECORDS).getValue();
   }
 
   private InputContext createInputContext() throws IOException {

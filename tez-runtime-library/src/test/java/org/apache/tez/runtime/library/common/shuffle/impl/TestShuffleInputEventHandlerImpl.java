@@ -408,6 +408,63 @@ public class TestShuffleInputEventHandlerImpl {
     }
   }
 
+  /**
+   * An input whose partition is empty reports zero rows and must still reach the ShuffleManager:
+   * counting it only in numInputs and not in the denominator is what inflated the counter.
+   */
+  @Test
+  @Timeout(value = 5000, unit = TimeUnit.MILLISECONDS)
+  public void testAnEmptyPartitionStillReportsItsRecordCount() throws IOException {
+    ShuffleManager shuffleManager = mock(ShuffleManager.class);
+    ShuffleInputEventHandlerImpl handler = newHandler(shuffleManager, false);
+
+    handler.handleEvents(Collections.singletonList(
+        createRecordCountEvent(1, 0, createEmptyPartitionByteString(0), false)));
+
+    verify(shuffleManager).updateApproximateInputRecords(eq(1), eq(0L));
+    verify(shuffleManager).addCompletedInputWithNoData(any());
+  }
+
+  /** The composite path carries the same payload and has to report it too. */
+  @Test
+  @Timeout(value = 5000, unit = TimeUnit.MILLISECONDS)
+  public void testACompositeEventReportsItsRecordCount() throws IOException {
+    ShuffleManager shuffleManager = mock(ShuffleManager.class);
+    ShuffleInputEventHandlerImpl handler = newHandler(shuffleManager, true);
+
+    handler.handleEvents(Collections.singletonList(createRecordCountEvent(1, 4000, null, true)));
+
+    verify(shuffleManager).updateApproximateInputRecords(eq(1), eq(4000L));
+  }
+
+  /**
+   * A source task can emit more rows than an int32 holds. num_record is an int64 so the count
+   * survives the wire; passing it as an int would not even compile against that field.
+   */
+  @Test
+  @Timeout(value = 5000, unit = TimeUnit.MILLISECONDS)
+  public void testACountAboveIntMaxSurvivesTheWire() throws IOException {
+    ShuffleManager shuffleManager = mock(ShuffleManager.class);
+    ShuffleInputEventHandlerImpl handler = newHandler(shuffleManager, false);
+
+    handler.handleEvents(Collections.singletonList(
+        createRecordCountEvent(1, 3_000_000_000L, null, false)));
+
+    verify(shuffleManager).updateApproximateInputRecords(eq(1), eq(3_000_000_000L));
+  }
+
+  /** A payload with no record count -- any multi-partition writer -- reports nothing. */
+  @Test
+  @Timeout(value = 5000, unit = TimeUnit.MILLISECONDS)
+  public void testAPayloadWithoutARecordCountReportsNothing() throws IOException {
+    ShuffleManager shuffleManager = mock(ShuffleManager.class);
+    ShuffleInputEventHandlerImpl handler = newHandler(shuffleManager, false);
+
+    handler.handleEvents(Collections.singletonList(createDataMovementEvent(0, 1, null)));
+
+    verify(shuffleManager, times(0)).updateApproximateInputRecords(anyInt(), anyLong());
+  }
+
   private Event createDataMovementEvent(boolean addSpillDetails, int srcIdx, int targetIdx,
       int spillId, boolean isLastSpill, BitSet emptyPartitions, int numPartitions, int attemptNum)
       throws IOException {
@@ -438,7 +495,7 @@ public class TestShuffleInputEventHandlerImpl {
     return  DataMovementEvent.create(srcIdx, targetIdx, attemptNum, payload);
   }
 
-  private Event createDataMovementEvent(int srcIndex, int targetIndex,
+  private DataMovementEventPayloadProto.Builder createPayloadBuilder(
       ByteString emptyPartitionByteString) {
     DataMovementEventPayloadProto.Builder builder = DataMovementEventPayloadProto.newBuilder();
     builder.setHost(HOST);
@@ -447,9 +504,29 @@ public class TestShuffleInputEventHandlerImpl {
     if (emptyPartitionByteString != null) {
       builder.setEmptyPartitions(emptyPartitionByteString);
     }
-    Event dme = DataMovementEvent
-        .create(srcIndex, targetIndex, 0, builder.build().toByteString().asReadOnlyByteBuffer());
-    return dme;
+    return builder;
+  }
+
+  private Event createDataMovementEvent(int srcIndex, int targetIndex,
+      ByteString emptyPartitionByteString) {
+    return DataMovementEvent.create(srcIndex, targetIndex, 0,
+        createPayloadBuilder(emptyPartitionByteString).build().toByteString()
+            .asReadOnlyByteBuffer());
+  }
+
+  private Event createRecordCountEvent(int targetIndex, long numRecord,
+      ByteString emptyPartitionByteString, boolean composite) {
+    ByteBuffer payload = createPayloadBuilder(emptyPartitionByteString).setNumRecord(numRecord)
+        .build().toByteString().asReadOnlyByteBuffer();
+    return composite
+        ? CompositeRoutedDataMovementEvent.create(0, targetIndex, 1, 0, payload)
+        : DataMovementEvent.create(0, targetIndex, 0, payload);
+  }
+
+  private ShuffleInputEventHandlerImpl newHandler(ShuffleManager shuffleManager,
+      boolean compositeFetch) {
+    return new ShuffleInputEventHandlerImpl(mock(InputContext.class), shuffleManager,
+        mock(FetchedInputAllocator.class), null, false, 0, compositeFetch);
   }
 
   private ByteString createEmptyPartitionByteString(int... emptyPartitions) throws IOException {

@@ -192,8 +192,10 @@ public class ShuffleManager implements FetcherCallback {
 
   private final AtomicBoolean isShutdown = new AtomicBoolean(false);
 
-  private long inputRecordsFromEvents;
-  private long eventsReceived;
+  private final long[] numRecordsPerInput;
+  private final BitSet reportedInputSet;
+  private long inputRecordsReported;
+
   private final TezCounter approximateInputRecords;
   private final TezCounter shuffledInputsCounter;
   private final TezCounter failedShufflesCounter;
@@ -230,6 +232,8 @@ public class ShuffleManager implements FetcherCallback {
     this.numInputs = numInputs;
 
     this.approximateInputRecords = inputContext.getCounters().findCounter(TaskCounter.APPROXIMATE_INPUT_RECORDS);
+    this.numRecordsPerInput = new long[numInputs];
+    this.reportedInputSet = new BitSet(numInputs);
     this.shuffledInputsCounter = inputContext.getCounters().findCounter(TaskCounter.NUM_SHUFFLED_INPUTS);
     this.failedShufflesCounter = inputContext.getCounters().findCounter(TaskCounter.NUM_FAILED_SHUFFLE_INPUTS);
     this.bytesShuffledCounter = inputContext.getCounters().findCounter(TaskCounter.SHUFFLE_BYTES);
@@ -348,13 +352,40 @@ public class ShuffleManager implements FetcherCallback {
         + ", asyncHttp=" + asyncHttp);
   }
 
-  public void updateApproximateInputRecords(int delta) {
-    if (delta <= 0) {
+  /**
+   * Records how many rows one input reports and republishes the estimate over every input.
+   * A report is the source attempt's output record count so far, not a per-event delta, so a
+   * pipelined input reports a growing total as it spills and only its largest report counts. An
+   * input that wrote no rows reports zero and still joins the denominator, which numInputs
+   * already counts in the multiplier.
+   * <p>
+   * The reports carry no attempt number, so a retried attempt that produces fewer rows than the
+   * one it replaces leaves the larger total in place. Monotonic per input is the only rule that
+   * composes across a pipelined input's spills without also subtracting on a reordered report,
+   * and the result is an estimate over the inputs that have reported -- never a bound on what
+   * the consumer will read.
+   */
+  void updateApproximateInputRecords(int inputIndex, long numRecords) {
+    long lastReported = numRecordsPerInput[inputIndex];
+    if (!reportedInputSet.get(inputIndex)) {
+      reportedInputSet.set(inputIndex);
+    } else if (numRecords <= lastReported) {
       return;
     }
-    inputRecordsFromEvents += delta;
-    eventsReceived++;
-    approximateInputRecords.setValue((inputRecordsFromEvents / eventsReceived) * numInputs);
+    inputRecordsReported += numRecords - lastReported;
+    numRecordsPerInput[inputIndex] = numRecords;
+    approximateInputRecords.setValue(
+        extrapolateTotal(inputRecordsReported, reportedInputSet.cardinality(), numInputs));
+  }
+
+  /**
+   * The mean over the inputs that reported, applied to all of them. The remainder is scaled as
+   * well, so the truncation is not multiplied by every input, and recordsReported * allInputs is
+   * never formed, so only the result has to fit in a long.
+   */
+  private static long extrapolateTotal(long recordsReported, int reportedInputs, int allInputs) {
+    return (recordsReported / reportedInputs) * allInputs
+        + ((recordsReported % reportedInputs) * allInputs) / reportedInputs;
   }
 
   public void run() throws IOException {
