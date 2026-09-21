@@ -31,6 +31,7 @@ import java.util.Set;
 import java.util.concurrent.TimeUnit;
 
 import org.apache.hadoop.conf.Configuration;
+import org.apache.hadoop.fs.CommonConfigurationKeysPublic;
 import org.apache.hadoop.yarn.api.records.ApplicationId;
 import org.apache.hadoop.yarn.api.records.Resource;
 import org.apache.tez.client.CallerContext;
@@ -224,30 +225,46 @@ public class TestDAGUtils {
 
   @Test
   public void testConvertConfigurationToATSMapRedactsSecrets() {
-    Configuration conf = new Configuration(false);
-    // Non-sensitive properties must pass through unchanged.
+    // Defaults must load: ConfigRedactor's fallback pattern is narrower than
+    // core-default.xml and misses fs.s3a.session.token.
+    Configuration conf = new Configuration();
     conf.set("tez.am.dag.scheduler.class",
         "org.apache.tez.dag.app.dag.impl.DAGSchedulerNaturalOrder");
     conf.set("mapreduce.job.name", "normal-job");
-    // These keys are covered by Hadoop's default
-    // hadoop.security.sensitive-config-keys pattern.
-    conf.set("fs.s3a.secret.key", "wJalrXUtnFEMI/K7MDENG/bPxRfiCYSECRET");
-    conf.set("fs.s3a.access.key", "AKIAIOSFODNN7EXAMPLE");
-    conf.set("ssl.server.keystore.password", "SuperSecretKeystorePass!");
-    conf.set("hadoop.security.credential.provider.password", "credpass");
+    conf.set("fs.s3a.secret.key", "fake-s3a-secret-key");
+    conf.set("fs.s3a.session.token", "fake-s3a-session-token");
+    conf.set("ssl.server.keystore.password", "fake-keystore-password");
+    conf.set("hadoop.security.credential.provider.password", "fake-credential-password");
+    // An access key id is not a secret; the default pattern omits it.
+    conf.set("fs.s3a.access.key", "fake-s3a-access-key-id");
 
     Map<String, String> ats = DAGUtils.convertConfigurationToATSMap(conf);
 
     assertEquals("org.apache.tez.dag.app.dag.impl.DAGSchedulerNaturalOrder",
         ats.get("tez.am.dag.scheduler.class"));
     assertEquals("normal-job", ats.get("mapreduce.job.name"));
-    assertFalse(ats.get("fs.s3a.secret.key").contains("SECRET"),
-        "s3a secret key must be redacted, got: " + ats.get("fs.s3a.secret.key"));
-    assertFalse(ats.get("ssl.server.keystore.password").contains("SuperSecret"),
-        "keystore password must be redacted, got: " + ats.get("ssl.server.keystore.password"));
-    assertFalse(ats.get("hadoop.security.credential.provider.password").contains("credpass"),
-        "credential provider password must be redacted, got: "
-            + ats.get("hadoop.security.credential.provider.password"));
+    assertEquals("fake-s3a-access-key-id", ats.get("fs.s3a.access.key"));
+    for (String key : new String[] {"fs.s3a.secret.key", "fs.s3a.session.token",
+        "ssl.server.keystore.password", "hadoop.security.credential.provider.password"}) {
+      assertFalse(ats.get(key).contains("fake"),
+          key + " must be redacted, got: " + ats.get(key));
+    }
+  }
+
+  @Test
+  public void testConvertConfigurationToATSMapHonoursConfiguredPattern() {
+    // A configured pattern replaces the defaults and must be honoured.
+    Configuration conf = new Configuration();
+    conf.set(CommonConfigurationKeysPublic.HADOOP_SECURITY_SENSITIVE_CONFIG_KEYS,
+        "my\\.site\\.internal\\.id");
+    conf.set("my.site.internal.id", "fake-internal-id");
+    conf.set("mapreduce.job.name", "normal-job");
+
+    Map<String, String> ats = DAGUtils.convertConfigurationToATSMap(conf);
+
+    assertFalse(ats.get("my.site.internal.id").contains("fake"),
+        "configured sensitive key must be redacted, got: " + ats.get("my.site.internal.id"));
+    assertEquals("normal-job", ats.get("mapreduce.job.name"));
   }
 
 }

@@ -507,13 +507,9 @@ public final class DAGUtils {
   public static Map<String, String> convertConfigurationToATSMap(Configuration conf) {
     // Copy configuration to avoid CME since iterator is not thread safe until HADOOP-13500
     Configuration snapshot = new Configuration(conf);
-    // The AM configuration typically holds the union of every hadoop site
-    // file loaded at startup (core-site, hdfs-site, yarn-site, ssl-*,
-    // credential providers, keytab paths, …). Publishing it verbatim to
-    // Timeline exposes those secrets to anyone with timeline read access, so
-    // route each value through Hadoop's ConfigRedactor, which masks keys
-    // matched by hadoop.security.sensitive-config-keys (the default pattern
-    // covers *password*, *secret*, *keystore*, aws credential keys, etc.).
+    // The AM config holds every hadoop site file loaded at startup, so
+    // publishing it as is would expose credentials to anyone with timeline
+    // read access. Mask via hadoop.security.sensitive-config-keys.
     ConfigRedactor redactor = new ConfigRedactor(snapshot);
     Iterator<Entry<String, String>> iter = snapshot.iterator();
     Map<String, String> atsConf = new TreeMap<String, String>();
