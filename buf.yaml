@@ -1,0 +1,47 @@
+#
+# Licensed to the Apache Software Foundation (ASF) under one
+# or more contributor license agreements.  See the NOTICE file
+# distributed with this work for additional information
+# regarding copyright ownership.  The ASF licenses this file
+# to you under the Apache License, Version 2.0 (the
+# "License"); you may not use this file except in compliance
+# with the License.  You may obtain a copy of the License at
+#
+#     http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+#
+---
+# buf configuration for the Yetus bufcompat and buflint checks.
+# Each main proto directory is a module so cross-module imports resolve
+# (tez-dag imports tez-api and tez-runtime-internals). Test fixtures are
+# not modules.
+version: v2
+modules:
+  - path: tez-api/src/main/proto
+  - path: tez-dag/src/main/proto
+  - path: tez-mapreduce/src/main/proto
+  - path: tez-plugins/tez-protobuf-history-plugin/src/main/proto
+  - path: tez-runtime-internals/src/main/proto
+  - path: tez-runtime-library/src/main/proto
+lint:
+  use:
+    - MINIMAL
+  except:
+    # No Tez proto declares a package. Every file sets java_package, so
+    # adding one would not move the Java classes, but it changes every
+    # message's fully-qualified protobuf name -- descriptors, Any type
+    # URLs, what the history plugin persists -- which is not a lint fix.
+    - PACKAGE_DEFINED
+breaking:
+  # Tez protos are RPC (DAGClientAMProtocol), events and payloads between
+  # components of one Tez build, or bytes the history plugin persists.
+  # What must hold is wire compatibility, not generated-code source
+  # compatibility: FILE would reject int32 -> int64 on the same field
+  # number, which the wire accepts.
+  use:
+    - WIRE
