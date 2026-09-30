@@ -77,7 +77,59 @@ You will need the following things properly installed on your computer.
 
 ### Running Tests
 
-* `yarn test`
+Tests run in **headless Chrome**.
+
+The build automatically resolves a Chrome/Chromium binary using the following priority:
+
+1. `$CHROME_BIN` environment variable (if set and executable)
+2. Well-known system locations (`/Applications/Google Chrome.app` on macOS,
+   `google-chrome-stable` / `chromium-browser` on Linux)
+3. **Puppeteer's bundled Chromium** — downloaded automatically during `yarn install`
+   (which Maven runs as part of the build), so the build works on a vanilla machine
+   with no pre-installed Chrome.
+
+#### Step 1 (optional): Set `CHROME_BIN` to override Chrome detection
+
+On Linux:
+
+```bash
+export CHROME_BIN=google-chrome-stable
+```
+
+On macOS:
+
+```bash
+export CHROME_BIN="/Applications/Google Chrome.app/Contents/MacOS/Google Chrome"
+```
+
+If `CHROME_BIN` is not set, the launcher falls back to the steps above automatically.
+
+#### Step 2: Run the tests
+
+Via Maven (from the `tez-ui` directory):
+
+```bash
+mvn clean install
+```
+
+If `CHROME_BIN` is not set in your environment, you can also pass the Chrome path
+directly as a Maven property:
+
+```bash
+mvn clean install -Dchrome.bin="/path/to/Google Chrome"
+```
+
+Via Yarn (from inside `src/main/webapp`):
+
+```bash
+yarn test
+```
+
+To skip tests:
+
+```bash
+mvn clean package -DskipTests
+```
 
 ### Building
 

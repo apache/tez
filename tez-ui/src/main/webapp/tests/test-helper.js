@@ -22,3 +22,12 @@ import {
 } from 'ember-qunit';
 
 setResolver(resolver);
+
+QUnit.done(function() {
+  // After all tests complete, the qunit_adapter sends 'all-test-results' to testem
+  // via Socket.IO through two nested setTimeout(0) calls. We wait 500ms to ensure
+  // the message is flushed before we close the browser.
+   setTimeout(function() {
+    window.close();
+  }, 500);
+});

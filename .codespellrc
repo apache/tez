@@ -18,4 +18,4 @@
 #
 
 [codespell]
-ignore-words-list = thirdparty,afterall,AfterAll
+ignore-words-list = thirdparty,afterall,AfterAll,assignin
