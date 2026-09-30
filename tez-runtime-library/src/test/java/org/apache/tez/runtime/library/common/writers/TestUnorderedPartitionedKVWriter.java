@@ -440,21 +440,21 @@ public class TestUnorderedPartitionedKVWriter {
   @ParameterizedTest(name = "test[{0}, {1}]")
   @MethodSource("data")
   @Timeout(value = 10000, unit = TimeUnit.MILLISECONDS)
-  public void testLargeRecords_SinglePartition(boolean shouldCompress,
+  public void testLargeRecordsSinglePartition(boolean shouldCompress,
       ReportPartitionStats reportPartitionStats) throws IOException, InterruptedException {
     setupInit(shouldCompress, reportPartitionStats);
     textTest(0, 1, 2048, 0, 0, 5, true, false);
   }
 
   /**
-   * An output small enough to fit one buffer spills only at close, so its records reach the task
-   * counters in the same call that builds the final event -- which is where a count read too
-   * early reports zero.
+   * An output that fits one buffer spills only at close, so the events built in that same call
+   * are the first to see its records: the DME and the VertexManager event must both carry the
+   * full count.
    */
   @ParameterizedTest(name = "test[{0}, {1}]")
   @MethodSource("data")
   @Timeout(value = 10000, unit = TimeUnit.MILLISECONDS)
-  public void testFinalEventRecordCount_SinglePartition(boolean shouldCompress,
+  public void testFinalEventRecordCountSinglePartition(boolean shouldCompress,
       ReportPartitionStats reportPartitionStats) throws IOException, InterruptedException {
     setupInit(shouldCompress, reportPartitionStats);
     textTest(5, 1, 2048, 0, 0, 0, true, false);
@@ -468,15 +468,18 @@ public class TestUnorderedPartitionedKVWriter {
    * scanned and the last of each kind is the one that has to be right.
    */
   private void assertLastEventsCountEveryRecord(UnorderedPartitionedKVWriter kvWriter,
-      OutputContext outputContext, List<Event> closeEvents) throws IOException {
+      OutputContext outputContext, List<Event> closeEvents, int numRecordsWritten)
+      throws IOException {
     List<Event> allEvents = new ArrayList<>(closeEvents);
     @SuppressWarnings("unchecked")
     ArgumentCaptor<List<Event>> sent = ArgumentCaptor.forClass(List.class);
     verify(outputContext, atLeast(0)).sendEvents(sent.capture());
     sent.getAllValues().forEach(allEvents::addAll);
 
-    long expected = kvWriter.outputRecordsCounter.getValue()
+    long numRecordsCounted = kvWriter.outputRecordsCounter.getValue()
         + kvWriter.outputLargeRecordsCounter.getValue();
+    assertEquals(numRecordsWritten, numRecordsCounted,
+        "outputRecordsCounter + outputLargeRecordsCounter must count every record written");
     long lastDmeCount = -1;
     long lastVmCount = -1;
     for (Event event : allEvents) {
@@ -494,9 +497,12 @@ public class TestUnorderedPartitionedKVWriter {
         lastVmCount = vme.getNumRecord();
       }
     }
-    assertTrue(lastDmeCount >= 0, "expected a DME carrying num_record");
-    assertEquals(expected, lastDmeCount, "DME");
-    assertEquals(expected, lastVmCount, "VertexManagerEvent");
+    assertTrue(lastDmeCount >= 0,
+        "no DataMovementEvent carried num_record; a single-partition writer must set it");
+    assertEquals(numRecordsWritten, lastDmeCount,
+        "num_record on the last DataMovementEvent must count every record, large ones included");
+    assertEquals(numRecordsWritten, lastVmCount,
+        "num_record on the VertexManagerEvent must count every record, large ones included");
   }
 
   public void textTest(int numRegularRecords, int numPartitions, long availableMemory,
@@ -604,7 +610,7 @@ public class TestUnorderedPartitionedKVWriter {
     verify(outputContext, never()).reportFailure(any(), any(), any());
 
     if (numPartitions == 1) {
-      assertLastEventsCountEveryRecord(kvWriter, outputContext, events);
+      assertLastEventsCountEveryRecord(kvWriter, outputContext, events, numRecordsWritten);
     }
 
     if (!pipeliningEnabled) {
@@ -890,6 +896,9 @@ public class TestUnorderedPartitionedKVWriter {
 
     if (numPartitions == 1) {
       assertFalse(kvWriter.skipBuffers);
+      // With no records nothing spills and finalSpill's empty-buffer branch emits the events;
+      // they still carry num_record, as 0, so the consumer counts the input as having reported.
+      assertLastEventsCountEveryRecord(kvWriter, outputContext, lastEvents, numRecordsWritten);
     }
 
     //no events are sent to kvWriter upon close with pipelining

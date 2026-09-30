@@ -245,8 +245,17 @@ public class TestShuffleManager {
     assertEquals(2000L, approximateInputRecords(inputContext));
   }
 
-  private long approximateInputRecords(InputContext inputContext) {
-    return inputContext.getCounters().findCounter(TaskCounter.APPROXIMATE_INPUT_RECORDS).getValue();
+  /**
+   * A negative count is not a report: it neither enters the sum nor marks the input as having
+   * reported, so 100 from the other input is still extrapolated over both, not 95 over two.
+   */
+  @Test
+  public void testANegativeReportIsIgnored() throws Exception {
+    InputContext inputContext = createInputContext();
+    ShuffleManager shuffleManager = createShuffleManager(inputContext, 2);
+    shuffleManager.updateApproximateInputRecords(0, -5);
+    shuffleManager.updateApproximateInputRecords(1, 100);
+    assertEquals(200L, approximateInputRecords(inputContext));
   }
 
   private InputContext createInputContext() throws IOException {
@@ -395,6 +404,10 @@ public class TestShuffleManager {
         .create(srcIndex, targetIndex, 0,
             builder.build().toByteString().asReadOnlyByteBuffer());
     return dme;
+  }
+
+  private long approximateInputRecords(InputContext inputContext) {
+    return inputContext.getCounters().findCounter(TaskCounter.APPROXIMATE_INPUT_RECORDS).getValue();
   }
 
   private static class ShuffleManagerForTest extends ShuffleManager {

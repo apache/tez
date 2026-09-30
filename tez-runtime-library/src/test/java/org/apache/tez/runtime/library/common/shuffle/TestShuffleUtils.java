@@ -75,6 +75,7 @@ import org.apache.tez.runtime.library.common.sort.impl.TezIndexRecord;
 import org.apache.tez.runtime.library.common.sort.impl.TezSpillRecord;
 import org.apache.tez.runtime.library.partitioner.HashPartitioner;
 import org.apache.tez.runtime.library.shuffle.impl.ShuffleUserPayloads;
+import org.apache.tez.runtime.library.shuffle.impl.ShuffleUserPayloads.DataMovementEventPayloadProto;
 
 import com.google.common.collect.Lists;
 import com.google.protobuf.ByteString;
@@ -296,9 +297,8 @@ public class TestShuffleUtils {
     ShuffleUtils.generateEventsForNonStartedOutput(events, 1, outputContext, false, true,
         TezCommonUtils.newBestCompressionDeflater());
 
-    ShuffleUserPayloads.DataMovementEventPayloadProto proto =
-        ShuffleUserPayloads.DataMovementEventPayloadProto.parseFrom(ByteString.copyFrom(
-            ((CompositeDataMovementEvent) events.get(0)).getUserPayload()));
+    DataMovementEventPayloadProto proto = DataMovementEventPayloadProto.parseFrom(
+        ByteString.copyFrom(((CompositeDataMovementEvent) events.get(0)).getUserPayload()));
     assertTrue(proto.hasNumRecord());
     assertEquals(0, proto.getNumRecord());
   }
@@ -310,9 +310,8 @@ public class TestShuffleUtils {
     ShuffleUtils.generateEventsForNonStartedOutput(events, 10, outputContext, false, true,
         TezCommonUtils.newBestCompressionDeflater());
 
-    ShuffleUserPayloads.DataMovementEventPayloadProto proto =
-        ShuffleUserPayloads.DataMovementEventPayloadProto.parseFrom(ByteString.copyFrom(
-            ((CompositeDataMovementEvent) events.get(0)).getUserPayload()));
+    DataMovementEventPayloadProto proto = DataMovementEventPayloadProto.parseFrom(
+        ByteString.copyFrom(((CompositeDataMovementEvent) events.get(0)).getUserPayload()));
     assertFalse(proto.hasNumRecord());
   }
 

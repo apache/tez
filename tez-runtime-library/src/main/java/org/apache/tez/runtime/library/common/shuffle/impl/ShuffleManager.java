@@ -359,21 +359,22 @@ public class ShuffleManager implements FetcherCallback {
    * input that wrote no rows reports zero and still joins the denominator, which numInputs
    * already counts in the multiplier.
    * <p>
-   * The reports carry no attempt number, so a retried attempt that produces fewer rows than the
-   * one it replaces leaves the larger total in place. Monotonic per input is the only rule that
-   * composes across a pipelined input's spills without also subtracting on a reordered report,
-   * and the result is an estimate over the inputs that have reported -- never a bound on what
-   * the consumer will read.
+   * A negative report is invalid and ignored. The reports carry no attempt number, so a retried
+   * attempt that produces fewer rows than the one it replaces leaves the larger total in place.
+   * Monotonic per input is the only rule that composes across a pipelined input's spills without
+   * also subtracting on a reordered report, and the result is an estimate over the inputs that
+   * have reported -- never a bound on what the consumer will read.
    */
   void updateApproximateInputRecords(int inputIndex, long numRecords) {
     long lastReported = numRecordsPerInput[inputIndex];
-    if (!reportedInputSet.get(inputIndex)) {
-      reportedInputSet.set(inputIndex);
-    } else if (numRecords <= lastReported) {
+    if (numRecords < 0 || (reportedInputSet.get(inputIndex) && numRecords <= lastReported)) {
       return;
     }
+
+    reportedInputSet.set(inputIndex);
     inputRecordsReported += numRecords - lastReported;
     numRecordsPerInput[inputIndex] = numRecords;
+
     approximateInputRecords.setValue(
         extrapolateTotal(inputRecordsReported, reportedInputSet.cardinality(), numInputs));
   }

@@ -453,7 +453,10 @@ public class TestShuffleInputEventHandlerImpl {
     verify(shuffleManager).updateApproximateInputRecords(eq(1), eq(3_000_000_000L));
   }
 
-  /** A payload with no record count -- any multi-partition writer -- reports nothing. */
+  /**
+   * A payload that carries no record count reports nothing: the unset field is not read as a
+   * zero, which would count the input as having written no rows.
+   */
   @Test
   @Timeout(value = 5000, unit = TimeUnit.MILLISECONDS)
   public void testAPayloadWithoutARecordCountReportsNothing() throws IOException {
