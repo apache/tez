@@ -91,7 +91,7 @@
     <leveldbjni-all.version>1.8</leveldbjni-all.version>
     <lifecycle-mapping.version>1.0.0</lifecycle-mapping.version>
     <metrics-core.version>3.1.0</metrics-core.version>
-    <mockito-core.version>4.8.1</mockito-core.version>
+    <mockito-core.version>5.23.0</mockito-core.version>
     <netty.version>4.1.130.Final</netty.version>
     <pig.version>0.13.0</pig.version>
     <protobuf.version>3.25.5</protobuf.version>

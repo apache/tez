@@ -39,6 +39,7 @@ import org.apache.hadoop.yarn.api.records.ApplicationAttemptId;
 import org.apache.hadoop.yarn.api.records.ApplicationId;
 import org.apache.hadoop.yarn.api.records.ContainerId;
 import org.apache.hadoop.yarn.api.records.NodeId;
+import org.apache.hadoop.yarn.api.records.timeline.TimelineEntity;
 import org.apache.hadoop.yarn.client.api.TimelineClient;
 import org.apache.hadoop.yarn.conf.YarnConfiguration;
 import org.apache.hadoop.yarn.util.SystemClock;
@@ -103,7 +104,7 @@ public class TestATSHistoryLoggingService {
     when(appContext.getCurrentDAGID()).thenReturn(null);
     when(appContext.getApplicationID()).thenReturn(appId);
     when(atsHistoryLoggingService.timelineClient.putEntities(
-        any())).thenAnswer(
+        any(TimelineEntity[].class))).thenAnswer(
         new Answer<Object>() {
           @Override
           public Object answer(InvocationOnMock invocation) throws Throwable {
@@ -188,7 +189,7 @@ public class TestATSHistoryLoggingService {
 
     atsHistoryLoggingService1.setAppContext(appContext);
     atsHistoryLoggingService1.timelineClient = mock(TimelineClient.class);
-    when(atsHistoryLoggingService1.timelineClient.putEntities(any())).thenAnswer(
+    when(atsHistoryLoggingService1.timelineClient.putEntities(any(TimelineEntity[].class))).thenAnswer(
       new Answer<Object>() {
       @Override
       public Object answer(InvocationOnMock invocation) throws Throwable {
