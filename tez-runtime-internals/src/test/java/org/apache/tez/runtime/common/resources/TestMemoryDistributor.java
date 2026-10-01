@@ -56,7 +56,7 @@ public class TestMemoryDistributor {
   public void testScalingNoProcessor() throws TezException {
     MemoryDistributor dist = new MemoryDistributor(2, 1, conf);
 
-    dist.setJvmMemory(10000l);
+    dist.setJvmMemory(10000L);
 
     // First request
     MemoryUpdateCallbackForTest e1Callback = new MemoryUpdateCallbackForTest();
@@ -92,24 +92,24 @@ public class TestMemoryDistributor {
     // Real world values
     MemoryDistributor dist = new MemoryDistributor(2, 0, conf);
 
-    dist.setJvmMemory(209715200l);
+    dist.setJvmMemory(209715200L);
 
     // First request
     MemoryUpdateCallbackForTest e1Callback = new MemoryUpdateCallbackForTest();
     InputContext e1InputContext1 = createTestInputContext();
     InputDescriptor e1InDesc1 = createTestInputDescriptor();
-    dist.requestMemory(104857600l, e1Callback, e1InputContext1, e1InDesc1);
+    dist.requestMemory(104857600L, e1Callback, e1InputContext1, e1InDesc1);
 
     // Second request
     MemoryUpdateCallbackForTest e2Callback = new MemoryUpdateCallbackForTest();
     InputContext e2InputContext2 = createTestInputContext();
     InputDescriptor e2InDesc2 = createTestInputDescriptor();
-    dist.requestMemory(157286400l, e2Callback, e2InputContext2, e2InDesc2);
+    dist.requestMemory(157286400L, e2Callback, e2InputContext2, e2InDesc2);
 
     dist.makeInitialAllocations();
 
-    assertEquals(58720256l, e1Callback.assigned);
-    assertEquals(88080384l, e2Callback.assigned);
+    assertEquals(58720256L, e1Callback.assigned);
+    assertEquals(88080384L, e2Callback.assigned);
   }
 
   @Test
@@ -117,7 +117,7 @@ public class TestMemoryDistributor {
   public void testScalingProcessor() throws TezException {
     MemoryDistributor dist = new MemoryDistributor(2, 1, conf);
 
-    dist.setJvmMemory(10000l);
+    dist.setJvmMemory(10000L);
 
     // First request
     MemoryUpdateCallbackForTest e1Callback = new MemoryUpdateCallbackForTest();
@@ -163,24 +163,24 @@ public class TestMemoryDistributor {
     conf.setBoolean(TezConfiguration.TEZ_TASK_SCALE_MEMORY_ENABLED, false);
     MemoryDistributor dist = new MemoryDistributor(2, 0, conf);
 
-    dist.setJvmMemory(207093760l);
+    dist.setJvmMemory(207093760L);
 
     // First request
     MemoryUpdateCallbackForTest e1Callback = new MemoryUpdateCallbackForTest();
     InputContext e1InputContext1 = createTestInputContext();
     InputDescriptor e1InDesc1 = createTestInputDescriptor();
-    dist.requestMemory(104857600l, e1Callback, e1InputContext1, e1InDesc1);
+    dist.requestMemory(104857600L, e1Callback, e1InputContext1, e1InDesc1);
 
     // Second request
     MemoryUpdateCallbackForTest e2Callback = new MemoryUpdateCallbackForTest();
     InputContext e2InputContext2 = createTestInputContext();
     InputDescriptor e2InDesc2 = createTestInputDescriptor();
-    dist.requestMemory(144965632l, e2Callback, e2InputContext2, e2InDesc2);
+    dist.requestMemory(144965632L, e2Callback, e2InputContext2, e2InDesc2);
 
     dist.makeInitialAllocations();
 
-    assertEquals(104857600l, e1Callback.assigned);
-    assertEquals(144965632l, e2Callback.assigned);
+    assertEquals(104857600L, e1Callback.assigned);
+    assertEquals(144965632L, e2Callback.assigned);
   }
 
   @Test
@@ -190,7 +190,7 @@ public class TestMemoryDistributor {
     conf.setDouble(TezConfiguration.TEZ_TASK_SCALE_MEMORY_RESERVE_FRACTION, 0.5d);
     MemoryDistributor dist = new MemoryDistributor(2, 1, conf);
 
-    dist.setJvmMemory(10000l);
+    dist.setJvmMemory(10000L);
 
     // First request
     MemoryUpdateCallbackForTest e1Callback = new MemoryUpdateCallbackForTest();

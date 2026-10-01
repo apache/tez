@@ -376,8 +376,8 @@ public class TestDAG {
     TezConfiguration tezConf = new TezConfiguration();
     DAGPlan firstPlan = dag.createDag(tezConf, null, null, null, false);
     for (int i = 0; i < 3; ++i) {
-        DAGPlan dagPlan = dag.createDag(tezConf, null, null, null, false);
-        assertEquals(dagPlan, firstPlan);
+      DAGPlan dagPlan = dag.createDag(tezConf, null, null, null, false);
+      assertEquals(dagPlan, firstPlan);
     }
   }
 
