@@ -173,7 +173,7 @@ public class TestZkAMRegistry {
       // Add record and verify node contents
       registry.add(record);
 
-      String path = zkConfig.getZkNamespace() + "/" + extractApplicationId(appId);
+      String path = zkConfig.getZkAMNamespace() + "/" + extractApplicationId(appId);
       byte[] data = checkClient.getData().forPath(path);
 
       assertNotNull(data, "Data should be written to ZooKeeper for AMRecord");

@@ -20,6 +20,8 @@ package org.apache.tez.dag.app;
 
 
 
+import static org.apache.tez.frameworkplugins.FrameworkMode.STANDALONE_ZOOKEEPER;
+
 import java.io.File;
 import java.io.FileInputStream;
 import java.io.FileNotFoundException;
@@ -130,6 +132,8 @@ import org.apache.tez.dag.api.records.DAGProtos;
 import org.apache.tez.dag.api.records.DAGProtos.AMPluginDescriptorProto;
 import org.apache.tez.dag.api.records.DAGProtos.DAGPlan;
 import org.apache.tez.dag.api.records.DAGProtos.PlanLocalResourcesProto;
+import org.apache.tez.dag.api.records.DAGProtos.TezEntityDescriptorProto;
+import org.apache.tez.dag.api.records.DAGProtos.TezNamedEntityDescriptorProto;
 import org.apache.tez.dag.api.records.DAGProtos.VertexPlan;
 import org.apache.tez.dag.app.RecoveryParser.DAGRecoveryData;
 import org.apache.tez.dag.app.dag.DAG;
@@ -160,9 +164,11 @@ import org.apache.tez.dag.app.dag.event.VertexEvent;
 import org.apache.tez.dag.app.dag.event.VertexEventType;
 import org.apache.tez.dag.app.dag.impl.DAGImpl;
 import org.apache.tez.dag.app.launcher.ContainerLauncherManager;
+import org.apache.tez.dag.app.launcher.NoOpContainerLauncher;
 import org.apache.tez.dag.app.rm.AMSchedulerEventType;
 import org.apache.tez.dag.app.rm.ContainerLauncherEventType;
 import org.apache.tez.dag.app.rm.TaskSchedulerManager;
+import org.apache.tez.dag.app.rm.ZookeeperTaskScheduler;
 import org.apache.tez.dag.app.rm.container.AMContainerEventType;
 import org.apache.tez.dag.app.rm.container.AMContainerMap;
 import org.apache.tez.dag.app.rm.container.ContainerContextMatcher;
@@ -515,7 +521,7 @@ public class DAGAppMaster extends AbstractService {
     containerHeartbeatHandler = createContainerHeartbeatHandler(context, conf);
     addIfService(containerHeartbeatHandler, true);
 
-    jobTokenSecretManager = new JobTokenSecretManager(amConf);
+    jobTokenSecretManager = TezCommonUtils.createJobTokenSecretManager(amConf);
 
     sessionToken = frameworkService.getAMExtensions().getSessionToken(
       appAttemptID, jobTokenSecretManager, amCredentials);
@@ -2471,10 +2477,8 @@ public class DAGAppMaster extends AbstractService {
           + ", localDirs=" + localDirs
           + ", logDirs=" + logDirs);
 
-      AMPluginDescriptorProto amPluginDescriptorProto = null;
-      if (confProto.hasAmPluginDescriptor()) {
-        amPluginDescriptorProto = confProto.getAmPluginDescriptor();
-      }
+      AMPluginDescriptorProto amPluginDescriptorProto =
+          maybeInjectStandaloneZkPlugins(confProto.hasAmPluginDescriptor() ? confProto.getAmPluginDescriptor() : null);
 
       UserGroupInformation.setConfiguration(conf);
       Credentials credentials = UserGroupInformation.getCurrentUser().getCredentials();
@@ -2482,20 +2486,9 @@ public class DAGAppMaster extends AbstractService {
       TezUtilsInternal.setSecurityUtilConfigration(LOG, conf);
 
       DAGAppMaster appMaster =
-          new DAGAppMaster(
-              applicationAttemptId,
-              containerId,
-              new SystemClock(),
-              appSubmitTime,
-              sessionModeCliOption,
-              pwd,
-              TezCommonUtils.getTrimmedStrings(localDirs),
-              TezCommonUtils.getTrimmedStrings(logDirs),
-              clientVersion,
-              credentials,
-              jobUserName,
-              amPluginDescriptorProto,
-              nodeContext);
+          new DAGAppMaster(applicationAttemptId, containerId, new SystemClock(), appSubmitTime, sessionModeCliOption,
+              pwd, TezCommonUtils.getTrimmedStrings(localDirs), TezCommonUtils.getTrimmedStrings(logDirs),
+              clientVersion, credentials, jobUserName, amPluginDescriptorProto, nodeContext);
       ShutdownHookManager.get().addShutdownHook(new DAGAppMasterShutdownHook(appMaster), SHUTDOWN_HOOK_PRIORITY);
 
       // log the system properties
@@ -2756,5 +2749,35 @@ public class DAGAppMaster extends AbstractService {
 
   public void taskAttemptFailed(TezTaskAttemptID attemptID, NodeId nodeId) {
     getContainerLauncherManager().taskAttemptFailed(attemptID, shuffleJobTokenSecretManager, nodeId);
+  }
+
+  private static TezNamedEntityDescriptorProto createNamedEntityDescriptor(String name, String className) {
+    TezEntityDescriptorProto entity = TezEntityDescriptorProto.newBuilder().setClassName(className).build();
+    return TezNamedEntityDescriptorProto.newBuilder().setName(name).setEntityDescriptor(entity).build();
+  }
+
+  private static AMPluginDescriptorProto maybeInjectStandaloneZkPlugins(AMPluginDescriptorProto originalDescriptor) {
+    String frameworkMode = System.getenv(TezConstants.TEZ_FRAMEWORK_MODE);
+    if (!STANDALONE_ZOOKEEPER.name().equalsIgnoreCase(frameworkMode)) {
+      return originalDescriptor;
+    }
+
+    LOG.info("External AM: Injecting Standalone ZK Service Plugins dynamically");
+
+    TezNamedEntityDescriptorProto schedulerNamed =
+        createNamedEntityDescriptor("zk_scheduler", ZookeeperTaskScheduler.class.getName());
+
+    TezNamedEntityDescriptorProto launcherNamed =
+        createNamedEntityDescriptor("zk_launcher", NoOpContainerLauncher.class.getName());
+
+    TezNamedEntityDescriptorProto commNamed =
+        createNamedEntityDescriptor("zk_communicator", TezTaskCommunicatorImpl.class.getName());
+
+    return AMPluginDescriptorProto.newBuilder()
+        .setContainersEnabled(false)
+        .addTaskSchedulers(schedulerNamed)
+        .addContainerLaunchers(launcherNamed)
+        .addTaskCommunicators(commNamed)
+        .build();
   }
 }

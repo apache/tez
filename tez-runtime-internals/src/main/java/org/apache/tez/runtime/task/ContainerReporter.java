@@ -59,7 +59,7 @@ public class ContainerReporter extends CallableWithNdc<ContainerTask> {
     long getTaskPollStartTime = System.currentTimeMillis();
     nextGetTaskPrintTime = getTaskPollStartTime + LOG_INTERVAL;
     for (int idle = 1; containerTask == null; idle++) {
-      long sleepTimeMilliSecs = Math.min(idle * 10, getTaskMaxSleepTime);
+      long sleepTimeMilliSecs = Math.min(idle * 10000, getTaskMaxSleepTime);
       maybeLogSleepMessage(sleepTimeMilliSecs);
       TimeUnit.MILLISECONDS.sleep(sleepTimeMilliSecs);
       containerTask = umbilical.getTask(containerContext);
