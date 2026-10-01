@@ -36,15 +36,12 @@ package org.apache.tez.runtime.library.utils;
  * limitations under the License.
  */
 
-import java.lang.reflect.Field;
+import java.lang.invoke.MethodHandles;
+import java.lang.invoke.VarHandle;
 import java.nio.ByteOrder;
-import java.security.AccessController;
-import java.security.PrivilegedAction;
 
 import com.google.common.primitives.Longs;
 import com.google.common.primitives.UnsignedBytes;
-
-import sun.misc.Unsafe;
 
 /**
  * Same as {@link org.apache.hadoop.io.FastByteComparisons}
@@ -79,10 +76,10 @@ final class FastByteComparisons {
 
   /**
    * Provides a lexicographical comparer implementation; either a Java
-   * implementation or a faster implementation based on {@link sun.misc.Unsafe}.
+   * implementation or a faster implementation based on {@link java.lang.invoke.VarHandle}.
    *
    * <p>Uses reflection to gracefully fall back to the Java implementation if
-   * {@code Unsafe} isn't available.
+   * {@code VarHandle} isn't available.
    */
   private static class LexicographicalComparerHolder {
     static final String UNSAFE_COMPARER_NAME =
@@ -137,35 +134,12 @@ final class FastByteComparisons {
     private enum UnsafeComparer implements Comparer<byte[]> {
       INSTANCE;
 
-      static final Unsafe theUnsafe;
-
-      /** The offset to the first element in a byte array. */
-      static final int BYTE_ARRAY_BASE_OFFSET;
-
-      static {
-        theUnsafe = (Unsafe) AccessController.doPrivileged(
-            new PrivilegedAction<Object>() {
-              @Override
-              public Object run() {
-                try {
-                  Field f = Unsafe.class.getDeclaredField("theUnsafe");
-                  f.setAccessible(true);
-                  return f.get(null);
-                } catch (NoSuchFieldException | IllegalAccessException e) {
-                  // It doesn't matter what we throw;
-                  // it's swallowed in getBestComparer().
-                  throw new Error();
-                }
-              }
-            });
-
-        BYTE_ARRAY_BASE_OFFSET = theUnsafe.arrayBaseOffset(byte[].class);
-
-        // sanity check - this should never fail
-        if (theUnsafe.arrayIndexScale(byte[].class) != 1) {
-          throw new AssertionError();
-        }
-      }
+      /**
+       * A VarHandle for reading longs from a byte array using native byte order.
+       * This replaces the deprecated sun.misc.Unsafe getLong(Object, long) API.
+       */
+      static final VarHandle LONG_VIEW =
+          MethodHandles.byteArrayViewVarHandle(long[].class, ByteOrder.nativeOrder());
 
       static final boolean littleEndian =
           ByteOrder.nativeOrder().equals(ByteOrder.LITTLE_ENDIAN);
@@ -200,8 +174,6 @@ final class FastByteComparisons {
         }
         int minLength = Math.min(length1, length2);
         int minWords = minLength / Longs.BYTES;
-        int offset1Adj = offset1 + BYTE_ARRAY_BASE_OFFSET;
-        int offset2Adj = offset2 + BYTE_ARRAY_BASE_OFFSET;
 
         /*
          * Compare 8 bytes at a time. Benchmarking shows comparing 8 bytes at a
@@ -209,8 +181,8 @@ final class FastByteComparisons {
          * On the other hand, it is substantially faster on 64-bit.
          */
         for (int i = 0; i < minWords * Longs.BYTES; i += Longs.BYTES) {
-          long lw = theUnsafe.getLong(buffer1, offset1Adj + (long) i);
-          long rw = theUnsafe.getLong(buffer2, offset2Adj + (long) i);
+          long lw = (long) LONG_VIEW.get(buffer1, offset1 + i);
+          long rw = (long) LONG_VIEW.get(buffer2, offset2 + i);
           long diff = lw ^ rw;
 
           if (diff != 0) {
