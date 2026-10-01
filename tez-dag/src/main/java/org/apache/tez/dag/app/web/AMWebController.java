@@ -921,16 +921,70 @@ public class AMWebController extends Controller {
                 "<p>To enable tracking url pointing to Tez UI, set the config <b>" +
                 TezConfiguration.TEZ_HISTORY_URL_BASE + "</b> in the tez-site.xml.</p>");
       } else {
+        // historyUrl is derived from a submitter-supplied AM configuration
+        // property (tez.tez-ui.history-url.base). Escape it before splicing
+        // into the HTML attribute and the inline JS string literal so a
+        // value like ' or " cannot break out and run script in the browser
+        // of whoever opens the AM tracking URL.
         pw.write("<h1>Redirecting to Tez UI</h1>. <p>If you are not redirected shortly, click " +
-                "<a href='" + historyUrl + "'><b>here</b></a></p>"
+                "<a href=\"" + escapeHtmlAttribute(historyUrl) + "\"><b>here</b></a></p>"
         );
         pw.write("<script type='text/javascript'>setTimeout(function() { " +
-          "window.location.replace('" + historyUrl + "');" +
-          "}, 0); </script>");
+            "window.location.replace('" + escapeJsString(historyUrl) + "');" +
+            "}, 0); </script>");
       }
       pw.write("</body>");
       pw.write("</html>");
       pw.flush();
+    }
+
+    static String escapeHtmlAttribute(String s) {
+      StringBuilder sb = new StringBuilder(s.length() + 16);
+      for (int i = 0; i < s.length(); i++) {
+        char c = s.charAt(i);
+        switch (c) {
+          case '&': sb.append("&amp;"); break;
+          case '<': sb.append("&lt;"); break;
+          case '>': sb.append("&gt;"); break;
+          case '"': sb.append("&quot;"); break;
+          case '\'': sb.append("&#39;"); break;
+          default: sb.append(c);
+        }
+      }
+      return sb.toString();
+    }
+
+    static String escapeJsString(String s) {
+      StringBuilder sb = new StringBuilder(s.length() + 16);
+      for (int i = 0; i < s.length(); i++) {
+        char c = s.charAt(i);
+        switch (c) {
+          case '\\': sb.append("\\\\"); break;
+          case '\'': sb.append("\\'"); break;
+          case '"': sb.append("\\\""); break;
+          case '\n': sb.append("\\n"); break;
+          case '\r': sb.append("\\r"); break;
+          case '\t': sb.append("\\t"); break;
+          case '\b': sb.append("\\b"); break;
+          case '\f': sb.append("\\f"); break;
+          case '<': sb.append("\\u003c"); break;
+          case '>': sb.append("\\u003e"); break;
+          case '&': sb.append("\\u0026"); break;
+          case '/': sb.append("\\/"); break;
+          // JS line terminators: illegal raw inside a string literal pre-ES2019.
+          // Written numerically because a \\u2028 source escape would be decoded
+          // by javac's lexer into a real line break and split this file.
+          case 0x2028: sb.append("\\u2028"); break;
+          case 0x2029: sb.append("\\u2029"); break;
+          default:
+            if (c < 0x20) {
+              sb.append(String.format("\\u%04x", (int) c));
+            } else {
+              sb.append(c);
+            }
+        }
+      }
+      return sb.toString();
     }
   }
 
