@@ -30,6 +30,7 @@ import java.util.Map.Entry;
 import java.util.TreeMap;
 import java.util.zip.Inflater;
 
+import org.apache.hadoop.conf.ConfigRedactor;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.tez.common.ATSConstants;
 import org.apache.tez.common.Preconditions;
@@ -505,11 +506,16 @@ public final class DAGUtils {
 
   public static Map<String, String> convertConfigurationToATSMap(Configuration conf) {
     // Copy configuration to avoid CME since iterator is not thread safe until HADOOP-13500
-    Iterator<Entry<String, String>> iter = new Configuration(conf).iterator();
+    Configuration snapshot = new Configuration(conf);
+    // The AM config holds every hadoop site file loaded at startup, so
+    // publishing it as is would expose credentials to anyone with timeline
+    // read access. Mask via hadoop.security.sensitive-config-keys.
+    ConfigRedactor redactor = new ConfigRedactor(snapshot);
+    Iterator<Entry<String, String>> iter = snapshot.iterator();
     Map<String, String> atsConf = new TreeMap<String, String>();
     while (iter.hasNext()) {
       Entry<String, String> entry = iter.next();
-      atsConf.put(entry.getKey(), entry.getValue());
+      atsConf.put(entry.getKey(), redactor.redact(entry.getKey(), entry.getValue()));
     }
     return atsConf;
   }
