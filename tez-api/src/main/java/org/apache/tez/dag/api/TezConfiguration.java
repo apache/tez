@@ -2269,6 +2269,63 @@ public class TezConfiguration extends Configuration {
   public static final int TEZ_SHARED_EXECUTOR_MAX_THREADS_DEFAULT = -1;
 
   /**
+   * Optional boolean value represented by string type. A value of "true" enables secure
+   * Zookeeper connection in ZkAMRegistry and ZkAMRegistryClient classes, while a value
+   * of "false" disables secure Zookeeper connection.
+   * If not specified or empty string, then zookeeper enables/disables the secure Zookeeper
+   * connection based on JVM properties.
+   * Default: Empty
+   */
+  @ConfigurationScope(Scope.AM)
+  @ConfigurationProperty
+  public static final String TEZ_AM_ZOOKEEPER_SSL_ENABLE = TEZ_AM_PREFIX
+          + "zookeeper.ssl.client.enable";
+
+  /**
+   * String value
+   * An optional setting that specifies the path to the keystore used for the secure
+   * zookeeper connection.
+   * Default: Empty
+   */
+  @ConfigurationScope(Scope.AM)
+  @ConfigurationProperty
+  public static final String TEZ_AM_ZOOKEEPER_SSL_KEYSTORE_LOCATION = TEZ_AM_PREFIX
+          + "zookeeper.ssl.keystore.location";
+
+  /**
+   * String value
+   * An optional setting that specifies the password of the keystore used for the secure
+   * zookeeper connection.
+   * Default: Empty
+   */
+  @ConfigurationScope(Scope.AM)
+  @ConfigurationProperty
+  public static final String TEZ_AM_ZOOKEEPER_SSL_KEYSTORE_PASSWORD = TEZ_AM_PREFIX
+          + "zookeeper.ssl.keystore.password";
+
+  /**
+   * String value
+   * An optional setting that specifies the path to the truststore used for the secure
+   * zookeeper connection.
+   * Default: Empty
+   */
+  @ConfigurationScope(Scope.AM)
+  @ConfigurationProperty
+  public static final String TEZ_AM_ZOOKEEPER_SSL_TRUSTSTORE_LOCATION = TEZ_AM_PREFIX
+          + "zookeeper.ssl.truststore.location";
+
+  /**
+   * String value
+   * An optional setting that specifies the password of the truststore used for the secure
+   * zookeeper connection.
+   * Default: Empty
+   */
+  @ConfigurationScope(Scope.AM)
+  @ConfigurationProperty
+  public static final String TEZ_AM_ZOOKEEPER_SSL_TRUSTSTORE_PASSWORD = TEZ_AM_PREFIX
+          + "zookeeper.ssl.truststore.password";
+
+  /**
    *  Acquire all FileSystems info. e.g., all namenodes info of HDFS federation cluster.
    */
   @ConfigurationScope(Scope.AM)
