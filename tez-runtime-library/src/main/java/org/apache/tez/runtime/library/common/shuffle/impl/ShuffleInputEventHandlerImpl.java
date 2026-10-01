@@ -176,20 +176,16 @@ public class ShuffleInputEventHandlerImpl implements ShuffleEventHandler {
           .stringify(shufflePayload));
     }
 
-    if (shufflePayload.hasEmptyPartitions()) {
-      if (emptyPartitionsBitSet.get(srcIndex)) {
-        CompositeInputAttemptIdentifier srcAttemptIdentifier =
-            constructInputAttemptIdentifier(dme.getTargetIndex(), 1, dme.getVersion(), shufflePayload, false);
-        LOG.debug("Source partition: {} did not generate any data. SrcAttempt: [{}]. Not fetching.",
+    updateApproximateInputRecords(dme.getTargetIndex(), shufflePayload);
+
+    if (shufflePayload.hasEmptyPartitions() && emptyPartitionsBitSet.get(srcIndex)) {
+      CompositeInputAttemptIdentifier srcAttemptIdentifier =
+          constructInputAttemptIdentifier(dme.getTargetIndex(), 1, dme.getVersion(), shufflePayload, false);
+      LOG.debug("Source partition: {} did not generate any data. SrcAttempt: [{}]. Not fetching.",
           srcIndex, srcAttemptIdentifier);
-        numDmeEventsNoData.getAndIncrement();
-        shuffleManager.addCompletedInputWithNoData(srcAttemptIdentifier.expand(0));
-        return;
-      } else {
-        shuffleManager.updateApproximateInputRecords(shufflePayload.getNumRecord());
-      }
-    } else {
-      shuffleManager.updateApproximateInputRecords(shufflePayload.getNumRecord());
+      numDmeEventsNoData.getAndIncrement();
+      shuffleManager.addCompletedInputWithNoData(srcAttemptIdentifier.expand(0));
+      return;
     }
 
     CompositeInputAttemptIdentifier srcAttemptIdentifier = constructInputAttemptIdentifier(dme.getTargetIndex(), 1, dme.getVersion(),
@@ -225,8 +221,23 @@ public class ShuffleInputEventHandlerImpl implements ShuffleEventHandler {
     }
   }
 
+  /**
+   * Tells the ShuffleManager how many rows one input has reported. Only a single-partition writer
+   * sets numRecord, so the event covers exactly one input -- a composite event's count is 1 -- and
+   * its target index is that input's. It is set even when the input wrote nothing, which is what
+   * lets an empty input count towards the extrapolation instead of being scaled over.
+   */
+  private void updateApproximateInputRecords(int targetIndex,
+      DataMovementEventPayloadProto shufflePayload) {
+    if (shufflePayload.hasNumRecord()) {
+      shuffleManager.updateApproximateInputRecords(targetIndex, shufflePayload.getNumRecord());
+    }
+  }
+
   private void processCompositeRoutedDataMovementEvent(CompositeRoutedDataMovementEvent crdme, DataMovementEventPayloadProto shufflePayload, BitSet emptyPartitionsBitSet) throws IOException {
     int partitionId = crdme.getSourceIndex();
+    updateApproximateInputRecords(crdme.getTargetIndex(), shufflePayload);
+
     if (LOG.isDebugEnabled()) {
       LOG.debug("DME srcIdx: " + partitionId + ", targetIndex: " + crdme.getTargetIndex() + ", count:" + crdme.getCount()
           + ", attemptNum: " + crdme.getVersion() + ", payload: " + ShuffleUtils

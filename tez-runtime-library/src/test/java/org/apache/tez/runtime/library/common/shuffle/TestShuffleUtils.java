@@ -75,6 +75,7 @@ import org.apache.tez.runtime.library.common.sort.impl.TezIndexRecord;
 import org.apache.tez.runtime.library.common.sort.impl.TezSpillRecord;
 import org.apache.tez.runtime.library.partitioner.HashPartitioner;
 import org.apache.tez.runtime.library.shuffle.impl.ShuffleUserPayloads;
+import org.apache.tez.runtime.library.shuffle.impl.ShuffleUserPayloads.DataMovementEventPayloadProto;
 
 import com.google.common.collect.Lists;
 import com.google.protobuf.ByteString;
@@ -284,6 +285,34 @@ public class TestShuffleUtils {
     BitSet emptyPartitionsBitSet = TezUtilsInternal.fromByteArray(emptyPartitions);
     assertEquals(10, emptyPartitionsBitSet.cardinality(),
         "emptyPartitionBitSet cardinality (expecting 10) = " + emptyPartitionsBitSet.cardinality());
+  }
+
+  /**
+   * An output that never started delivers no rows, and a single-partition one fills num_record
+   * like any other, so it joins the consumer's denominator instead of being scaled over.
+   */
+  @Test
+  public void testNonStartedSinglePartitionOutputReportsZeroRecords() throws Exception {
+    List<Event> events = Lists.newLinkedList();
+    ShuffleUtils.generateEventsForNonStartedOutput(events, 1, outputContext, false, true,
+        TezCommonUtils.newBestCompressionDeflater());
+
+    DataMovementEventPayloadProto proto = DataMovementEventPayloadProto.parseFrom(
+        ByteString.copyFrom(((CompositeDataMovementEvent) events.get(0)).getUserPayload()));
+    assertTrue(proto.hasNumRecord());
+    assertEquals(0, proto.getNumRecord());
+  }
+
+  /** num_record describes a single input, so a multi-partition payload must not carry one. */
+  @Test
+  public void testNonStartedMultiPartitionOutputReportsNoRecordCount() throws Exception {
+    List<Event> events = Lists.newLinkedList();
+    ShuffleUtils.generateEventsForNonStartedOutput(events, 10, outputContext, false, true,
+        TezCommonUtils.newBestCompressionDeflater());
+
+    DataMovementEventPayloadProto proto = DataMovementEventPayloadProto.parseFrom(
+        ByteString.copyFrom(((CompositeDataMovementEvent) events.get(0)).getUserPayload()));
+    assertFalse(proto.hasNumRecord());
   }
 
   @Test

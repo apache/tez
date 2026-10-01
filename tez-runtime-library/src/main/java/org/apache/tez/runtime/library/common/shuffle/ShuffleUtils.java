@@ -338,6 +338,18 @@ public final class ShuffleUtils {
   }
 
   /**
+   * Fills in num_record, which describes a single input, so only a one-partition payload can
+   * carry it: with more partitions the one payload covers several inputs and the count could not
+   * be attributed to any of them.
+   */
+  public static void setNumRecord(DataMovementEventPayloadProto.Builder payloadBuilder,
+      int numPartitions, long numRecords) {
+    if (numPartitions == 1) {
+      payloadBuilder.setNumRecord(numRecords);
+    }
+  }
+
+  /**
    * Generate events for outputs which have not been started.
    * @param eventList
    * @param numPhysicalOutputs
@@ -356,6 +368,8 @@ public final class ShuffleUtils {
     DataMovementEventPayloadProto.Builder payloadBuilder = DataMovementEventPayloadProto
         .newBuilder();
 
+    // This output produced nothing; 0 says so, where an unset field reads as unknown.
+    setNumRecord(payloadBuilder, numPhysicalOutputs, 0);
 
     // Construct the VertexManager event if required.
     if (generateVmEvent) {
