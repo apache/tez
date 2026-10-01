@@ -23,6 +23,7 @@ import java.io.IOException;
 import org.apache.hadoop.classification.InterfaceAudience.Private;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.security.UserGroupInformation;
+import org.apache.hadoop.thirdparty.protobuf.ServiceException;
 import org.apache.hadoop.yarn.api.records.ApplicationId;
 import org.apache.hadoop.yarn.api.records.ApplicationReport;
 import org.apache.hadoop.yarn.api.records.ApplicationSubmissionContext;
@@ -48,8 +49,6 @@ import org.apache.tez.dag.api.client.rpc.DAGClientAMProtocolRPC.SubmitDAGRespons
 import org.apache.tez.frameworkplugins.ClientFrameworkService;
 import org.apache.tez.frameworkplugins.FrameworkUtils;
 import org.apache.tez.frameworkplugins.yarn.YarnClientFrameworkService;
-
-import com.google.protobuf.ServiceException;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
