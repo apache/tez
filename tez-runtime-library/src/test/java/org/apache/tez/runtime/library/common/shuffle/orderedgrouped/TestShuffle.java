@@ -79,8 +79,8 @@ public class TestShuffle {
 
     InputContext inputContext = createTezInputContext();
     TezConfiguration conf = new TezConfiguration();
-    conf.setLong(Constants.TEZ_RUNTIME_TASK_MEMORY, 300000l);
-    Shuffle shuffle = new Shuffle(inputContext, conf, 1, 3000000l);
+    conf.setLong(Constants.TEZ_RUNTIME_TASK_MEMORY, 300000L);
+    Shuffle shuffle = new Shuffle(inputContext, conf, 1, 3000000L);
     try {
       shuffle.run();
       ShuffleScheduler scheduler = shuffle.scheduler;
@@ -92,12 +92,12 @@ public class TestShuffle {
       shuffle.reportException(new IOException(exceptionMessage));
 
       while (!scheduler.isShutdown()) {
-        Thread.sleep(100l);
+        Thread.sleep(100L);
       }
       assertTrue(scheduler.isShutdown());
 
       while (!mergeManager.isShutdown()) {
-        Thread.sleep(100l);
+        Thread.sleep(100L);
       }
       assertTrue(mergeManager.isShutdown());
 
@@ -121,8 +121,8 @@ public class TestShuffle {
   public void testKillSelf() throws IOException, InterruptedException {
     InputContext inputContext = createTezInputContext();
     TezConfiguration conf = new TezConfiguration();
-    conf.setLong(Constants.TEZ_RUNTIME_TASK_MEMORY, 300000l);
-    Shuffle shuffle = new Shuffle(inputContext, conf, 1, 3000000l);
+    conf.setLong(Constants.TEZ_RUNTIME_TASK_MEMORY, 300000L);
+    Shuffle shuffle = new Shuffle(inputContext, conf, 1, 3000000L);
     try {
       shuffle.run();
       ShuffleScheduler scheduler = shuffle.scheduler;

@@ -424,7 +424,7 @@ public class TestTezCommonUtils {
     // set to 1 month - * 1000 guaranteed to cross positive integer boundary
     conf.setInt(TezConfiguration.TEZ_SESSION_AM_DAG_SUBMIT_TIMEOUT_SECS,
         24 * 60 * 60 * 30);
-    assertEquals(86400l*1000*30,
+    assertEquals(86400L*1000*30,
         TezCommonUtils.getDAGSessionTimeout(conf));
 
     // set to negative val

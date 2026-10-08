@@ -166,7 +166,7 @@ public class TestATSHistoryWithMiniCluster {
       while (!dagStatus.isCompleted()) {
         LOG.info("Waiting for job to complete. Sleeping for 500ms." + " Current state: "
             + dagStatus.getState());
-        Thread.sleep(500l);
+        Thread.sleep(500L);
         dagStatus = dagClient.getDAGStatus(null);
       }
       assertEquals(DAGStatus.State.SUCCEEDED, dagStatus.getState());

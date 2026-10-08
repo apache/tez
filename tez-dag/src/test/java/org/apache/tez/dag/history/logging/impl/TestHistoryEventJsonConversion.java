@@ -100,7 +100,7 @@ public class TestHistoryEventJsonConversion {
   @SuppressWarnings("deprecation")
   @BeforeEach
   public void setup() {
-    applicationId = ApplicationId.newInstance(9999l, 1);
+    applicationId = ApplicationId.newInstance(9999L, 1);
     applicationAttemptId = ApplicationAttemptId.newInstance(applicationId, 1);
     tezDAGID = TezDAGID.getInstance(applicationId, random.nextInt());
     tezVertexID = TezVertexID.getInstance(tezDAGID, random.nextInt());
@@ -195,7 +195,7 @@ public class TestHistoryEventJsonConversion {
           break;
         case DAG_RECOVERED:
           event = new DAGRecoveredEvent(applicationAttemptId, tezDAGID, dagPlan.getName(), user,
-              1l, null);
+              1L, null);
           break;
         case DAG_KILL_REQUEST:
           event = new DAGKillRequestEvent();
@@ -225,7 +225,7 @@ public class TestHistoryEventJsonConversion {
   public void testConvertVertexReconfigureDoneEvent() throws JSONException {
     TezVertexID vId = TezVertexID.getInstance(
         TezDAGID.getInstance(
-            ApplicationId.newInstance(1l, 1), 1), 1);
+            ApplicationId.newInstance(1L, 1), 1), 1);
     Map<String, EdgeProperty> edgeMgrs =
         new HashMap<String, EdgeProperty>();
 

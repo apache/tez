@@ -118,7 +118,7 @@ public class TestHistoryEventTimelineConversion {
   @SuppressWarnings("deprecation")
   @BeforeEach
   public void setup() {
-    applicationId = ApplicationId.newInstance(9999l, 1);
+    applicationId = ApplicationId.newInstance(9999L, 1);
     applicationAttemptId = ApplicationAttemptId.newInstance(applicationId, 1);
     tezDAGID = TezDAGID.getInstance(applicationId, random.nextInt());
     tezVertexID = TezVertexID.getInstance(tezDAGID, random.nextInt());

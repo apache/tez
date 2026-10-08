@@ -185,7 +185,7 @@ public class TestATSHistoryV15 {
       while (!dagStatus.isCompleted()) {
         LOG.info("Waiting for job to complete. Sleeping for 500ms." + " Current state: "
             + dagStatus.getState());
-        Thread.sleep(500l);
+        Thread.sleep(500L);
         dagStatus = dagClient.getDAGStatus(null);
       }
       assertEquals(State.SUCCEEDED, dagStatus.getState());
@@ -239,7 +239,7 @@ public class TestATSHistoryV15 {
       while (!dagStatus.isCompleted()) {
         LOG.info("Waiting for job to complete. Sleeping for 500ms." + " Current state: "
             + dagStatus.getState());
-        Thread.sleep(500l);
+        Thread.sleep(500L);
         dagStatus = dagClient.getDAGStatus(null);
       }
       assertEquals(State.SUCCEEDED, dagStatus.getState());
@@ -274,7 +274,7 @@ public class TestATSHistoryV15 {
 
   @Test
   public void testGetGroupId() throws Exception {
-    ApplicationId appId = ApplicationId.newInstance(1000l, 1);
+    ApplicationId appId = ApplicationId.newInstance(1000L, 1);
     TezDAGID dagid = TezDAGID.getInstance(appId, 1);
     for (final HistoryEventType eventType : HistoryEventType.values()) {
       HistoryEvent historyEvent = new HistoryEvent() {
