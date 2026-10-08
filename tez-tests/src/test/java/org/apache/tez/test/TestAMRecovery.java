@@ -33,7 +33,9 @@ import org.apache.hadoop.fs.CommonConfigurationKeysPublic;
 import org.apache.hadoop.fs.FileSystem;
 import org.apache.hadoop.fs.Path;
 import org.apache.hadoop.hdfs.MiniDFSCluster;
+import org.apache.hadoop.yarn.api.records.ApplicationAttemptId;
 import org.apache.hadoop.yarn.api.records.ApplicationId;
+import org.apache.hadoop.yarn.client.api.YarnClient;
 import org.apache.hadoop.yarn.conf.YarnConfiguration;
 import org.apache.tez.client.TezClient;
 import org.apache.tez.client.TezClientUtils;
@@ -61,6 +63,7 @@ import org.apache.tez.dag.api.VertexManagerPluginDescriptor;
 import org.apache.tez.dag.api.client.DAGClient;
 import org.apache.tez.dag.api.client.DAGStatus;
 import org.apache.tez.dag.api.client.StatusGetOpts;
+import org.apache.tez.dag.api.client.VertexStatus;
 import org.apache.tez.dag.app.RecoveryParser;
 import org.apache.tez.dag.app.dag.impl.ImmediateStartVertexManager;
 import org.apache.tez.dag.history.HistoryEvent;
@@ -212,7 +215,7 @@ public class TestAMRecovery {
     DAG dag =
         createDAG("VertexPartiallyFinished_Broadcast", ControlledImmediateStartVertexManager.class,
             DataMovementType.BROADCAST, true);
-    TezCounters counters = runDAGAndVerify(dag, DAGStatus.State.SUCCEEDED);
+    TezCounters counters = runDAGAndVerify(dag, DAGStatus.State.SUCCEEDED, true, "v1", 1);
     assertEquals(4, counters.findCounter(DAGCounter.NUM_SUCCEEDED_TASKS).getValue());
     assertEquals(2, counters.findCounter(TestCounter.Counter_1).getValue());
 
@@ -244,7 +247,7 @@ public class TestAMRecovery {
     DAG dag =
         createDAG("VertexCompletelyFinished_Broadcast", ControlledImmediateStartVertexManager.class,
             DataMovementType.BROADCAST, false);
-    TezCounters counters = runDAGAndVerify(dag, DAGStatus.State.SUCCEEDED);
+    TezCounters counters = runDAGAndVerify(dag, DAGStatus.State.SUCCEEDED, true, "v1", 0);
 
     assertEquals(4, counters.findCounter(DAGCounter.NUM_SUCCEEDED_TASKS).getValue());
     assertEquals(2, counters.findCounter(TestCounter.Counter_1).getValue());
@@ -277,7 +280,7 @@ public class TestAMRecovery {
     DAG dag =
         createDAG("VertexPartialFinished_One2One", ControlledInputReadyVertexManager.class,
             DataMovementType.ONE_TO_ONE, true);
-    TezCounters counters = runDAGAndVerify(dag, DAGStatus.State.SUCCEEDED);
+    TezCounters counters = runDAGAndVerify(dag, DAGStatus.State.SUCCEEDED, true, "v1", 1);
     assertEquals(4, counters.findCounter(DAGCounter.NUM_SUCCEEDED_TASKS).getValue());
     assertEquals(2, counters.findCounter(TestCounter.Counter_1).getValue());
 
@@ -310,7 +313,7 @@ public class TestAMRecovery {
     DAG dag =
         createDAG("VertexCompletelyFinished_One2One", ControlledInputReadyVertexManager.class,
             DataMovementType.ONE_TO_ONE, false);
-    TezCounters counters = runDAGAndVerify(dag, DAGStatus.State.SUCCEEDED);
+    TezCounters counters = runDAGAndVerify(dag, DAGStatus.State.SUCCEEDED, true, "v1", 0);
     assertEquals(4, counters.findCounter(DAGCounter.NUM_SUCCEEDED_TASKS).getValue());
     assertEquals(2, counters.findCounter(TestCounter.Counter_1).getValue());
 
@@ -343,7 +346,7 @@ public class TestAMRecovery {
     DAG dag =
         createDAG("VertexPartiallyFinished_ScatterGather", ControlledShuffleVertexManager.class,
             DataMovementType.SCATTER_GATHER, true);
-    TezCounters counters = runDAGAndVerify(dag, DAGStatus.State.SUCCEEDED);
+    TezCounters counters = runDAGAndVerify(dag, DAGStatus.State.SUCCEEDED, true, "v1", 1);
     assertEquals(4, counters.findCounter(DAGCounter.NUM_SUCCEEDED_TASKS).getValue());
     assertEquals(2, counters.findCounter(TestCounter.Counter_1).getValue());
 
@@ -376,7 +379,7 @@ public class TestAMRecovery {
     DAG dag =
         createDAG("VertexCompletelyFinished_ScatterGather", ControlledShuffleVertexManager.class,
             DataMovementType.SCATTER_GATHER, false);
-    TezCounters counters = runDAGAndVerify(dag, DAGStatus.State.SUCCEEDED);
+    TezCounters counters = runDAGAndVerify(dag, DAGStatus.State.SUCCEEDED, true, "v1", 0);
     assertEquals(4, counters.findCounter(DAGCounter.NUM_SUCCEEDED_TASKS).getValue());
     assertEquals(2, counters.findCounter(TestCounter.Counter_1).getValue());
     TezCounter outputCounter = counters.findCounter(TestOutput.COUNTER_NAME, TestOutput.COUNTER_NAME);
@@ -415,18 +418,96 @@ public class TestAMRecovery {
     DAG dag =
         createDAG("HighMaxAttempt", FailOnAttemptVertexManager.class,
             DataMovementType.SCATTER_GATHER, false);
-    runDAGAndVerify(dag, DAGStatus.State.SUCCEEDED);
+    runDAGAndVerify(dag, DAGStatus.State.SUCCEEDED, false, null, 0);
 
   }
 
-  TezCounters runDAGAndVerify(DAG dag, DAGStatus.State finalState) throws Exception {
+  TezCounters runDAGAndVerify(DAG dag, DAGStatus.State finalState,
+      boolean killAM, String waitForVertex, int waitForTaskCount) throws Exception {
     tezSession.waitTillReady();
     DAGClient dagClient = tezSession.submitDAG(dag);
+
+    if (killAM) {
+      // Deterministic wait: block until the target upstream vertex reaches the
+      // desired state, then externally fail attempt 1. This avoids racing the
+      // AM's async RecoveryEventHandlingThread the way an in-process
+      // System.exit(-1) does.
+      if (waitForTaskCount > 0) {
+        waitForVertexTasksSucceeded(dagClient, waitForVertex,
+            waitForTaskCount, TimeUnit.SECONDS.toMillis(60));
+      } else {
+        waitForVertexSucceeded(dagClient, waitForVertex,
+            TimeUnit.SECONDS.toMillis(60));
+      }
+      YarnClient yarnClient = YarnClient.createYarnClient();
+      yarnClient.init(tezConf);
+      yarnClient.start();
+      try {
+        ApplicationAttemptId id = ApplicationAttemptId.newInstance(
+            tezSession.getAppMasterApplicationId(), 1);
+        yarnClient.failApplicationAttempt(id);
+      } finally {
+        yarnClient.close();
+      }
+    }
+
     DAGStatus dagStatus =
         dagClient.waitForCompletionWithStatusUpdates(EnumSet
             .of(StatusGetOpts.GET_COUNTERS));
     assertEquals(finalState, dagStatus.getState());
     return dagStatus.getDAGCounters();
+  }
+
+  private void waitForVertexSucceeded(DAGClient dagClient, String vertexName,
+      long timeoutMs) throws Exception {
+    long timeoutNanos = TimeUnit.MILLISECONDS.toNanos(timeoutMs);
+    long startNanos = System.nanoTime();
+    while ((System.nanoTime() - startNanos) < timeoutNanos) {
+      // Before the vertex is initialized on the AM, getVertexStatus may
+      // return null - treat that the same as NEW / INITIALIZING and keep polling.
+      VertexStatus status = dagClient.getVertexStatus(vertexName, null);
+      if (status != null) {
+        VertexStatus.State state = status.getState();
+        switch (state) {
+          case SUCCEEDED -> {
+            return;
+          }
+          case FAILED, KILLED, ERROR ->
+              throw new AssertionError(
+                  "Vertex " + vertexName + " reached terminal non-success state: " + state);
+          default -> {
+            // Still running / initializing; fall through to sleep and poll again.
+          }
+        }
+      }
+      TimeUnit.MILLISECONDS.sleep(500);
+    }
+    throw new AssertionError("Timeout waiting for vertex " + vertexName + " to reach SUCCEEDED");
+  }
+
+  private void waitForVertexTasksSucceeded(DAGClient dagClient, String vertexName,
+      int minSucceeded, long timeoutMs) throws Exception {
+    long timeoutNanos = TimeUnit.MILLISECONDS.toNanos(timeoutMs);
+    long startNanos = System.nanoTime();
+    while ((System.nanoTime() - startNanos) < timeoutNanos) {
+      VertexStatus status = dagClient.getVertexStatus(vertexName, null);
+      if (status != null) {
+        VertexStatus.State state = status.getState();
+        if (state == VertexStatus.State.FAILED
+            || state == VertexStatus.State.KILLED
+            || state == VertexStatus.State.ERROR) {
+          throw new AssertionError(
+              "Vertex " + vertexName + " reached terminal non-success state: " + state);
+        }
+        if (status.getProgress() != null
+            && status.getProgress().getSucceededTaskCount() >= minSucceeded) {
+          return;
+        }
+      }
+      TimeUnit.MILLISECONDS.sleep(500);
+    }
+    throw new AssertionError("Timeout waiting for " + minSucceeded
+        + " task(s) to SUCCEED in vertex " + vertexName);
   }
 
   /**
@@ -519,88 +600,31 @@ public class TestAMRecovery {
   public static class ControlledInputReadyVertexManager extends
       InputReadyVertexManager {
 
-    private Configuration conf;
-    private int completedTaskNum = 0;
-
     public ControlledInputReadyVertexManager(VertexManagerPluginContext context) {
       super(context);
     }
 
     @Override
-    public void initialize() {
-      super.initialize();
-      try {
-        conf =
-            TezUtils.createConfFromUserPayload(getContext().getUserPayload());
-      } catch (IOException e) {
-        e.printStackTrace();
-      }
-    }
-
-    @Override
     public void onSourceTaskCompleted(TaskAttemptIdentifier attempt) {
       super.onSourceTaskCompleted(attempt);
-      completedTaskNum ++;
-      if (getContext().getDAGAttemptNumber() == 1) {
-        if (conf.getBoolean(FAIL_ON_PARTIAL_FINISHED, true)) {
-          if (completedTaskNum == 1) {
-            System.exit(-1);
-          }
-        } else {
-          if (completedTaskNum == getContext().
-              getVertexNumTasks(attempt.getTaskIdentifier().getVertexIdentifier().getName())) {
-            System.exit(-1);
-          }
-        }
-      }
     }
   }
 
   public static class ControlledShuffleVertexManager extends
       ShuffleVertexManager {
 
-    private Configuration conf;
-    private int completedTaskNum = 0;
-
     public ControlledShuffleVertexManager(VertexManagerPluginContext context) {
       super(context);
     }
 
     @Override
-    public void initialize() {
-      super.initialize();
-      try {
-        conf =
-            TezUtils.createConfFromUserPayload(getContext().getUserPayload());
-      } catch (IOException e) {
-        e.printStackTrace();
-      }
-    }
-
-    @Override
     public void onSourceTaskCompleted(TaskAttemptIdentifier attempt) {
       super.onSourceTaskCompleted(attempt);
-      completedTaskNum ++;
-      if (getContext().getDAGAttemptNumber() == 1) {
-        if (conf.getBoolean(FAIL_ON_PARTIAL_FINISHED, true)) {
-          if (completedTaskNum == 1) {
-            System.exit(-1);
-          }
-        } else {
-          if (completedTaskNum == getContext().
-              getVertexNumTasks(attempt.getTaskIdentifier().getVertexIdentifier().getName())) {
-            System.exit(-1);
-          }
-        }
-      }
     }
   }
 
   public static class ControlledImmediateStartVertexManager extends
       ImmediateStartVertexManager {
-
-    private Configuration conf;
-    private int completedTaskNum = 0;
 
     public ControlledImmediateStartVertexManager(
         VertexManagerPluginContext context) {
@@ -608,32 +632,8 @@ public class TestAMRecovery {
     }
 
     @Override
-    public void initialize() {
-      super.initialize();
-      try {
-        conf =
-            TezUtils.createConfFromUserPayload(getContext().getUserPayload());
-      } catch (IOException e) {
-        e.printStackTrace();
-      }
-    }
-
-    @Override
     public void onSourceTaskCompleted(TaskAttemptIdentifier attempt) {
       super.onSourceTaskCompleted(attempt);
-      completedTaskNum ++;
-      if (getContext().getDAGAttemptNumber() == 1) {
-        if (conf.getBoolean(FAIL_ON_PARTIAL_FINISHED, true)) {
-          if (completedTaskNum == 1) {
-            System.exit(-1);
-          }
-        } else {
-          if (completedTaskNum == getContext().
-              getVertexNumTasks(attempt.getTaskIdentifier().getVertexIdentifier().getName())) {
-            System.exit(-1);
-          }
-        }
-      }
     }
   }
 
