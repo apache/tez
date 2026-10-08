@@ -39,15 +39,15 @@ public class TestObjectRegistry {
 
     assertNull(objectRegistry.get("foo"));
     assertFalse(objectRegistry.delete("foo"));
-    Integer one = new Integer(1);
-    Integer two_1 = new Integer(2);
-    Integer two_2 = new Integer(3);
+    Integer one = 1;
+    Integer twoFirst = 2;
+    Integer twoSecond = 3;
     assertNull(objectRegistry.cacheForDAG("one", one));
     assertEquals(one, objectRegistry.get("one"));
-    assertNull(objectRegistry.cacheForDAG("two", two_1));
-    assertNotNull(objectRegistry.cacheForSession("two", two_2));
-    assertNotEquals(two_1, objectRegistry.get("two"));
-    assertEquals(two_2, objectRegistry.get("two"));
+    assertNull(objectRegistry.cacheForDAG("two", twoFirst));
+    assertNotNull(objectRegistry.cacheForSession("two", twoSecond));
+    assertNotEquals(twoFirst, objectRegistry.get("two"));
+    assertEquals(twoSecond, objectRegistry.get("two"));
     assertTrue(objectRegistry.delete("one"));
     assertFalse(objectRegistry.delete("one"));
 
