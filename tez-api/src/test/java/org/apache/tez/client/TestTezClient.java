@@ -382,7 +382,7 @@ public class TestTezClient {
     client2.stop();
     verify(client2.sessionAmProxy, times(1)).shutdownSession(any(),
             any());
-    verify(client2.mockYarnClient, times(1)).stop();
+    verify(client2.mockYarnClient, times(1)).close();
     /* END reuse of AM from new TezClient */
   }
 
@@ -501,7 +501,7 @@ public class TestTezClient {
         verify(client.sessionAmProxy, times(1)).shutdownSession(any(),
                 any());
       }
-      verify(client.mockYarnClient, times(1)).stop();
+      verify(client.mockYarnClient, times(1)).close();
     }
     return client;
   }
