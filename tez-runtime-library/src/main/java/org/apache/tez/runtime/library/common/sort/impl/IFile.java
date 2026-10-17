@@ -21,6 +21,7 @@ package org.apache.tez.runtime.library.common.sort.impl;
 import java.io.DataInput;
 import java.io.DataInputStream;
 import java.io.DataOutputStream;
+import java.io.FilterOutputStream;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.OutputStream;
@@ -46,6 +47,7 @@ import org.apache.hadoop.io.compress.Decompressor;
 import org.apache.hadoop.io.serializer.Serialization;
 import org.apache.hadoop.io.serializer.Serializer;
 import org.apache.tez.common.counters.TezCounter;
+import org.apache.tez.common.io.NonSyncDataOutputStream;
 import org.apache.tez.runtime.library.common.task.local.output.TezTaskOutput;
 import org.apache.tez.runtime.library.utils.BufferUtils;
 import org.apache.tez.runtime.library.utils.CodecUtils;
@@ -261,6 +263,8 @@ public final class IFile {
   @InterfaceStability.Unstable
   @SuppressWarnings({"unchecked", "rawtypes"})
   public static class Writer {
+    private static final int WRITE_BUFFER_SIZE = 64 * 1024;
+
     protected DataOutputStream out;
     boolean ownOutputStream = false;
     long start = 0;
@@ -356,15 +360,25 @@ public final class IFile {
         if (this.compressor != null) {
           this.compressor.reset();
           this.compressedOut = CodecUtils.createOutputStream(codec, checksumOut, compressor);
-          this.out = new FSDataOutputStream(this.compressedOut,  null);
+          this.out = bufferedOutput(this.compressedOut);
           this.compressOutput = true;
         } else {
           LOG.warn("Could not obtain compressor from CodecPool");
-          this.out = new FSDataOutputStream(checksumOut,null);
+          this.out = bufferedOutput(checksumOut);
         }
       } else {
-        this.out = new FSDataOutputStream(checksumOut,null);
+        this.out = bufferedOutput(checksumOut);
       }
+    }
+
+    /**
+     * The writer emits several small writes per record (vint lengths, key, value). Unbuffered,
+     * each one is a full call into the codec stream (synchronized Compressor.setInput and
+     * friends) or the checksum stream. The buffer is unsynchronized: a Writer is confined to
+     * one thread.
+     */
+    private static DataOutputStream bufferedOutput(OutputStream stream) {
+      return new NonSyncDataOutputStream(new WriteBuffer(stream, WRITE_BUFFER_SIZE));
     }
 
     public Writer(Serialization keySerialization, Serialization valSerialization, FileSystem fs, Path file) throws IOException {
@@ -406,6 +420,8 @@ public final class IFile {
       if (ownOutputStream) {
         out.close();
       } else {
+        // Drain the write buffer before finishing the streams below it.
+        out.flush();
         if (compressOutput) {
           // Flush
           compressedOut.finish();
@@ -631,6 +647,52 @@ public final class IFile {
 
     public long getCompressedLength() {
       return compressedBytesWritten;
+    }
+  }
+
+  /** {@link java.io.BufferedOutputStream} without its per-call lock. */
+  private static final class WriteBuffer extends FilterOutputStream {
+    private final byte[] buf;
+    private int count;
+
+    WriteBuffer(OutputStream out, int size) {
+      super(out);
+      this.buf = new byte[size];
+    }
+
+    @Override
+    public void write(int b) throws IOException {
+      if (count == buf.length) {
+        drain();
+      }
+      buf[count++] = (byte) b;
+    }
+
+    @Override
+    public void write(byte[] b, int off, int len) throws IOException {
+      if (len >= buf.length) {
+        drain();
+        out.write(b, off, len);
+        return;
+      }
+      if (len > buf.length - count) {
+        drain();
+      }
+      System.arraycopy(b, off, buf, count, len);
+      count += len;
+    }
+
+    @Override
+    public void flush() throws IOException {
+      drain();
+      out.flush();
+    }
+
+    private void drain() throws IOException {
+      if (count > 0) {
+        out.write(buf, 0, count);
+        count = 0;
+      }
     }
   }
 
