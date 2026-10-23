@@ -46,6 +46,8 @@ import org.apache.hadoop.io.compress.Decompressor;
 import org.apache.hadoop.io.serializer.Serialization;
 import org.apache.hadoop.io.serializer.Serializer;
 import org.apache.tez.common.counters.TezCounter;
+import org.apache.tez.common.io.NonSyncBufferedOutputStream;
+import org.apache.tez.common.io.NonSyncDataOutputStream;
 import org.apache.tez.runtime.library.common.task.local.output.TezTaskOutput;
 import org.apache.tez.runtime.library.utils.BufferUtils;
 import org.apache.tez.runtime.library.utils.CodecUtils;
@@ -261,6 +263,8 @@ public final class IFile {
   @InterfaceStability.Unstable
   @SuppressWarnings({"unchecked", "rawtypes"})
   public static class Writer {
+    private static final int WRITE_BUFFER_SIZE = 64 * 1024;
+
     protected DataOutputStream out;
     boolean ownOutputStream = false;
     long start = 0;
@@ -356,15 +360,25 @@ public final class IFile {
         if (this.compressor != null) {
           this.compressor.reset();
           this.compressedOut = CodecUtils.createOutputStream(codec, checksumOut, compressor);
-          this.out = new FSDataOutputStream(this.compressedOut,  null);
+          this.out = bufferedOutput(this.compressedOut);
           this.compressOutput = true;
         } else {
           LOG.warn("Could not obtain compressor from CodecPool");
-          this.out = new FSDataOutputStream(checksumOut,null);
+          this.out = bufferedOutput(checksumOut);
         }
       } else {
-        this.out = new FSDataOutputStream(checksumOut,null);
+        this.out = bufferedOutput(checksumOut);
       }
+    }
+
+    /**
+     * The writer emits several small writes per record (vint lengths, key, value). Unbuffered,
+     * each one is a full call into the codec stream (synchronized Compressor.setInput and
+     * friends) or the checksum stream. The buffer is unsynchronized: a Writer is confined to
+     * one thread.
+     */
+    private static DataOutputStream bufferedOutput(OutputStream stream) {
+      return new NonSyncDataOutputStream(new NonSyncBufferedOutputStream(stream, WRITE_BUFFER_SIZE));
     }
 
     public Writer(Serialization keySerialization, Serialization valSerialization, FileSystem fs, Path file) throws IOException {
@@ -406,6 +420,8 @@ public final class IFile {
       if (ownOutputStream) {
         out.close();
       } else {
+        // Drain the write buffer before finishing the streams below it.
+        out.flush();
         if (compressOutput) {
           // Flush
           compressedOut.finish();
@@ -633,6 +649,7 @@ public final class IFile {
       return compressedBytesWritten;
     }
   }
+
 
   /**
    * <code>IFile.Reader</code> to read intermediate map-outputs.
