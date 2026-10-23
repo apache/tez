@@ -21,7 +21,6 @@ package org.apache.tez.runtime.library.common.sort.impl;
 import java.io.DataInput;
 import java.io.DataInputStream;
 import java.io.DataOutputStream;
-import java.io.FilterOutputStream;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.OutputStream;
@@ -47,6 +46,7 @@ import org.apache.hadoop.io.compress.Decompressor;
 import org.apache.hadoop.io.serializer.Serialization;
 import org.apache.hadoop.io.serializer.Serializer;
 import org.apache.tez.common.counters.TezCounter;
+import org.apache.tez.common.io.NonSyncBufferedOutputStream;
 import org.apache.tez.common.io.NonSyncDataOutputStream;
 import org.apache.tez.runtime.library.common.task.local.output.TezTaskOutput;
 import org.apache.tez.runtime.library.utils.BufferUtils;
@@ -378,7 +378,7 @@ public final class IFile {
      * one thread.
      */
     private static DataOutputStream bufferedOutput(OutputStream stream) {
-      return new NonSyncDataOutputStream(new WriteBuffer(stream, WRITE_BUFFER_SIZE));
+      return new NonSyncDataOutputStream(new NonSyncBufferedOutputStream(stream, WRITE_BUFFER_SIZE));
     }
 
     public Writer(Serialization keySerialization, Serialization valSerialization, FileSystem fs, Path file) throws IOException {
@@ -650,51 +650,6 @@ public final class IFile {
     }
   }
 
-  /** {@link java.io.BufferedOutputStream} without its per-call lock. */
-  private static final class WriteBuffer extends FilterOutputStream {
-    private final byte[] buf;
-    private int count;
-
-    WriteBuffer(OutputStream out, int size) {
-      super(out);
-      this.buf = new byte[size];
-    }
-
-    @Override
-    public void write(int b) throws IOException {
-      if (count == buf.length) {
-        drain();
-      }
-      buf[count++] = (byte) b;
-    }
-
-    @Override
-    public void write(byte[] b, int off, int len) throws IOException {
-      if (len >= buf.length) {
-        drain();
-        out.write(b, off, len);
-        return;
-      }
-      if (len > buf.length - count) {
-        drain();
-      }
-      System.arraycopy(b, off, buf, count, len);
-      count += len;
-    }
-
-    @Override
-    public void flush() throws IOException {
-      drain();
-      out.flush();
-    }
-
-    private void drain() throws IOException {
-      if (count > 0) {
-        out.write(buf, 0, count);
-        count = 0;
-      }
-    }
-  }
 
   /**
    * <code>IFile.Reader</code> to read intermediate map-outputs.
