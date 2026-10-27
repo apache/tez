@@ -96,7 +96,7 @@ public class TestProcessorContext {
             vertexParallelism,
             taskAttemptId,
             null,
-            runtimeTask,
+            mockTask,
             serviceConsumerMetadata,
             auxServiceEnv,
             memDist,
