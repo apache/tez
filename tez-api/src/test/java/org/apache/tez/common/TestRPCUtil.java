@@ -25,14 +25,12 @@ import java.io.IOException;
 import java.util.concurrent.TimeUnit;
 
 import org.apache.hadoop.ipc.RemoteException;
+import org.apache.hadoop.thirdparty.protobuf.ServiceException;
 import org.apache.tez.dag.api.SessionNotRunning;
 import org.apache.tez.dag.api.TezException;
 
-import com.google.protobuf.ServiceException;
-
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.Timeout;
-
 public class TestRPCUtil {
 
   @Test

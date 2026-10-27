@@ -22,11 +22,10 @@ import java.util.HashMap;
 
 import javax.annotation.Nullable;
 
+import org.apache.hadoop.thirdparty.protobuf.InvalidProtocolBufferException;
 import org.apache.tez.dag.api.EdgeManagerPluginContext;
 import org.apache.tez.dag.api.EdgeManagerPluginOnDemand;
 import org.apache.tez.dag.api.UserPayload;
-
-import com.google.protobuf.InvalidProtocolBufferException;
 
 /**
  * Edge manager for fair routing. Each destination task has its

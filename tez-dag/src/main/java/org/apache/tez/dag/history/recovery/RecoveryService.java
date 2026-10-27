@@ -33,6 +33,7 @@ import org.apache.hadoop.fs.FSDataOutputStream;
 import org.apache.hadoop.fs.FileSystem;
 import org.apache.hadoop.fs.Path;
 import org.apache.hadoop.service.AbstractService;
+import org.apache.hadoop.thirdparty.protobuf.CodedOutputStream;
 import org.apache.tez.common.TezCommonUtils;
 import org.apache.tez.common.TezUtilsInternal;
 import org.apache.tez.dag.api.TezConfiguration;
@@ -45,7 +46,6 @@ import org.apache.tez.dag.history.events.DAGSubmittedEvent;
 import org.apache.tez.dag.records.TezDAGID;
 
 import com.google.common.annotations.VisibleForTesting;
-import com.google.protobuf.CodedOutputStream;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
