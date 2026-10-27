@@ -407,25 +407,29 @@ public class UnorderedPartitionedKVWriter extends BaseUnorderedPartitionedKVWrit
 
   @SuppressWarnings("unchecked")
   private void write(Object key, Object value, int partition) throws IOException {
+    WrappedBuffer locBuffer = this.currentBuffer;
+
     // Wrap to 4 byte (Int) boundary for metaData
-    int mod = currentBuffer.nextPosition % INT_SIZE;
+    // Equivalent to modulo 4 (locBuffer.nextPosition % INT_SIZE)
+    int mod = locBuffer.nextPosition & (INT_SIZE - 1);
     int metaSkip = mod == 0 ? 0 : (INT_SIZE - mod);
-    if ((currentBuffer.availableSize < (META_SIZE + metaSkip)) || (currentBuffer.full)) {
+    if ((locBuffer.availableSize < (META_SIZE + metaSkip)) || (locBuffer.full)) {
       // Move over to the next buffer.
       metaSkip = 0;
       setupNextBuffer();
+      locBuffer = this.currentBuffer;
     }
-    currentBuffer.nextPosition += metaSkip;
-    int metaStart = currentBuffer.nextPosition;
-    currentBuffer.availableSize -= (META_SIZE + metaSkip);
-    currentBuffer.nextPosition += META_SIZE;
+    locBuffer.nextPosition += metaSkip;
+    int metaStart = locBuffer.nextPosition;
+    locBuffer.availableSize -= (META_SIZE + metaSkip);
+    locBuffer.nextPosition += META_SIZE;
 
     keySerializer.serialize(key);
 
-    if (currentBuffer.full) {
+    if (locBuffer.full) {
       if (metaStart == 0) { // Started writing at the start of the buffer. Write Key to disk.
         // Key too large for any buffer. Write entire record to disk.
-        currentBuffer.reset();
+        locBuffer.reset();
         writeLargeRecord(key, value, partition);
         return;
       } else { // Exceeded length on current buffer.
@@ -437,14 +441,14 @@ public class UnorderedPartitionedKVWriter extends BaseUnorderedPartitionedKVWrit
       }
     }
 
-    int valStart = currentBuffer.nextPosition;
+    int valStart = locBuffer.nextPosition;
     valSerializer.serialize(value);
 
-    if (currentBuffer.full) {
+    if (locBuffer.full) {
       // Value too large for current buffer, or K-V too large for entire buffer.
       if (metaStart == 0) {
         // Key + Value too large for a single buffer.
-        currentBuffer.reset();
+        locBuffer.reset();
         writeLargeRecord(key, value, partition);
         return;
       } else { // Exceeded length on current buffer.
@@ -455,26 +459,30 @@ public class UnorderedPartitionedKVWriter extends BaseUnorderedPartitionedKVWrit
       }
     }
 
-    // Meta-data updates
-    int metaIndex = metaStart / INT_SIZE;
-    int indexNext = currentBuffer.partitionPositions[partition];
+    int pos = locBuffer.nextPosition;
 
-    currentBuffer.metaBuffer.put(metaIndex + INDEX_KEYLEN, (valStart - (metaStart + META_SIZE)));
-    currentBuffer.metaBuffer.put(metaIndex + INDEX_VALLEN, (currentBuffer.nextPosition - valStart));
-    currentBuffer.metaBuffer.put(metaIndex + INDEX_NEXT, indexNext);
-    currentBuffer.skipSize += metaSkip; // For size estimation
+    // Meta-data updates
+    // Equivalent to division by 4 (metaStart / INT_SIZE)
+    int metaIndex = metaStart >>> 2;
+    int indexNext = locBuffer.partitionPositions[partition];
+    int keyLength = valStart - (metaStart + META_SIZE);
+    int valLength = pos - valStart;
+    int recordBytes = keyLength + valLength;
+
+    locBuffer.metaBuffer.put(metaIndex + INDEX_KEYLEN, keyLength);
+    locBuffer.metaBuffer.put(metaIndex + INDEX_VALLEN, valLength);
+    locBuffer.metaBuffer.put(metaIndex + INDEX_NEXT, indexNext);
+    locBuffer.skipSize += metaSkip; // For size estimation
     // Update stats on number of records
-    localOutputRecordBytesCounter += (currentBuffer.nextPosition - (metaStart + META_SIZE));
-    localOutputBytesWithOverheadCounter += ((currentBuffer.nextPosition - metaStart) + metaSkip);
-    localOutputRecordsCounter++;
-    if (localOutputRecordBytesCounter % NOTIFY_THRESHOLD == 0) {
+    localOutputRecordBytesCounter += recordBytes;
+    localOutputBytesWithOverheadCounter += recordBytes + (META_SIZE + metaSkip);
+    if (++localOutputRecordsCounter == NOTIFY_THRESHOLD) {
       updateTezCountersAndNotify();
     }
-    currentBuffer.partitionPositions[partition] = metaStart;
-    currentBuffer.recordsPerPartition[partition]++;
-    currentBuffer.sizePerPartition[partition] +=
-        currentBuffer.nextPosition - (metaStart + META_SIZE);
-    currentBuffer.numRecords++;
+    locBuffer.partitionPositions[partition] = metaStart;
+    locBuffer.recordsPerPartition[partition]++;
+    locBuffer.sizePerPartition[partition] += recordBytes;
+    locBuffer.numRecords++;
 
   }
 
@@ -689,16 +697,18 @@ public class UnorderedPartitionedKVWriter extends BaseUnorderedPartitionedKVWrit
   private long writePartition(int pos, WrappedBuffer wrappedBuffer, Writer writer,
       DataInputBuffer keyBuffer, DataInputBuffer valBuffer) throws IOException {
     long numRecords = 0;
+    IntBuffer metaBuffer = wrappedBuffer.metaBuffer;
+    byte[] buffer = wrappedBuffer.buffer;
     while (pos != WrappedBuffer.PARTITION_ABSENT_POSITION) {
-      int metaIndex = pos / INT_SIZE;
-      int keyLength = wrappedBuffer.metaBuffer.get(metaIndex + INDEX_KEYLEN);
-      int valLength = wrappedBuffer.metaBuffer.get(metaIndex + INDEX_VALLEN);
-      keyBuffer.reset(wrappedBuffer.buffer, pos + META_SIZE, keyLength);
-      valBuffer.reset(wrappedBuffer.buffer, pos + META_SIZE + keyLength, valLength);
+      int metaIndex = pos >>> 2;
+      int keyLength = metaBuffer.get(metaIndex + INDEX_KEYLEN);
+      int valLength = metaBuffer.get(metaIndex + INDEX_VALLEN);
+      keyBuffer.reset(buffer, pos + META_SIZE, keyLength);
+      valBuffer.reset(buffer, pos + META_SIZE + keyLength, valLength);
 
       writer.append(keyBuffer, valBuffer);
       numRecords++;
-      pos = wrappedBuffer.metaBuffer.get(metaIndex + INDEX_NEXT);
+      pos = metaBuffer.get(metaIndex + INDEX_NEXT);
     }
     return numRecords;
   }
