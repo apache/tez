@@ -28,7 +28,7 @@ import java.io.OutputStream;
  * the writes are small and frequent: the lock is a measurable share of the cost
  * when the work per call is tiny.
  */
-public class NonSyncBufferedOutputStream extends FilterOutputStream {
+public final class NonSyncBufferedOutputStream extends FilterOutputStream {
   private final byte[] buf;
   private int count;
 
