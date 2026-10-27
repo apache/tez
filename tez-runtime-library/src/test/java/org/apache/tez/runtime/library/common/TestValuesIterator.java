@@ -89,6 +89,7 @@ import org.mockito.internal.util.collections.Sets;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+@SuppressWarnings({"checkstyle:HiddenField", "checkstyle:VisibilityModifier"})
 public class TestValuesIterator {
 
   private static final Logger LOG = LoggerFactory.getLogger(TestValuesIterator.class);
@@ -166,7 +167,8 @@ public class TestValuesIterator {
   @ParameterizedTest(name = "test[{0}, {1}, {2}, {3}, {4}, {5}]")
   @MethodSource("getParameters")
   @Timeout(value = 20000, unit = TimeUnit.MILLISECONDS)
-  public void testIteratorWithInMemoryReader(String serializationClassName, Class<?> key, Class<?> val, TestWithComparator comparator, TestWithComparator correctComparator, boolean testResult) throws Exception {
+  public void testIteratorWithInMemoryReader(String serializationClassName, Class<?> key, Class<?> val,
+      TestWithComparator comparator, TestWithComparator correctComparator, boolean testResult) throws Exception {
     setupInit(serializationClassName, key, val, comparator, correctComparator, testResult);
     ValuesIterator iterator = createIterator(true);
     verifyIteratorData(iterator);
@@ -557,7 +559,7 @@ public class TestValuesIterator {
   private InputContext createTezInputContext() {
     TezCounters counters = new TezCounters();
     InputContext inputContext = mock(InputContext.class);
-    doReturn(1024 * 1024 * 100l).when(inputContext).getTotalMemoryAvailableToTask();
+    doReturn(1024 * 1024 * 100L).when(inputContext).getTotalMemoryAvailableToTask();
     doReturn(counters).when(inputContext).getCounters();
     doReturn(1).when(inputContext).getInputIndex();
     doReturn("srcVertex").when(inputContext).getSourceVertexName();

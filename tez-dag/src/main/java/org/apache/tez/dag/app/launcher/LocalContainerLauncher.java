@@ -196,7 +196,7 @@ public class LocalContainerLauncher extends DagContainerLauncher {
     }
     if (eventHandlingThread != null) {
       eventHandlingThread.interrupt();
-      eventHandlingThread.join(2000l);
+      eventHandlingThread.join(2000L);
     }
     if (taskExecutorService != null) {
       taskExecutorService.shutdownNow();

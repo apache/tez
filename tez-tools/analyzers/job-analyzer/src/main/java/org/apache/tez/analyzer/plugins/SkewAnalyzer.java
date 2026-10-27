@@ -65,7 +65,7 @@ public class SkewAnalyzer extends TezAnalyzerBase implements Analyzer {
    */
   private static final String SHUFFLE_BYTES_PER_ATTEMPT_PER_SOURCE = "tez.skew-analyzer.shuffle"
       + ".bytes.per.source";
-  private static final long SHUFFLE_BYTES_PER_ATTEMPT_PER_SOURCE_DEFAULT = 900 * 1024 * 1024l;
+  private static final long SHUFFLE_BYTES_PER_ATTEMPT_PER_SOURCE_DEFAULT = 900 * 1024 * 1024L;
 
   //Min reducer input group : reducer keys ratio for computation
   private static final String ATTEMPT_SHUFFLE_KEY_GROUP_MIN_RATIO = "tez.skew-analyzer.shuffle.key"

@@ -193,7 +193,7 @@ public class TestFetcher {
       for(int i=0;i<compositeInputAttemptIdentifier.getInputIdentifierCount();i++) {
         inputAttemptIdentifiers.add(compositeInputAttemptIdentifier.expand(i));
         PathPartition pathPartition =
-            new PathPartition(compositeInputAttemptIdentifier.getPathComponent(),partition + i);
+            new PathPartition(compositeInputAttemptIdentifier.getPathComponent(), partition + i);
         fetcher.getPathToAttemptMap().put(pathPartition, compositeInputAttemptIdentifier.expand(i));
       }
     }

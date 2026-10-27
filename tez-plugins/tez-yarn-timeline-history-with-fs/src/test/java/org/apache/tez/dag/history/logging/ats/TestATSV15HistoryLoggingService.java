@@ -72,7 +72,7 @@ import org.mockito.invocation.InvocationOnMock;
 import org.mockito.stubbing.Answer;
 
 public class TestATSV15HistoryLoggingService {
-  private static ApplicationId appId = ApplicationId.newInstance(1000l, 1);
+  private static ApplicationId appId = ApplicationId.newInstance(1000L, 1);
   private static ApplicationAttemptId attemptId = ApplicationAttemptId.newInstance(appId, 1);
   private static String user = "TEST_USER";
 

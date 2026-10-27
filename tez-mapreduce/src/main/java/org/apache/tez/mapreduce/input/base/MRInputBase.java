@@ -65,7 +65,7 @@ public abstract class MRInputBase extends AbstractLogicalInput {
   protected boolean useNewApi;
 
   public List<Event> initialize() throws IOException {
-    getContext().requestInitialMemory(0l, null); // mandatory call
+    getContext().requestInitialMemory(0L, null); // mandatory call
     MRRuntimeProtos.MRInputUserPayloadProto mrUserPayload =
         MRInputHelpers.parseMRInputPayload(getContext().getUserPayload());
     boolean isGrouped = mrUserPayload.getGroupingEnabled();

@@ -93,7 +93,7 @@ public class TestMRRJobs {
       Configuration conf = new Configuration();
       conf.set("fs.defaultFS", remoteFs.getUri().toString());   // use HDFS
       conf.set(MRJobConfig.MR_AM_STAGING_DIR, "/apps_staging_dir");
-      conf.setLong(YarnConfiguration.DEBUG_NM_DELETE_DELAY_SEC, 0l);
+      conf.setLong(YarnConfiguration.DEBUG_NM_DELETE_DELAY_SEC, 0L);
       conf.setLong(TezConfiguration.TEZ_AM_SLEEP_TIME_BEFORE_EXIT_MILLIS, 500);
       mrrTezCluster.init(conf);
       mrrTezCluster.start();

@@ -56,7 +56,7 @@ public class SpillAnalyzerImpl extends TezAnalyzerBase implements Analyzer {
    */
   private static final String OUTPUT_BYTES_THRESHOLD = "tez.spill-analyzer.min.output.bytes"
       + ".threshold";
-  private static long OUTPUT_BYTES_THRESHOLD_DEFAULT = 1 * 1024 * 1024 * 1024l;
+  private static long OUTPUT_BYTES_THRESHOLD_DEFAULT = 1 * 1024 * 1024 * 1024L;
 
   private final long minOutputBytesPerTask;
 

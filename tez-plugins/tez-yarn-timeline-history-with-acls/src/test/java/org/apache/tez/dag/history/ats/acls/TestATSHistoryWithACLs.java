@@ -291,7 +291,7 @@ public class TestATSHistoryWithACLs {
       while (!dagStatus.isCompleted()) {
         LOG.info("Waiting for job to complete. Sleeping for 500ms." + " Current state: "
             + dagStatus.getState());
-        Thread.sleep(500l);
+        Thread.sleep(500L);
         dagStatus = dagClient.getDAGStatus(null);
       }
       assertEquals(DAGStatus.State.SUCCEEDED, dagStatus.getState());
@@ -348,7 +348,7 @@ public class TestATSHistoryWithACLs {
       while (!dagStatus.isCompleted()) {
         LOG.info("Waiting for job to complete. Sleeping for 500ms." + " Current state: "
             + dagStatus.getState());
-        Thread.sleep(500l);
+        Thread.sleep(500L);
         dagStatus = dagClient.getDAGStatus(null);
       }
       assertEquals(DAGStatus.State.SUCCEEDED, dagStatus.getState());
@@ -412,7 +412,7 @@ public class TestATSHistoryWithACLs {
     while (!dagStatus.isCompleted()) {
       LOG.info("Waiting for job to complete. Sleeping for 500ms." + " Current state: "
           + dagStatus.getState());
-      Thread.sleep(500l);
+      Thread.sleep(500L);
       dagStatus = dagClient.getDAGStatus(null);
     }
     assertEquals(DAGStatus.State.SUCCEEDED, dagStatus.getState());
@@ -432,7 +432,7 @@ public class TestATSHistoryWithACLs {
     while (!dagStatus.isCompleted()) {
       LOG.info("Waiting for job to complete. Sleeping for 500ms." + " Current state: "
                 + dagStatus.getState());
-      Thread.sleep(500l);
+      Thread.sleep(500L);
       dagStatus = dagClient.getDAGStatus(null);
     }
     tezSession.stop();
@@ -463,7 +463,7 @@ public class TestATSHistoryWithACLs {
     tezConf.set(TezConfiguration.TEZ_AM_STAGING_DIR, remoteStagingDir.toString());
     historyLoggingService.init(tezConf);
     historyLoggingService.start();
-    ApplicationId appId = ApplicationId.newInstance(100l, 1);
+    ApplicationId appId = ApplicationId.newInstance(100L, 1);
     TezDAGID tezDAGID = TezDAGID.getInstance(
                         appId, 100);
     ApplicationAttemptId appAttemptId = ApplicationAttemptId.newInstance(appId, 1);
@@ -474,7 +474,7 @@ public class TestATSHistoryWithACLs {
     submittedEvent.setHistoryLoggingEnabled(false);
     DAGHistoryEvent event = new DAGHistoryEvent(tezDAGID, submittedEvent);
     historyLoggingService.handle(new DAGHistoryEvent(tezDAGID, submittedEvent));
-    Thread.sleep(1000l);
+    Thread.sleep(1000L);
     String url = "http://" + timelineAddress + "/ws/v1/timeline/TEZ_DAG_ID/"+event.getDAGID();
     Client client = ClientBuilder.newClient();
     WebTarget target = client.target(url);
@@ -509,7 +509,7 @@ public class TestATSHistoryWithACLs {
     tezConf.set(TezConfiguration.TEZ_AM_STAGING_DIR, remoteStagingDir.toString());
     historyLoggingService.init(tezConf);
     historyLoggingService.start();
-    ApplicationId appId = ApplicationId.newInstance(100l, 1);
+    ApplicationId appId = ApplicationId.newInstance(100L, 1);
     TezDAGID tezDAGID = TezDAGID.getInstance(
                         appId, 11);
     ApplicationAttemptId appAttemptId = ApplicationAttemptId.newInstance(appId, 1);
@@ -520,7 +520,7 @@ public class TestATSHistoryWithACLs {
     submittedEvent.setHistoryLoggingEnabled(true);
     DAGHistoryEvent event = new DAGHistoryEvent(tezDAGID, submittedEvent);
     historyLoggingService.handle(new DAGHistoryEvent(tezDAGID, submittedEvent));
-    Thread.sleep(1000l);
+    Thread.sleep(1000L);
     String url = "http://" + timelineAddress + "/ws/v1/timeline/TEZ_DAG_ID/"+event.getDAGID();
     Client client = ClientBuilder.newClient();
     WebTarget target = client.target(url);

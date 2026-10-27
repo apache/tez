@@ -87,8 +87,8 @@ public class TestTimelineCachePluginImpl {
 
   @BeforeAll
   public static void beforeClass() {
-    appId1 = ApplicationId.newInstance(1000l, 111);
-    appId2 = ApplicationId.newInstance(1001l, 121);
+    appId1 = ApplicationId.newInstance(1000L, 111);
+    appId2 = ApplicationId.newInstance(1001L, 121);
     appAttemptId1 = ApplicationAttemptId.newInstance(appId1, 11);
 
     dagID1 = TezDAGID.getInstance(appId1, 1);

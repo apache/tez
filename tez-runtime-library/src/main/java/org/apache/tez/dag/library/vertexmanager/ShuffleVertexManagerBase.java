@@ -76,7 +76,7 @@ import org.slf4j.LoggerFactory;
 @Private
 @Evolving
 abstract class ShuffleVertexManagerBase extends VertexManagerPlugin {
-  static long MB = 1024l * 1024l;
+  static long MB = 1024L * 1024L;
 
   private static final Logger LOG =
      LoggerFactory.getLogger(ShuffleVertexManagerBase.class);

@@ -958,7 +958,7 @@ public class DAGImpl implements org.apache.tez.dag.app.dag.DAG,
 
   public DAGStatusBuilder getDAGStatus(Set<StatusGetOpts> statusOptions,
                                        long timeoutMillis) throws TezException {
-    long timeoutNanos = timeoutMillis * 1000l * 1000l;
+    long timeoutNanos = timeoutMillis * 1000L * 1000L;
     if (timeoutMillis < 0) {
       // Return only on SUCCESS
       timeoutNanos = Long.MAX_VALUE;

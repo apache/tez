@@ -47,7 +47,7 @@ import org.junit.jupiter.api.Timeout;
 
 public class TestInputReadyTracker {
 
-  private static final long SLEEP_TIME = 200l;
+  private static final long SLEEP_TIME = 200L;
 
   @Test
   @Timeout(value = 20000, unit = TimeUnit.MILLISECONDS)
@@ -59,8 +59,8 @@ public class TestInputReadyTracker {
 
     // Test for simple inputs
     List<Input> requestList;
-    long startTime = 0l;
-    long readyTime = 0l;
+    long startTime = 0L;
+    long readyTime = 0L;
     requestList = new ArrayList<Input>();
     requestList.add(input1);
     requestList.add(input2);
@@ -92,8 +92,8 @@ public class TestInputReadyTracker {
 
     // Test for simple inputs
     List<Input> requestList;
-    long startTime = 0l;
-    long readyTime = 0l;
+    long startTime = 0L;
+    long readyTime = 0L;
 
     requestList = new ArrayList<Input>();
     requestList.add(input1);
@@ -182,8 +182,8 @@ public class TestInputReadyTracker {
 
     // Test for simple inputs
     List<Input> requestList;
-    long startTime = 0l;
-    long readyTime = 0l;
+    long startTime = 0L;
+    long readyTime = 0L;
     requestList = new ArrayList<Input>();
     requestList.add(group1);
     Input readyInput = inputReadyTracker.waitForAnyInputReady(requestList);
