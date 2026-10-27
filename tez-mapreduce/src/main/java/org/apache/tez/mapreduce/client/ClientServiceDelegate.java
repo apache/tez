@@ -19,6 +19,7 @@
 package org.apache.tez.mapreduce.client;
 
 import java.io.IOException;
+import java.util.EnumSet;
 
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.fs.CommonConfigurationKeysPublic;
@@ -32,18 +33,30 @@ import org.apache.hadoop.mapreduce.TaskReport;
 import org.apache.hadoop.mapreduce.TaskType;
 import org.apache.hadoop.mapreduce.v2.LogParams;
 import org.apache.hadoop.yarn.exceptions.YarnException;
+import org.apache.tez.common.counters.TezCounters;
 import org.apache.tez.dag.api.TezConfiguration;
+import org.apache.tez.dag.api.TezException;
+import org.apache.tez.dag.api.client.DAGClient;
+import org.apache.tez.dag.api.client.StatusGetOpts;
+import org.apache.tez.mapreduce.hadoop.TezTypeConverters;
 
 public class ClientServiceDelegate {
 
   private final TezConfiguration conf;
+  private final DAGClient dagClient;
 
   // FIXME
   // how to handle completed jobs that the RM does not know about?
 
   public ClientServiceDelegate(Configuration conf, ResourceMgrDelegate rm,
       JobID jobId) {
+    this(conf, rm, jobId, null);
+  }
+
+  public ClientServiceDelegate(Configuration conf, ResourceMgrDelegate rm,
+      JobID jobId, DAGClient dagClient) {
     this.conf = new TezConfiguration(conf); // Cloning for modifying.
+    this.dagClient = dagClient;
     // For faster redirects from AM to HS.
     this.conf.setInt(
         CommonConfigurationKeysPublic.IPC_CLIENT_CONNECT_MAX_RETRIES_KEY,
@@ -51,12 +64,32 @@ public class ClientServiceDelegate {
             MRJobConfig.DEFAULT_MR_CLIENT_TO_AM_IPC_MAX_RETRIES));
   }
 
+  /**
+   * Returns the DAG client for this delegate, if any (used for counters).
+   */
+  DAGClient getDAGClient() {
+    return dagClient;
+  }
+
+  /**
+   * Returns job counters from the Tez DAG, translated to MapReduce Counters.
+   * Returns empty counters if no DAG client is set, if the AM is unreachable
+   * (e.g. job already finished and AM exited), or if counters are not available.
+   */
   public Counters getJobCounters(JobID jobId)
       throws IOException, InterruptedException {
-    // FIXME needs counters support from DAG
-    // with a translation layer on client side
-    Counters empty = new Counters();
-    return empty;
+    if (dagClient == null) {
+      return new Counters();
+    }
+    try {
+      TezCounters tezCounters = dagClient.getDAGStatus(
+          EnumSet.of(StatusGetOpts.GET_COUNTERS)).getDAGCounters();
+      Counters mrCounters = TezTypeConverters.fromTez(tezCounters);
+      return mrCounters != null ? mrCounters : new Counters();
+    } catch (TezException e) {
+      // AM may be gone (e.g. completed job); return empty counters
+      return new Counters();
+    }
   }
 
   public TaskCompletionEvent[] getTaskCompletionEvents(JobID jobId,

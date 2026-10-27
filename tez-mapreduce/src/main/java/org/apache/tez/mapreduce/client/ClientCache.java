@@ -23,6 +23,7 @@ import java.util.Map;
 
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.mapreduce.JobID;
+import org.apache.tez.dag.api.client.DAGClient;
 
 public class ClientCache {
 
@@ -39,9 +40,22 @@ public class ClientCache {
 
   //TODO: evict from the cache on some threshold
   public synchronized ClientServiceDelegate getClient(JobID jobId) {
+    return getClient(jobId, null);
+  }
+
+  /**
+   * Get or create a delegate for the given job, optionally with a DAG client
+   * for fetching counters and other AM-backed data.
+   */
+  public synchronized ClientServiceDelegate getClient(JobID jobId,
+      DAGClient dagClient) {
     ClientServiceDelegate client = cache.get(jobId);
     if (client == null) {
-      client = new ClientServiceDelegate(conf, rm, jobId);
+      client = new ClientServiceDelegate(conf, rm, jobId, dagClient);
+      cache.put(jobId, client);
+    } else if (dagClient != null && client.getDAGClient() == null) {
+      // Replace with a delegate that has the DAG client for this job
+      client = new ClientServiceDelegate(conf, rm, jobId, dagClient);
       cache.put(jobId, client);
     }
     return client;
