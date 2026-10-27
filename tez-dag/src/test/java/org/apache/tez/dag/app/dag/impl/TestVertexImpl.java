@@ -48,6 +48,7 @@ import java.util.Arrays;
 import java.util.Collections;
 import java.util.EnumSet;
 import java.util.HashMap;
+import java.util.LinkedHashMap;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.Locale;
@@ -2705,7 +2706,7 @@ public class TestVertexImpl {
       VertexPlan vertexPlan = dagPlan.getVertex(i);
       Vertex vertex = vertices.get(vertexPlan.getName());
       Map<Vertex, Edge> inVertices =
-          new HashMap<Vertex, Edge>();
+          new LinkedHashMap<>();
 
       Map<Vertex, Edge> outVertices =
           new HashMap<Vertex, Edge>();
