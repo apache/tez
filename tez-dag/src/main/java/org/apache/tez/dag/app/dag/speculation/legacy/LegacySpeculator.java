@@ -371,8 +371,9 @@ public class LegacySpeculator extends AbstractService {
           return TOO_NEW;
         }
 
+        long taskRuntime = now - taskAttemptStartTime;
         if (shouldUseTimeout) {
-          if ((now - taskAttemptStartTime) > taskTimeout) {
+          if (taskRuntime > taskTimeout) {
             // If the task has timed out, then we want to schedule a speculation
             // immediately. However we cannot return immediately since we may
             // already have a speculation running.
@@ -382,6 +383,10 @@ public class LegacySpeculator extends AbstractService {
             return ON_SCHEDULE;
           }
         } else {
+          if (taskRuntime < acceptableRuntime) {
+            return ON_SCHEDULE;
+          }
+
           long estimatedRunTime = estimator
               .estimatedRuntime(runningTaskAttemptID);
 
