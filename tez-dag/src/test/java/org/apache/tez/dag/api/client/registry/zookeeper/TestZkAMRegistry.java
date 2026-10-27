@@ -38,6 +38,7 @@ import java.util.concurrent.Future;
 import java.util.concurrent.TimeUnit;
 
 import org.apache.curator.framework.CuratorFramework;
+import org.apache.curator.test.InstanceSpec;
 import org.apache.curator.test.TestingServer;
 import org.apache.hadoop.yarn.api.records.ApplicationId;
 import org.apache.tez.client.registry.AMRecord;
@@ -184,6 +185,40 @@ public class TestZkAMRegistry {
       // Remove record and ensure node is deleted
       registry.remove(record);
       assertNull(checkClient.checkExists().forPath(path), "Node should be removed from ZooKeeper after remove()");
+    }
+  }
+
+  @Test
+  @Timeout(120)
+  public void testAmRecordSurvivesZooKeeperSessionLoss() throws Exception {
+    // own server: an empty one on the same port expires every session held against the old one
+    int port = InstanceSpec.getRandomPort();
+    TestingServer server = new TestingServer(port);
+    TezConfiguration conf = createTezConf();
+    conf.set(TezConfiguration.TEZ_AM_ZOOKEEPER_QUORUM, "localhost:" + port);
+    ZkConfig zkConfig = new ZkConfig(conf);
+
+    try (ZkAMRegistry registry = new ZkAMRegistry("external-id")) {
+      registry.init(conf);
+      registry.start();
+      AMRecord record = registry.createAmRecord(
+          registry.generateNewId(), "localhost", "127.0.0.1", 10000, "default-compute");
+      registry.add(record);
+
+      server.close();
+      server = new TestingServer(port);
+
+      try (CuratorFramework checkClient = zkConfig.createCuratorFramework()) {
+        checkClient.start();
+        String path = zkConfig.getZkNamespace() + "/" + extractApplicationId(record.getApplicationId());
+        while (checkClient.checkExists().forPath(path) == null) {
+          Thread.sleep(100);
+        }
+        assertEquals(AMRegistryUtils.recordToJsonString(record),
+            new String(checkClient.getData().forPath(path), StandardCharsets.UTF_8));
+      }
+    } finally {
+      server.close();
     }
   }
 

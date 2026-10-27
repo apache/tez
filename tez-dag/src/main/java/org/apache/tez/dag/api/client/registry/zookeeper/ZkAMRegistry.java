@@ -18,12 +18,14 @@
  */
 package org.apache.tez.dag.api.client.registry.zookeeper;
 
+import java.io.IOException;
 import java.nio.charset.StandardCharsets;
-import java.util.ArrayList;
-import java.util.Collections;
-import java.util.List;
+import java.util.Map;
+import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.TimeUnit;
 
 import org.apache.curator.framework.CuratorFramework;
+import org.apache.curator.framework.recipes.nodes.PersistentNode;
 import org.apache.hadoop.classification.InterfaceAudience;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.yarn.api.records.ApplicationId;
@@ -49,7 +51,7 @@ public class ZkAMRegistry implements AMRegistry {
 
   private static final Logger LOG = LoggerFactory.getLogger(ZkAMRegistry.class);
 
-  private final List<AMRecord> amRecords = Collections.synchronizedList(new ArrayList<>());
+  private final Map<AMRecord, PersistentNode> amNodes = new ConcurrentHashMap<>();
   private final String externalId;
 
   private CuratorFramework client = null;
@@ -80,7 +82,7 @@ public class ZkAMRegistry implements AMRegistry {
    * is logged.</p>
    */
   public void close() {
-    for (AMRecord amRecord : new ArrayList<>(amRecords)) {
+    for (AMRecord amRecord : amNodes.keySet()) {
       try {
         remove(amRecord);
       } catch (Exception e) {
@@ -95,23 +97,27 @@ public class ZkAMRegistry implements AMRegistry {
   //zkNode at the path:  <TEZ_AM_REGISTRY_NAMESPACE>/<appId>
   @Override
   public void add(AMRecord server) throws Exception {
-    String json = AMRegistryUtils.recordToJsonString(server);
-    try {
-      final String path = pathFor(server);
-      client.setData().forPath(path, json.getBytes(StandardCharsets.UTF_8));
-      LOG.info("Added AMRecord to zkpath {}", path);
-    } catch (KeeperException.NoNodeException nne) {
-      client.create().creatingParentContainersIfNeeded().withMode(CreateMode.EPHEMERAL)
-          .forPath(pathFor(server), json.getBytes(StandardCharsets.UTF_8));
+    // PersistentNode re-creates the ephemeral node after a session loss or a delete; a plain create would leave
+    // the AM running but unregistered.
+    final String path = pathFor(server);
+    byte[] json = AMRegistryUtils.recordToJsonString(server).getBytes(StandardCharsets.UTF_8);
+    PersistentNode node = new PersistentNode(client, CreateMode.EPHEMERAL, false, path, json);
+    node.start();
+    if (!node.waitForInitialCreate(zkConfig.getConnectionTimeoutMs(), TimeUnit.MILLISECONDS)) {
+      node.close();
+      throw new IOException("Timed out creating AMRecord at zkpath " + path);
     }
-    amRecords.add(server);
+    amNodes.put(server, node);
+    LOG.info("Added AMRecord to zkpath {}", path);
   }
 
   @Override
   public void remove(AMRecord server) throws Exception {
-    amRecords.remove(server);
+    PersistentNode node = amNodes.remove(server);
     final String path = pathFor(server);
-    client.delete().forPath(path);
+    if (node != null) {
+      node.close();   // deletes the node
+    }
     LOG.info("Deleted AMRecord from zkpath {}", path);
   }
 
