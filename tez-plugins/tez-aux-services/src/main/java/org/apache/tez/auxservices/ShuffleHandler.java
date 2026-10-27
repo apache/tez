@@ -42,7 +42,6 @@ import java.nio.ByteBuffer;
 import java.nio.channels.ClosedChannelException;
 import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
-import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -182,6 +181,11 @@ public class ShuffleHandler extends AuxiliaryService {
 
   private static final String DATA_FILE_NAME = "file.out";
   private static final String INDEX_FILE_NAME = "file.out.index";
+
+  // Whitelist patterns for query-param ids concatenated into filesystem paths.
+  private static final Pattern DAG_ID_PATTERN = Pattern.compile("[0-9]+");
+  private static final Pattern VERTEX_ID_PATTERN = Pattern.compile("[0-9]+");
+  private static final Pattern ATTEMPT_ID_PATTERN = Pattern.compile("attempt_[A-Za-z0-9_]+");
 
   private int port;
   private NioEventLoopGroup bossGroup;
@@ -948,6 +952,11 @@ public class ShuffleHandler extends AuxiliaryService {
         @Override
         public AttemptPathInfo load(AttemptPathIdentifier key) throws
             Exception {
+          // Backstop against traversal via the "map" param.
+          if (key.attemptId == null
+              || !ATTEMPT_ID_PATTERN.matcher(key.attemptId).matches()) {
+            throw new IOException("Invalid attempt id: " + key.attemptId);
+          }
           String base = getBaseLocation(key.jobId, key.dagId, key.user);
           String attemptBase = base + key.attemptId;
           Path indexFileName = getAuxiliaryLocalPathHandler()
@@ -970,13 +979,19 @@ public class ShuffleHandler extends AuxiliaryService {
       this.port = port;
     }
 
-    private List<String> splitMaps(List<String> mapq) {
+    private List<String> splitMaps(List<String> mapq) throws IOException {
       if (null == mapq) {
         return null;
       }
       final List<String> ret = new ArrayList<>();
       for (String s : mapq) {
-        Collections.addAll(ret, s.split(","));
+        for (String mapId : s.split(",")) {
+          // Self-defending sink: reject values that could escape the output dir.
+          if (mapId == null || !ATTEMPT_ID_PATTERN.matcher(mapId).matches()) {
+            throw new IOException("Invalid mapId: " + mapId);
+          }
+          ret.add(mapId);
+        }
       }
       return ret;
     }
@@ -1044,7 +1059,13 @@ public class ShuffleHandler extends AuxiliaryService {
         keepAliveParam = Boolean.parseBoolean(keepAliveList.get(0));
         LOG.debug("KeepAliveParam : {} : {}", keepAliveList, keepAliveParam);
       }
-      final List<String> mapIds = splitMaps(q.get("map"));
+      final List<String> mapIds;
+      try {
+        mapIds = splitMaps(q.get("map"));
+      } catch (IOException e) {
+        sendError(ctx, e.getMessage(), BAD_REQUEST);
+        return;
+      }
       final Range reduceRange = splitReduces(q.get("reduce"));
       final List<String> jobQ = q.get("job");
       final List<String> dagIdQ = q.get("dag");
@@ -1066,6 +1087,10 @@ public class ShuffleHandler extends AuxiliaryService {
       }
       if (jobQ.size() != 1) {
         sendError(ctx, "Too many job/reduce parameters", BAD_REQUEST);
+        return;
+      }
+      // Reject traversal-shaped params before any file access.
+      if (!validateShufflePathParams(ctx, dagIdQ, vertexIdQ)) {
         return;
       }
       if (isDeleteRequest) {
@@ -1167,6 +1192,40 @@ public class ShuffleHandler extends AuxiliaryService {
       return entries == null || entries.isEmpty();
     }
 
+    /**
+     * Validate the {@code dag} and {@code vertex} params: each must be a
+     * plain integer and appear at most once. Duplicates are rejected because
+     * only the first value is read downstream. Returns false and closes the
+     * request with a 400 on failure. The {@code map} param is validated in
+     * {@link #splitMaps(List)}.
+     */
+    private boolean validateShufflePathParams(ChannelHandlerContext ctx,
+        List<String> dagIdQ, List<String> vertexIdQ) {
+      if (dagIdQ != null && !dagIdQ.isEmpty()) {
+        if (dagIdQ.size() > 1) {
+          sendError(ctx, "Duplicate dag parameter", BAD_REQUEST);
+          return false;
+        }
+        String dagId = dagIdQ.get(0);
+        if (dagId == null || !DAG_ID_PATTERN.matcher(dagId).matches()) {
+          sendError(ctx, "Bad dag parameter", BAD_REQUEST);
+          return false;
+        }
+      }
+      if (vertexIdQ != null && !vertexIdQ.isEmpty()) {
+        if (vertexIdQ.size() > 1) {
+          sendError(ctx, "Duplicate vertex parameter", BAD_REQUEST);
+          return false;
+        }
+        String vertexId = vertexIdQ.get(0);
+        if (vertexId == null || !VERTEX_ID_PATTERN.matcher(vertexId).matches()) {
+          sendError(ctx, "Bad vertex parameter", BAD_REQUEST);
+          return false;
+        }
+      }
+      return true;
+    }
+
     private boolean notEmptyAndContains(List<String> entries, String key) {
       if (entries == null || entries.isEmpty()) {
         return false;
@@ -1223,6 +1282,13 @@ public class ShuffleHandler extends AuxiliaryService {
       }
       if (notEmptyAndContains(taskAttemptFailedQ,"delete") && !isNullOrEmpty(taskAttemptIdQ)) {
         for (String taskAttemptId : taskAttemptIdQ) {
+          // taskAttemptId is used as a startsWith prefix over the DAG output
+          // directory listing; keep the accepted form strict.
+          if (taskAttemptId == null
+              || !ATTEMPT_ID_PATTERN.matcher(taskAttemptId).matches()) {
+            LOG.warn("Ignoring taskAttempt delete for invalid attempt id: {}", taskAttemptId);
+            continue;
+          }
           String baseStr = getBaseLocation(jobQ.get(0), dagIdQ.get(0), userRsrc.get(jobQ.get(0)));
           try {
             FileSystem fs = FileSystem.getLocal(conf).getRaw();
@@ -1321,6 +1387,12 @@ public class ShuffleHandler extends AuxiliaryService {
      * Delete shuffle data in task directories belonging to a vertex.
      */
     private void deleteTaskDirsOfVertex(String jobId, String dagId, String vertexId, String user) throws IOException {
+      // vertexId is spliced into the file-name prefix used to select which
+      // task attempt directories to delete. Constrain it to digits so the
+      // prefix cannot expand into an unrelated match.
+      if (vertexId == null || !VERTEX_ID_PATTERN.matcher(vertexId).matches()) {
+        throw new IllegalArgumentException("Invalid vertexId: " + vertexId);
+      }
       String baseStr = getBaseLocation(jobId, dagId, user);
       FileContext lfc = FileContext.getLocalFSFileContext();
       for(Path dagPath : getAuxiliaryLocalPathHandler().getAllLocalPathsForRead(baseStr)) {
@@ -1342,6 +1414,12 @@ public class ShuffleHandler extends AuxiliaryService {
 
     private String getDagLocation(String jobId, String dagId, String user) {
       final JobID jobID = JobID.forName(jobId);
+      // dagId comes straight from an HTTP query parameter. Reject anything
+      // that is not a plain integer so a value like "1/../../other" cannot
+      // escape the appcache/<appId> directory below.
+      if (dagId == null || !DAG_ID_PATTERN.matcher(dagId).matches()) {
+        throw new IllegalArgumentException("Invalid dagId: " + dagId);
+      }
       final ApplicationId appID =
           ApplicationId.newInstance(Long.parseLong(jobID.getJtIdentifier()),
               jobID.getId());
