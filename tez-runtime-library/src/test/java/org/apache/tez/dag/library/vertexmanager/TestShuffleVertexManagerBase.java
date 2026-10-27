@@ -432,8 +432,8 @@ public class TestShuffleVertexManagerBase extends TestShuffleVertexManagerUtils 
     // TODO improve tests for parallelism
     assertEquals(0, manager.pendingTasks.size()); // all tasks scheduled
     assertEquals(2, scheduledTasks.size());
-    assertTrue(scheduledTasks.contains(new Integer(0)));
-    assertTrue(scheduledTasks.contains(new Integer(1)));
+    assertTrue(scheduledTasks.contains(0));
+    assertTrue(scheduledTasks.contains(1));
     assertEquals(2, manager.numBipartiteSourceTasksCompleted);
     assertEquals(2, manager.numVertexManagerEventsReceived);
     assertEquals(100 * MB, manager.completedSourceTasksOutputSize);

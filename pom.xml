@@ -23,7 +23,7 @@
   <parent>
     <groupId>org.apache</groupId>
     <artifactId>apache</artifactId>
-    <version>37</version>
+    <version>38</version>
   </parent>
   <groupId>org.apache.tez</groupId>
   <artifactId>tez</artifactId>
@@ -47,8 +47,8 @@
     <!-- Build Properties -->
     <!-- Default empty argLine to prevent Surefire crashes when the 'jacoco' profile is inactive -->
     <argLine/>
-    <javaVersion>21</javaVersion>
-    <maven.compiler.release>21</maven.compiler.release>
+    <javaVersion>25</javaVersion>
+    <maven.compiler.release>25</maven.compiler.release>
     <maven.test.redirectTestOutputToFile>true</maven.test.redirectTestOutputToFile>
     <failIfNoTests>false</failIfNoTests>
     <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
@@ -76,8 +76,8 @@
     <commons-lang3.version>3.19.0</commons-lang3.version>
     <curator.version>5.9.0</curator.version>
     <dependency-check-maven.version>3.2.0</dependency-check-maven.version>
-    <spotbugs.version>4.9.3</spotbugs.version>
-    <spotbugs-maven-plugin.version>4.9.3.0</spotbugs-maven-plugin.version>
+    <spotbugs.version>4.10.2</spotbugs.version>
+    <spotbugs-maven-plugin.version>4.10.2.0</spotbugs-maven-plugin.version>
     <plexus-velocity.version>2.3.0</plexus-velocity.version>
     <frontend-maven-plugin.version>1.15.0</frontend-maven-plugin.version>
     <guava.version>33.4.8-jre</guava.version>
