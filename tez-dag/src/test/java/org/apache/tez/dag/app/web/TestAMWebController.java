@@ -890,4 +890,42 @@ public class TestAMWebController {
     assertEquals(Float.toString(mockTask.getProgress()), taskResult.get("progress"));
   }
 
+  @Test
+  public void testStaticAMViewEscapesHistoryUrl() {
+    // Angle brackets and quotes in the submitter-controlled history url
+    // must not appear literally in the rendered attribute or JS literal.
+    String malicious = "http://ui/'\"><script>alert(1)</script>";
+    String htmlEscaped = AMWebController.StaticAMView.escapeHtmlAttribute(malicious);
+    assertFalse(htmlEscaped.contains("<script"),
+        "Angle brackets must be HTML-escaped: " + htmlEscaped);
+    assertFalse(htmlEscaped.contains("\""),
+        "Double quote must be HTML-escaped: " + htmlEscaped);
+    assertFalse(htmlEscaped.contains("'"),
+        "Single quote must be HTML-escaped: " + htmlEscaped);
+
+    String jsEscaped = AMWebController.StaticAMView.escapeJsString(malicious);
+    // No bare single quote may remain — every one must be preceded by \.
+    String stripped = jsEscaped.replace("\\'", "");
+    assertFalse(stripped.contains("'"),
+        "Single quote must be JS-escaped: " + jsEscaped);
+    // The closing </script> that would end the enclosing script element
+    // must be neutralised too.
+    assertFalse(jsEscaped.contains("</script>"),
+        "Closing </script> must be neutralised: " + jsEscaped);
+  }
+
+  @Test
+  public void testEscapeJsStringEscapesLineTerminators() {
+    // U+2028/U+2029 are JS line terminators: raw, they break the string
+    // literal pre-ES2019 and the redirect never runs. Built numerically —
+    // a source \\u2028 escape is decoded by javac before string parsing.
+    String ls = String.valueOf((char) 0x2028);
+    String ps = String.valueOf((char) 0x2029);
+    String escaped = AMWebController.StaticAMView.escapeJsString("http://ui/" + ls + ps + "x");
+    assertFalse(escaped.contains(ls), "U+2028 must be escaped: " + escaped);
+    assertFalse(escaped.contains(ps), "U+2029 must be escaped: " + escaped);
+    assertTrue(escaped.contains("\\u2028"), "Expected \\u2028 escape: " + escaped);
+    assertTrue(escaped.contains("\\u2029"), "Expected \\u2029 escape: " + escaped);
+  }
+
 }
