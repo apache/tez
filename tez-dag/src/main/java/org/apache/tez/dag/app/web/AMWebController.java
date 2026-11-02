@@ -36,6 +36,7 @@ import java.util.TreeMap;
 
 import javax.servlet.http.HttpServletResponse;
 
+import org.apache.commons.text.StringEscapeUtils;
 import org.apache.hadoop.security.UserGroupInformation;
 import org.apache.hadoop.yarn.webapp.Controller;
 import org.apache.hadoop.yarn.webapp.MimeType;
@@ -909,7 +910,8 @@ public class AMWebController extends Controller {
       }
     }
 
-    private void render(PrintWriter pw) {
+    @VisibleForTesting
+    void render(PrintWriter pw) {
       pw.write("<html>");
       pw.write("<head>");
       pw.write("<meta charset=\"utf-8\">");
@@ -927,64 +929,15 @@ public class AMWebController extends Controller {
         // value like ' or " cannot break out and run script in the browser
         // of whoever opens the AM tracking URL.
         pw.write("<h1>Redirecting to Tez UI</h1>. <p>If you are not redirected shortly, click " +
-                "<a href=\"" + escapeHtmlAttribute(historyUrl) + "\"><b>here</b></a></p>"
+                "<a href=\"" + StringEscapeUtils.escapeHtml4(historyUrl) + "\"><b>here</b></a></p>"
         );
         pw.write("<script type='text/javascript'>setTimeout(function() { " +
-            "window.location.replace('" + escapeJsString(historyUrl) + "');" +
+            "window.location.replace('" + StringEscapeUtils.escapeEcmaScript(historyUrl) + "');" +
             "}, 0); </script>");
       }
       pw.write("</body>");
       pw.write("</html>");
       pw.flush();
-    }
-
-    static String escapeHtmlAttribute(String s) {
-      StringBuilder sb = new StringBuilder(s.length() + 16);
-      for (int i = 0; i < s.length(); i++) {
-        char c = s.charAt(i);
-        switch (c) {
-          case '&': sb.append("&amp;"); break;
-          case '<': sb.append("&lt;"); break;
-          case '>': sb.append("&gt;"); break;
-          case '"': sb.append("&quot;"); break;
-          case '\'': sb.append("&#39;"); break;
-          default: sb.append(c);
-        }
-      }
-      return sb.toString();
-    }
-
-    static String escapeJsString(String s) {
-      StringBuilder sb = new StringBuilder(s.length() + 16);
-      for (int i = 0; i < s.length(); i++) {
-        char c = s.charAt(i);
-        switch (c) {
-          case '\\': sb.append("\\\\"); break;
-          case '\'': sb.append("\\'"); break;
-          case '"': sb.append("\\\""); break;
-          case '\n': sb.append("\\n"); break;
-          case '\r': sb.append("\\r"); break;
-          case '\t': sb.append("\\t"); break;
-          case '\b': sb.append("\\b"); break;
-          case '\f': sb.append("\\f"); break;
-          case '<': sb.append("\\u003c"); break;
-          case '>': sb.append("\\u003e"); break;
-          case '&': sb.append("\\u0026"); break;
-          case '/': sb.append("\\/"); break;
-          // JS line terminators: illegal raw inside a string literal pre-ES2019.
-          // Written numerically because a \\u2028 source escape would be decoded
-          // by javac's lexer into a real line break and split this file.
-          case 0x2028: sb.append("\\u2028"); break;
-          case 0x2029: sb.append("\\u2029"); break;
-          default:
-            if (c < 0x20) {
-              sb.append(String.format("\\u%04x", (int) c));
-            } else {
-              sb.append(c);
-            }
-        }
-      }
-      return sb.toString();
     }
   }
 
