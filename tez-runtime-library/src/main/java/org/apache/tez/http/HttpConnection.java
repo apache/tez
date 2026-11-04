@@ -241,7 +241,7 @@ public class HttpConnection extends BaseHttpConnection {
     } else {
       // Log summary.
       if (urlLogCount.incrementAndGet() % 1000 == 0) {
-        LOG.info("Sent hash and recieved reply for {} urls", urlLogCount);
+        LOG.info("Sent hash and received reply for {} urls", urlLogCount);
       }
     }
   }
