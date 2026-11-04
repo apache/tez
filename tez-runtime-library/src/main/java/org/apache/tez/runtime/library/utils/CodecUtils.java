@@ -26,6 +26,7 @@ import org.apache.hadoop.conf.Configurable;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.fs.CommonConfigurationKeys;
 import org.apache.hadoop.fs.CommonConfigurationKeysPublic;
+import org.apache.hadoop.io.compress.BlockCompressorStream;
 import org.apache.hadoop.io.compress.CodecPool;
 import org.apache.hadoop.io.compress.CompressionCodec;
 import org.apache.hadoop.io.compress.CompressionInputStream;
@@ -157,6 +158,71 @@ public final class CodecUtils {
       OutputStream checksumOut, Compressor compressor) throws IOException {
     synchronized (((Configurable) codec).getConf()) {
       return codec.createOutputStream(checksumOut, compressor);
+    }
+  }
+
+  /**
+   * The buffer size of the codec's output streams. The codec reads it from its Configuration for
+   * every stream it creates; a writer of many streams reads it once and passes it to
+   * {@link #createOutputStream(CompressionCodec, OutputStream, Compressor, int, long)}.
+   *
+   * @return the buffer size, or -1 if the codec creates its streams itself
+   */
+  public static int getOutputBufferSize(CompressionCodec codec) {
+    if (codec == null || getBlockCompressionOverhead(codec.getClass().getName(), 0) < 0) {
+      return -1;
+    }
+    Configuration conf = ((Configurable) codec).getConf();
+    synchronized (conf) {
+      return conf.getInt(getBufferSizeProperty(codec), getDefaultBufferSize(conf, codec));
+    }
+  }
+
+  /**
+   * Creates the output stream of a Snappy or LZ4 codec without reading its Configuration, sized to
+   * the data when that fits in one block; leaves any other codec to create its own stream.
+   * <p>
+   * These codecs write a {@link BlockCompressorStream}: the input in blocks of at most
+   * bufferSize - overhead bytes, each compressed into a buffer of bufferSize bytes. Any block size
+   * of at least dataLength writes a stream of at most dataLength bytes as a single block, so a
+   * block of dataLength bytes, compressed into a buffer of its compression bound (the overhead
+   * formulas are the codecs' bounds), writes the same bytes as the configured block size. A small
+   * per-partition stream of a spill then no longer allocates and zeroes the configured buffer
+   * (256 KiB by default). A block of 0 bytes would never take input, hence a positive dataLength.
+   *
+   * @param bufferSize the codec's {@link #getOutputBufferSize(CompressionCodec)}
+   * @param dataLength upper bound of the bytes written to the stream, or -1 if unknown
+   */
+  public static CompressionOutputStream createOutputStream(CompressionCodec codec,
+      OutputStream checksumOut, Compressor compressor, int bufferSize, long dataLength)
+      throws IOException {
+    if (bufferSize < 0) {
+      return createOutputStream(codec, checksumOut, compressor);
+    }
+    String codecClassName = codec.getClass().getName();
+    int overhead = getBlockCompressionOverhead(codecClassName, bufferSize);
+    if (dataLength > 0 && dataLength < bufferSize - overhead) {
+      int blockSize = (int) dataLength;
+      int blockOverhead = getBlockCompressionOverhead(codecClassName, blockSize);
+      return new BlockCompressorStream(checksumOut, compressor, blockSize + blockOverhead,
+          blockOverhead);
+    }
+    return new BlockCompressorStream(checksumOut, compressor, bufferSize, overhead);
+  }
+
+  /**
+   * The overhead SnappyCodec and Lz4Codec reserve in their BlockCompressorStream for a buffer of
+   * the given size, or -1 for any other codec.
+   */
+  @VisibleForTesting
+  static int getBlockCompressionOverhead(String codecClassName, int bufferSize) {
+    switch (codecClassName) {
+      case "org.apache.hadoop.io.compress.SnappyCodec":
+        return bufferSize / 6 + 32;
+      case "org.apache.hadoop.io.compress.Lz4Codec":
+        return bufferSize / 255 + 16;
+      default:
+        return -1;
     }
   }
 

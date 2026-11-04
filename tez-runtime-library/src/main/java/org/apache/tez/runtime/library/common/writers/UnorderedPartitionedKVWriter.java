@@ -76,6 +76,7 @@ import org.apache.tez.runtime.library.common.sort.impl.TezIndexRecord;
 import org.apache.tez.runtime.library.common.sort.impl.TezSpillRecord;
 import org.apache.tez.runtime.library.shuffle.impl.ShuffleUserPayloads;
 import org.apache.tez.runtime.library.shuffle.impl.ShuffleUserPayloads.DataMovementEventPayloadProto;
+import org.apache.tez.runtime.library.utils.CodecUtils;
 
 import com.google.common.annotations.VisibleForTesting;
 import com.google.common.collect.Lists;
@@ -202,6 +203,9 @@ public class UnorderedPartitionedKVWriter extends BaseUnorderedPartitionedKVWrit
   // When enabled, uses in-mem ifile writer
   private final boolean useCachedStream;
 
+  // The codec's output stream buffer size, read once instead of per partition stream
+  private final int codecBufferSize;
+
   public UnorderedPartitionedKVWriter(OutputContext outputContext, Configuration conf,
       int numOutputs, long availableMemoryBytes) throws IOException {
     super(outputContext, conf, numOutputs);
@@ -236,6 +240,7 @@ public class UnorderedPartitionedKVWriter extends BaseUnorderedPartitionedKVWrit
 
     this.useCachedStream = useCachedStreamConfig && (this.dataViaEventsEnabled && (numPartitions == 1)
         && !pipelinedShuffle);
+    this.codecBufferSize = CodecUtils.getOutputBufferSize(codec);
 
     if (availableMemoryBytes == 0) {
       Preconditions.checkArgument(((numPartitions == 1) && !pipelinedShuffle), "availableMemory "
@@ -645,7 +650,8 @@ public class UnorderedPartitionedKVWriter extends BaseUnorderedPartitionedKVWrit
               continue;
             }
             if (writer == null) {
-              writer = new Writer(keySerialization, valSerialization, out, keyClass, valClass, codec, null, null);
+              writer = new Writer(keySerialization, valSerialization, out, keyClass, valClass, codec,
+                  codecBufferSize, maxRawLength(filledBuffers, i), null, null);
             }
             numRecords += writePartition(buffer.partitionPositions[i], buffer, writer, key, val);
           }
@@ -684,6 +690,17 @@ public class UnorderedPartitionedKVWriter extends BaseUnorderedPartitionedKVWrit
       }
       return spillResult;
     }
+  }
+
+  /** Upper bound of the raw length of a partition spilled from the buffers. */
+  private static long maxRawLength(List<WrappedBuffer> buffers, int partition) {
+    long numRecords = 0;
+    long keyValueBytes = 0;
+    for (WrappedBuffer buffer : buffers) {
+      numRecords += buffer.recordsPerPartition[partition];
+      keyValueBytes += buffer.sizePerPartition[partition];
+    }
+    return Writer.maxRawLength(numRecords, keyValueBytes);
   }
 
   private long writePartition(int pos, WrappedBuffer wrappedBuffer, Writer writer,
@@ -1094,7 +1111,8 @@ public class UnorderedPartitionedKVWriter extends BaseUnorderedPartitionedKVWrit
               sourceDestNameTrimmed + ": " + "Skipping partition: " + i + " in final merge since it has no records");
           continue;
         }
-        writer = new Writer(keySerialization, valSerialization, out, keyClass, valClass, codec, null, null);
+        writer = new Writer(keySerialization, valSerialization, out, keyClass, valClass, codec,
+            codecBufferSize, mergedMaxRawLength(i), null, null);
         try {
           if (currentBuffer.nextPosition != 0
               && currentBuffer.partitionPositions[i] != WrappedBuffer.PARTITION_ABSENT_POSITION) {
@@ -1148,6 +1166,21 @@ public class UnorderedPartitionedKVWriter extends BaseUnorderedPartitionedKVWrit
     LOG.info(sourceDestNameTrimmed + ": " + "Finished final spill after merging : " + numSpills.get() + " spills");
   }
 
+  /**
+   * Upper bound of the raw length of a partition merged from the current buffer and the spills:
+   * each part counts the header and EOF markers the merged stream writes once.
+   */
+  private long mergedMaxRawLength(int partition) {
+    long maxRawLength = Writer.maxRawLength(currentBuffer.recordsPerPartition[partition],
+        currentBuffer.sizePerPartition[partition]);
+    synchronized (spillInfoList) {
+      for (SpillInfo spillInfo : spillInfoList) {
+        maxRawLength += spillInfo.spillRecord.getIndex(partition).getRawLength();
+      }
+    }
+    return maxRawLength;
+  }
+
   private void deleteIntermediateSpills() {
     // Delete the intermediate spill files
     synchronized (spillInfoList) {
@@ -1185,7 +1218,8 @@ public class UnorderedPartitionedKVWriter extends BaseUnorderedPartitionedKVWrit
           spilledRecordsCounter.increment(1);
           Writer writer = null;
           try {
-            writer = new IFile.Writer(keySerialization, valSerialization, out, keyClass, valClass, codec, null, null);
+            writer = new IFile.Writer(keySerialization, valSerialization, out, keyClass, valClass, codec,
+                codecBufferSize, -1, null, null);
             writer.append(key, value);
             outputLargeRecordsCounter.increment(1);
             numRecordsPerPartition[i]++;

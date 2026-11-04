@@ -18,6 +18,7 @@
  */
 package org.apache.tez.runtime.library.common.sort.impl;
 
+import static org.junit.jupiter.api.Assertions.assertArrayEquals;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertInstanceOf;
@@ -53,11 +54,13 @@ import org.apache.hadoop.io.IntWritable;
 import org.apache.hadoop.io.Text;
 import org.apache.hadoop.io.compress.CompressionCodec;
 import org.apache.hadoop.io.compress.CompressionCodecFactory;
+import org.apache.hadoop.io.compress.SnappyCodec;
 import org.apache.hadoop.io.compress.lz4.Lz4Compressor;
 import org.apache.hadoop.io.serializer.Deserializer;
 import org.apache.hadoop.io.serializer.SerializationFactory;
 import org.apache.hadoop.io.serializer.WritableSerialization;
 import org.apache.hadoop.util.NativeCodeLoader;
+import org.apache.hadoop.util.ReflectionUtils;
 import org.apache.tez.common.TezRuntimeFrameworkConfigs;
 import org.apache.tez.runtime.library.common.InputAttemptIdentifier;
 import org.apache.tez.runtime.library.common.shuffle.orderedgrouped.InMemoryReader;
@@ -819,6 +822,67 @@ public class TestIFile {
     comp = new Lz4Compressor(32, false);
     comp.setInput(buf, 0, 32);
     comp.compress(buf, 0, 32);
+  }
+
+  /**
+   * A writer given an upper bound of its raw length writes the bytes of an unsized writer, from a
+   * record to several codec blocks, and with values longer than the write buffer.
+   */
+  @Test
+  public void testSizedWriterWritesUnsizedBytes() throws IOException {
+    CompressionCodec snappy = ReflectionUtils.newInstance(SnappyCodec.class, new Configuration(false));
+    int codecBufferSize = CodecUtils.getOutputBufferSize(snappy);
+    Random random = new Random(0);
+    // {records, value length bound}: one record, one block, several blocks, values above the write buffer
+    for (int[] shape : new int[][] {{1, 50}, {100, 50}, {10_000, 50}, {5, 200_000}}) {
+      List<byte[][]> records = new ArrayList<>();
+      long keyValueBytes = 0;
+      for (int i = 0; i < shape[0]; i++) {
+        byte[] key = new byte[1 + random.nextInt(20)];
+        byte[] value = new byte[random.nextInt(shape[1])];
+        random.nextBytes(key);
+        random.nextBytes(value);
+        records.add(new byte[][] {key, value});
+        keyValueBytes += key.length + value.length;
+      }
+      long maxRawLength = Writer.maxRawLength(records.size(), keyValueBytes);
+
+      ByteArrayOutputStream unsized = new ByteArrayOutputStream();
+      ByteArrayOutputStream sized = new ByteArrayOutputStream();
+      writeRecords(new Writer(null, null, new FSDataOutputStream(unsized, null), null, null, snappy, null, null),
+          records);
+      Writer writer = writeRecords(new Writer(null, null, new FSDataOutputStream(sized, null), null, null, snappy,
+          codecBufferSize, maxRawLength, null, null), records);
+
+      String what = Arrays.toString(shape);
+      assertTrue(writer.getRawLength() <= maxRawLength, what);
+      assertArrayEquals(unsized.toByteArray(), sized.toByteArray(), what);
+      Reader reader = new Reader(new ByteArrayInputStream(sized.toByteArray()), sized.size(), snappy, null, null,
+          false, 0, -1);
+      DataInputBuffer key = new DataInputBuffer();
+      DataInputBuffer value = new DataInputBuffer();
+      for (byte[][] record : records) {
+        assertTrue(reader.nextRawKey(key), what);
+        reader.nextRawValue(value);
+        assertArrayEquals(record[0], Arrays.copyOfRange(key.getData(), key.getPosition(), key.getLength()), what);
+        assertArrayEquals(record[1], Arrays.copyOfRange(value.getData(), value.getPosition(), value.getLength()),
+            what);
+      }
+      assertFalse(reader.nextRawKey(key), what);
+      reader.close();
+    }
+  }
+
+  private static Writer writeRecords(Writer writer, List<byte[][]> records) throws IOException {
+    DataInputBuffer key = new DataInputBuffer();
+    DataInputBuffer value = new DataInputBuffer();
+    for (byte[][] record : records) {
+      key.reset(record[0], record[0].length);
+      value.reset(record[1], record[1].length);
+      writer.append(key, value);
+    }
+    writer.close();
+    return writer;
   }
 
   private void initBufWithNumbers(byte[] buf, int... args) {
