@@ -103,9 +103,14 @@ public class ZkAMRegistry implements AMRegistry {
     byte[] json = AMRegistryUtils.recordToJsonString(server).getBytes(StandardCharsets.UTF_8);
     PersistentNode node = new PersistentNode(client, CreateMode.EPHEMERAL, false, path, json);
     node.start();
-    if (!node.waitForInitialCreate(zkConfig.getConnectionTimeoutMs(), TimeUnit.MILLISECONDS)) {
+    // the initial create waits one connection timeout; the Curator retry settings do not apply to it
+    try {
+      if (!node.waitForInitialCreate(zkConfig.getConnectionTimeoutMs(), TimeUnit.MILLISECONDS)) {
+        throw new IOException("Timed out creating AMRecord at zkpath " + path);
+      }
+    } catch (Exception e) {
       node.close();
-      throw new IOException("Timed out creating AMRecord at zkpath " + path);
+      throw e;
     }
     amNodes.put(server, node);
     LOG.info("Added AMRecord to zkpath {}", path);
@@ -114,11 +119,12 @@ public class ZkAMRegistry implements AMRegistry {
   @Override
   public void remove(AMRecord server) throws Exception {
     PersistentNode node = amNodes.remove(server);
-    final String path = pathFor(server);
-    if (node != null) {
-      node.close();   // deletes the node
+    if (node == null) {
+      LOG.debug("AMRecord {} was not registered by this instance, nothing to remove", server);
+      return;
     }
-    LOG.info("Deleted AMRecord from zkpath {}", path);
+    node.close();   // deletes the node
+    LOG.info("Deleted AMRecord from zkpath {}", pathFor(server));
   }
 
   @Override
