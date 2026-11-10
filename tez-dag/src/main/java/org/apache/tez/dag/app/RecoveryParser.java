@@ -33,6 +33,7 @@ import org.apache.hadoop.fs.FSDataInputStream;
 import org.apache.hadoop.fs.FileStatus;
 import org.apache.hadoop.fs.FileSystem;
 import org.apache.hadoop.fs.Path;
+import org.apache.hadoop.thirdparty.protobuf.CodedInputStream;
 import org.apache.hadoop.util.functional.FutureIO;
 import org.apache.hadoop.yarn.api.records.ApplicationId;
 import org.apache.hadoop.yarn.api.records.LocalResource;
@@ -76,7 +77,6 @@ import org.apache.tez.dag.recovery.records.RecoveryProtos;
 import org.apache.tez.dag.recovery.records.RecoveryProtos.SummaryEventProto;
 
 import com.google.common.annotations.VisibleForTesting;
-import com.google.protobuf.CodedInputStream;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
