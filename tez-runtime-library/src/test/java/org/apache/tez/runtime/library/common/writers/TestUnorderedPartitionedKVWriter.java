@@ -18,6 +18,7 @@
  */
 package org.apache.tez.runtime.library.common.writers;
 
+import static org.junit.jupiter.api.Assertions.assertArrayEquals;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertInstanceOf;
@@ -37,11 +38,14 @@ import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 
 import java.io.ByteArrayInputStream;
+import java.io.ByteArrayOutputStream;
 import java.io.DataInputStream;
 import java.io.IOException;
 import java.io.InputStream;
+import java.lang.management.ManagementFactory;
 import java.nio.ByteBuffer;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.BitSet;
 import java.util.HashMap;
 import java.util.Iterator;
@@ -51,6 +55,7 @@ import java.util.Random;
 import java.util.Set;
 import java.util.UUID;
 import java.util.concurrent.TimeUnit;
+import java.util.concurrent.atomic.AtomicInteger;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 import java.util.stream.Stream;
@@ -59,6 +64,7 @@ import org.apache.hadoop.conf.Configurable;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.fs.CommonConfigurationKeys;
 import org.apache.hadoop.fs.FSDataInputStream;
+import org.apache.hadoop.fs.FSDataOutputStream;
 import org.apache.hadoop.fs.FileSystem;
 import org.apache.hadoop.fs.Path;
 import org.apache.hadoop.fs.permission.FsAction;
@@ -67,8 +73,10 @@ import org.apache.hadoop.io.IntWritable;
 import org.apache.hadoop.io.LongWritable;
 import org.apache.hadoop.io.Text;
 import org.apache.hadoop.io.Writable;
+import org.apache.hadoop.io.compress.CodecPool;
 import org.apache.hadoop.io.compress.CompressionCodec;
 import org.apache.hadoop.io.compress.DefaultCodec;
+import org.apache.hadoop.io.compress.SnappyCodec;
 import org.apache.hadoop.yarn.api.records.ApplicationId;
 import org.apache.tez.common.TezCommonUtils;
 import org.apache.tez.common.TezRuntimeFrameworkConfigs;
@@ -105,6 +113,7 @@ import com.google.protobuf.ByteString;
 
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeAll;
+import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.Timeout;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.Arguments;
@@ -1599,6 +1608,130 @@ public class TestUnorderedPartitionedKVWriter {
       sb.append((char) (65 + r));
     }
     return sb.toString();
+  }
+
+  /**
+   * A spill sizes each partition's stream to the partition without reading the codec's buffer size
+   * per stream, and writes the bytes of an unsized writer: a final spill of many partitions, spills
+   * of several buffers each, and a merge of many spills.
+   */
+  @Test
+  public void testSpillStreamsSizedToPartitions() throws IOException, InterruptedException {
+    setupInit(true, ReportPartitionStats.DISABLED);
+    int numPartitions = 1009;
+    UnorderedPartitionedKVWriter kvWriter = createSnappyWriter(numPartitions, 16 << 20, -1, true);
+    write(kvWriter, 50_000);
+    ReadCountingConfiguration conf = (ReadCountingConfiguration) kvWriter.conf;
+    // The final spill runs on this thread; it borrows the pooled compressor instead of creating one.
+    CodecPool.returnCompressor(CodecPool.getCompressor(kvWriter.codec));
+    int reads = conf.reads.get();
+    long allocated = getCurrentThreadAllocatedBytes();
+    kvWriter.close();
+    allocated = getCurrentThreadAllocatedBytes() - allocated;
+    assertEquals(1, kvWriter.numSpills.get());
+    assertEquals(reads, conf.reads.get());
+    // The configured buffers would take 320 KiB per partition: 256 KiB codec + 64 KiB write buffer.
+    assertTrue(allocated < numPartitions * 32L * 1024, "allocated " + allocated);
+    assertPartitionsWrittenUnsized(kvWriter, kvWriter.finalOutPath, kvWriter.finalIndexPath, numPartitions);
+
+    numPartitions = 10;
+    kvWriter = createSnappyWriter(numPartitions, 10 << 10, 1 << 10, false);
+    write(kvWriter, 5000);
+    kvWriter.close();
+    assertTrue(kvWriter.spillLimit > 1);
+    for (int i = 0; i < kvWriter.numSpills.get(); i++) {
+      assertPartitionsWrittenUnsized(kvWriter, kvWriter.outputFileHandler.getSpillFileForWrite(i, 0),
+          kvWriter.outputFileHandler.getSpillIndexFileForWrite(i, 0), numPartitions);
+    }
+
+    kvWriter = createSnappyWriter(numPartitions, 2048, -1, true);
+    write(kvWriter, 5000);
+    kvWriter.close();
+    assertTrue(kvWriter.numSpills.get() > 100);
+    assertPartitionsWrittenUnsized(kvWriter, kvWriter.finalOutPath, kvWriter.finalIndexPath, numPartitions);
+  }
+
+  /** Spills of a writer without final merge take all its buffers. */
+  private UnorderedPartitionedKVWriter createSnappyWriter(int numPartitions, long availableMemory,
+      int maxSingleBufferSizeBytes, boolean finalMerge) throws IOException {
+    OutputContext outputContext = createMockOutputContext(new TezCounters(), ApplicationId.newInstance(10000000, 1),
+        UUID.randomUUID().toString(), defaultConf.get(TezConfiguration.TEZ_AM_SHUFFLE_AUXILIARY_SERVICE_ID,
+            TezConfiguration.TEZ_AM_SHUFFLE_AUXILIARY_SERVICE_ID_DEFAULT));
+    Configuration conf = new ReadCountingConfiguration(
+        createConfiguration(outputContext, IntWritable.class, LongWritable.class, true, maxSingleBufferSizeBytes),
+        CommonConfigurationKeys.IO_COMPRESSION_CODEC_SNAPPY_BUFFERSIZE_KEY);
+    conf.set(TezRuntimeConfiguration.TEZ_RUNTIME_COMPRESS_CODEC, SnappyCodec.class.getName());
+    conf.setBoolean(TezRuntimeConfiguration.TEZ_RUNTIME_ENABLE_FINAL_MERGE_IN_OUTPUT, finalMerge);
+    if (!finalMerge) {
+      conf.setInt(TezRuntimeConfiguration.TEZ_RUNTIME_UNORDERED_PARTITIONED_KVWRITER_BUFFER_MERGE_PERCENT, 100);
+    }
+    return new UnorderedPartitionedKVWriterForTest(outputContext, conf, numPartitions, availableMemory);
+  }
+
+  private static void write(UnorderedPartitionedKVWriter kvWriter, int numRecords) throws IOException {
+    IntWritable key = new IntWritable();
+    LongWritable value = new LongWritable();
+    for (int i = 0; i < numRecords; i++) {
+      key.set(i);
+      value.set(i);
+      kvWriter.write(key, value);
+    }
+  }
+
+  private static long getCurrentThreadAllocatedBytes() {
+    return ((com.sun.management.ThreadMXBean) ManagementFactory.getThreadMXBean())
+        .getCurrentThreadAllocatedBytes();
+  }
+
+  /** Each partition of the output holds the bytes an unsized writer writes for its records. */
+  private static void assertPartitionsWrittenUnsized(UnorderedPartitionedKVWriter kvWriter, Path outputPath,
+      Path indexPath, int numPartitions) throws IOException {
+    byte[] output = new byte[(int) localFs.getFileStatus(outputPath).getLen()];
+    try (FSDataInputStream in = localFs.open(outputPath)) {
+      in.readFully(output);
+    }
+    TezSpillRecord spillRecord = new TezSpillRecord(indexPath, kvWriter.conf);
+    DataInputBuffer key = new DataInputBuffer();
+    DataInputBuffer value = new DataInputBuffer();
+    for (int i = 0; i < numPartitions; i++) {
+      TezIndexRecord indexRecord = spillRecord.getIndex(i);
+      if (indexRecord.getPartLength() == 0) {
+        continue;
+      }
+      int start = (int) indexRecord.getStartOffset();
+      byte[] segment = Arrays.copyOfRange(output, start, start + (int) indexRecord.getPartLength());
+      Reader reader = new Reader(new ByteArrayInputStream(segment), segment.length, kvWriter.codec, null, null,
+          false, 0, -1);
+      ByteArrayOutputStream unsized = new ByteArrayOutputStream();
+      IFile.Writer writer = new IFile.Writer(null, null, new FSDataOutputStream(unsized, null), null, null,
+          kvWriter.codec, null, null);
+      while (reader.nextRawKey(key)) {
+        reader.nextRawValue(value);
+        writer.append(key, value);
+      }
+      reader.close();
+      writer.close();
+      assertArrayEquals(unsized.toByteArray(), segment, "partition " + i);
+    }
+  }
+
+  /** Counts the reads of one property. */
+  private static class ReadCountingConfiguration extends Configuration {
+    private final String property;
+    private final AtomicInteger reads = new AtomicInteger();
+
+    ReadCountingConfiguration(Configuration conf, String property) {
+      super(conf);
+      this.property = property;
+    }
+
+    @Override
+    public String get(String name) {
+      if (property.equals(name)) {
+        reads.incrementAndGet();
+      }
+      return super.get(name);
+    }
   }
 
   private OutputContext createMockOutputContext(TezCounters counters, ApplicationId appId,
