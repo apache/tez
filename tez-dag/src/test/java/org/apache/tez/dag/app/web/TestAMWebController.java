@@ -35,6 +35,8 @@ import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
+import java.io.PrintWriter;
+import java.io.StringWriter;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collections;
@@ -888,6 +890,48 @@ public class TestAMWebController {
     assertEquals(mockTask.getTaskAttemptID().toString(), taskResult.get("id"));
     assertEquals(mockTask.getState().toString(), taskResult.get("status"));
     assertEquals(Float.toString(mockTask.getProgress()), taskResult.get("progress"));
+  }
+
+  private static String renderStaticAMView(String historyUrl) {
+    AMWebController.StaticAMView view = new AMWebController.StaticAMView();
+    view.historyUrl = historyUrl;
+    StringWriter out = new StringWriter();
+    view.render(new PrintWriter(out));
+    return out.toString();
+  }
+
+  @Test
+  public void testStaticAMViewEscapesHistoryUrl() {
+    // Angle brackets and quotes in the submitter-controlled history url
+    // must not break out of the rendered attribute or JS literal.
+    String rendered = renderStaticAMView("http://ui/'\"><script>alert(1)</script>");
+
+    // Double-quoted href: " < > & are entity-encoded, a bare ' is harmless.
+    assertTrue(rendered.contains(
+        "<a href=\"http://ui/'&quot;&gt;&lt;script&gt;alert(1)&lt;/script&gt;\">"),
+        "Unexpected href encoding: " + rendered);
+    // Single-quoted JS literal: ' and " are backslash-escaped and / becomes \/,
+    // so the injected </script> cannot close the enclosing script element.
+    assertTrue(rendered.contains(
+        "window.location.replace('http:\\/\\/ui\\/\\'\\\"><script>alert(1)<\\/script>');"),
+        "Unexpected JS encoding: " + rendered);
+    assertEquals(1, rendered.split("</script>", -1).length - 1,
+        "Only the page's own </script> may appear: " + rendered);
+  }
+
+  @Test
+  public void testStaticAMViewEscapesJsLineTerminators() {
+    // U+2028/U+2029 are JS line terminators: raw, they break the string
+    // literal pre-ES2019 and the redirect never runs. Built numerically —
+    // a source \\u2028 escape is decoded by javac before string parsing.
+    String ls = String.valueOf((char) 0x2028);
+    String ps = String.valueOf((char) 0x2029);
+    String rendered = renderStaticAMView("http://ui/" + ls + ps + "x");
+    String script = rendered.substring(rendered.indexOf("<script"));
+    assertFalse(script.contains(ls), "U+2028 must be escaped: " + script);
+    assertFalse(script.contains(ps), "U+2029 must be escaped: " + script);
+    assertTrue(script.contains("http:\\/\\/ui\\/\\u2028\\u2029x"),
+        "Expected \\u2028\\u2029 escapes: " + script);
   }
 
 }

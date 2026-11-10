@@ -36,6 +36,7 @@ import java.util.TreeMap;
 
 import javax.servlet.http.HttpServletResponse;
 
+import org.apache.commons.text.StringEscapeUtils;
 import org.apache.hadoop.security.UserGroupInformation;
 import org.apache.hadoop.yarn.webapp.Controller;
 import org.apache.hadoop.yarn.webapp.MimeType;
@@ -909,7 +910,8 @@ public class AMWebController extends Controller {
       }
     }
 
-    private void render(PrintWriter pw) {
+    @VisibleForTesting
+    void render(PrintWriter pw) {
       pw.write("<html>");
       pw.write("<head>");
       pw.write("<meta charset=\"utf-8\">");
@@ -921,12 +923,17 @@ public class AMWebController extends Controller {
                 "<p>To enable tracking url pointing to Tez UI, set the config <b>" +
                 TezConfiguration.TEZ_HISTORY_URL_BASE + "</b> in the tez-site.xml.</p>");
       } else {
+        // historyUrl is derived from a submitter-supplied AM configuration
+        // property (tez.tez-ui.history-url.base). Escape it before splicing
+        // into the HTML attribute and the inline JS string literal so a
+        // value like ' or " cannot break out and run script in the browser
+        // of whoever opens the AM tracking URL.
         pw.write("<h1>Redirecting to Tez UI</h1>. <p>If you are not redirected shortly, click " +
-                "<a href='" + historyUrl + "'><b>here</b></a></p>"
+                "<a href=\"" + StringEscapeUtils.escapeHtml4(historyUrl) + "\"><b>here</b></a></p>"
         );
         pw.write("<script type='text/javascript'>setTimeout(function() { " +
-          "window.location.replace('" + historyUrl + "');" +
-          "}, 0); </script>");
+            "window.location.replace('" + StringEscapeUtils.escapeEcmaScript(historyUrl) + "');" +
+            "}, 0); </script>");
       }
       pw.write("</body>");
       pw.write("</html>");
