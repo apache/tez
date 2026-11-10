@@ -213,7 +213,7 @@ public class MockDAGAppMaster extends DAGAppMaster {
     public void shutdown() throws Exception {
       if (eventHandlingThread != null) {
         eventHandlingThread.interrupt();
-        eventHandlingThread.join(2000l);
+        eventHandlingThread.join(2000L);
       }
       if (executorService != null) {
         executorService.shutdownNow();

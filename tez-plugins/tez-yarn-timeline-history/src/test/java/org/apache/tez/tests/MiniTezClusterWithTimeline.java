@@ -114,7 +114,7 @@ public class MiniTezClusterWithTimeline extends MiniYARNCluster {
 
     if (conf.get(YarnConfiguration.DEBUG_NM_DELETE_DELAY_SEC) == null) {
       // nothing defined. set quick delete value
-      conf.setLong(YarnConfiguration.DEBUG_NM_DELETE_DELAY_SEC, 0l);
+      conf.setLong(YarnConfiguration.DEBUG_NM_DELETE_DELAY_SEC, 0L);
     }
 
     maxTimeToWaitForAppsOnShutdown = conf.getLong(

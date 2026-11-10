@@ -91,9 +91,9 @@ public class TestMRHelpers {
     Resource reduceResource = MRHelpers.getResourceForMRReducer(conf);
 
     assertEquals(MRJobConfig.DEFAULT_MAP_CPU_VCORES, mapResource.getVirtualCores());
-    assertEquals(MRJobConfig.DEFAULT_MAP_MEMORY_MB, mapResource.getMemory());
+    assertEquals(MRJobConfig.DEFAULT_MAP_MEMORY_MB, mapResource.getMemorySize());
     assertEquals(MRJobConfig.DEFAULT_REDUCE_CPU_VCORES, reduceResource.getVirtualCores());
-    assertEquals(MRJobConfig.DEFAULT_REDUCE_MEMORY_MB, reduceResource.getMemory());
+    assertEquals(MRJobConfig.DEFAULT_REDUCE_MEMORY_MB, reduceResource.getMemorySize());
 
     conf.setInt(MRJobConfig.MAP_CPU_VCORES, 2);
     conf.setInt(MRJobConfig.MAP_MEMORY_MB, 123);
@@ -104,9 +104,9 @@ public class TestMRHelpers {
     reduceResource = MRHelpers.getResourceForMRReducer(conf);
 
     assertEquals(2, mapResource.getVirtualCores());
-    assertEquals(123, mapResource.getMemory());
+    assertEquals(123, mapResource.getMemorySize());
     assertEquals(20, reduceResource.getVirtualCores());
-    assertEquals(1234, reduceResource.getMemory());
+    assertEquals(1234, reduceResource.getMemorySize());
   }
 
   private Configuration setupConfigForMREnvTest() {

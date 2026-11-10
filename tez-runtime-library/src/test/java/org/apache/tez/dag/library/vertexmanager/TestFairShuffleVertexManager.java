@@ -77,7 +77,7 @@ public class TestFairShuffleVertexManager
     manager = createManager(null, mockContext, null, 0.5f);
     verify(mockContext, times(1)).vertexReconfigurationPlanned(); // Tez notified of reconfig
     assertTrue(manager.config.isAutoParallelismEnabled());
-    assertEquals(manager.config.getDesiredTaskInputDataSize(), 1000l * MB);
+    assertEquals(manager.config.getDesiredTaskInputDataSize(), 1000L * MB);
     assertEquals(0.25f, manager.config.getMinFraction());
     assertEquals(0.5f, manager.config.getMaxFraction());
 
@@ -382,7 +382,7 @@ public class TestFairShuffleVertexManager
 
   private static FairShuffleVertexManager createManager(Configuration conf,
       VertexManagerPluginContext context, Float min, Float max) {
-    return createManager(conf, context, true, 1000l * MB, min, max);
+    return createManager(conf, context, true, 1000L * MB, min, max);
   }
 
   private static FairShuffleVertexManager createManager(Configuration conf,

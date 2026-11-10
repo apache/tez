@@ -1302,7 +1302,7 @@ public class TezConfiguration extends Configuration {
       TEZ_AM_CONTAINER_REUSE_LOCALITY_DELAY_ALLOCATION_MILLIS =
       TEZ_AM_PREFIX + "container.reuse.locality.delay-allocation-millis";
   public static final long
-    TEZ_AM_CONTAINER_REUSE_LOCALITY_DELAY_ALLOCATION_MILLIS_DEFAULT = 250l;
+    TEZ_AM_CONTAINER_REUSE_LOCALITY_DELAY_ALLOCATION_MILLIS_DEFAULT = 250L;
 
   /**
    * Int value. The minimum amount of time to hold on to a container that is idle. Only active when
@@ -1313,7 +1313,7 @@ public class TezConfiguration extends Configuration {
   public static final String TEZ_AM_CONTAINER_IDLE_RELEASE_TIMEOUT_MIN_MILLIS =
     TEZ_AM_PREFIX + "container.idle.release-timeout-min.millis";
   public static final long
-    TEZ_AM_CONTAINER_IDLE_RELEASE_TIMEOUT_MIN_MILLIS_DEFAULT = 5000l;
+    TEZ_AM_CONTAINER_IDLE_RELEASE_TIMEOUT_MIN_MILLIS_DEFAULT = 5000L;
 
   /**
    * Int value. The maximum amount of time to hold on to a container if no task can be
@@ -1330,7 +1330,7 @@ public class TezConfiguration extends Configuration {
   public static final String TEZ_AM_CONTAINER_IDLE_RELEASE_TIMEOUT_MAX_MILLIS =
       TEZ_AM_PREFIX + "container.idle.release-timeout-max.millis";
   public static final long
-    TEZ_AM_CONTAINER_IDLE_RELEASE_TIMEOUT_MAX_MILLIS_DEFAULT = 10000l;
+    TEZ_AM_CONTAINER_IDLE_RELEASE_TIMEOUT_MAX_MILLIS_DEFAULT = 10000L;
 
   /**
    * Int value. The minimum number of containers that will be held in session mode. Not active in

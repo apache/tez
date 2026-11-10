@@ -141,7 +141,7 @@ public class WeightedScalingMemoryDistributor implements InitialMemoryAllocator 
     for (Request request : requests) {
       long allocated = 0;
       if (request.requestSize == 0) {
-        allocations.add(0l);
+        allocations.add(0L);
         if (LOG.isDebugEnabled()) {
           LOG.debug("Scaling requested " + request.componentClassname + " of type "
               + request.requestType + " 0 to allocated: 0");

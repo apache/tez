@@ -489,7 +489,7 @@ public interface MRJobConfig {
    * containers.*/
   public static final String MR_AM_SCHEDULER_INTERVAL =
     MR_AM_PREFIX + "scheduler.interval-ms";
-  public static final long DEFAULT_MR_AM_SCHEDULER_INTERVAL = 1000l;
+  public static final long DEFAULT_MR_AM_SCHEDULER_INTERVAL = 1000L;
 
   /** How often the AM should send heartbeats to the RM.*/
   public static final String MR_AM_TO_RM_HEARTBEAT_INTERVAL_MS =
@@ -526,7 +526,7 @@ public interface MRJobConfig {
   public static final String MR_AM_HISTORY_COMPLETE_EVENT_FLUSH_TIMEOUT_MS =
       MR_AM_PREFIX + "history.complete-event-flush-timeout";
   public static final long DEFAULT_MR_AM_HISTORY_COMPLETE_EVENT_FLUSH_TIMEOUT_MS =
-      30 * 1000l;
+      30 * 1000L;
 
   public static final String MR_AM_HISTORY_USE_BATCHED_FLUSH_QUEUE_SIZE_THRESHOLD =
       MR_AM_PREFIX + "history.use-batched-flush.queue-size.threshold";

@@ -699,7 +699,7 @@ public class TestTezMerger {
   private void mergeSegments(List<TezMerger.Segment> segmentList, int mergeFactor, boolean
       hasDiskSegments) throws Exception {
     //Merge datasets
-    MergeQueue mergeQueue = new MergeQueue(DEFAULT_CONF, localFs, segmentList,
+    MergeQueue<?, ?> mergeQueue = new MergeQueue<>(DEFAULT_CONF, localFs, segmentList,
         comparator, new Reporter(), false, false);
 
     TezRawKeyValueIterator records = mergeQueue.merge(

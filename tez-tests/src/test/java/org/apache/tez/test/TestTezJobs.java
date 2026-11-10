@@ -1051,36 +1051,36 @@ public class TestTezJobs {
     tezClient.start();
 
     try {
-    DAG dag = SimpleTestDAG.createDAGForVertexOrder("dag1", conf);
-    DAGClient dagClient = tezClient.submitDAG(dag);
-    DAGStatus dagStatus = dagClient.getDAGStatus(null);
-    while (!dagStatus.isCompleted()) {
-      LOG.info("Waiting for dag to complete. Sleeping for 500ms."
-          + " DAG name: " + dag.getName()
-          + " DAG context: " + dagClient.getExecutionContext()
-          + " Current state: " + dagStatus.getState());
-      Thread.sleep(100);
-      dagStatus = dagClient.getDAGStatus(null);
-    }
-
-    assertEquals(DAGStatus.State.SUCCEEDED, dagStatus.getState());
-
-    // verify vertex order
-    Set<String> resultVertices = dagStatus.getVertexProgress().keySet();
-    assertEquals(6, resultVertices.size());
-    int i = 0;
-    for (String vertexName : resultVertices){
-      if (i <= 1){
-        assertTrue(vertexName.equals("v1") || vertexName.equals("v2"));
-      } else if (i == 2) {
-        assertEquals("v3", vertexName);
-      } else if (i <= 4) {
-        assertTrue(vertexName.equals("v4") || vertexName.equals("v5"));
-      } else {
-        assertEquals("v6", vertexName);
+      DAG dag = SimpleTestDAG.createDAGForVertexOrder("dag1", conf);
+      DAGClient dagClient = tezClient.submitDAG(dag);
+      DAGStatus dagStatus = dagClient.getDAGStatus(null);
+      while (!dagStatus.isCompleted()) {
+        LOG.info("Waiting for dag to complete. Sleeping for 500ms."
+            + " DAG name: " + dag.getName()
+            + " DAG context: " + dagClient.getExecutionContext()
+            + " Current state: " + dagStatus.getState());
+        Thread.sleep(100);
+        dagStatus = dagClient.getDAGStatus(null);
       }
-      i++;
-    }
+
+      assertEquals(DAGStatus.State.SUCCEEDED, dagStatus.getState());
+
+      // verify vertex order
+      Set<String> resultVertices = dagStatus.getVertexProgress().keySet();
+      assertEquals(6, resultVertices.size());
+      int i = 0;
+      for (String vertexName : resultVertices){
+        if (i <= 1){
+          assertTrue(vertexName.equals("v1") || vertexName.equals("v2"));
+        } else if (i == 2) {
+          assertEquals("v3", vertexName);
+        } else if (i <= 4) {
+          assertTrue(vertexName.equals("v4") || vertexName.equals("v5"));
+        } else {
+          assertEquals("v6", vertexName);
+        }
+        i++;
+      }
     } finally {
       if (tezClient != null) {
         tezClient.stop();

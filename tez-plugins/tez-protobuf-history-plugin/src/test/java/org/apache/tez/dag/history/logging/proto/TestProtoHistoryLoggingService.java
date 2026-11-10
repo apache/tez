@@ -76,13 +76,14 @@ import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.io.TempDir;
 
 public class TestProtoHistoryLoggingService {
-  private static ApplicationId appId = ApplicationId.newInstance(1000l, 1);
+  private static ApplicationId appId = ApplicationId.newInstance(1000L, 1);
   private static ApplicationAttemptId attemptId = ApplicationAttemptId.newInstance(appId, 1);
   private static String user = "TEST_USER";
   private Clock clock;
 
+  @SuppressWarnings("checkstyle:VisibilityModifier")
   @TempDir
-  public java.nio.file.Path tempFolder;
+  java.nio.file.Path tempFolder;
 
   @Test
   public void testService() throws Exception {

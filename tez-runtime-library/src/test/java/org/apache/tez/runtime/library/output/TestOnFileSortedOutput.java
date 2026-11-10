@@ -73,7 +73,7 @@ import org.junit.jupiter.params.provider.MethodSource;
 import org.mockito.invocation.InvocationOnMock;
 import org.mockito.stubbing.Answer;
 
-@SuppressWarnings({ "rawtypes", "unchecked" })
+@SuppressWarnings({ "rawtypes", "unchecked", "checkstyle:HiddenField" })
 public class TestOnFileSortedOutput {
   private static final Random rnd = new Random();
   private static final String UniqueID = "UUID";
@@ -259,7 +259,7 @@ public class TestOnFileSortedOutput {
     try {
       //Memory limit checks are done in sorter impls. For e.g, defaultsorter does not support > 2GB
       sortedOutput.initialize();
-      DefaultSorter sorter = new DefaultSorter(context, conf, 100, 3500*1024*1024l);
+      DefaultSorter sorter = new DefaultSorter(context, conf, 100, 3500 * 1024 * 1024L);
       fail();
     } catch(IllegalArgumentException e) {
       assertTrue(e.getMessage().contains(TezRuntimeConfiguration.TEZ_RUNTIME_IO_SORT_MB));
@@ -407,7 +407,7 @@ public class TestOnFileSortedOutput {
     doReturn(counters).when(context).getCounters();
     doReturn(workingDirs).when(context).getWorkDirs();
     doReturn(payLoad).when(context).getUserPayload();
-    doReturn(5 * 1024 * 1024l).when(context).getTotalMemoryAvailableToTask();
+    doReturn(5 * 1024 * 1024L).when(context).getTotalMemoryAvailableToTask();
     doReturn(UniqueID).when(context).getUniqueIdentifier();
     doReturn("v0").when(context).getTaskVertexName();
     doReturn("v1").when(context).getDestinationVertexName();

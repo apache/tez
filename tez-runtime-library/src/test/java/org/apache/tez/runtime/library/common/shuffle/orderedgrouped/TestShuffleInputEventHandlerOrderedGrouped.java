@@ -351,7 +351,8 @@ public class TestShuffleInputEventHandlerOrderedGrouped {
     int partitionId = srcIdx;
     verify(scheduler).addKnownMapOutput(eq(HOST), eq(PORT), eq(partitionId),
         eq(expectedIdentifier));
-    assertTrue(scheduler.pipelinedShuffleInfoEventsMap.isEmpty(), "Shuffle info events should be empty for regular shuffle codepath");
+    assertTrue(scheduler.pipelinedShuffleInfoEventsMap.isEmpty(),
+        "Shuffle info events should be empty for regular shuffle codepath");
   }
 
   @Test
