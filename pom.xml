@@ -103,7 +103,7 @@
     <scm.url>scm:git:https://gitbox.apache.org/repos/asf/tez.git</scm.url>
     <servlet-api.version>4.0.4</servlet-api.version>
     <slf4j.version>1.7.36</slf4j.version>
-    <snappy-java.version>1.1.10.4</snappy-java.version>
+    <snappy-java.version>1.1.10.9</snappy-java.version>
     <spotless-maven-plugin.version>3.1.0</spotless-maven-plugin.version>
     <test.build.data>${project.build.directory}/tmp</test.build.data>
     <test.log.dir>${project.build.directory}/logs</test.log.dir>
