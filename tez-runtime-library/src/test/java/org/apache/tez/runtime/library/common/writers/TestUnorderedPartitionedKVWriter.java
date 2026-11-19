@@ -50,6 +50,9 @@ import java.util.Map;
 import java.util.Random;
 import java.util.Set;
 import java.util.UUID;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
+import java.util.concurrent.Future;
 import java.util.concurrent.TimeUnit;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
@@ -105,6 +108,7 @@ import com.google.protobuf.ByteString;
 
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeAll;
+import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.Timeout;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.Arguments;
@@ -1116,6 +1120,59 @@ public class TestUnorderedPartitionedKVWriter {
       throws IOException, InterruptedException {
     setupInit(shouldCompress, reportPartitionStats);
     baseTestWithFinalMergeDisabled(200, 10, Sets.newHashSet(2, 5), shouldCompress);
+  }
+
+  /**
+   * With final merge off, a spill's callback adds the spill's event to the events of close() on the spill thread.
+   * Many small buffers keep many spills in flight, so several callbacks finish at once: no spill may be rejected,
+   * and close() must return one event per spill. The writers run 4 at a time to make that more frequent.
+   */
+  @Test
+  @Timeout(value = 120, unit = TimeUnit.SECONDS)
+  public void testConcurrentSpillsWithFinalMergeDisabled() throws Exception {
+    setupInit(false, ReportPartitionStats.DISABLED);
+    ExecutorService writers = Executors.newFixedThreadPool(4);
+    try {
+      List<Future<?>> results = new ArrayList<>();
+      for (int writer = 0; writer < 40; writer++) {
+        int id = writer;
+        results.add(writers.submit(() -> {
+          writeWithConcurrentSpills(id);
+          return null;
+        }));
+      }
+      for (Future<?> result : results) {
+        result.get();
+      }
+    } finally {
+      writers.shutdownNow();
+    }
+  }
+
+  private void writeWithConcurrentSpills(int writer) throws IOException, InterruptedException {
+    String auxiliaryService = defaultConf.get(TezConfiguration.TEZ_AM_SHUFFLE_AUXILIARY_SERVICE_ID,
+        TezConfiguration.TEZ_AM_SHUFFLE_AUXILIARY_SERVICE_ID_DEFAULT);
+    OutputContext outputContext = createMockOutputContext(new TezCounters(), ApplicationId.newInstance(10000000, 1),
+        UUID.randomUUID().toString(), auxiliaryService);
+    Configuration conf = createConfiguration(outputContext, IntWritable.class, LongWritable.class, false, 4096);
+    conf.setBoolean(TezRuntimeConfiguration.TEZ_RUNTIME_ENABLE_FINAL_MERGE_IN_OUTPUT, false);
+    conf.setBoolean(TezRuntimeConfiguration.TEZ_RUNTIME_PIPELINED_SHUFFLE_ENABLED, false);
+    // 64 buffers of 4 KiB: 32 spill threads
+    UnorderedPartitionedKVWriter kvWriter = new UnorderedPartitionedKVWriterForTest(outputContext, conf, 16,
+        64 * 4096L);
+    IntWritable key = new IntWritable();
+    LongWritable value = new LongWritable();
+    for (int i = 0; i < 200_000; i++) {
+      key.set(i);
+      value.set(i);
+      kvWriter.write(key, value);
+    }
+    List<Event> events = kvWriter.close();
+
+    assertFalse(events.contains(null), "writer " + writer + ": a null event");
+    assertEquals(kvWriter.numSpills.get(), events.stream().filter(CompositeDataMovementEvent.class::isInstance)
+        .count(), "writer " + writer + ": spill events");
+    localFs.delete(new Path(outputContext.getWorkDirs()[0]), true);
   }
 
   @SuppressWarnings("unchecked")

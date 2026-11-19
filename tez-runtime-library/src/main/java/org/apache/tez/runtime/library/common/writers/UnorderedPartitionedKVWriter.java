@@ -30,10 +30,8 @@ import java.util.BitSet;
 import java.util.Collections;
 import java.util.List;
 import java.util.concurrent.BlockingQueue;
-import java.util.concurrent.ExecutorService;
 import java.util.concurrent.LinkedBlockingQueue;
 import java.util.concurrent.Semaphore;
-import java.util.concurrent.SynchronousQueue;
 import java.util.concurrent.ThreadPoolExecutor;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicBoolean;
@@ -219,7 +217,8 @@ public class UnorderedPartitionedKVWriter extends BaseUnorderedPartitionedKVWrit
         TezRuntimeConfiguration.TEZ_RUNTIME_ENABLE_FINAL_MERGE_IN_OUTPUT,
         TezRuntimeConfiguration.TEZ_RUNTIME_ENABLE_FINAL_MERGE_IN_OUTPUT_DEFAULT);
     this.pipelinedShuffle = pipelinedShuffleConf && !isFinalMergeEnabled;
-    this.finalEvents = Lists.newLinkedList();
+    // Spill callbacks append from the spill threads, several of which can finish at once.
+    this.finalEvents = Collections.synchronizedList(Lists.newLinkedList());
 
     this.dataViaEventsEnabled = conf.getBoolean(
             TezRuntimeConfiguration.TEZ_RUNTIME_TRANSFER_DATA_VIA_EVENTS_ENABLED,
@@ -272,9 +271,11 @@ public class UnorderedPartitionedKVWriter extends BaseUnorderedPartitionedKVWrit
 
     int maxThreads = Math.max(2, numBuffers/2);
     //TODO: Make use of TezSharedExecutor later
-    ExecutorService executor = new ThreadPoolExecutor(1, maxThreads,
+    // availableSlots bounds the spills in flight; the queue only absorbs the moment between a spill callback
+    // releasing its slot and its thread returning to the pool, which a SynchronousQueue rejected.
+    ThreadPoolExecutor executor = new ThreadPoolExecutor(maxThreads, maxThreads,
         60L, TimeUnit.SECONDS,
-        new SynchronousQueue<Runnable>(),
+        new LinkedBlockingQueue<Runnable>(),
         new ThreadFactoryBuilder()
             .setDaemon(true)
             .setNameFormat(
@@ -282,6 +283,7 @@ public class UnorderedPartitionedKVWriter extends BaseUnorderedPartitionedKVWrit
                     outputContext.getDestinationVertexName()) + "} #%d")
             .build()
     );
+    executor.allowCoreThreadTimeOut(true);
     // to restrict submission of more tasks than threads (e.g numBuffers > numThreads)
     // This is maxThreads - 1, to avoid race between callback thread releasing semaphore and the
     // thread calling tryAcquire.
