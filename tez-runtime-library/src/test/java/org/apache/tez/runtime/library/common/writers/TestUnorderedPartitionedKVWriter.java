@@ -1549,10 +1549,8 @@ public class TestUnorderedPartitionedKVWriter {
           "Incorrect index permissions (group)");
 
       // verify no intermediate spill files have been left around
-      synchronized (kvWriter.spillInfoList) {
-        for (SpillInfo spill : kvWriter.spillInfoList) {
-          assertFalse(localFs.exists(spill.outPath), "lingering intermediate spill file " + spill.outPath);
-        }
+      for (SpillInfo spill : kvWriter.spillInfoList) {
+        assertFalse(localFs.exists(spill.outPath), "lingering intermediate spill file " + spill.outPath);
       }
     }
 

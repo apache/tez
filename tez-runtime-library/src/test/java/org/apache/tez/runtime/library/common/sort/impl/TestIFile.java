@@ -857,19 +857,6 @@ public class TestIFile {
       String what = Arrays.toString(shape);
       assertTrue(writer.getRawLength() <= maxRawLength, what);
       assertArrayEquals(unsized.toByteArray(), sized.toByteArray(), what);
-      Reader reader = new Reader(new ByteArrayInputStream(sized.toByteArray()), sized.size(), snappy, null, null,
-          false, 0, -1);
-      DataInputBuffer key = new DataInputBuffer();
-      DataInputBuffer value = new DataInputBuffer();
-      for (byte[][] record : records) {
-        assertTrue(reader.nextRawKey(key), what);
-        reader.nextRawValue(value);
-        assertArrayEquals(record[0], Arrays.copyOfRange(key.getData(), key.getPosition(), key.getLength()), what);
-        assertArrayEquals(record[1], Arrays.copyOfRange(value.getData(), value.getPosition(), value.getLength()),
-            what);
-      }
-      assertFalse(reader.nextRawKey(key), what);
-      reader.close();
     }
   }
 

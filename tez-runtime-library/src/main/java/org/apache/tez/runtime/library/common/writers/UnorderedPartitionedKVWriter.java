@@ -27,9 +27,10 @@ import java.nio.ByteOrder;
 import java.nio.IntBuffer;
 import java.util.ArrayList;
 import java.util.BitSet;
-import java.util.Collections;
 import java.util.List;
+import java.util.Queue;
 import java.util.concurrent.BlockingQueue;
+import java.util.concurrent.ConcurrentLinkedQueue;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.LinkedBlockingQueue;
 import java.util.concurrent.Semaphore;
@@ -120,7 +121,7 @@ public class UnorderedPartitionedKVWriter extends BaseUnorderedPartitionedKVWrit
   private final FileSystem rfs;
 
   @VisibleForTesting
-  final List<SpillInfo> spillInfoList = Collections.synchronizedList(new ArrayList<SpillInfo>());
+  final Queue<SpillInfo> spillInfoList = new ConcurrentLinkedQueue<>();
 
   private final ListeningExecutorService spillExecutor;
 
@@ -1120,27 +1121,25 @@ public class UnorderedPartitionedKVWriter extends BaseUnorderedPartitionedKVWrit
             writePartition(currentBuffer.partitionPositions[i], currentBuffer, writer, keyBuffer,
                 valBuffer);
           }
-          synchronized (spillInfoList) {
-            for (SpillInfo spillInfo : spillInfoList) {
-              TezIndexRecord indexRecord = spillInfo.spillRecord.getIndex(i);
-              if (indexRecord.getPartLength() == 0) {
-                // Skip empty partitions within a spill
-                continue;
-              }
-              FSDataInputStream in = rfs.open(spillInfo.outPath);
-              in.seek(indexRecord.getStartOffset());
-              IFile.Reader reader = new IFile.Reader(in, indexRecord.getPartLength(), codec, null,
-                  additionalSpillBytesReadCounter, ifileReadAhead, ifileReadAheadLength,
-                  ifileBufferSize);
-              while (reader.nextRawKey(keyBufferIFile)) {
-                // TODO Inefficient. If spills are not compressed, a direct copy should be possible
-                // given the current IFile format. Also extremely inefficient for large records,
-                // since the entire record will be read into memory.
-                reader.nextRawValue(valBufferIFile);
-                writer.append(keyBufferIFile, valBufferIFile);
-              }
-              reader.close();
+          for (SpillInfo spillInfo : spillInfoList) {
+            TezIndexRecord indexRecord = spillInfo.spillRecord.getIndex(i);
+            if (indexRecord.getPartLength() == 0) {
+              // Skip empty partitions within a spill
+              continue;
             }
+            FSDataInputStream in = rfs.open(spillInfo.outPath);
+            in.seek(indexRecord.getStartOffset());
+            IFile.Reader reader = new IFile.Reader(in, indexRecord.getPartLength(), codec, null,
+                additionalSpillBytesReadCounter, ifileReadAhead, ifileReadAheadLength,
+                ifileBufferSize);
+            while (reader.nextRawKey(keyBufferIFile)) {
+              // TODO Inefficient. If spills are not compressed, a direct copy should be possible
+              // given the current IFile format. Also extremely inefficient for large records,
+              // since the entire record will be read into memory.
+              reader.nextRawValue(valBufferIFile);
+              writer.append(keyBufferIFile, valBufferIFile);
+            }
+            reader.close();
           }
           writer.close();
           fileOutputBytesCounter.increment(writer.getCompressedLength());
@@ -1173,23 +1172,19 @@ public class UnorderedPartitionedKVWriter extends BaseUnorderedPartitionedKVWrit
   private long mergedMaxRawLength(int partition) {
     long maxRawLength = Writer.maxRawLength(currentBuffer.recordsPerPartition[partition],
         currentBuffer.sizePerPartition[partition]);
-    synchronized (spillInfoList) {
-      for (SpillInfo spillInfo : spillInfoList) {
-        maxRawLength += spillInfo.spillRecord.getIndex(partition).getRawLength();
-      }
+    for (SpillInfo spillInfo : spillInfoList) {
+      maxRawLength += spillInfo.spillRecord.getIndex(partition).getRawLength();
     }
     return maxRawLength;
   }
 
   private void deleteIntermediateSpills() {
     // Delete the intermediate spill files
-    synchronized (spillInfoList) {
-      for (SpillInfo spill : spillInfoList) {
-        try {
-          rfs.delete(spill.outPath, false);
-        } catch (IOException e) {
-          LOG.warn("Unable to delete intermediate spill " + spill.outPath, e);
-        }
+    for (SpillInfo spill : spillInfoList) {
+      try {
+        rfs.delete(spill.outPath, false);
+      } catch (IOException e) {
+        LOG.warn("Unable to delete intermediate spill " + spill.outPath, e);
       }
     }
   }

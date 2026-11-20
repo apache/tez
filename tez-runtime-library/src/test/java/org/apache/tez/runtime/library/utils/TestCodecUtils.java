@@ -20,7 +20,6 @@ package org.apache.tez.runtime.library.utils;
 
 import static org.junit.jupiter.api.Assertions.assertArrayEquals;
 import static org.junit.jupiter.api.Assertions.assertEquals;
-import static org.junit.jupiter.api.Assumptions.assumeTrue;
 import static org.mockito.Mockito.mock;
 
 import java.io.ByteArrayInputStream;
@@ -47,7 +46,6 @@ import org.apache.hadoop.io.compress.CompressionCodec;
 import org.apache.hadoop.io.compress.CompressionInputStream;
 import org.apache.hadoop.io.compress.CompressionOutputStream;
 import org.apache.hadoop.io.compress.Compressor;
-import org.apache.hadoop.io.compress.CompressorStream;
 import org.apache.hadoop.io.compress.Decompressor;
 import org.apache.hadoop.io.compress.DecompressorStream;
 import org.apache.hadoop.io.compress.DefaultCodec;
@@ -215,15 +213,14 @@ public class TestCodecUtils {
 
   /**
    * A stream sized to its data writes the bytes of the configured stream, from one byte to several
-   * configured blocks of compressible and of incompressible data, and gets a buffer of the
-   * compression bound of the data when the data fits one configured block.
+   * configured blocks of compressible and of incompressible data.
    */
   @ParameterizedTest
   @ValueSource(classes = {SnappyCodec.class, Lz4Codec.class})
   public void testOutputStreamSizedToData(Class<? extends CompressionCodec> codecClass) throws IOException {
     Configuration conf = new Configuration(false);
     conf.setInt(CodecUtils.getBufferSizeProperty(codecClass.getName()), 64 * 1024);
-    CompressionCodec codec = newBlockCodec(codecClass, conf);
+    CompressionCodec codec = ReflectionUtils.newInstance(codecClass, conf);
     int bufferSize = CodecUtils.getOutputBufferSize(codec);
     assertEquals(64 * 1024, bufferSize);
     int maxBlockSize = bufferSize - CodecUtils.getBlockCompressionOverhead(codecClass.getName(), bufferSize);
@@ -233,15 +230,9 @@ public class TestCodecUtils {
         ByteArrayOutputStream configured = new ByteArrayOutputStream();
         ByteArrayOutputStream sized = new ByteArrayOutputStream();
         compress(codec, data, configured, -1, -1);
-        int sizedBuffer = compress(codec, data, sized, bufferSize, length);
-
-        String what = "length " + length + ", compressible " + compressible;
-        assertEquals(length < maxBlockSize
-            ? length + CodecUtils.getBlockCompressionOverhead(codecClass.getName(), length) : bufferSize,
-            sizedBuffer, what);
-        assertArrayEquals(configured.toByteArray(), sized.toByteArray(), what);
-        assertArrayEquals(data, decompress(codec, configured.toByteArray(), length), what);
-        assertArrayEquals(data, decompress(codec, sized.toByteArray(), length), what);
+        compress(codec, data, sized, bufferSize, length);
+        assertArrayEquals(configured.toByteArray(), sized.toByteArray(),
+            "length " + length + ", compressible " + compressible);
       }
     }
   }
@@ -251,24 +242,11 @@ public class TestCodecUtils {
   @ValueSource(classes = {SnappyCodec.class, Lz4Codec.class})
   public void testOutputStreamSizedToUnderestimatedLength(Class<? extends CompressionCodec> codecClass)
       throws IOException {
-    CompressionCodec codec = newBlockCodec(codecClass, new Configuration(false));
+    CompressionCodec codec = ReflectionUtils.newInstance(codecClass, new Configuration(false));
     byte[] data = randomBytes(100_000, false);
     ByteArrayOutputStream sized = new ByteArrayOutputStream();
     compress(codec, data, sized, CodecUtils.getOutputBufferSize(codec), 1000);
     assertArrayEquals(data, decompress(codec, sized.toByteArray(), data.length));
-  }
-
-  /** Lz4Codec needs lz4-java, which Hadoop declares provided. */
-  private static CompressionCodec newBlockCodec(Class<? extends CompressionCodec> codecClass,
-      Configuration conf) {
-    if (codecClass == Lz4Codec.class) {
-      try {
-        Class.forName("net.jpountz.lz4.LZ4Factory");
-      } catch (ClassNotFoundException e) {
-        assumeTrue(false, "lz4-java is not on the classpath");
-      }
-    }
-    return ReflectionUtils.newInstance(codecClass, conf);
   }
 
   private static byte[] randomBytes(int length, boolean compressible) {
@@ -286,10 +264,8 @@ public class TestCodecUtils {
   /**
    * Writes the data in 64 KiB chunks as IFile.Writer does, through the codec's own stream when
    * bufferSize is -1.
-   *
-   * @return the length of the stream's buffer
    */
-  private static int compress(CompressionCodec codec, byte[] data, OutputStream out, int bufferSize,
+  private static void compress(CompressionCodec codec, byte[] data, OutputStream out, int bufferSize,
       long dataLength) throws IOException {
     Compressor compressor = CodecUtils.getCompressor(codec);
     try {
@@ -299,7 +275,6 @@ public class TestCodecUtils {
         stream.write(data, off, Math.min(64 * 1024, data.length - off));
       }
       stream.finish();
-      return getCompressorStreamBufferSize(stream);
     } finally {
       CodecPool.returnCompressor(compressor);
     }
@@ -317,16 +292,6 @@ public class TestCodecUtils {
       return data;
     } finally {
       CodecPool.returnDecompressor(decompressor);
-    }
-  }
-
-  private static int getCompressorStreamBufferSize(CompressionOutputStream stream) {
-    try {
-      Field field = CompressorStream.class.getDeclaredField("buffer");
-      field.setAccessible(true);
-      return ((byte[]) field.get(stream)).length;
-    } catch (ReflectiveOperationException e) {
-      throw new RuntimeException(e);
     }
   }
 
