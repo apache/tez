@@ -24,7 +24,6 @@ import java.io.PipedInputStream;
 import java.io.PipedOutputStream;
 import java.net.HttpURLConnection;
 import java.net.URL;
-import java.time.Duration;
 import java.util.concurrent.TimeUnit;
 
 import org.apache.commons.io.IOUtils;
@@ -101,7 +100,7 @@ public class AsyncHttpConnection extends BaseHttpConnection {
               //.setExecutorService(applicationThreadPool)
               //.addRequestFilter(new ThrottleRequestFilter(1))
               .setMaxConnectionsPerHost(1)
-              .setConnectTimeout(Duration.ofMillis(httpConnParams.getConnectionTimeout()))
+              .setConnectTimeout(httpConnParams.getConnectionTimeout())
               .setDisableUrlEncodingForBoundRequests(true)
               .build();
           DefaultAsyncHttpClientConfig config = builder.build();
