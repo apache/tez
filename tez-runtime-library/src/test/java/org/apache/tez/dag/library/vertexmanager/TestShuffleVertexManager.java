@@ -153,8 +153,8 @@ public class TestShuffleVertexManager extends TestShuffleVertexManagerUtils {
     assertEquals(2, newEdgeManagers.size());
     assertEquals(0, manager.pendingTasks.size()); // all tasks scheduled
     assertEquals(2, scheduledTasks.size());
-    assertTrue(scheduledTasks.contains(new Integer(0)));
-    assertTrue(scheduledTasks.contains(new Integer(1)));
+    assertTrue(scheduledTasks.contains(0));
+    assertTrue(scheduledTasks.contains(1));
     assertEquals(4, manager.numBipartiteSourceTasksCompleted);
     assertEquals(4, manager.numVertexManagerEventsReceived);
     assertEquals(Long.MAX_VALUE >> 1 << 1, manager.completedSourceTasksOutputSize);

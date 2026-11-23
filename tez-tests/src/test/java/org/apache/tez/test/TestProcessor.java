@@ -59,7 +59,15 @@ public class TestProcessor extends AbstractLogicalIOProcessor {
   long sleepMs;
   Set<Integer> failingTaskIndices = Sets.newHashSet();
   int failingTaskAttemptUpto = 0;
-  Integer failAll = new Integer(-1);
+  private Integer failAll = -1;
+
+  public Integer getFailAll() {
+    return failAll;
+  }
+
+  public void setFailAll(Integer failAll) {
+    this.failAll = failAll;
+  }
 
   int verifyValue = -1;
   Set<Integer> verifyTaskIndices = Sets.newHashSet();
@@ -293,7 +301,7 @@ public class TestProcessor extends AbstractLogicalIOProcessor {
         + " attempt: " + getContext().getTaskAttemptNumber()
         + " is: " + sum);
     if (verifyTaskIndices
-        .contains(new Integer(getContext().getTaskIndex()))) {
+        .contains(getContext().getTaskIndex())) {
       if (verifyValue != -1 && verifyValue != sum) {
         // expected output value set and not equal to observed value
         String msg = "Expected output mismatch of current FailingProcessor: "
