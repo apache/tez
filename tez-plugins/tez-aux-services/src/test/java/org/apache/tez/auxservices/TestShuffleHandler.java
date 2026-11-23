@@ -1751,8 +1751,8 @@ public class TestShuffleHandler {
       String shuffleBaseURL = "http://127.0.0.1:"
           + shuffleHandler.getConfig().get(ShuffleHandler.SHUFFLE_PORT_CONFIG_KEY);
       URL url = URI.create(
-          shuffleBaseURL + "/mapOutput?job=job_12345_1&dag=1&reduce=1&map=attempt_12345_1_m_1_0").toURL();
-      shuffleHandler.secretManager.addTokenForJob("job_12345_1",
+          shuffleBaseURL + "/mapOutput?job=job_12345_0001&dag=1&reduce=1&map=attempt_12345_1_m_1_0").toURL();
+      shuffleHandler.secretManager.addTokenForJob("job_12345_0001",
           new Token<>("id".getBytes(), shuffleHandler.getSecret().getBytes(), null, null));
 
       HttpConnectionParams httpConnectionParams = ShuffleUtils.getHttpConnectionParams(conf);
@@ -1808,6 +1808,226 @@ public class TestShuffleHandler {
       uri = uri.concat("&map=attempt_12345_1_m_" + i + "_0");
     }
     return new DefaultFullHttpRequest(HttpVersion.HTTP_1_1, HttpMethod.GET, uri);
+  }
+
+  /** Traversal-shaped dag/vertex/map params must be rejected. */
+  @Test
+  @Timeout(value = 10000, unit = TimeUnit.MILLISECONDS)
+  public void testTraversalInDagVertexMapIsRejected() throws Exception {
+    Configuration conf = getInitialConf();
+    conf.setInt(ShuffleHandler.MAX_SHUFFLE_CONNECTIONS, 3);
+    conf.set(CommonConfigurationKeysPublic.HADOOP_SECURITY_AUTHENTICATION,
+        "simple");
+    UserGroupInformation.setConfiguration(conf);
+    conf.set(YarnConfiguration.NM_LOCAL_DIRS, TEST_DIR.getAbsolutePath());
+    ApplicationId appId = ApplicationId.newInstance(12345, 1);
+    String appAttemptId = "attempt_12345_1_m_1_0";
+    String user = "randomUser";
+    List<File> fileMap = new ArrayList<File>();
+    createShuffleHandlerFiles(TEST_DIR, user, appId.toString(), appAttemptId,
+        conf, fileMap);
+    ShuffleHandler shuffleHandler = new ShuffleHandler() {
+      private AuxiliaryLocalPathHandler pathHandler = new TestAuxiliaryLocalPathHandler();
+      @Override
+      protected Shuffle getShuffle(Configuration conf) {
+        return new Shuffle(conf) {
+          @Override
+          protected void verifyRequest(String appid, ChannelHandlerContext ctx,
+              HttpRequest request, HttpResponse response, URL requestUri)
+              throws IOException {
+            // Reject before auth.
+          }
+        };
+      }
+      @Override
+      public AuxiliaryLocalPathHandler getAuxiliaryLocalPathHandler() {
+        return pathHandler;
+      }
+    };
+    shuffleHandler.init(conf);
+    try {
+      shuffleHandler.start();
+      DataOutputBuffer outputBuffer = new DataOutputBuffer();
+      outputBuffer.reset();
+      Token<JobTokenIdentifier> jt =
+          new Token<JobTokenIdentifier>("identifier".getBytes(),
+              "password".getBytes(), new Text(user), new Text("shuffleService"));
+      jt.write(outputBuffer);
+      shuffleHandler
+          .initializeApplication(new ApplicationInitializationContext(user,
+              appId, ByteBuffer.wrap(outputBuffer.getData(), 0,
+                  outputBuffer.getLength())));
+      String base = "http://127.0.0.1:"
+          + shuffleHandler.getConfig().get(ShuffleHandler.SHUFFLE_PORT_CONFIG_KEY);
+
+      // Must survive every attempt below.
+      File outside = new File(TEST_DIR, "outside.txt");
+      try (FileOutputStream out = new FileOutputStream(outside)) {
+        out.write("keep me\n".getBytes());
+      }
+      assertTrue(outside.exists());
+
+      // Traversing dag: must 4xx, must not delete.
+      String badDag = URI.create("http:///a").resolve(
+          "?dagAction=delete&job=job_12345_0001&dag=1/../../..").getRawQuery();
+      HttpURLConnection conn = (HttpURLConnection) URI.create(
+          base + "/mapOutput?" + badDag).toURL().openConnection();
+      conn.setRequestProperty(ShuffleHeader.HTTP_HEADER_NAME,
+          ShuffleHeader.DEFAULT_HTTP_HEADER_NAME);
+      conn.setRequestProperty(ShuffleHeader.HTTP_HEADER_VERSION,
+          ShuffleHeader.DEFAULT_HTTP_HEADER_VERSION);
+      conn.connect();
+      int code = conn.getResponseCode();
+      assertTrue(code >= 400 && code < 600,
+          "Expected an error response for traversing dag, got " + code);
+      assertTrue(outside.exists(),
+          "outside.txt must not be deleted by a traversing dag delete");
+
+      // Traversing vertex: must 4xx.
+      conn = (HttpURLConnection) URI.create(
+          base + "/mapOutput?vertexAction=delete&job=job_12345_0001&dag=1&vertex=00/../"
+          ).toURL().openConnection();
+      conn.setRequestProperty(ShuffleHeader.HTTP_HEADER_NAME,
+          ShuffleHeader.DEFAULT_HTTP_HEADER_NAME);
+      conn.setRequestProperty(ShuffleHeader.HTTP_HEADER_VERSION,
+          ShuffleHeader.DEFAULT_HTTP_HEADER_VERSION);
+      conn.connect();
+      code = conn.getResponseCode();
+      assertTrue(code >= 400 && code < 600,
+          "Expected an error response for traversing vertex, got " + code);
+      assertTrue(outside.exists(),
+          "outside.txt must not be deleted by a traversing vertex delete");
+
+      // Traversing map: must 4xx.
+      conn = (HttpURLConnection) URI.create(
+          base + "/mapOutput?job=job_12345_1&dag=1&reduce=1&map="
+              + "attempt_12345_1_m_1_0/../../../etc"
+          ).toURL().openConnection();
+      conn.setRequestProperty(ShuffleHeader.HTTP_HEADER_NAME,
+          ShuffleHeader.DEFAULT_HTTP_HEADER_NAME);
+      conn.setRequestProperty(ShuffleHeader.HTTP_HEADER_VERSION,
+          ShuffleHeader.DEFAULT_HTTP_HEADER_VERSION);
+      conn.connect();
+      code = conn.getResponseCode();
+      assertTrue(code >= 400 && code < 600,
+          "Expected an error response for traversing map, got " + code);
+
+      // Reporter's cross-tenant PoC: map= is a traversal path.
+      conn = (HttpURLConnection) URI.create(
+          base + "/mapOutput?job=job_12345_1&dag=1&reduce=1&map="
+              + "../../../../../../usercache/victim/appcache/"
+              + "application_9999_0001/dag_1/output/attempt_victim_0001"
+          ).toURL().openConnection();
+      conn.setRequestProperty(ShuffleHeader.HTTP_HEADER_NAME,
+          ShuffleHeader.DEFAULT_HTTP_HEADER_NAME);
+      conn.setRequestProperty(ShuffleHeader.HTTP_HEADER_VERSION,
+          ShuffleHeader.DEFAULT_HTTP_HEADER_VERSION);
+      conn.connect();
+      code = conn.getResponseCode();
+      assertTrue(code >= 400 && code < 600,
+          "Expected an error response for reporter's cross-tenant PoC, "
+              + "got " + code);
+
+      // Comma-joined benign+traversal: whole request must be rejected.
+      conn = (HttpURLConnection) URI.create(
+          base + "/mapOutput?job=job_12345_1&dag=1&reduce=1&map="
+              + "attempt_12345_1_m_1_0,../../../etc/passwd"
+          ).toURL().openConnection();
+      conn.setRequestProperty(ShuffleHeader.HTTP_HEADER_NAME,
+          ShuffleHeader.DEFAULT_HTTP_HEADER_NAME);
+      conn.setRequestProperty(ShuffleHeader.HTTP_HEADER_VERSION,
+          ShuffleHeader.DEFAULT_HTTP_HEADER_VERSION);
+      conn.connect();
+      code = conn.getResponseCode();
+      assertTrue(code >= 400 && code < 600,
+          "Expected an error response for comma-joined benign+traversal "
+              + "map, got " + code);
+    } finally {
+      shuffleHandler.close();
+      FileUtil.fullyDelete(TEST_DIR);
+    }
+  }
+
+  /** Repeated dag/vertex is ambiguous (only the first is read) — reject it. */
+  @Test
+  @Timeout(value = 10000, unit = TimeUnit.MILLISECONDS)
+  public void testDuplicateDagOrVertexParamIsRejected() throws Exception {
+    Configuration conf = getInitialConf();
+    conf.setInt(ShuffleHandler.MAX_SHUFFLE_CONNECTIONS, 3);
+    conf.set(CommonConfigurationKeysPublic.HADOOP_SECURITY_AUTHENTICATION,
+        "simple");
+    UserGroupInformation.setConfiguration(conf);
+    conf.set(YarnConfiguration.NM_LOCAL_DIRS, TEST_DIR.getAbsolutePath());
+    ApplicationId appId = ApplicationId.newInstance(12345, 1);
+    String appAttemptId = "attempt_12345_1_m_1_0";
+    String user = "randomUser";
+    List<File> fileMap = new ArrayList<File>();
+    createShuffleHandlerFiles(TEST_DIR, user, appId.toString(), appAttemptId,
+        conf, fileMap);
+    ShuffleHandler shuffleHandler = new ShuffleHandler() {
+      private AuxiliaryLocalPathHandler pathHandler = new TestAuxiliaryLocalPathHandler();
+      @Override
+      protected Shuffle getShuffle(Configuration conf) {
+        return new Shuffle(conf) {
+          @Override
+          protected void verifyRequest(String appid, ChannelHandlerContext ctx,
+              HttpRequest request, HttpResponse response, URL requestUri)
+              throws IOException {
+            // Reject before verifyRequest runs.
+          }
+        };
+      }
+      @Override
+      public AuxiliaryLocalPathHandler getAuxiliaryLocalPathHandler() {
+        return pathHandler;
+      }
+    };
+    shuffleHandler.init(conf);
+    try {
+      shuffleHandler.start();
+      DataOutputBuffer outputBuffer = new DataOutputBuffer();
+      outputBuffer.reset();
+      Token<JobTokenIdentifier> jt =
+          new Token<JobTokenIdentifier>("identifier".getBytes(),
+              "password".getBytes(), new Text(user), new Text("shuffleService"));
+      jt.write(outputBuffer);
+      shuffleHandler
+          .initializeApplication(new ApplicationInitializationContext(user,
+              appId, ByteBuffer.wrap(outputBuffer.getData(), 0,
+                  outputBuffer.getLength())));
+      String base = "http://127.0.0.1:"
+          + shuffleHandler.getConfig().get(ShuffleHandler.SHUFFLE_PORT_CONFIG_KEY);
+
+      // Duplicate dag: benign first, hostile second.
+      HttpURLConnection conn = (HttpURLConnection) URI.create(
+          base + "/mapOutput?dagAction=delete&job=job_12345_0001&dag=1&dag=../evil"
+          ).toURL().openConnection();
+      conn.setRequestProperty(ShuffleHeader.HTTP_HEADER_NAME,
+          ShuffleHeader.DEFAULT_HTTP_HEADER_NAME);
+      conn.setRequestProperty(ShuffleHeader.HTTP_HEADER_VERSION,
+          ShuffleHeader.DEFAULT_HTTP_HEADER_VERSION);
+      conn.connect();
+      int code = conn.getResponseCode();
+      assertTrue(code >= 400 && code < 600,
+          "Expected an error response for duplicate dag, got " + code);
+
+      // Duplicate vertex.
+      conn = (HttpURLConnection) URI.create(
+          base + "/mapOutput?vertexAction=delete&job=job_12345_0001&dag=1"
+              + "&vertex=1&vertex=../evil"
+          ).toURL().openConnection();
+      conn.setRequestProperty(ShuffleHeader.HTTP_HEADER_NAME,
+          ShuffleHeader.DEFAULT_HTTP_HEADER_NAME);
+      conn.setRequestProperty(ShuffleHeader.HTTP_HEADER_VERSION,
+          ShuffleHeader.DEFAULT_HTTP_HEADER_VERSION);
+      conn.connect();
+      code = conn.getResponseCode();
+      assertTrue(code >= 400 && code < 600,
+          "Expected an error response for duplicate vertex, got " + code);
+    } finally {
+      shuffleHandler.close();
+      FileUtil.fullyDelete(TEST_DIR);
+    }
   }
 
   @Test
