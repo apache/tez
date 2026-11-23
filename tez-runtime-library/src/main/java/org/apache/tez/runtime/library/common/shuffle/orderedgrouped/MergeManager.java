@@ -751,7 +751,7 @@ public class MergeManager implements FetchedInputAllocatorOrderedGrouped {
 
       MapOutput mergedMapOutputs = null;
 
-      long mergeOutputSize = 0l;
+      long mergeOutputSize = 0L;
       //Lock manager so that fetcher threads can not change the mem size
       synchronized (manager) {
 

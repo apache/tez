@@ -60,7 +60,7 @@ import org.junit.jupiter.api.Test;
 
 public class TestHistoryEventHandler {
 
-  private static ApplicationId appId = ApplicationId.newInstance(1000l, 1);
+  private static ApplicationId appId = ApplicationId.newInstance(1000L, 1);
   private static ApplicationAttemptId attemptId = ApplicationAttemptId.newInstance(appId, 1);
   private static String user = "TEST_USER";
   private Configuration baseConfig;

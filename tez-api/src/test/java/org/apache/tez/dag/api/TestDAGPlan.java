@@ -64,8 +64,9 @@ import org.junit.jupiter.api.io.TempDir;
 // based on TestDAGLocationHint
 public class TestDAGPlan {
 
+  @SuppressWarnings("checkstyle:VisibilityModifier")
   @TempDir
-  public Path tempFolder;
+  Path tempFolder;
 
   @Test
   @Timeout(value = 5000, unit = TimeUnit.MILLISECONDS)
@@ -88,17 +89,16 @@ public class TestDAGPlan {
                    .build())
              .build())
         .build();
-   File file = tempFolder.resolve("jobPlan").toFile();
-   FileOutputStream outStream = null;
-   try {
-     outStream = new FileOutputStream(file);
-     job.writeTo(outStream);
-   }
-   finally {
-     if(outStream != null){
-       outStream.close();
-     }
-   }
+    File file = tempFolder.resolve("jobPlan").toFile();
+    FileOutputStream outStream = null;
+    try {
+      outStream = new FileOutputStream(file);
+      job.writeTo(outStream);
+    } finally {
+      if (outStream != null) {
+        outStream.close();
+      }
+    }
 
    DAGPlan inJob;
    FileInputStream inputStream;
@@ -110,7 +110,7 @@ public class TestDAGPlan {
      outStream.close();
    }
 
-   assertEquals(job, inJob);
+    assertEquals(job, inJob);
   }
 
   @Test

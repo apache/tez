@@ -744,7 +744,7 @@ public class TaskSchedulerManager extends AbstractService implements
     }
     LOG.info("Shutting down AppCallbackExecutor");
     appCallbackExecutor.shutdownNow();
-    appCallbackExecutor.awaitTermination(1000l, TimeUnit.MILLISECONDS);
+    appCallbackExecutor.awaitTermination(1000L, TimeUnit.MILLISECONDS);
   }
 
   // TaskSchedulerAppCallback methods with schedulerId, where relevant

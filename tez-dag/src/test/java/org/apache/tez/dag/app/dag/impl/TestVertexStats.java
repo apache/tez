@@ -50,7 +50,7 @@ public class TestVertexStats {
 
     TezVertexID tezVertexID = TezVertexID.getInstance(
         TezDAGID.getInstance(
-            ApplicationId.newInstance(100l, 1), 1), 1);
+            ApplicationId.newInstance(100L, 1), 1), 1);
     TezTaskID tezTaskID1 = TezTaskID.getInstance(tezVertexID, 1);
     TezTaskID tezTaskID2 = TezTaskID.getInstance(tezVertexID, 2);
     TezTaskID tezTaskID3 = TezTaskID.getInstance(tezVertexID, 3);

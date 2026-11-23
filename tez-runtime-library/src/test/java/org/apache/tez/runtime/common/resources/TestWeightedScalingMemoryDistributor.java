@@ -70,7 +70,7 @@ public class TestWeightedScalingMemoryDistributor extends TestMemoryDistributor 
 
     MemoryDistributor dist = new MemoryDistributor(2, 2, conf);
 
-    dist.setJvmMemory(10000l);
+    dist.setJvmMemory(10000L);
 
     // First request - ScatterGatherShuffleInput
     MemoryUpdateCallbackForTest e1Callback = new MemoryUpdateCallbackForTest();
@@ -118,7 +118,7 @@ public class TestWeightedScalingMemoryDistributor extends TestMemoryDistributor 
 
     MemoryDistributor dist = new MemoryDistributor(2, 2, conf);
 
-    dist.setJvmMemory(10000l);
+    dist.setJvmMemory(10000L);
 
     // First request - ScatterGatherShuffleInput [weight 6]
     MemoryUpdateCallbackForTest e1Callback = new MemoryUpdateCallbackForTest();
@@ -169,7 +169,7 @@ public class TestWeightedScalingMemoryDistributor extends TestMemoryDistributor 
 
     MemoryDistributor dist = new MemoryDistributor(2, 2, conf);
 
-    dist.setJvmMemory(10000l);
+    dist.setJvmMemory(10000L);
 
     // First request - ScatterGatherShuffleInput
     MemoryUpdateCallbackForTest e1Callback = new MemoryUpdateCallbackForTest();
@@ -226,7 +226,7 @@ public class TestWeightedScalingMemoryDistributor extends TestMemoryDistributor 
 
     MemoryDistributor dist = new MemoryDistributor(2, 2, conf);
 
-    dist.setJvmMemory(10000l);
+    dist.setJvmMemory(10000L);
 
     // First request - ScatterGatherShuffleInput [weight 6]
     MemoryUpdateCallbackForTest e1Callback = new MemoryUpdateCallbackForTest();
@@ -277,7 +277,7 @@ public class TestWeightedScalingMemoryDistributor extends TestMemoryDistributor 
 
     MemoryDistributor dist = new MemoryDistributor(2, 2, conf);
 
-    dist.setJvmMemory(10000l);
+    dist.setJvmMemory(10000L);
 
     // First request - ScatterGatherShuffleInput
     MemoryUpdateCallbackForTest e1Callback = new MemoryUpdateCallbackForTest();

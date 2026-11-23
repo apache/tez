@@ -392,7 +392,7 @@ public class YarnTaskSchedulerService extends TaskScheduler
     try {
       delayedContainerManager.shutdown();
       // Wait for contianers to be released.
-      delayedContainerManager.join(2000l);
+      delayedContainerManager.join(2000L);
       synchronized (this) {
         if (shouldUnregister.get()) {
           AppFinalStatus status = getContext().getFinalAppStatus();

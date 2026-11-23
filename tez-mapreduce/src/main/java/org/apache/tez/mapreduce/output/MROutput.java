@@ -397,7 +397,7 @@ public class MROutput extends AbstractLogicalOutput {
   }
 
   protected List<Event> initializeBase() throws IOException, InterruptedException {
-    getContext().requestInitialMemory(0l, null); //mandatory call
+    getContext().requestInitialMemory(0L, null); //mandatory call
     taskNumberFormat.setMinimumIntegerDigits(5);
     taskNumberFormat.setGroupingUsed(false);
     nonTaskNumberFormat.setMinimumIntegerDigits(3);
