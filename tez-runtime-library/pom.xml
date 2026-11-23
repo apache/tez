@@ -113,6 +113,12 @@
       <artifactId>mockito-core</artifactId>
       <scope>test</scope>
     </dependency>
+    <dependency>
+      <!-- Lz4Codec needs lz4-java, which Hadoop declares provided -->
+      <groupId>at.yawk.lz4</groupId>
+      <artifactId>lz4-java</artifactId>
+      <scope>test</scope>
+    </dependency>
   </dependencies>
 
   <build>

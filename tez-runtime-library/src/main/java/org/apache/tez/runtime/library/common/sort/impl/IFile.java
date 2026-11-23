@@ -180,7 +180,7 @@ public final class IFile {
       this.rawOut = newRawOut;
       this.ownOutputStream = true;
 
-      setupOutputStream(fileCodec);
+      setupOutputStream(fileCodec, -1, -1);
 
       // Write header to file
       headerWritten = false;
@@ -332,13 +332,33 @@ public final class IFile {
                   Class keyClass, Class valueClass,
                   CompressionCodec codec, TezCounter writesCounter, TezCounter serializedBytesCounter,
                   boolean rle) throws IOException {
+      this(keySerialization, valSerialization, outputStream, keyClass, valueClass, codec, -1, -1,
+          writesCounter, serializedBytesCounter, rle);
+    }
+
+    /**
+     * A writer that sizes its stream buffers to the data when the caller knows how much it appends.
+     *
+     * @param codecBufferSize {@link CodecUtils#getOutputBufferSize(CompressionCodec)} of the codec
+     * @param maxRawLength upper bound of {@link #getRawLength()}, or -1 if unknown
+     */
+    public Writer(Serialization keySerialization, Serialization valSerialization, FSDataOutputStream outputStream,
+        Class keyClass, Class valueClass, CompressionCodec codec, int codecBufferSize, long maxRawLength,
+        TezCounter writesCounter, TezCounter serializedBytesCounter) throws IOException {
+      this(keySerialization, valSerialization, outputStream, keyClass, valueClass, codec, codecBufferSize,
+          maxRawLength, writesCounter, serializedBytesCounter, false);
+    }
+
+    private Writer(Serialization keySerialization, Serialization valSerialization, FSDataOutputStream outputStream,
+        Class keyClass, Class valueClass, CompressionCodec codec, int codecBufferSize, long maxRawLength,
+        TezCounter writesCounter, TezCounter serializedBytesCounter, boolean rle) throws IOException {
       this.rawOut = outputStream;
       this.writtenRecordsCounter = writesCounter;
       this.serializedUncompressedBytes = serializedBytesCounter;
       this.start = this.rawOut.getPos();
       this.rle = rle;
 
-      setupOutputStream(codec);
+      setupOutputStream(codec, codecBufferSize, maxRawLength < 0 ? -1 : maxRawLength - HEADER.length);
 
       writeHeader(outputStream);
 
@@ -353,21 +373,26 @@ public final class IFile {
       }
     }
 
-    void setupOutputStream(CompressionCodec codec) throws IOException {
+    /**
+     * @param streamLength upper bound of the bytes written to the codec or checksum stream (the
+     *     header bypasses them), or -1 if unknown
+     */
+    void setupOutputStream(CompressionCodec codec, int codecBufferSize, long streamLength) throws IOException {
       this.checksumOut = new IFileOutputStream(this.rawOut);
       if (codec != null) {
         this.compressor = CodecUtils.getCompressor(codec);
         if (this.compressor != null) {
           this.compressor.reset();
-          this.compressedOut = CodecUtils.createOutputStream(codec, checksumOut, compressor);
-          this.out = bufferedOutput(this.compressedOut);
+          this.compressedOut = CodecUtils.createOutputStream(codec, checksumOut, compressor, codecBufferSize,
+              streamLength);
+          this.out = bufferedOutput(this.compressedOut, streamLength);
           this.compressOutput = true;
         } else {
           LOG.warn("Could not obtain compressor from CodecPool");
-          this.out = bufferedOutput(checksumOut);
+          this.out = bufferedOutput(checksumOut, streamLength);
         }
       } else {
-        this.out = bufferedOutput(checksumOut);
+        this.out = bufferedOutput(checksumOut, streamLength);
       }
     }
 
@@ -375,10 +400,21 @@ public final class IFile {
      * The writer emits several small writes per record (vint lengths, key, value). Unbuffered,
      * each one is a full call into the codec stream (synchronized Compressor.setInput and
      * friends) or the checksum stream. The buffer is unsynchronized: a Writer is confined to
-     * one thread.
+     * one thread. A stream known to be shorter than the buffer gets a buffer of its length.
      */
-    private static DataOutputStream bufferedOutput(OutputStream stream) {
-      return new NonSyncDataOutputStream(new NonSyncBufferedOutputStream(stream, WRITE_BUFFER_SIZE));
+    private static DataOutputStream bufferedOutput(OutputStream stream, long streamLength) {
+      int size = streamLength > 0 ? (int) Math.min(streamLength, WRITE_BUFFER_SIZE) : WRITE_BUFFER_SIZE;
+      return new NonSyncDataOutputStream(new NonSyncBufferedOutputStream(stream, size));
+    }
+
+    /**
+     * Upper bound of {@link #getRawLength()} of a writer without RLE that appends numRecords
+     * records of keyValueBytes key and value bytes in total: no record length needs a longer
+     * vint than the total.
+     */
+    public static long maxRawLength(long numRecords, long keyValueBytes) {
+      return HEADER.length + keyValueBytes + numRecords * 2L * WritableUtils.getVIntSize(keyValueBytes)
+          + 2L * WritableUtils.getVIntSize(EOF_MARKER);
     }
 
     public Writer(Serialization keySerialization, Serialization valSerialization, FileSystem fs, Path file) throws IOException {
