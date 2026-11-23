@@ -41,6 +41,7 @@ import org.apache.hadoop.mapreduce.JobContext;
 import org.apache.hadoop.mapreduce.RecordReader;
 import org.apache.hadoop.mapreduce.TaskAttemptContext;
 import org.apache.hadoop.mapreduce.split.TezGroupedSplit;
+import org.apache.hadoop.thirdparty.protobuf.ByteString;
 import org.apache.tez.dag.api.DataSourceDescriptor;
 import org.apache.tez.dag.api.UserPayload;
 import org.apache.tez.mapreduce.TezTestUtils;
@@ -52,11 +53,8 @@ import org.apache.tez.runtime.api.InputInitializerContext;
 import org.apache.tez.runtime.api.events.InputConfigureVertexTasksEvent;
 import org.apache.tez.runtime.api.events.InputDataInformationEvent;
 
-import com.google.protobuf.ByteString;
-
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.Timeout;
-
 public class TestMRInputAMSplitGenerator {
 
   private static String SPLITS_LENGTHS = "splits.length";

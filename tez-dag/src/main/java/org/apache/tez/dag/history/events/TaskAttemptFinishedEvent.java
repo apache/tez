@@ -23,6 +23,9 @@ import java.util.List;
 
 import javax.annotation.Nullable;
 
+import org.apache.hadoop.thirdparty.protobuf.CodedInputStream;
+import org.apache.hadoop.thirdparty.protobuf.CodedOutputStream;
+import org.apache.hadoop.thirdparty.protobuf.ExtensionRegistry;
 import org.apache.hadoop.yarn.api.records.ContainerId;
 import org.apache.hadoop.yarn.api.records.NodeId;
 import org.apache.hadoop.yarn.util.ConverterUtils;
@@ -46,9 +49,6 @@ import org.apache.tez.runtime.api.TaskFailureType;
 import org.apache.tez.runtime.api.impl.TezEvent;
 
 import com.google.common.collect.Lists;
-import com.google.protobuf.CodedInputStream;
-import com.google.protobuf.CodedOutputStream;
-import com.google.protobuf.ExtensionRegistry;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
