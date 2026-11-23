@@ -31,6 +31,9 @@ import java.util.Set;
 import java.util.concurrent.TimeUnit;
 
 import org.apache.hadoop.conf.Configuration;
+import org.apache.hadoop.fs.CommonConfigurationKeysPublic;
+import org.apache.hadoop.security.ssl.FileBasedKeyStoresFactory;
+import org.apache.hadoop.security.ssl.SSLFactory;
 import org.apache.hadoop.yarn.api.records.ApplicationId;
 import org.apache.hadoop.yarn.api.records.Resource;
 import org.apache.tez.client.CallerContext;
@@ -47,8 +50,10 @@ import org.apache.tez.dag.api.InputDescriptor;
 import org.apache.tez.dag.api.OutputCommitterDescriptor;
 import org.apache.tez.dag.api.OutputDescriptor;
 import org.apache.tez.dag.api.ProcessorDescriptor;
+import org.apache.tez.dag.api.TezConfiguration;
 import org.apache.tez.dag.api.Vertex;
 import org.apache.tez.dag.api.records.DAGProtos.DAGPlan;
+import org.apache.tez.dag.app.dag.impl.DAGSchedulerNaturalOrder;
 import org.apache.tez.dag.records.TezDAGID;
 import org.apache.tez.dag.records.TezVertexID;
 import org.apache.tez.runtime.api.OutputCommitter;
@@ -220,6 +225,54 @@ public class TestDAGUtils {
       assertTrue(e.containsKey(DAGUtils.VERTEX_GROUP_OUTPUTS_KEY));
       assertTrue(e.containsKey(DAGUtils.VERTEX_GROUP_EDGE_MERGED_INPUTS_KEY));
     }
+  }
+
+  @Test
+  public void testConvertConfigurationToATSMapRedactsSecrets() {
+    // Defaults must load: ConfigRedactor's fallback pattern is narrower than
+    // core-default.xml and misses fs.s3a.session.token.
+    Configuration conf = new Configuration();
+    String serverKeystorePassword = FileBasedKeyStoresFactory.resolvePropertyName(
+        SSLFactory.Mode.SERVER, FileBasedKeyStoresFactory.SSL_KEYSTORE_PASSWORD_TPL_KEY);
+    String clientTruststorePassword = FileBasedKeyStoresFactory.resolvePropertyName(
+        SSLFactory.Mode.CLIENT, FileBasedKeyStoresFactory.SSL_TRUSTSTORE_PASSWORD_TPL_KEY);
+    conf.set(TezConfiguration.TEZ_AM_DAG_SCHEDULER_CLASS, DAGSchedulerNaturalOrder.class.getName());
+    conf.set(TezConfiguration.TEZ_QUEUE_NAME, "normal-queue");
+    // S3A key constants live in hadoop-aws, which is not a tez-dag dependency.
+    conf.set("fs.s3a.secret.key", "fake-s3a-secret-key");
+    conf.set("fs.s3a.session.token", "fake-s3a-session-token");
+    conf.set(serverKeystorePassword, "fake-keystore-password");
+    conf.set(clientTruststorePassword, "fake-truststore-password");
+    // An access key id is not a secret; the default pattern omits it.
+    conf.set("fs.s3a.access.key", "fake-s3a-access-key-id");
+
+    Map<String, String> ats = DAGUtils.convertConfigurationToATSMap(conf);
+
+    assertEquals(DAGSchedulerNaturalOrder.class.getName(),
+        ats.get(TezConfiguration.TEZ_AM_DAG_SCHEDULER_CLASS));
+    assertEquals("normal-queue", ats.get(TezConfiguration.TEZ_QUEUE_NAME));
+    assertEquals("fake-s3a-access-key-id", ats.get("fs.s3a.access.key"));
+    for (String key : new String[] {"fs.s3a.secret.key", "fs.s3a.session.token",
+        serverKeystorePassword, clientTruststorePassword}) {
+      assertFalse(ats.get(key).contains("fake"),
+          key + " must be redacted, got: " + ats.get(key));
+    }
+  }
+
+  @Test
+  public void testConvertConfigurationToATSMapHonoursConfiguredPattern() {
+    // A configured pattern replaces the defaults and must be honoured.
+    Configuration conf = new Configuration();
+    conf.set(CommonConfigurationKeysPublic.HADOOP_SECURITY_SENSITIVE_CONFIG_KEYS,
+        "my\\.site\\.internal\\.id");
+    conf.set("my.site.internal.id", "fake-internal-id");
+    conf.set(TezConfiguration.TEZ_QUEUE_NAME, "normal-queue");
+
+    Map<String, String> ats = DAGUtils.convertConfigurationToATSMap(conf);
+
+    assertFalse(ats.get("my.site.internal.id").contains("fake"),
+        "configured sensitive key must be redacted, got: " + ats.get("my.site.internal.id"));
+    assertEquals("normal-queue", ats.get(TezConfiguration.TEZ_QUEUE_NAME));
   }
 
 }
