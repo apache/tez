@@ -404,7 +404,7 @@ public abstract class TezSplitGrouper {
 
         // One split group created
         String[] groupLocation = {location};
-        if (location == emptyLocation) {
+        if (emptyLocation.equals(location)) {
           groupLocation = null;
         } else if (doingRackLocal) {
           for (SplitContainer splitH : group) {
@@ -423,7 +423,7 @@ public abstract class TezSplitGrouper {
             new GroupedSplitContainer(group.size(), wrappedInputFormatName,
                 groupLocation,
                 // pass rack local hint directly to AM
-                ((doingRackLocal && location != emptyLocation)?location:null));
+                ((doingRackLocal && !emptyLocation.equals(location))?location:null));
         for (SplitContainer groupedSplitContainer : group) {
           groupedSplit.addSplit(groupedSplitContainer);
           Preconditions.checkState(groupedSplitContainer.isProcessed() == false,
@@ -479,7 +479,7 @@ public abstract class TezSplitGrouper {
         Map<String, LocationHolder> rackLocations = createLocationsMap(conf);
         for (String location : distinctLocations.keySet()) {
           String rack = emptyLocation;
-          if (location != emptyLocation) {
+          if (!emptyLocation.equals(location)) {
             rack = RackResolver.resolve(location).getNetworkLocation();
           }
           locToRackMap.put(location, rack);
