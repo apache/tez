@@ -1348,6 +1348,15 @@ public class DAGAppMaster extends AbstractService {
 
   public String submitDAGToAppMaster(DAGPlan dagPlan,
       Map<String, LocalResource> additionalResources) throws TezException {
+    // Validate before startDAGExecution mutates currentDAG and amResources:
+    // a later failure would leave the session stuck "already running a DAG".
+    if (additionalResources != null) {
+      try {
+        RelocalizationUtils.validateDestNames(additionalResources.keySet());
+      } catch (IllegalArgumentException e) {
+        throw new TezException(e);
+      }
+    }
     appMasterReadinessService.waitToBeReady();
 
     if (sessionStopped.get()) {

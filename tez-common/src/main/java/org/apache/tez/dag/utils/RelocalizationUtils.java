@@ -21,6 +21,7 @@ package org.apache.tez.dag.utils;
 import java.io.IOException;
 import java.net.URI;
 import java.net.URL;
+import java.util.Collection;
 import java.util.Collections;
 import java.util.List;
 import java.util.Map;
@@ -58,13 +59,43 @@ public final class RelocalizationUtils {
     ReflectionUtils.addResourcesToSystemClassLoader(urls);
   }
 
+  /** Validate all names up front, so callers can reject before mutating state. */
+  public static void validateDestNames(Collection<String> destNames) {
+    if (destNames == null) {
+      return;
+    }
+    for (String destName : destNames) {
+      validateDestName(destName);
+    }
+  }
+
   private static Path downloadResource(String destName, URI uri, Configuration conf, String destDir)
       throws IOException {
+    validateDestName(destName);
     FileSystem fs = FileSystem.get(uri, conf);
     Path cwd = new Path(destDir);
     Path dFile = new Path(cwd, destName);
     Path srcPath = new Path(uri);
     fs.copyToLocalFile(srcPath, dFile);
     return dFile.makeQualified(FileSystem.getLocal(conf).getUri(), cwd);
+  }
+
+  static void validateDestName(String destName) {
+    if (destName == null || destName.isEmpty()) {
+      throw new IllegalArgumentException("Resource name must not be empty");
+    }
+    if (destName.indexOf('/') >= 0 || destName.indexOf('\\') >= 0
+        || destName.indexOf('\0') >= 0) {
+      throw new IllegalArgumentException(
+          "Resource name must not contain path separators: " + destName);
+    }
+    if (destName.equals(".") || destName.equals("..")) {
+      throw new IllegalArgumentException(
+          "Resource name must not be a parent-directory reference: " + destName);
+    }
+    if (new Path(destName).isAbsolute()) {
+      throw new IllegalArgumentException(
+          "Resource name must not be absolute: " + destName);
+    }
   }
 }
