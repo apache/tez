@@ -78,6 +78,7 @@ import org.apache.tez.runtime.api.impl.ExecutionContextImpl;
 import org.apache.tez.runtime.common.objectregistry.ObjectRegistryImpl;
 import org.apache.tez.runtime.hook.TezTaskAttemptHook;
 import org.apache.tez.runtime.internals.api.TaskReporterInterface;
+import org.apache.tez.runtime.web.TezChildWebUIService;
 import org.apache.tez.util.LoggingUtils;
 import org.apache.tez.util.TezRuntimeShutdownHandler;
 
@@ -132,6 +133,8 @@ public class TezChild {
   private final HadoopShim hadoopShim;
   private final TezExecutors sharedExecutor;
   private ThreadLocalMap mdcContext;
+
+  private TezChildWebUIService webUIService;
 
   public TezChild(Configuration conf, String host, int port, String containerIdentifier,
       String tokenIdentifier, int appAttemptNumber, String workingDir, String[] localDirs,
@@ -209,6 +212,9 @@ public class TezChild {
       ownUmbilical = false;
     }
     TezCommonUtils.logCredentials(LOG, credentials, "tezChildInit");
+    if (isWebUIServiceEnabled(conf)) {
+      this.webUIService = new TezChildWebUIService(conf, executionContext).start();
+    }
   }
 
   public ContainerExecutionResult run() throws IOException, InterruptedException, TezException {
@@ -437,10 +443,18 @@ public class TezChild {
       if (ownUmbilical) {
         RPC.stopProxy(umbilical);
       }
+      if (webUIService != null) {
+        webUIService.stop();
+      }
     }
 
     TezRuntimeShutdownHandler.shutdown();
     LOG.info("TezChild shutdown finished");
+  }
+
+  private boolean isWebUIServiceEnabled(Configuration conf) {
+    return conf.getBoolean(TezConfiguration.TEZ_TASK_WEBSERVICE_ENABLE,
+        TezConfiguration.TEZ_TASK_WEBSERVICE_ENABLE_DEFAULT);
   }
 
   public static class ContainerExecutionResult {
@@ -560,7 +574,9 @@ public class TezChild {
 
     TezChild tezChild = newTezChild(defaultConf, host, port, containerIdentifier,
         tokenIdentifier, attemptNumber, localDirs, System.getenv(Environment.PWD.name()),
-        System.getenv(), pid, new ExecutionContextImpl(System.getenv(Environment.NM_HOST.name())),
+        System.getenv(), pid,
+        new ExecutionContextImpl(System.getenv(Environment.NM_HOST.name()))
+            .withContainerId(System.getenv(Environment.CONTAINER_ID.name())),
         credentials, Runtime.getRuntime().maxMemory(), System
             .getenv(ApplicationConstants.Environment.USER.toString()), null, true, hadoopShim);
     ContainerExecutionResult result = tezChild.run();
